@@ -1,0 +1,36 @@
+name: CI/CD Docker + SonarQube + Nexus
+
+on:
+  push:
+    branches: [ feature/ci-cd ]
+  pull_request:
+    branches: [ feature/ci-cd ]
+
+jobs:
+  job1:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 1 - Echo Running
+        run: echo "Running"
+
+  job2:
+    name: Sonar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 2 - Echo Running
+        run: echo "Running"
+
+  job3:
+    name: Nexus
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 3 - Echo Running
+        run: echo "Running
+    
+  job4:
+    name: Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 4 - Echo Running
+        run: echo "Running"
