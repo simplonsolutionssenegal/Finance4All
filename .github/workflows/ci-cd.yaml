@@ -6,31 +6,39 @@ on:
   pull_request:
     branches: [ feature/ci-cd ]
 
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/simplon-image
+  NEXUS_REGISTRY: http://161.97.89.159:8081/repository/npm-hosted/
+  NEXUS_IP: 161.97.89.159
+
 jobs:
-  job1:
-    name: Build
+  build-test:
+    name: 🛠 Build, Test & SonarQube
     runs-on: ubuntu-latest
     steps:
-      - name: Step 1 - Echo Running
-        run: echo "Running"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  job2:
-    name: Sonar
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 2 - Echo Running
-        run: echo "Running"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-  job3:
-    name: Nexus
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 3 - Echo Running
-        run: echo "Running"
-    
-  job4:
-    name: Push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 4 - Echo Running
-        run: echo "Running"
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Fix package.json
+        run: |
+          npm pkg fix
+          # Suppression explicite du champ 'private'
+          npm pkg delete private
+          # Vérification manuelle
+          if grep -q '"private":' package.json; then
+            echo "ERREUR: Le champ 'private' est toujours présent!"
+            exit 1
+          fi
