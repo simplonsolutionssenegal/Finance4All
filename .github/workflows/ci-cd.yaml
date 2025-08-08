@@ -53,11 +53,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        with:
-          args: >
-               -Dsonar.projectKey=simplon-finance4all \
-               -Dsonar.sources=. \
-               -Dsonar.host.url=http://161.97.89.159:9000 \
-               -Dsonar.token=sqp_62936974cad76a501878ab9a8a11b4b849e2fe13
+      - name: Run SonarScanner
+        run: |
+             sonar-scanner \
+             -Dsonar.projectKey=simplon-finance4all \
+             -Dsonar.sources=. \
+             -Dsonar.host.url=http://161.97.89.159:9000 \
+             -Dsonar.token=${{ secrets.SONAR_TOKEN }}
