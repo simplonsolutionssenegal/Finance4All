@@ -43,3 +43,18 @@ jobs:
             echo "ERREUR: Le champ 'private' est toujours présent!"
             exit 1
           fi
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: http://${{ env.NEXUS_IP }}:9000
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage/
+            reports/
