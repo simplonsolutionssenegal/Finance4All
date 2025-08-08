@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Step 3 - Echo Running
-        run: echo "Running
+        run: echo "Running"
     
   job4:
     name: Push
