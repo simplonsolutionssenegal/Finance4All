@@ -63,9 +63,11 @@ jobs:
              sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
 
       - name: Run SonarScanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-             sonar-scanner \
-             -Dsonar.projectKey=simplon-finance4all \
-             -Dsonar.sources=. \
-             -Dsonar.host.url=http://161.97.89.159:9000 \
-             -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+          sonar-scanner \
+            -Dsonar.projectKey=simplon-finance4all \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://161.97.89.159:9000 \
+            -Dsonar.login=sqp_62936974cad76a501878ab9a8a11b4b849e2fe13
