@@ -36,9 +36,7 @@ jobs:
       - name: Fix package.json
         run: |
           npm pkg fix
-          # Suppression explicite du champ 'private'
           npm pkg delete private
-          # Vérification manuelle
           if grep -q '"private":' package.json; then
             echo "ERREUR: Le champ 'private' est toujours présent!"
             exit 1
@@ -70,7 +68,7 @@ jobs:
             -Dsonar.projectKey=simplon-finance4all \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://161.97.89.159:9000 \
-            -Dsonar.login=sqp_62936974cad76a501878ab9a8a11b4b849e2fe13
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
   nexus-publish:
     name: 📦 Publish to Nexus
@@ -87,7 +85,6 @@ jobs:
 
       - name: Configure .npmrc for Nexus
         run: |
-          # Encode username:password en base64
           AUTH=$(echo -n "${{ secrets.NEXUS_USER }}:${{ secrets.NEXUS_PASSWORD }}" | base64)
           echo "//161.97.89.159:8081/repository/simplon-finance4all/:_auth=$AUTH" > ~/.npmrc
           echo "registry=http://161.97.89.159:8081/repository/simplon-finance4all/" >> ~/.npmrc
@@ -99,5 +96,15 @@ jobs:
           npm install
           npm pack
 
+      - name: 🔍 Run Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'   # Analyse le projet Node.js local
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'  # Fail le job si vulnérabilité critique trouvée
+
       - name: Publish package to Nexus
+        if: success()  # publie seulement si le scan passe
         run: npm publish --registry=http://161.97.89.159:8081/repository/simplon-finance4all/
