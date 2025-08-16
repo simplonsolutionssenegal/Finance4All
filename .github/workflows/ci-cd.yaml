@@ -36,7 +36,9 @@ jobs:
       - name: Fix package.json
         run: |
           npm pkg fix
+          # Suppression explicite du champ 'private'
           npm pkg delete private
+          # Vérification manuelle
           if grep -q '"private":' package.json; then
             echo "ERREUR: Le champ 'private' est toujours présent!"
             exit 1
@@ -68,7 +70,7 @@ jobs:
             -Dsonar.projectKey=simplon-finance4all \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://161.97.89.159:9000 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.login=sqp_62936974cad76a501878ab9a8a11b4b849e2fe13
 
   nexus-publish:
     name: 📦 Publish to Nexus
@@ -85,6 +87,7 @@ jobs:
 
       - name: Configure .npmrc for Nexus
         run: |
+          # Encode username:password en base64
           AUTH=$(echo -n "${{ secrets.NEXUS_USER }}:${{ secrets.NEXUS_PASSWORD }}" | base64)
           echo "//161.97.89.159:8081/repository/simplon-finance4all/:_auth=$AUTH" > ~/.npmrc
           echo "registry=http://161.97.89.159:8081/repository/simplon-finance4all/" >> ~/.npmrc
