@@ -85,13 +85,15 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Configure npm for Nexus
+      - name: Configure npm authentication for Nexus
         run: |
-          echo "//${{ env.NEXUS_IP }}:8081/repository/npm-hosted/:_authToken=${{ secrets.NEXUS_TOKEN }}" > ~/.npmrc
-          echo "registry=${{ env.NEXUS_REGISTRY }}" >> ~/.npmrc
+          echo "//161.97.89.159:8081/repository/npm-hosted/:username=${{ secrets.NEXUS_USERNAME }}" > ~/.npmrc
+          echo "//161.97.89.159:8081/repository/npm-hosted/:_password=$(echo -n '${{ secrets.NEXUS_PASSWORD }}' | base64)" >> ~/.npmrc
+          echo "//161.97.89.159:8081/repository/npm-hosted/:email=npm@example.com" >> ~/.npmrc
+          echo "registry=http://161.97.89.159:8081/repository/npm-hosted/" >> ~/.npmrc
 
       - name: Build package
         run: npm pack
 
       - name: Publish to Nexus
-        run: npm publish --registry=${{ env.NEXUS_REGISTRY }}
+        run: npm publish --registry=http://161.97.89.159:8081/repository/npm-hosted/
