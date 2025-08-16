@@ -75,25 +75,27 @@ jobs:
   nexus-publish:
     name: 📦 Publish to Nexus
     runs-on: ubuntu-latest
-    needs: build-test
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Configure npm authentication for Nexus
+      - name: Configure .npmrc for Nexus
         run: |
-          echo "//161.97.89.159:8081/repository/npm-hosted/:username=${{ secrets.NEXUS_USERNAME }}" > ~/.npmrc
-          echo "//161.97.89.159:8081/repository/npm-hosted/:_password=$(echo -n '${{ secrets.NEXUS_PASSWORD }}' | base64)" >> ~/.npmrc
-          echo "//161.97.89.159:8081/repository/npm-hosted/:email=npm@example.com" >> ~/.npmrc
-          echo "registry=http://161.97.89.159:8081/repository/npm-hosted/" >> ~/.npmrc
+          echo "//161.97.89.159:8081/repository/simplon-finance4all/:_authToken=\${NEXUS_PASSWORD}" > ~/.npmrc
+          echo "registry=http://161.97.89.159:8081/repository/simplon-finance4all/" >> ~/.npmrc
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Build package
         run: npm pack
 
       - name: Publish to Nexus
-        run: npm publish --registry=http://161.97.89.159:8081/repository/npm-hosted/
+        run: npm publish --registry=http://161.97.89.159:8081/repository/simplon-finance4all/
+        env:
+          NPM_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
