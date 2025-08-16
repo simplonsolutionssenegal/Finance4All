@@ -30,17 +30,22 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        if: false  # ← Skip des tests
+        if: false  # ← Cette ligne skippe le job
         run: npm test
 
       - name: Fix package.json
         run: |
           npm pkg fix
+          # Suppression explicite du champ 'private'
           npm pkg delete private
+          # Vérification manuelle
           if grep -q '"private":' package.json; then
             echo "ERREUR: Le champ 'private' est toujours présent!"
             exit 1
           fi
+      
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -65,7 +70,7 @@ jobs:
             -Dsonar.projectKey=simplon-finance4all \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://161.97.89.159:9000 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.login=sqp_62936974cad76a501878ab9a8a11b4b849e2fe13
 
   nexus-publish:
     name: 📦 Publish to Nexus
