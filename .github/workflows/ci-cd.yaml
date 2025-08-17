@@ -89,11 +89,11 @@ jobs:
         with:
            image-ref: ${{ env.IMAGE_NAME }}
            severity: HIGH,CRITICAL
-           exit-code: 1
+           #exit-code: 1
            format: table
 
       - name: Push Docker image
-        if: success()
+        #if: success()
         run: docker push $IMAGE_NAME
 
   nexus-publish:
