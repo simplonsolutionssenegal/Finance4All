@@ -69,7 +69,7 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=simplon-finance4all \
             -Dsonar.sources=. \
-            -Dsonar.host.url=http://161.97.89.159:9000 \
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
             -Dsonar.login="${{ secrets.SONAR_PASSWORD }}"
 
   docker:
