@@ -10,8 +10,8 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/simplon-image
   IMAGE_TAG: latest
-  NEXUS_REGISTRY: http://161.97.89.159:8081/repository/simplon-finance4all/
-  NEXUS_IP: 161.97.89.159
+  NEXUS_REGISTRY: ${{ secrets.NEXUS_URL }}/repository/simplon-finance4all/
+  NEXUS_IP: ${{ secrets.NEXUS_IP }}
 
 jobs:
   test:
