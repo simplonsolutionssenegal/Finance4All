@@ -1,0 +1,11 @@
+name: Preview
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  preview:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/preview') }}
+    name: Create Dev Preview instance
+    runs-on: ubuntu-latest

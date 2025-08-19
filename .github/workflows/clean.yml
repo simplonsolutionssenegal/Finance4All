@@ -1,0 +1,10 @@
+name: Clean Previews
+
+on:
+  pull_request:
+    types:
+      - closed
+jobs:
+  delete_preview:
+    name: Delete all preview's items
+    runs-on: ubuntu-latest
