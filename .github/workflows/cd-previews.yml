@@ -97,16 +97,6 @@ jobs:
             ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-#      - name: Build and push backend preview image
-#        if: needs.run-ci.outputs.backend-changed == 'true'
-#        uses: docker/build-push-action@v5
-#        with:
-#          context: ./backend
-#          push: true
-#          tags: |
-#            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-#            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
-
       - name: Deploy to Minikube
         run: |
           kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
@@ -146,41 +136,6 @@ jobs:
               targetPort: 80
               nodePort: 30080
             type: NodePort
-#          ---
-#          apiVersion: apps/v1
-#          kind: Deployment
-#          metadata:
-#            name: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-#            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-#          spec:
-#            replicas: 1
-#            selector:
-#              matchLabels:
-#                app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-#            template:
-#              metadata:
-#                labels:
-#                  app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-#              spec:
-#                containers:
-#                - name: backend
-#                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-#                  ports:
-#                  - containerPort: 3000
-#          ---
-#          apiVersion: v1
-#          kind: Service
-#          metadata:
-#            name: backend-service-${{ needs.check-preview-request.outputs.pr-number }}
-#            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-#          spec:
-#            selector:
-#              app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-#            ports:
-#            - port: 3000
-#              targetPort: 3000
-#              nodePort: 30081
-#            type: NodePort
           EOF
 
       - name: Get Minikube IP
