@@ -86,6 +86,7 @@ jobs:
           registry: ${{ secrets.NEXUS_REPO }}
           username: ${{ secrets.NEXUS_USER }}
           password: ${{ secrets.NEXUS_PASSWORD }}
+          logout: 'false'
 
       - name: Build and push frontend preview image
         if: needs.run-ci.outputs.frontend-changed == 'true'
