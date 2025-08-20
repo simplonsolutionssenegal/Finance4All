@@ -67,7 +67,7 @@ jobs:
 
   build-and-deploy:
     name: Build Images & Deploy Preview
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
 
