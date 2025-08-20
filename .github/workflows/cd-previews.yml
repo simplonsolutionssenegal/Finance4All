@@ -60,10 +60,10 @@ jobs:
               body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
             });
 
-#  run-ci:
-#    name: Run CI Tests
-#    needs: check-preview-request
-#    uses: ./.github/workflows/ci.yml
+  run-ci:
+    name: Run CI Tests
+    needs: check-preview-request
+    uses: ./.github/workflows/ci.yml
 #
 #  build-and-deploy:
 #    name: Build Images & Deploy Preview
