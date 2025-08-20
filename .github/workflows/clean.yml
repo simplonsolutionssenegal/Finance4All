@@ -8,7 +8,7 @@ on:
 jobs:
   delete_preview:
     name: Delete all preview's items
-    runs-on: self-hosted
+    runs-on: vmi2638710
     
     steps:
       - name: Delete preview namespace

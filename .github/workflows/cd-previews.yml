@@ -14,7 +14,7 @@ jobs:
   preview:
     if: github.event.issue.pull_request && contains(github.event.comment.body, '/preview')
     name: Create Preview Environment  
-    runs-on: self-hosted
+    runs-on: vmi2638710
     
     steps:
       - name: Get PR details
