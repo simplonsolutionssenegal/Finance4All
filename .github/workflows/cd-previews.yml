@@ -29,6 +29,27 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
+      - name: React to comment
+        if: steps.check.outputs.should-deploy == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Ajouter une réaction au commentaire
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+            
+            // Ajouter un commentaire de confirmation
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${steps.pr-info.outputs.pr-sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+            });
+
   run-ci:
     name: Run CI Tests
     needs: check-preview-request
