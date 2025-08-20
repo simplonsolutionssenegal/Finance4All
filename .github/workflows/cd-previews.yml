@@ -4,15 +4,17 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: write
+
 jobs:
-  check-preview-request:
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/preview') }}
-    name: Check Preview Request
-    runs-on: ubuntu-latest
-    outputs:
-      pr-ref: ${{ steps.pr-details.outputs.ref }}
-      pr-sha: ${{ steps.pr-details.outputs.sha }}
-      pr-number: ${{ steps.pr-details.outputs.number }}
+  preview:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/preview')
+    name: Create Preview Environment  
+    runs-on: self-hosted
     
     steps:
       - name: Get PR details
@@ -29,22 +31,68 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
-  run-ci:
-    name: Run CI Tests
-    needs: check-preview-request
-    uses: ./.github/workflows/ci.yml
-
-  build-and-deploy:
-    name: Build Images & Deploy Preview
-    runs-on: self-hosted
-    needs: [check-preview-request, run-ci]
-    if: needs.run-ci.outputs.build-success == 'true'
-    
-    steps:
       - name: Checkout PR code
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+          ref: ${{ steps.pr-details.outputs.ref }}
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'frontend/package.json'
+              - 'frontend/package-lock.json'
+            backend:
+              - 'backend/**'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: |
+          rm -rf node_modules
+          npm ci
+          npm rebuild lightningcss --force
+
+      - name: Install backend dependencies
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run frontend tests
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: |
+          npm run lint
+          npm run type-check || npm run tsc --noEmit
+          npm test
+
+      - name: Run backend tests
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: ./backend
+        run: |
+          npm run lint
+          npm run type-check || npm run tsc --noEmit
+
+      - name: Build frontend
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Build backend
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: ./backend
+        run: npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -57,101 +105,108 @@ jobs:
           password: ${{ secrets.NEXUS_PASSWORD }}
 
       - name: Build and push frontend preview image
-        if: needs.run-ci.outputs.frontend-changed == 'true'
+        if: steps.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.sha }}
 
       - name: Build and push backend preview image
-        if: needs.run-ci.outputs.backend-changed == 'true'
+        if: steps.changes.outputs.backend == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.sha }}
 
-# Deployment Minikube
       - name: Deploy to Minikube
         run: |
-          kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace preview-pr-${{ steps.pr-details.outputs.number }} --dry-run=client -o yaml | kubectl apply -f -
           
-          cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            template:
-              metadata:
-                labels:
-                  app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-              spec:
-                containers:
-                - name: frontend
-                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-                  ports:
-                  - containerPort: 80
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: frontend-service-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            selector:
-              app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ports:
-            - port: 80
-              targetPort: 80
-              nodePort: 30080
-            type: NodePort
-          ---
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            template:
-              metadata:
-                labels:
-                  app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-              spec:
-                containers:
-                - name: backend
-                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-                  ports:
-                  - containerPort: 3000
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: backend-service-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            selector:
-              app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ports:
-            - port: 3000
-              targetPort: 3000
-              nodePort: 30081
-            type: NodePort
+          # Deploy frontend if changed
+          if [ "${{ steps.changes.outputs.frontend }}" == "true" ]; then
+            cat <<EOF | kubectl apply -f -
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: frontend-preview-${{ steps.pr-details.outputs.number }}
+              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: frontend-preview-${{ steps.pr-details.outputs.number }}
+              template:
+                metadata:
+                  labels:
+                    app: frontend-preview-${{ steps.pr-details.outputs.number }}
+                spec:
+                  containers:
+                  - name: frontend
+                    image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}
+                    ports:
+                    - containerPort: 80
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: frontend-service-${{ steps.pr-details.outputs.number }}
+              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
+            spec:
+              selector:
+                app: frontend-preview-${{ steps.pr-details.outputs.number }}
+              ports:
+              - port: 80
+                targetPort: 80
+                nodePort: 30080
+              type: NodePort
           EOF
+          fi
+
+          # Deploy backend if changed
+          if [ "${{ steps.changes.outputs.backend }}" == "true" ]; then
+            cat <<EOF | kubectl apply -f -
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: backend-preview-${{ steps.pr-details.outputs.number }}
+              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: backend-preview-${{ steps.pr-details.outputs.number }}
+              template:
+                metadata:
+                  labels:
+                    app: backend-preview-${{ steps.pr-details.outputs.number }}
+                spec:
+                  containers:
+                  - name: backend
+                    image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}
+                    ports:
+                    - containerPort: 3000
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: backend-service-${{ steps.pr-details.outputs.number }}
+              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
+            spec:
+              selector:
+                app: backend-preview-${{ steps.pr-details.outputs.number }}
+              ports:
+              - port: 3000
+                targetPort: 3000
+                nodePort: 30081
+              type: NodePort
+          EOF
+          fi
 
       - name: Get Minikube IP
         id: minikube-ip
@@ -163,46 +218,36 @@ jobs:
         with:
           script: |
             const minikubeIp = '${{ steps.minikube-ip.outputs.ip }}';
-            const frontendUrl = `http://${minikubeIp}:30080`;
-            const backendUrl = `http://${minikubeIp}:30081`;
+            const frontendChanged = '${{ steps.changes.outputs.frontend }}' === 'true';
+            const backendChanged = '${{ steps.changes.outputs.backend }}' === 'true';
+            
+            let urls = '';
+            if (frontendChanged) {
+              urls += `- Frontend: http://${minikubeIp}:30080\n              `;
+            }
+            if (backendChanged) {
+              urls += `- Backend: http://${minikubeIp}:30081\n              `;
+            }
+            
+            let images = '';
+            if (frontendChanged) {
+              images += `- Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}\`\n              `;
+            }
+            if (backendChanged) {
+              images += `- Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}\`\n              `;
+            }
             
             github.rest.issues.createComment({
-              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              issue_number: ${{ steps.pr-details.outputs.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `🚀 **Preview déployé avec succès !**
               
               **URLs de preview:**
-              - Frontend: ${frontendUrl}
-              - Backend: ${backendUrl}
-              
+              ${urls}
               **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              
-              **Namespace Kubernetes:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+              ${images}
+              **Namespace Kubernetes:** \`preview-pr-${{ steps.pr-details.outputs.number }}\`
               
               _Ce preview sera automatiquement supprimé quand la PR sera fermée._`
-            });
-
-  notify-failure:
-    name: Notify CI Failure
-    runs-on: ubuntu-latest
-    needs: [check-preview-request, run-ci]
-    if: failure() && needs.run-ci.result == 'failure'
-    
-    steps:
-      - name: Comment PR with failure
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ **Preview déploiement échoué !**
-              
-              Les tests CI ont échoué. Veuillez corriger les erreurs avant de demander un nouveau preview avec \`/preview\`.
-              
-              Consultez les logs du workflow CI pour plus de détails.`
             });
