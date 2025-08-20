@@ -79,6 +79,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ secrets.NEXUS_PREVIEW }}"]
+              http = true
+              insecure = true
 
       - name: Login to Nexus Registry
         uses: docker/login-action@v3
@@ -95,8 +100,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
       - name: Deploy to Minikube
         run: |
@@ -120,7 +125,7 @@ jobs:
               spec:
                 containers:
                 - name: frontend
-                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
                   ports:
                   - containerPort: 80
           ---
@@ -163,8 +168,8 @@ jobs:
               - Backend: ${backendUrl}
 
               **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Backend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
 
               **Namespace Kubernetes:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
 
