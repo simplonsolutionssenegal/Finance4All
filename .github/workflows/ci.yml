@@ -5,6 +5,17 @@ on:
     types: [opened]
   push:
     branches-ignore: ['main']
+  workflow_call:
+    outputs:
+      frontend-changed:
+        description: "Frontend changed"
+        value: ${{ jobs.detect-changes.outputs.frontend-changed }}
+      backend-changed:
+        description: "Backend changed"  
+        value: ${{ jobs.detect-changes.outputs.backend-changed }}
+      build-success:
+        description: "Build successful"
+        value: ${{ jobs.build-frontend.result == 'success' }}
 
 jobs:
   detect-changes:
@@ -29,9 +40,8 @@ jobs:
             backend:
               - 'backend/**'
 
-
   test-frontend:
-    name: ✅ Run Frontend Unit Tests
+    name: 🧪 Run Frontend Unit Tests
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend-changed == 'true'
@@ -69,7 +79,7 @@ jobs:
         run: npm run test:coverage || npm test -- --coverage || echo "No coverage configured"
 
 #  test-backend:
-#    name: ✅ Run Backend Unit Tests
+#    name: 🧪 Run Backend Unit Tests
 #    runs-on: ubuntu-latest
 #    needs: detect-changes
 #    if: needs.detect-changes.outputs.backend-changed == 'true'
@@ -130,6 +140,7 @@ jobs:
             -Dsonar.sources=. \
             -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
             -Dsonar.login="${{ secrets.SONAR_PASSWORD }}"
+
 
 
   build-frontend:
