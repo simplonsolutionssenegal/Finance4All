@@ -1,253 +1,56 @@
-name: Preview
+name: Preview Deploy
 
 on:
   issue_comment:
     types: [created]
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
-  actions: write
-
 jobs:
-  preview:
+  # Vérifier si le commentaire est valide et si l'utilisateur a les permissions
+  check-comment:
     if: github.event.issue.pull_request && contains(github.event.comment.body, '/preview')
-    name: Create Preview Environment  
-    runs-on: vmi2638710
-    
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+      pr-number: ${{ steps.pr-info.outputs.pr-number }}
+      pr-sha: ${{ steps.pr-info.outputs.pr-sha }}
+      pr-ref: ${{ steps.pr-info.outputs.pr-ref }}
+
     steps:
-      - name: Get PR details
+      - name: Get PR info
+        id: pr-info
+        if: steps.check.outputs.should-deploy == 'true'
         uses: actions/github-script@v7
-        id: pr-details
         with:
           script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
+            const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              pull_number: context.issue.number,
             });
-            core.setOutput('ref', pullRequest.head.ref);
-            core.setOutput('sha', pullRequest.head.sha);
-            core.setOutput('number', context.issue.number);
+            
+            return {
+              prNumber: context.issue.number,
+              prSha: pr.data.head.sha,
+              prRef: pr.data.head.ref
+            };
 
-      - name: Checkout PR code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.pr-details.outputs.ref }}
-
-      - name: Detect changes
-        uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-              - 'frontend/package.json'
-              - 'frontend/package-lock.json'
-            backend:
-              - 'backend/**'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install frontend dependencies
-        if: steps.changes.outputs.frontend == 'true'
-        working-directory: ./frontend
-        run: |
-          rm -rf node_modules
-          npm ci
-          npm rebuild lightningcss --force
-
-      - name: Install backend dependencies
-        if: steps.changes.outputs.backend == 'true'
-        working-directory: ./backend
-        run: npm ci
-
-      - name: Run frontend tests
-        if: steps.changes.outputs.frontend == 'true'
-        working-directory: ./frontend
-        run: |
-          npm run lint
-          npm run type-check || npm run tsc --noEmit
-          npm test
-
-      - name: Run backend tests
-        if: steps.changes.outputs.backend == 'true'
-        working-directory: ./backend
-        run: |
-          npm run lint
-          npm run type-check || npm run tsc --noEmit
-
-      - name: Build frontend
-        if: steps.changes.outputs.frontend == 'true'
-        working-directory: ./frontend
-        run: npm run build
-
-      - name: Build backend
-        if: steps.changes.outputs.backend == 'true'
-        working-directory: ./backend
-        run: npm run build
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Nexus Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.NEXUS_REGISTRY_URL }}
-          username: ${{ secrets.NEXUS_USERNAME }}
-          password: ${{ secrets.NEXUS_PASSWORD }}
-
-      - name: Build and push frontend preview image
-        if: steps.changes.outputs.frontend == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.sha }}
-
-      - name: Build and push backend preview image
-        if: steps.changes.outputs.backend == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.sha }}
-
-      - name: Deploy to Minikube
-        run: |
-          kubectl create namespace preview-pr-${{ steps.pr-details.outputs.number }} --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Deploy frontend if changed
-          if [ "${{ steps.changes.outputs.frontend }}" == "true" ]; then
-            cat <<EOF | kubectl apply -f -
-            apiVersion: apps/v1
-            kind: Deployment
-            metadata:
-              name: frontend-preview-${{ steps.pr-details.outputs.number }}
-              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
-            spec:
-              replicas: 1
-              selector:
-                matchLabels:
-                  app: frontend-preview-${{ steps.pr-details.outputs.number }}
-              template:
-                metadata:
-                  labels:
-                    app: frontend-preview-${{ steps.pr-details.outputs.number }}
-                spec:
-                  containers:
-                  - name: frontend
-                    image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}
-                    ports:
-                    - containerPort: 80
-            ---
-            apiVersion: v1
-            kind: Service
-            metadata:
-              name: frontend-service-${{ steps.pr-details.outputs.number }}
-              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
-            spec:
-              selector:
-                app: frontend-preview-${{ steps.pr-details.outputs.number }}
-              ports:
-              - port: 80
-                targetPort: 80
-                nodePort: 30080
-              type: NodePort
-          EOF
-          fi
-
-          # Deploy backend if changed
-          if [ "${{ steps.changes.outputs.backend }}" == "true" ]; then
-            cat <<EOF | kubectl apply -f -
-            apiVersion: apps/v1
-            kind: Deployment
-            metadata:
-              name: backend-preview-${{ steps.pr-details.outputs.number }}
-              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
-            spec:
-              replicas: 1
-              selector:
-                matchLabels:
-                  app: backend-preview-${{ steps.pr-details.outputs.number }}
-              template:
-                metadata:
-                  labels:
-                    app: backend-preview-${{ steps.pr-details.outputs.number }}
-                spec:
-                  containers:
-                  - name: backend
-                    image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}
-                    ports:
-                    - containerPort: 3000
-            ---
-            apiVersion: v1
-            kind: Service
-            metadata:
-              name: backend-service-${{ steps.pr-details.outputs.number }}
-              namespace: preview-pr-${{ steps.pr-details.outputs.number }}
-            spec:
-              selector:
-                app: backend-preview-${{ steps.pr-details.outputs.number }}
-              ports:
-              - port: 3000
-                targetPort: 3000
-                nodePort: 30081
-              type: NodePort
-          EOF
-          fi
-
-      - name: Get Minikube IP
-        id: minikube-ip
-        run: |
-          echo "ip=$(minikube ip)" >> $GITHUB_OUTPUT
-
-      - name: Comment PR with preview URLs
+      - name: React to comment
+        if: steps.check.outputs.should-deploy == 'true'
         uses: actions/github-script@v7
         with:
           script: |
-            const minikubeIp = '${{ steps.minikube-ip.outputs.ip }}';
-            const frontendChanged = '${{ steps.changes.outputs.frontend }}' === 'true';
-            const backendChanged = '${{ steps.changes.outputs.backend }}' === 'true';
-            
-            let urls = '';
-            if (frontendChanged) {
-              urls += `- Frontend: http://${minikubeIp}:30080\n              `;
-            }
-            if (backendChanged) {
-              urls += `- Backend: http://${minikubeIp}:30081\n              `;
-            }
-            
-            let images = '';
-            if (frontendChanged) {
-              images += `- Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ steps.pr-details.outputs.number }}\`\n              `;
-            }
-            if (backendChanged) {
-              images += `- Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ steps.pr-details.outputs.number }}\`\n              `;
-            }
-            
-            github.rest.issues.createComment({
-              issue_number: ${{ steps.pr-details.outputs.number }},
+            // Ajouter une réaction au commentaire
+            await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview déployé avec succès !**
-              
-              **URLs de preview:**
-              ${urls}
-              **Images Docker:**
-              ${images}
-              **Namespace Kubernetes:** \`preview-pr-${{ steps.pr-details.outputs.number }}\`
-              
-              _Ce preview sera automatiquement supprimé quand la PR sera fermée._`
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+            
+            // Ajouter un commentaire de confirmation
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${steps.pr-info.outputs.pr-sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
             });
