@@ -1,62 +1,16 @@
 {
-  "name": "finance4all-backend",
-  "version": "1.0.0",
-  "description": "Partie Backend du projet Finance4All qui vise à promouvoir l'inclusion financière à travers une plateforme numérique innovante.",
-  "main": "index.js",
+  "name": "finance4all",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write .",
-    "scripts": {
-      "cleanup-tokens": "ts-node src/workers/cleanupExpiredToken.ts"
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend/issues"
-  },
-  "homepage": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend#readme",
-  "dependencies": {
-    "bcrypt": "^5.1.1",
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "helmet": "^8.1.0",
-    "joi": "^17.13.3",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.2",
-    "node-cron": "^4.0.4",
-    "nodemailer": "^6.10.1",
-    "uuid": "^11.1.0"
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.1",
-    "@types/jsonwebtoken": "^9.0.9",
-    "@types/mongoose": "^5.11.96",
-    "@types/multer": "^1.4.12",
-    "@types/node": "^22.14.1",
-    "@types/node-cron": "^3.0.11",
-    "@types/nodemailer": "^6.4.17",
-    "@types/uuid": "^10.0.0",
-    "eslint": "^9.25.1",
-    "eslint-config-prettier": "^10.1.2",
-    "eslint-plugin-prettier": "^5.2.6",
-    "nodemon": "^3.1.9",
-    "prettier": "^3.5.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "concurrently": "^7.6.0"
   }
 }
