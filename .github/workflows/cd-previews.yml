@@ -87,7 +87,7 @@ jobs:
 
       - name: Allow insecure registry
         run: |
-          echo '{ "insecure-registries":["161.97.89.159:8081"] }' |
+          echo '{ "insecure-registries":["161.97.89.159:8082"] }' |
           sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
 
@@ -100,7 +100,7 @@ jobs:
           echo  "${{ secrets.NEXUS_PASSWORD }}"
           echo  "${{ secrets.NEXUS_PREVIEW }}"
           echo  "${{ secrets.NEXUS_USER }}"
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login 161.97.89.159:8081 -u "${{ secrets.NEXUS_USER }}" --password-stdin
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login 161.97.89.159:8082 -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
         if: needs.run-ci.outputs.frontend-changed == 'true'
