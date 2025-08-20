@@ -83,7 +83,7 @@ jobs:
       - name: Login to Nexus Registry
         uses: docker/login-action@v3
         with:
-          registry: http://127.0.0.53:8081
+          registry: ${{ secrets.NEXUS_PREVIEW }}
           username: ${{ secrets.NEXUS_USER }}
           password: ${{ secrets.NEXUS_PASSWORD }}
           logout: 'false'
