@@ -7,7 +7,7 @@ on:
 jobs:
   # Vérifier si le commentaire est valide et si l'utilisateur a les permissions
   check-comment:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/preview')
+    if: ${{github.event.issue.pull_request && contains(github.event.comment.body, '/preview')}}
     runs-on: ubuntu-latest
     outputs:
       should-deploy: ${{ steps.check.outputs.should-deploy }}
