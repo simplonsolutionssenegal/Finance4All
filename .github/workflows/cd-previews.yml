@@ -77,15 +77,6 @@ jobs:
         with:
           ref: ${{ needs.check-preview-request.outputs.pr-ref }}
 
-      - name: Configure Docker daemon for insecure registry
-        run: |
-          echo "${{ secrets.PREVIEW_SUDO_PASSWORD }}" | sudo -S mkdir -p /etc/docker
-          echo '{
-            "insecure-registries": ["${{ secrets.NEXUS_PREVIEW }}"]
-          }' | sudo tee /etc/docker/daemon.json
-          echo "${{ secrets.PREVIEW_SUDO_PASSWORD }}" | sudo -S systemctl restart docker
-          sleep 5
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
