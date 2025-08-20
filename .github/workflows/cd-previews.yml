@@ -37,6 +37,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // Get PR details
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
             // Ajouter une réaction au commentaire
             await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
@@ -50,7 +57,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${steps.pr-info.outputs.pr-sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
             });
 
 #  run-ci:
