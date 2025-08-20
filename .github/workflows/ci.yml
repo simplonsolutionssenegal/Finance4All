@@ -132,7 +132,12 @@ jobs:
           sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
       - env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "SONAR_HOST_URL secret is not set, skipping SonarQube analysis"
+            exit 0
+          fi
           sonar-scanner \
             -Dsonar.projectKey=simplon-finance4all \
             -Dsonar.sources=. \
