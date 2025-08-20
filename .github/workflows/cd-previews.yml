@@ -83,10 +83,9 @@ jobs:
       - name: Login to Nexus Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.NEXUS_REGISTRY_URL }}
-          username: ${{ secrets.NEXUS_USERNAME }}
+          registry: ${{ secrets.NEXUS_REPO }}
+          username: ${{ secrets.NEXUS_USER }}
           password: ${{ secrets.NEXUS_PASSWORD }}
-          logout: false
 
       - name: Build and push frontend preview image
         if: needs.run-ci.outputs.frontend-changed == 'true'
