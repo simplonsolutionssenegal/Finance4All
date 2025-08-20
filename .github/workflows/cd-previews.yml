@@ -67,7 +67,7 @@ jobs:
 
   build-and-deploy:
     name: Build Images & Deploy Preview
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
 
@@ -85,22 +85,13 @@ jobs:
               http = true
               insecure = true
 
-      - name: Allow insecure registry
-        run: |
-          echo '{ "insecure-registries":["161.97.89.159:8082"] }' |
-          sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-
-      - name: Debug buildx config
-        run: |
-          docker buildx inspect default
-
       - name: Login to Nexus Registry
-        run: |
-          echo  "${{ secrets.NEXUS_PASSWORD }}"
-          echo  "${{ secrets.NEXUS_PREVIEW }}"
-          echo  "${{ secrets.NEXUS_USER }}"
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login 161.97.89.159:8082 -u "${{ secrets.NEXUS_USER }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.NEXUS_PREVIEW }}
+          username: ${{ secrets.NEXUS_USER }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+          logout: 'false'
 
       - name: Build and push frontend preview image
         if: needs.run-ci.outputs.frontend-changed == 'true'
@@ -109,8 +100,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
       - name: Deploy to Minikube
         run: |
@@ -134,7 +125,7 @@ jobs:
               spec:
                 containers:
                 - name: frontend
-                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
                   ports:
                   - containerPort: 80
           ---
@@ -177,8 +168,8 @@ jobs:
               - Backend: ${backendUrl}
 
               **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
 
               **Namespace Kubernetes:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
 
