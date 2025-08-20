@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Copier le reste du code source
-COPY .. .
+COPY ../.github/workflows .
 
 # Étape 2 : Image finale
 FROM node:18-bullseye-slim
