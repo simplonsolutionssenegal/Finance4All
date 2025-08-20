@@ -87,6 +87,9 @@ jobs:
 
       - name: Login to Nexus Registry
         run: |
+          echo  "${{ secrets.NEXUS_PASSWORD }}"
+          echo  "${{ secrets.NEXUS_PREVIEW }}"
+          echo  "${{ secrets.NEXUS_USER }}"
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
