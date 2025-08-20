@@ -4,5 +4,10 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
 RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
+
+# Étape 2 : Exécution
+FROM node:18
+WORKDIR /app
+COPY --from=builder /app ./
+EXPOSE 80
+CMD ["npm", "run", "start", "--", "-p", "80"]
