@@ -85,12 +85,6 @@ jobs:
               http = true
               insecure = true
 
-      - name: Allow insecure registry
-        run: |
-          echo '{ "insecure-registries":["${{ secrets.NEXUS_PREVIEW }}"] }' |
-          sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-
       - name: Debug buildx config
         run: |
           docker buildx inspect default
@@ -117,7 +111,7 @@ jobs:
           # Vérifier si Minikube est en cours d'exécution
           if ! minikube status | grep -q "host: Running"; then
             echo "Starting Minikube..."
-            minikube start --driver=docker
+            minikube start --driver=none
           else
             echo "Minikube is already running"
           fi
