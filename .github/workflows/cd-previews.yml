@@ -4,6 +4,10 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   check-preview-request:
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/preview') }}
@@ -29,6 +33,33 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
+      - name: React to comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get PR details
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            // Ajouter une réaction au commentaire
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+            
+            // Ajouter un commentaire de confirmation
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+            });
+
   run-ci:
     name: Run CI Tests
     needs: check-preview-request
@@ -39,7 +70,7 @@ jobs:
     runs-on: self-hosted
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
-    
+
     steps:
       - name: Checkout PR code
         uses: actions/checkout@v4
@@ -48,13 +79,22 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ secrets.NEXUS_PREVIEW }}"]
+              http = true
+              insecure = true
+
+      - name: Debug buildx config
+        run: |
+          docker buildx inspect default
 
       - name: Login to Nexus Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.NEXUS_REGISTRY_URL }}
-          username: ${{ secrets.NEXUS_USERNAME }}
-          password: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          echo  "${{ secrets.NEXUS_PASSWORD }}"
+          echo  "${{ secrets.NEXUS_PREVIEW }}"
+          echo  "${{ secrets.NEXUS_USER }}"
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
         if: needs.run-ci.outputs.frontend-changed == 'true'
@@ -63,24 +103,67 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-      - name: Build and push backend preview image
-        if: needs.run-ci.outputs.backend-changed == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
-
-# Deployment Minikube
-      - name: Deploy to Minikube
+      - name: Setup KIND
         run: |
+          # Créer la configuration KIND avec mapping de port
+          cat <<EOF > /tmp/kind-config.yaml
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          name: preview-cluster
+          nodes:
+          - role: control-plane
+            kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+            extraPortMappings:
+            - containerPort: 30080
+              hostPort: 30080
+              protocol: TCP
+            - containerPort: 30081
+              hostPort: 30081
+              protocol: TCP
+          EOF
+          
+          # Vérifier si le cluster existe déjà
+          if kind get clusters | grep -q "preview-cluster"; then
+            echo "KIND cluster already exists"
+          else
+            echo "Creating KIND cluster..."
+            kind create cluster --config /tmp/kind-config.yaml
+          fi
+          
+          # Configurer kubectl pour utiliser KIND
+          kubectl config use-context kind-preview-cluster
+          
+          # Vérifier la connexion
+          kubectl cluster-info
+
+      - name: Get server public IP
+        id: server-ip
+        run: |
+          # Récupérer l'IP publique du serveur
+          PUBLIC_IP=$(curl -s ifconfig.me)
+          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
+          echo "Public IP: ${PUBLIC_IP}"
+
+      - name: Load images to KIND and Deploy
+        run: |
+          # Charger l'image Docker dans KIND
+          if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
+            docker pull ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            kind load docker-image ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }} --name preview-cluster
+          fi
+          
+          # Créer le namespace
           kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
           
+          # Déployer l'application
           cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
@@ -99,7 +182,8 @@ jobs:
               spec:
                 containers:
                 - name: frontend
-                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+                  imagePullPolicy: Never
                   ports:
                   - containerPort: 80
           ---
@@ -116,72 +200,39 @@ jobs:
               targetPort: 80
               nodePort: 30080
             type: NodePort
-          ---
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            template:
-              metadata:
-                labels:
-                  app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-              spec:
-                containers:
-                - name: backend
-                  image: ${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-                  ports:
-                  - containerPort: 3000
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: backend-service-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            selector:
-              app: backend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ports:
-            - port: 3000
-              targetPort: 3000
-              nodePort: 30081
-            type: NodePort
           EOF
+          
+          # Attendre que le déploiement soit prêt
+          kubectl wait --for=condition=ready pod -l app=frontend-preview-${{ needs.check-preview-request.outputs.pr-number }} -n preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --timeout=300s
 
-      - name: Get Minikube IP
-        id: minikube-ip
+      - name: Get KIND cluster info
+        id: kind-info
         run: |
-          echo "ip=$(minikube ip)" >> $GITHUB_OUTPUT
+          # KIND utilise directement l'IP de l'hôte grâce au port mapping
+          echo "cluster-ready=true" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URLs
         uses: actions/github-script@v7
         with:
           script: |
-            const minikubeIp = '${{ steps.minikube-ip.outputs.ip }}';
-            const frontendUrl = `http://${minikubeIp}:30080`;
-            const backendUrl = `http://${minikubeIp}:30081`;
-            
+            const publicIp = '${{ steps.server-ip.outputs.ip }}';
+            const frontendUrl = `http://${publicIp}:30080`;
+
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview déployé avec succès !**
-              
+              body: `🚀 **Preview déployé avec succès sur KIND !**
+
               **URLs de preview:**
               - Frontend: ${frontendUrl}
-              - Backend: ${backendUrl}
-              
+
               **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_REGISTRY_URL }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              
-              **Namespace Kubernetes:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
-              
+              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+
+              **Cluster:** KIND (preview-cluster)
+              **Namespace:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+
               _Ce preview sera automatiquement supprimé quand la PR sera fermée._`
             });
 
@@ -190,7 +241,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-preview-request, run-ci]
     if: failure() && needs.run-ci.result == 'failure'
-    
+
     steps:
       - name: Comment PR with failure
         uses: actions/github-script@v7
@@ -201,8 +252,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `❌ **Preview déploiement échoué !**
-              
+
               Les tests CI ont échoué. Veuillez corriger les erreurs avant de demander un nouveau preview avec \`/preview\`.
-              
+
               Consultez les logs du workflow CI pour plus de détails.`
             });
