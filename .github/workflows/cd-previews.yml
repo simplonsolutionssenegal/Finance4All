@@ -122,10 +122,23 @@ jobs:
           # Vérifier la connexion
           kubectl cluster-info
 
+      - name: Get server public IP
+        id: server-ip
+        run: |
+          # Récupérer l'IP publique du serveur
+          PUBLIC_IP=$(curl -s ifconfig.me)
+          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
+          echo "Public IP: ${PUBLIC_IP}"
+
       - name: Deploy to Minikube
         run: |
           kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
-
+          
+          # Générer un port aléatoire pour éviter les conflits
+          FRONTEND_PORT=$((30000 + (${{ needs.check-preview-request.outputs.pr-number }} % 1000)))
+          # BACKEND_PORT=$((31000 + (${{ needs.check-preview-request.outputs.pr-number }} % 1000)))
+          
+          
           cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
@@ -162,6 +175,8 @@ jobs:
               nodePort: 30080
             type: NodePort
           EOF
+          
+          echo "FRONTEND_PORT=${FRONTEND_PORT}" >> $GITHUB_ENV
 
       - name: Get Minikube IP
         id: minikube-ip
@@ -172,9 +187,10 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const minikubeIp = '${{ steps.minikube-ip.outputs.ip }}';
-            const frontendUrl = `http://${minikubeIp}:30080`;
-            const backendUrl = `http://${minikubeIp}:30081`;
+            const publicIp = '${{ steps.server-ip.outputs.ip }}';
+            const frontendPort = '${{ env.FRONTEND_PORT }}';
+            
+            const frontendUrl = `http://${publicIp}:${frontendPort}`;
 
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
@@ -184,11 +200,9 @@ jobs:
 
               **URLs de preview:**
               - Frontend: ${frontendUrl}
-              - Backend: ${backendUrl}
 
               **Images Docker:**
               - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
 
               **Namespace Kubernetes:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
 
