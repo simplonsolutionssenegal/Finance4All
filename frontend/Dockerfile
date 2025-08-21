@@ -1,5 +1,5 @@
 # Étape 1 : Construction
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copier seulement les fichiers de dépendances
@@ -11,27 +11,28 @@ RUN npm install --frozen-lockfile --silent || npm install --silent
 # Copier le code source
 COPY . .
 
-# Builder l'application
+# Builder l'application Next.js
 RUN npm run build
 
-# Nettoyer après le build
-RUN npm cache clean --force && \
-    rm -rf node_modules
+# Étape 2 : Image de production avec Node.js (Next.js a besoin de Node)
+FROM node:22-alpine AS runner
+WORKDIR /app
 
-# Étape 2 : Image de production avec Nginx
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
+# Copier les fichiers nécessaires de Next.js
+COPY --from=builder /app/next.config.* ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
 
-# Supprimer les fichiers par défaut de nginx
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copier seulement les fichiers buildés
-COPY --from=builder /app/dist ./
-
-# Utiliser la configuration nginx par défaut
+# Copier les fichiers buildés de Next.js
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 # Exposer le port 80
 EXPOSE 80
 
-# Démarrer nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=80
+
+# Démarrer l'application Next.js
+CMD ["node", "server.js"]
