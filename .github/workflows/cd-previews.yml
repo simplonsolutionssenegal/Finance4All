@@ -67,7 +67,7 @@ jobs:
 
   build-and-deploy:
     name: Build Images & Deploy Preview
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
 
@@ -111,6 +111,22 @@ jobs:
           tags: |
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+
+      - name: Start Minikube and configure kubectl
+        run: |
+          # Vérifier si Minikube est en cours d'exécution
+          if ! minikube status | grep -q "host: Running"; then
+            echo "Starting Minikube..."
+            minikube start --driver=docker
+          else
+            echo "Minikube is already running"
+          fi
+          
+          # Configurer kubectl pour utiliser le contexte Minikube
+          kubectl config use-context minikube
+          
+          # Vérifier la connexion
+          kubectl cluster-info
 
       - name: Deploy to Minikube
         run: |
