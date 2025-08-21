@@ -5,15 +5,18 @@ WORKDIR /app
 # Copier seulement les fichiers de dépendances
 COPY package*.json ./
 
-# Installer les dépendances (avec cache pour Docker layers)
-RUN npm ci --only=production --silent && \
-    npm cache clean --force
+# Installer toutes les dépendances nécessaires pour le build
+RUN npm ci --silent
 
 # Copier le code source
 COPY . .
 
 # Builder l'application
 RUN npm run build
+
+# Nettoyer après le build
+RUN npm cache clean --force && \
+    rm -rf node_modules
 
 # Étape 2 : Image de production avec Nginx
 FROM nginx:alpine
