@@ -111,7 +111,7 @@ jobs:
           # Vérifier si Minikube est en cours d'exécution
           if ! minikube status | grep -q "host: Running"; then
             echo "Starting Minikube..."
-            minikube start --driver=none
+            minikube start --driver=docker
           else
             echo "Minikube is already running"
           fi
