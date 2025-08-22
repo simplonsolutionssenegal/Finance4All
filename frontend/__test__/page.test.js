@@ -6,7 +6,7 @@ describe('Home', () => {
   it('renders main content', () => {
     render(<Home />);
 
-    const main = screen.getByRole('footer');
+    const main = screen.getByRole('main');
 
     expect(main).toBeInTheDocument()
   })
