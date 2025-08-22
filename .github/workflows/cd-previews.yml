@@ -220,9 +220,9 @@ jobs:
             name: frontend-ingress-${{ needs.check-preview-request.outputs.pr-number }}
             namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
             annotations:
-              kubernetes.io/ingress.class: nginx
               nginx.ingress.kubernetes.io/rewrite-target: /
           spec:
+            ingressClassName: nginx
             rules:
             - host: preview-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
               http:
