@@ -122,11 +122,11 @@ jobs:
                 kubeletExtraArgs:
                   node-labels: "ingress-ready=true"
             extraPortMappings:
-            - containerPort: 80
-              hostPort: 80
+            - containerPort: 30080
+              hostPort: 30080
               protocol: TCP
-            - containerPort: 443
-              hostPort: 443
+            - containerPort: 30081
+              hostPort: 30081
               protocol: TCP
           EOF
           
@@ -143,20 +143,6 @@ jobs:
           
           # Vérifier la connexion
           kubectl cluster-info
-          
-          # Installer nginx-ingress si pas déjà présent
-          if ! kubectl get namespace ingress-nginx >/dev/null 2>&1; then
-            echo "Installing nginx-ingress controller..."
-            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-            
-            # Attendre que l'ingress controller soit prêt
-            kubectl wait --namespace ingress-nginx \
-              --for=condition=ready pod \
-              --selector=app.kubernetes.io/component=controller \
-              --timeout=300s
-          else
-            echo "nginx-ingress controller already installed"
-          fi
 
       - name: Get server public IP
         id: server-ip
@@ -212,28 +198,8 @@ jobs:
             ports:
             - port: 80
               targetPort: 80
-            type: ClusterIP
-          ---
-          apiVersion: networking.k8s.io/v1
-          kind: Ingress
-          metadata:
-            name: frontend-ingress-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-            annotations:
-              nginx.ingress.kubernetes.io/rewrite-target: /
-          spec:
-            ingressClassName: nginx
-            rules:
-            - host: preview-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
-              http:
-                paths:
-                - path: /
-                  pathType: Prefix
-                  backend:
-                    service:
-                      name: frontend-service-${{ needs.check-preview-request.outputs.pr-number }}
-                      port:
-                        number: 80
+              nodePort: 30080
+            type: NodePort
           EOF
           
           # Attendre que le déploiement soit prêt
@@ -249,11 +215,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = ${{ needs.check-preview-request.outputs.pr-number }};
-            const frontendUrl = `http://preview-${prNumber}.finance4all.simplonprojet.com`;
+            const publicIp = '${{ steps.server-ip.outputs.ip }}';
+            const frontendUrl = `http://${publicIp}:30080`;
 
             github.rest.issues.createComment({
-              issue_number: prNumber,
+              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `🚀 **Preview déployé avec succès sur KIND !**
@@ -262,11 +228,10 @@ jobs:
               - Frontend: ${frontendUrl}
 
               **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${prNumber}\`
+              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
 
-              **Cluster:** KIND (preview-cluster) avec nginx-ingress
-              **Namespace:** \`preview-pr-${prNumber}\`
-              **Domaine:** preview-${prNumber}.finance4all.simplonprojet.com
+              **Cluster:** KIND (preview-cluster)
+              **Namespace:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
 
               _Ce preview sera automatiquement supprimé quand la PR sera fermée._`
             });
