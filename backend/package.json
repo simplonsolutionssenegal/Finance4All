@@ -18,18 +18,6 @@
     "coverageReporters": ["lcov", "text", "html"],
     "coverageDirectory": "coverage"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend/issues"
-  },
-  "homepage": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend#readme",
   "dependencies": {
     "@typescript-eslint/parser": "^8.40.0",
     "bcrypt": "^5.1.1",
