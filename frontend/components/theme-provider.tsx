@@ -11,7 +11,7 @@ interface ThemeProviderContext {
 }
 
 const ThemeProviderContext = createContext<ThemeProviderContext | undefined>(
-  undefined
+  undefined,
 );
 
 export function ThemeProvider({

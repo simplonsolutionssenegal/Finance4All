@@ -38,11 +38,7 @@ DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentProps<typeof DropdownMenuPrimitive.Content>
->(({
-  className,
-  sideOffset = 4,
-  ...props
-}, ref) => {
+>(({ className, sideOffset = 4, ...props }, ref) => {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
@@ -75,12 +71,7 @@ const DropdownMenuItem = React.forwardRef<
     inset?: boolean;
     variant?: "default" | "destructive";
   }
->(({
-  className,
-  inset,
-  variant = "default",
-  ...props
-}, ref) => {
+>(({ className, inset, variant = "default", ...props }, ref) => {
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"

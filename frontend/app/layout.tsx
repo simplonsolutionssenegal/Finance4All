@@ -19,20 +19,21 @@ export const metadata: Metadata = {
   description: "",
 };
 
-export default function RootLayout({children}: {children: React.ReactNode;}) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="fr" suppressHydrationWarning>
-    <body
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
-    <ThemeProvider
-      defaultTheme="light"
-    >
-
-        {children}
-        <Toaster position="top-right" />
-    </ThemeProvider>
-    </body>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <ThemeProvider defaultTheme="light">
+          {children}
+          <Toaster position="top-right" />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
