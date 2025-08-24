@@ -2,7 +2,8 @@ const NavBar = () => {
 
   return (
     <div>
-      Navbar Finance4All , testing ci , in PR
+      Navbar Finance4All
+      <p>C1</p>
     </div>
   )
 }
