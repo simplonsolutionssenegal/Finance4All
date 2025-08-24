@@ -15,7 +15,7 @@ on:
         value: ${{ jobs.detect-changes.outputs.backend-changed }}
       build-success:
         description: "Build successful"
-        value: ${{ jobs.build-frontend.result == 'success' }}
+        value: ${{ jobs.build-frontend.result == 'success' && jobs.build-backend.result == 'success' }}
 
 jobs:
   detect-changes:
@@ -23,7 +23,7 @@ jobs:
     outputs:
       frontend-changed: ${{ steps.changes.outputs.frontend }}
       backend-changed: ${{ steps.changes.outputs.backend }}
-      any-changed: ${{ steps.changes.outputs.frontend == 'true' }}
+      any-changed: ${{ steps.changes.outputs.frontend == 'true' || steps.changes.outputs.backend == 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -160,8 +160,11 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
-        uses: sonarqube-community/sonarqube-quality-gate-action@master
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
+        with:
+          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
