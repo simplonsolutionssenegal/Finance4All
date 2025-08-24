@@ -11,7 +11,7 @@ router.get('/test', (req, res) => {
     status: 'success',
     message: 'API is working!',
     timestamp: new Date().toISOString(),
-    version: process.env.API_VERSION || 'v1'
+    version: process.env.API_VERSION ?? 'v1'
   });
 });
 

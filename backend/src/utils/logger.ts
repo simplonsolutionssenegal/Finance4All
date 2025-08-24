@@ -1,6 +1,6 @@
 import winston from 'winston';
 
-const logLevel = process.env.LOG_LEVEL || 'info';
+const logLevel = process.env.LOG_LEVEL ?? 'info';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Format personnalisé pour les logs

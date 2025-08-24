@@ -12,13 +12,13 @@ dotenv.config();
 
 // Créer l'application Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ?? 5000;
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true
   })
 );
@@ -38,7 +38,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-app.use(`/api/${process.env.API_VERSION || 'v1'}`, apiRoutes);
+app.use(`/api/${process.env.API_VERSION ?? 'v1'}`, apiRoutes);
 
 // Route de santé
 app.get('/health', (req, res) => {
