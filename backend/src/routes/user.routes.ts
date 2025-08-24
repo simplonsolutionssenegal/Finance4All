@@ -1,10 +1,7 @@
-import { Router,Request, Response } from "express";
-import { changeRole, disableOrEnableUser } from '../controllers/user.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { Router } from 'express';
 
 const router = Router();
 
-router.put('/update-role', authenticate, changeRole);
-router.patch('/toggle-status/:userId', authenticate, disableOrEnableUser);
+router.use();
 
-export default router;
+export { router as userRoutes };
