@@ -17,11 +17,6 @@
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
-  "jest": {
-    "collectCoverage": true,
-    "coverageReporters": ["lcov", "text", "html"],
-    "coverageDirectory": "coverage"
-  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
