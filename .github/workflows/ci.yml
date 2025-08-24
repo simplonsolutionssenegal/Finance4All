@@ -134,23 +134,25 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies for coverage
-        run: |
-           if [ "${{ needs.detect-changes.outputs.frontend-changed }}" == "true" ]; then
-             cd frontend && npm ci
-           fi
-           if [ "${{ needs.detect-changes.outputs.backend-changed }}" == "true" ]; then
-             cd backend && npm ci
-           fi
+      - name: Install frontend dependencies for coverage
+        if: needs.detect-changes.outputs.frontend-changed == 'true'
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies for coverage
+        if: needs.detect-changes.outputs.backend-changed == 'true'
+        working-directory: ./backend
+        run: npm ci
           
-      - name: Generate coverage reports
-        run: |
-          if [ "${{ needs.detect-changes.outputs.frontend-changed }}" == "true" ]; then
-            cd frontend && (npm run test:coverage || npm test -- --coverage || echo "No frontend coverage")
-          fi
-          if [ "${{ needs.detect-changes.outputs.backend-changed }}" == "true" ]; then
-            cd backend && (npm run test:coverage || npm test -- --coverage || echo "No backend coverage")
-          fi
+      - name: Generate frontend coverage report
+        if: needs.detect-changes.outputs.frontend-changed == 'true'
+        working-directory: ./frontend
+        run: npm run test:coverage || npm test -- --coverage || echo "No frontend coverage"
+
+      - name: Generate backend coverage report
+        if: needs.detect-changes.outputs.backend-changed == 'true'
+        working-directory: ./backend
+        run: npm run test:coverage || npm test -- --coverage || echo "No backend coverage"
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@master
