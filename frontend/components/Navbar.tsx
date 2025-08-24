@@ -1,10 +1,13 @@
 const NavBar = () => {
 
   return (
-    <div>
-      Navbar Finance4All OK
-      <p>C1</p>
-    </div>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div className="container">
+        <div className="navbar-header">
+          Test container navbar
+        </div>
+      </div>
+    </nav>
   )
 }
 
