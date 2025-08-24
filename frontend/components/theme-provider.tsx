@@ -6,7 +6,7 @@ type Theme = "light" | "dark" | "system";
 
 interface ThemeProviderContext {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  setTheme: (_theme: Theme) => void;
   actualTheme: "light" | "dark";
 }
 
