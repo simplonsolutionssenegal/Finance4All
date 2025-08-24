@@ -2,7 +2,7 @@ const NavBar = () => {
 
   return (
     <div>
-      Ceci est la navbar
+      Navbar Finance4All
     </div>
   )
 }
