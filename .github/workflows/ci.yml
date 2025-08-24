@@ -39,8 +39,8 @@ jobs:
               - 'frontend/package-lock.json'
             backend:
               - 'backend/**'
-              - 'backend/package.json
-              - 'backend/package-lock.json
+              - 'backend/package.json'
+              - 'backend/package-lock.json'
 
   test-frontend:
     name: 🧪 Run Frontend Unit Tests
