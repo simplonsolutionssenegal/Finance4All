@@ -10,22 +10,14 @@
     "dev": "../node_modules/.bin/nodemon src/server.ts",
     "lint": "../node_modules/.bin/eslint . --ext .ts",
     "format": "../node_modules/.bin/prettier --write .",
-    "scripts": {
-      "cleanup-tokens": "ts-node src/workers/cleanupExpiredToken.ts"
-    }
+    "test:coverage": "jest --coverage",
+    "sonar:prepare": "npm run test:coverage"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend.git"
+  "jest": {
+    "collectCoverage": true,
+    "coverageReporters": ["lcov", "text", "html"],
+    "coverageDirectory": "coverage"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend/issues"
-  },
-  "homepage": "https://github.com/AbdoulWakhabLamineMbaye/Finance4All-Backend#readme",
   "dependencies": {
     "@typescript-eslint/parser": "^8.40.0",
     "bcrypt": "^5.1.1",
