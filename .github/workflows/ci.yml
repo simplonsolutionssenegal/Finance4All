@@ -17,6 +17,10 @@ on:
         description: "Build successful"
         value: ${{ jobs.build-frontend.result == 'success' && jobs.build-backend.result == 'success' }}
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -155,18 +159,18 @@ jobs:
         run: npm run test:coverage || npm test -- --coverage || echo "No backend coverage"
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
         id: sonarqube-quality-gate-check
-        uses: sonarsource/sonarqube-quality-gate-action@v5
+        uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
-        with:
-          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
 
   build-frontend:
