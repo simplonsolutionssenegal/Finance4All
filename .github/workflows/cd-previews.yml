@@ -3,6 +3,10 @@ name: Preview
 on:
   issue_comment:
     types: [created]
+  push:
+    branches:
+      - main
+      - feature/ci-cd
 
 permissions:
   issues: write
