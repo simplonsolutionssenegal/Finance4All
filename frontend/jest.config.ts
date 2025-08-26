@@ -23,7 +23,8 @@ const config: Config = {
     "!components/ui/**",
     "!coverage/**",
     "!**/*.d.ts",
-    "!**/*.config.ts",
+    "!*.config.ts",
+    "!*.setup.ts",
     "!**/*.stories.{js,jsx,ts,tsx}", // Exclure les stories Storybook
     "!types/**", // Exclure les fichiers de types
   ],
@@ -46,6 +47,10 @@ const config: Config = {
   moduleNameMapper: {
     // Gestion des alias de chemins Next.js
     "^@/(.*)$": "<rootDir>/$1",
+    "^@/components/(.*)$": "<rootDir>/components/$1",
+    "^@/lib/(.*)$": "<rootDir>/lib/$1",
+    "^@/utils/(.*)$": "<rootDir>/utils/$1",
+    "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
     
     // Mock des fichiers CSS et assets
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
