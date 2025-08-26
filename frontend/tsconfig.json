@@ -20,12 +20,14 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["jest", "@testing-library/jest-dom", "node"]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "jest.setup.ts",
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
