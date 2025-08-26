@@ -124,59 +124,51 @@ jobs:
         working-directory: ./backend
         run: npm run test:coverage || npm test -- --coverage || echo "No coverage configured"
 
-  sonarqube:
-    name: 📊 SonarQube Analysis
+  sonarqube-frontend:
+    name: 📊 SonarQube Frontend
     runs-on: ubuntu-latest
-    needs: [detect-changes, test-frontend, test-backend]
-    if: always() && needs.detect-changes.outputs.any-changed == 'true'
+    needs: [detect-changes, test-frontend]
+    if: always() && needs.detect-changes.outputs.frontend-changed == 'true'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install frontend dependencies for coverage
-        if: needs.detect-changes.outputs.frontend-changed == 'true'
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Install backend dependencies for coverage
-        if: needs.detect-changes.outputs.backend-changed == 'true'
-        working-directory: ./backend
-        run: npm ci
-          
-      - name: Generate frontend coverage report
-        if: needs.detect-changes.outputs.frontend-changed == 'true'
-        working-directory: ./frontend
-        run: npm run test:coverage || npm test -- --coverage || echo "No frontend coverage"
-
-      - name: Generate backend coverage report
-        if: needs.detect-changes.outputs.backend-changed == 'true'
-        working-directory: ./backend
-        run: npm run test:coverage || npm test -- --coverage || echo "No backend coverage"
-
-      - name: SonarQube Scan
+      - name: Run SonarQube Scan (Frontend)
         uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - name: SonarQube Quality Gate Check
-        id: sonarqube-quality-gate-check
+      - name: SonarQube Quality Gate (Frontend)
         uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  sonarqube-backend:
+    name: 📊 SonarQube Backend
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test-backend]
+    if: always() && needs.detect-changes.outputs.backend-changed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run SonarQube Scan (Backend)
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: SonarQube Quality Gate (Backend)
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   build-frontend:
     name: 🛠 Build frontend
     runs-on: ubuntu-latest
     needs: [detect-changes, test-frontend, sonarqube]
-    if: needs.detect-changes.outputs.frontend-changed == 'true' && needs.test-frontend.result == 'success' && needs.sonarqube.result == 'success'
+    if: needs.detect-changes.outputs.frontend-changed == 'true' && needs.test-frontend.result == 'success' && needs.sonarqube-frontend.result == 'success'
 
     steps:
       - name: Checkout code
@@ -203,7 +195,7 @@ jobs:
     name: 🛠 Build backend
     runs-on: ubuntu-latest
     needs: [ detect-changes, test-backend, sonarqube ]
-    if: needs.detect-changes.outputs.backend-changed == 'true' && needs.test-backend.result == 'success' && needs.sonarqube.result == 'success'
+    if: needs.detect-changes.outputs.backend-changed == 'true' && needs.test-backend.result == 'success' && needs.sonarqube-backend.result == 'success'
 
     steps:
       - name: Checkout code
