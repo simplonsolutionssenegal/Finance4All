@@ -3,6 +3,13 @@ import { render, screen } from '@testing-library/react';
 import PublicHeader from '@/components/public/layout/header';
 
 describe('PublicHeader', () => {
+  it('should be a function that returns JSX', () => {
+    expect(typeof PublicHeader).toBe('function');
+    const result = PublicHeader();
+    expect(result).toBeDefined();
+    expect(result.type).toBe('header');
+  });
+
   it('should render without crashing', () => {
     render(<PublicHeader />);
     expect(screen.getByRole('banner')).toBeInTheDocument();

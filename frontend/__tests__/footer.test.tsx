@@ -3,6 +3,15 @@ import { render, screen } from '@testing-library/react';
 import PublicFooter from '@/components/public/layout/footer';
 
 describe('PublicFooter', () => {
+  it('should be a function that returns JSX', () => {
+    expect(typeof PublicFooter).toBe('function');
+    const result = PublicFooter();
+    expect(result).toBeDefined();
+    expect(result.type).toBe('footer');
+    expect(result.props).toBeDefined();
+    expect(result.props.className).toContain('bg-gray-900');
+  });
+
   it('should render without crashing', () => {
     render(<PublicFooter />);
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
