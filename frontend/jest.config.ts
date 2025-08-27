@@ -20,6 +20,7 @@ const config: Config = {
   // An array of glob patterns indicating a set of files for which coverage information should be collected
     collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
+    "components/**",
     "!components/ui/**",
     "!coverage/**",
     "!**/*.d.ts",
@@ -66,7 +67,7 @@ const config: Config = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
   // The test environment that will be used for testing
-  testEnvironment: "jsdom",
+  testEnvironment: 'jest-environment-jsdom',
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
