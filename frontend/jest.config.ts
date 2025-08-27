@@ -18,8 +18,10 @@ const config: Config = {
   collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-    collectCoverageFrom: [
+  collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "app/**/*.{ts,tsx}",
     "!components/ui/**",
     "!coverage/**",
     "!**/*.d.ts",
@@ -27,21 +29,20 @@ const config: Config = {
     "!*.setup.ts",
     "!**/*.stories.{js,jsx,ts,tsx}", // Exclure les stories Storybook
     "!types/**", // Exclure les fichiers de types
+    "!**/*.test.{js,jsx,ts,tsx}", // Exclure les fichiers de test
+    "!**/*.spec.{js,jsx,ts,tsx}", // Exclure les fichiers de spec
+    "!**/__tests__/**", // Exclure le dossier __tests__
+    "!**/tests/**", // Exclure le dossier tests
   ],
 
   // The directory where Jest should output its coverage files
   coverageDirectory: "coverage",
 
-  // An array of regexp pattern strings used to skip coverage collection
-  // coveragePathIgnorePatterns: [
-  //   "/node_modules/"
-  // ],
-
   // Indicates which provider should be used to instrument code for coverage
-  coverageProvider: "v8",
+  coverageProvider: "babel",
 
   // A list of reporter names that Jest uses when writing coverage reports
-  coverageReporters: ["json", "text", "lcov", "html"],
+  coverageReporters: ["text", "lcov"],
 
     // A map from regular expressions to module names or to arrays of module names
   moduleNameMapper: {
@@ -62,13 +63,21 @@ const config: Config = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
   // The test environment that will be used for testing
-  testEnvironment: "jsdom",
+  testEnvironment: 'jest-environment-jsdom',
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
     "/node_modules/",
     "/.next/",
     "/coverage/",
+  ],
+
+  // Ignore problematic source maps from Next.js builds
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "/.next/",
+    "/coverage/",
+    "\\.map$", // Ignore all .map files
   ],
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
