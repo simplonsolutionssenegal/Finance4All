@@ -27,6 +27,10 @@ const config: Config = {
     "!*.setup.ts",
     "!**/*.stories.{js,jsx,ts,tsx}", // Exclure les stories Storybook
     "!types/**", // Exclure les fichiers de types
+    "!**/*.test.{js,jsx,ts,tsx}", // Exclure les fichiers de test
+    "!**/*.spec.{js,jsx,ts,tsx}", // Exclure les fichiers de spec
+    "!**/__tests__/**", // Exclure le dossier __tests__
+    "!**/tests/**", // Exclure le dossier tests
   ],
 
   // The directory where Jest should output its coverage files
