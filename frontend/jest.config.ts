@@ -76,6 +76,14 @@ const config: Config = {
     "/coverage/",
   ],
 
+  // Ignore problematic source maps from Next.js builds
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "/.next/",
+    "/coverage/",
+    "\\.map$", // Ignore all .map files
+  ],
+
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   transformIgnorePatterns: [
     "/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform))", // Permet la transformation des modules ES6
