@@ -29,10 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+  <ClerkProvider publishableKey={publishableKey}>
           <ThemeProvider defaultTheme="light">
             {children}
-            <Toaster position='top-right' />
+            <Toaster position="top-right" />
           </ThemeProvider>
         </ClerkProvider>
       </body>
