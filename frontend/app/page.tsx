@@ -4,7 +4,7 @@ export default function Home() {
       <div className="text-black">
         Bienvenue sur Finance4All
 
-        Intégration version site, on met à jour, on met les bases du design
+        Intégration version site et ci update
       </div>
     </div>
   );

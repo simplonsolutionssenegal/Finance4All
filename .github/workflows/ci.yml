@@ -41,11 +41,9 @@ jobs:
             frontend:
               - 'frontend/**'
               - 'frontend/package.json'
-              - 'frontend/package-lock.json'
             backend:
               - 'backend/**'
               - 'backend/package.json'
-              - 'backend/package-lock.json'
 
   test-frontend:
     name: 🧪 Run Frontend Unit Tests
@@ -99,7 +97,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install root dependencies
         run: npm ci
@@ -178,7 +175,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -205,7 +201,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
         working-directory: ./backend
