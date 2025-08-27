@@ -18,9 +18,10 @@ const config: Config = {
   collectCoverage: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-    collectCoverageFrom: [
+  collectCoverageFrom: [
     "**/*.{js,jsx,ts,tsx}",
-    "components/**",
+    "components/**/*.{ts,tsx}",
+    "app/**/*.{ts,tsx}",
     "!components/ui/**",
     "!coverage/**",
     "!**/*.d.ts",
@@ -37,16 +38,11 @@ const config: Config = {
   // The directory where Jest should output its coverage files
   coverageDirectory: "coverage",
 
-  // An array of regexp pattern strings used to skip coverage collection
-  // coveragePathIgnorePatterns: [
-  //   "/node_modules/"
-  // ],
-
   // Indicates which provider should be used to instrument code for coverage
-  coverageProvider: "v8",
+  coverageProvider: "babel",
 
   // A list of reporter names that Jest uses when writing coverage reports
-  coverageReporters: ["json", "text", "lcov", "html"],
+  coverageReporters: ["text", "lcov"],
 
     // A map from regular expressions to module names or to arrays of module names
   moduleNameMapper: {
