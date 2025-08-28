@@ -66,11 +66,11 @@ const config: Config = {
         },
         // Palette de couleurs personnalisées - Finance4All bleu
         brand: {
-          "50": "var(--brand-50)",
-          "100": "var(--brand-100)",
-          "200": "var(--brand-200)",
-          "300": "var(--brand-300)",
-          "400": "var(--brand-400)",
+          "50": "var(--primary-50)",
+          "100": "var(--primary-100)",
+          "200": "var(--primary-200)",
+          "300": "var(--primary-300)",
+          "400": "var(--primary-400)",
         },
         // Palette de couleurs personnalisées - Finance4All gris/noir
         neutral: {

@@ -22,11 +22,11 @@
   --ring: 217.2 91.2% 59.8%;
   --radius: 0.5rem;
   
-  --brand-50: #E7F3F6;
-  --brand-100: #A7D5DD;
-  --brand-200: #6CB9C6;
-  --brand-300: #258E90;
-  --brand-400: #134B4C;
+  --primary-50: #E7F3F6;
+  --primary-100: #A7D5DD;
+  --primary-200: #6CB9C6;
+  --primary-300: #258E90;
+  --primary-400: #134B4C;
   
   --neutral-400: #6B6C74;
   --neutral-500: #494A50;
@@ -62,11 +62,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  --color-brand-50: var(--brand-50);
-  --color-brand-100: var(--brand-100);
-  --color-brand-200: var(--brand-200);
-  --color-brand-300: var(--brand-300);
-  --color-brand-400: var(--brand-400);
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
   
   --color-neutral-400: var(--neutral-400);
   --color-neutral-500: var(--neutral-500);
