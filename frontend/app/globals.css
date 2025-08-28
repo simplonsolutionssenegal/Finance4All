@@ -21,6 +21,17 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 217.2 91.2% 59.8%;
   --radius: 0.5rem;
+  
+  --brand-50: #E7F3F6;
+  --brand-100: #A7D5DD;
+  --brand-200: #6CB9C6;
+  --brand-300: #258E90;
+  --brand-400: #134B4C;
+  
+  --neutral-400: #6B6C74;
+  --neutral-500: #494A50;
+  --neutral-600: #2A2A2E;
+  --neutral-700: #000000;
 }
 
 .dark {
@@ -50,6 +61,17 @@
   --color-foreground: hsl(var(--foreground));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
 }
 
 body {
