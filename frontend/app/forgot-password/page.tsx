@@ -9,11 +9,32 @@ import { Label } from "@/components/ui/label";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    
+    if (emailError && value.trim() !== "") {
+      setEmailError("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+        
+    if (!email.trim()) {
+      setEmailError("Le champ email est requis.");
+      return;
+    }
+    
+    if (!email.trim().includes("@") || !email.trim().includes(".")) {
+      setEmailError("Veuillez entrer une adresse email valide.");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       await new Promise(resolve => {
@@ -23,7 +44,7 @@ export default function ForgotPassword() {
     } catch (error) {
       console.error("Erreur lors de l'envoi:", error);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -31,7 +52,6 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Section gauche*/}
       <div className="hidden lg:flex lg:w-1/2 bg-brand-400 relative overflow-hidden">
-        {/* Image de fond */}
         <div className="absolute inset-0">
           <Image
             src="/assets/images/login-bg.png"
@@ -84,19 +104,29 @@ export default function ForgotPassword() {
                 type="email"
                 placeholder="Votre email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full h-12 border-neutral-400 focus:border-brand-200 focus:ring-brand-200"
-                disabled={isSubmitting}
+                onChange={handleEmailChange}
+                className={`w-full h-12 ${
+                  emailError 
+                    ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500" 
+                    : "border-neutral-400 focus:border-brand-200 focus:ring-brand-200"
+                }`}
+                disabled={isLoading}
               />
             </div>
 
+            {/* Message d'erreur */}
+            {emailError && (
+              <div className="text-red-500 text-sm font-medium">
+                {emailError}
+              </div>
+            )}
+
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isLoading}
               className="w-full h-12 bg-brand-300 hover:bg-brand-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
+              {isLoading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
             </Button>
 
             <p className="text-sm text-neutral-400 text-center">
