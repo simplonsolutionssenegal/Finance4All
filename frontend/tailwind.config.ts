@@ -64,6 +64,21 @@ const config: Config = {
           "4": "hsl(43, 74%, 66%)",
           "5": "hsl(27, 87%, 67%)",
         },
+        // Palette de couleurs personnalisées - Finance4All bleu
+        brand: {
+          "50": "var(--primary-50)",
+          "100": "var(--primary-100)",
+          "200": "var(--primary-200)",
+          "300": "var(--primary-300)",
+          "400": "var(--primary-400)",
+        },
+        // Palette de couleurs personnalisées - Finance4All gris/noir
+        neutral: {
+          "400": "var(--neutral-400)",
+          "500": "var(--neutral-500)",
+          "600": "var(--neutral-600)",
+          "700": "var(--neutral-700)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
