@@ -1,30 +1,61 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-import SignUp from "@/app/sign-up/page";
+import '@testing-library/jest-dom';
+import SignUp from '@/app/sign-up/page';
 
-describe("SignUp", () => {
-  it("renders without crashing", () => {
+jest.mock('@clerk/nextjs', () => ({
+  useSignUp: () => ({ signUp: { create: jest.fn(() => ({ prepareEmailAddressVerification: jest.fn() })) }, setActive: jest.fn() })
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() })
+}));
+
+describe('SignUp page', () => {
+  it('renders all input fields and labels', () => {
     render(<SignUp />);
-    expect(screen.getByText("Page d'inscription")).toBeInTheDocument();
+    expect(screen.getByLabelText(/prénom/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/nom/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/mot de passe/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /s'inscrire/i })).toBeInTheDocument();
   });
 
-  it("displays the correct content", () => {
+  it('shows validation errors if fields are empty and form is submitted', async () => {
     render(<SignUp />);
-    const content = screen.getByText("Page d'inscription");
-    expect(content).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
+    await waitFor(() => {
+      expect(screen.getAllByText(/doit contenir au moins/i).length).toBeGreaterThan(0);
+    });
   });
 
-  it("renders as a div element", () => {
-    const { container } = render(<SignUp />);
-    const divElement = container.querySelector("div");
-    expect(divElement).toBeInTheDocument();
-    expect(divElement).toHaveTextContent("Page d'inscription");
+  it('shows error if email is invalid', async () => {
+    render(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'invalid' } });
+    fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/format d'email invalide/i)).toBeInTheDocument();
+    });
   });
 
-  it("should be a function that returns JSX", () => {
-    expect(typeof SignUp).toBe("function");
-    const result = SignUp();
-    expect(result).toBeDefined();
-    expect(result.type).toBe("div");
+  it('shows error if password is too short', async () => {
+    render(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/mot de passe/i), { target: { value: '123' } });
+    fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/mot de passe doit contenir au moins 8 caractères/i)).toBeInTheDocument();
+    });
+  });
+
+  it('submits the form with valid data', async () => {
+    render(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/prénom/i), { target: { value: 'Jean' } });
+    fireEvent.change(screen.getByPlaceholderText(/nom/i), { target: { value: 'Dupont' } });
+    fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'jean.dupont@email.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/mot de passe/i), { target: { value: 'Password1!' } });
+    fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
+    await waitFor(() => {
+      expect(screen.queryByText(/doit contenir au moins/i)).not.toBeInTheDocument();
+    });
   });
 });
