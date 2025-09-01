@@ -18,7 +18,7 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler } from '@/middleware/error.middleware';
 import { PrismaUserRepository } from '@/infrastructure/repositories/prisma-user.repository';
 import { UserService } from '@/services/user.service';
-// import { UserService } from '@/application/services/user.service';
+import { UserStatus } from '@prisma/client';
 
 const userService = new UserService(new PrismaUserRepository());
 export class UserController {
@@ -142,6 +142,69 @@ export class UserController {
     }
   );
 
+  static readonly getUsersByOrganisationFilter = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const organisationId = Number(req.params.id);
+      const statusParam = req.query.status;
 
+      if (isNaN(organisationId)) {
+        res.status(400).json({ status: 'fail', message: 'ID organisation invalide' });
+        return;
+      }
+
+      if (!statusParam) {
+        res.status(400).json({ status: 'fail', message: 'Le paramètre status est requis' });
+        return;
+      }
+
+      // Convertir le paramètre en tableau de statuts (peut être une chaîne ou un tableau de chaînes)
+      const statuses = Array.isArray(statusParam) 
+        ? statusParam as UserStatus[] 
+        : [statusParam] as UserStatus[];
+      
+      // Valider les statuts
+      const validStatuses = Object.values(UserStatus);
+      const invalidStatuses = statuses.filter(status => !validStatuses.includes(status as UserStatus));
+      
+      if (invalidStatuses.length > 0) {
+        res.status(400).json({
+          status: 'error',
+          message: `Statut(s) invalide(s) : ${invalidStatuses.join(', ')}. Statuts valides : ${validStatuses.join(', ')}`
+        });
+        return;
+      }
+
+      const users = await userService.getUsersByOrganisationAndStatus(organisationId, statuses);
+
+      res.status(200).json({
+        status: 'success',
+        results: users.length,
+        data: users.map(u => ({
+          id: u.id,
+          email: u.email,
+          username: u.username,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          avatar: u.avatar,
+          isActive: u.isActive,
+          lastLoginAt: u.lastLoginAt,
+          status: u.status,
+          role: u.role.name,
+          organisationId: u.organisationId,
+          organisation: u.organisation ? {
+            id: u.organisation.id,
+            name: u.organisation.name,
+            avatar: u.organisation.avatar,
+            address: u.organisation.address,
+            phone: u.organisation.phone,
+            createdAt: u.organisation.createdAt,
+            updatedAt: u.organisation.updatedAt
+          } : null,
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt
+        }))
+      });
+    }
+  );
 }
 
