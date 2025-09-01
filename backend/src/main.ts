@@ -1,7 +1,7 @@
 import express from 'express';
 import userRoutes from './infrastructure/web/routes/user.routes';
 import { errorMiddleware } from './infrastructure/web/middleware/error.middleware';
-import { config } from './config';
+import { config } from './infrastructure/config';
 
 const app = express();
 app.use(express.json());

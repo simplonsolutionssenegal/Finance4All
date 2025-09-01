@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 
 import { logger } from '@/utils/logger';
-import { errorMiddleware } from '@/middleware/error.middleware';
+import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
 
 // Charger les variables d'environnement

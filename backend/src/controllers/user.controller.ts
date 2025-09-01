@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { asyncHandler } from '@/middleware/error.middleware';
+import { asyncHandler } from '@/infrastructure/web/middleware/error.middleware';
 
 export class UserController {
   static readonly getUsers = asyncHandler(
