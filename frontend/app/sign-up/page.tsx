@@ -3,15 +3,15 @@
 import { useSignUp } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
-import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { registerSchema } from '@/lib/validation/auth';
@@ -21,7 +21,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function SignUp(){
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, setActive } = useSignUp();
+  const { signUp} = useSignUp();
   const router = useRouter();
 
   const {
@@ -78,7 +78,7 @@ export default function SignUp(){
 
   return (
     <div className='min-h-screen flex'>
-      {/* Section gauche - Image et texte */}
+      {/* Section gauche*/}
   <div className='hidden lg:flex lg:w-3/4 text-white p-12 flex-col justify-center relative overflow-hidden' style={{ background: 'var(--primary-400)' }}>
         <div className="absolute inset-0 bg-[url('/ImageInscription.png')] bg-cover bg-center opacity-10" />
         <div className='relative z-10'>
