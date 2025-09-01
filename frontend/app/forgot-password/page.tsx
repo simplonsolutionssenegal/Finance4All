@@ -51,7 +51,7 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Section gauche*/}
-      <div className="hidden lg:flex lg:w-1/2 bg-brand-400 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-primary-400 relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src="/assets/images/login-bg.png"
@@ -108,7 +108,7 @@ export default function ForgotPassword() {
                 className={`w-full h-12 ${
                   emailError 
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500" 
-                    : "border-neutral-400 focus:border-brand-200 focus:ring-brand-200"
+                    : "border-neutral-400 focus:border-primary-200 focus:ring-primary-200"
                 }`}
                 disabled={isLoading}
               />
@@ -124,7 +124,7 @@ export default function ForgotPassword() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-brand-300 hover:bg-brand-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-primary-300 hover:bg-primary-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
             </Button>
@@ -137,7 +137,7 @@ export default function ForgotPassword() {
           <div className="mt-8 text-center">
             <a
               href="/login"
-              className="text-brand-200 hover:text-brand-300 text-sm font-medium transition-colors"
+              className="text-primary-200 hover:text-primary-300 text-sm font-medium transition-colors"
             >
               ← Retour à la connexion
             </a>
