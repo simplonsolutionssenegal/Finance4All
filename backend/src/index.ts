@@ -19,8 +19,8 @@ app.use(helmet()); // Sécurité
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === 'development') {
     logger.info(`${req.method} ${req.url}`, {
       body: req.body,
       query: req.query,
-      params: req.params
+      params: req.params,
     });
     next();
   });
@@ -46,7 +46,7 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 
@@ -55,7 +55,7 @@ app.use((req, res) => {
   res.status(404).json({
     status: 'error',
     message: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
   });
 });
 

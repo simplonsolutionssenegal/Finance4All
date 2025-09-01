@@ -9,7 +9,7 @@ const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.prettyPrint()
+  winston.format.prettyPrint(),
 );
 
 // Format console lisible en dev
@@ -32,7 +32,7 @@ const consoleFormat = winston.format.combine(
     }
 
     return log;
-  })
+  }),
 );
 
 // Transports
@@ -42,8 +42,8 @@ const transports: winston.transport[] = [];
 transports.push(
   new winston.transports.Console({
     format: isDevelopment ? consoleFormat : logFormat,
-    level: logLevel
-  })
+    level: logLevel,
+  }),
 );
 
 // Fichiers: uniquement en prod
@@ -54,14 +54,14 @@ if (!isDevelopment) {
       level: 'error',
       format: logFormat,
       maxsize: 5 * 1024 * 1024, // 5MB
-      maxFiles: 5
+      maxFiles: 5,
     }),
     new winston.transports.File({
       filename: 'logs/combined.log',
       format: logFormat,
       maxsize: 5 * 1024 * 1024, // 5MB
-      maxFiles: 5
-    })
+      maxFiles: 5,
+    }),
   );
 }
 
@@ -70,7 +70,7 @@ export const logger = winston.createLogger({
   level: logLevel,
   format: logFormat,
   transports,
-  exitOnError: false
+  exitOnError: false,
 });
 
 // --------- Helpers ---------
@@ -83,7 +83,7 @@ export const logRequest = (req: Request, res: Response, responseTime: number): v
     statusCode: res.statusCode,
     responseTime: `${responseTime}ms`,
     userAgent: req.get('User-Agent'),
-    ip: req.ip
+    ip: req.ip,
   });
 };
 
@@ -96,7 +96,7 @@ export const logError = (error: Error, req?: Request): void => {
     method: req?.method,
     body: req?.body,
     params: req?.params,
-    query: req?.query
+    query: req?.query,
   });
 };
 
@@ -104,5 +104,5 @@ export const logError = (error: Error, req?: Request): void => {
 export const loggerStream = {
   write(message: string): void {
     logger.info(message.trim());
-  }
+  },
 };
