@@ -19,7 +19,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "lint:format": "npm run lint:fix && npm run format"
+    "lint:format": "npm run lint:fix && npm run format",
+    "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage"
   },
   "keywords": [],
   "author": "",
