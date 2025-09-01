@@ -7,6 +7,7 @@
 // import { UserRepositoryPort } from '@/application/ports/user.repository.port';
 import { User } from '@/domain/models/user.entity';
 import { UserRepositoryPort } from '@/ports/user.repository.port';
+import { UserStatus } from '@prisma/client';
 
 export class UserService {
   constructor(private readonly userRepository: UserRepositoryPort) { }
@@ -22,6 +23,8 @@ export class UserService {
   async createUser(data: {
     email: string;
     firstName: string,
+    lastLoginAt : Date,
+    status : UserStatus,
     lastName: string,
     avatar: string,
     isActive: boolean,

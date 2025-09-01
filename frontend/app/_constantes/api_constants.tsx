@@ -1,0 +1,1 @@
+export const NEXT_PUBLIC_API_UR ='http://localhost:5000/api/v1/';
