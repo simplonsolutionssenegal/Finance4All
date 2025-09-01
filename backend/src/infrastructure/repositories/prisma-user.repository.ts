@@ -1,5 +1,5 @@
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserStatus } from '@prisma/client';
 import { User } from '@/domain/models/user.entity';
 import { Role } from '@/domain/models/role.entity';
 import { UserRepositoryPort } from '@/ports/user.repository.port';
@@ -27,6 +27,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
             u.password,
             u.isActive,
             new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
+            u.status,
+            u.lastLoginAt,
             u.organisationId, // ajoute organisationId
             u.organisation ? new Organisation(
                 u.organisation.id,
@@ -48,6 +50,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
         name?: string;
         firstName?: string;
         lastName?: string;
+        status: UserStatus,
+        lastLoginAt: Date,
         avatar?: string;
         password: string;
         isActive?: boolean;
@@ -68,6 +72,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
             user.password,
             user.isActive,
             new Role(user.role.id, user.role.name, user.role.createdAt, user.role.updatedAt),
+            user.status, // ✅ status avant lastLoginAt
+            user.lastLoginAt, // ✅ date à la bonne position
             user.organisationId ?? null, // organisationId
             user.organisation
                 ? new Organisation(
@@ -105,6 +111,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
             u.password,
             u.isActive,
             new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
+            u.status, // ✅ status avant lastLoginAt
+            u.lastLoginAt, // ✅ date à la bonne position
             u.organisationId ?? null,
             u.organisation ? new Organisation(
                 u.organisation.id,

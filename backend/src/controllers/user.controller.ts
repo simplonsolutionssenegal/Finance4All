@@ -12,31 +12,6 @@
 //     //     data: []
 //     //   });
 //     // }
-
-//       async (req: Request, res: Response, _next: NextFunction) => {
-//       // Récupération de la liste des utilisateurs depuis la base de données
-//       const users = await prisma.user.findMany({
-//         select: {
-//           id: true,
-//           email: true,
-//           name: true,
-//           createdAt: true,
-//           updatedAt: true
-//         },
-//         orderBy: {
-//           createdAt: 'desc'
-//         }
-//       });
-
-//       res.status(200).json({
-//         status: 'success',
-//         results: users.length,
-//         data: {
-//           users
-//         }
-//       });
-//     }
-//   );
 // }
 
 import { Request, Response, NextFunction } from 'express';
@@ -63,6 +38,8 @@ export class UserController {
         lastName: u.lastName,
         avatar: u.avatar,
         isActive: u.isActive,
+        lastLoginAt: u.lastLoginAt,
+        status: u.status,
         role: u.role.name,
         organisationId: u.organisationId,
         organisation: u.organisation ? {
@@ -83,7 +60,7 @@ export class UserController {
 
 
   static readonly createUser = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const { email, username, name, firstName, lastName, avatar, password, isActive, roleId, organisationId } = req.body;
+    const { email, username, name, firstName, lastName, avatar, password, isActive, roleId, organisationId, status, lastLoginAt } = req.body;
 
     if (!email || !password || !roleId) {
       res.status(400).json({ status: 'fail', message: 'email, password et roleId sont requis' });
@@ -96,6 +73,8 @@ export class UserController {
       firstName,
       lastName,
       avatar,
+      status,
+      lastLoginAt,
       password,
       isActive,
       organisationId,
@@ -109,6 +88,8 @@ export class UserController {
         email: user.email,
         username: user.username,
         firstName: user.firstName,
+        lastLoginAt: user.lastLoginAt,
+        status: user.status,
         lastName: user.lastName,
         avatar: user.avatar,
         isActive: user.isActive,
@@ -141,6 +122,8 @@ export class UserController {
           lastName: u.lastName,
           avatar: u.avatar,
           isActive: u.isActive,
+          lastLoginAt: u.lastLoginAt,
+          status: u.status,
           role: u.role.name,
           organisationId: u.organisationId,
           organisation: u.organisation ? {

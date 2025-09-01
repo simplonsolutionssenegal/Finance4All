@@ -30,6 +30,6 @@
     "jest.setup.ts",
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
-  ],
+, "components/admin/UserCreationForm.tsx", "components/admin/UserStatst.tsx", "components/admin/UserTable.tsx", "components/admin/SearchBar.tsx", "app/_constantes"  ],
   "exclude": ["node_modules"]
 }
