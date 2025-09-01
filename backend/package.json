@@ -17,10 +17,10 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
     "lint:format": "npm run lint:fix && npm run format",
-    "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage"
+    "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "keywords": [],
   "author": "",

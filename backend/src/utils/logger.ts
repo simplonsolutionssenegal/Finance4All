@@ -1,9 +1,10 @@
 import winston from 'winston';
+import type { Request, Response } from 'express';
 
 const logLevel = process.env.LOG_LEVEL ?? 'info';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Format personnalisé pour les logs
+// Format JSON « propre » pour fichiers / prod
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
@@ -11,13 +12,21 @@ const logFormat = winston.format.combine(
   winston.format.prettyPrint()
 );
 
-// Format pour la console en développement
+// Format console lisible en dev
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let log = `${timestamp} [${level}]: ${message}`;
+  winston.format.printf((info) => {
+    // typage sûr du payload winston
+    const { timestamp, level, message, ...rest } = info as winston.Logform.TransformableInfo & {
+      timestamp?: string;
+      level: string;
+      message: string;
+    };
 
+    let log = `${timestamp ?? ''} [${level}]: ${String(message)}`;
+
+    const meta = rest as Record<string, unknown>;
     if (Object.keys(meta).length > 0) {
       log += `\n${JSON.stringify(meta, null, 2)}`;
     }
@@ -26,10 +35,10 @@ const consoleFormat = winston.format.combine(
   })
 );
 
-// Configuration des transports
+// Transports
 const transports: winston.transport[] = [];
 
-// Console transport (toujours actif)
+// Console: toujours actif
 transports.push(
   new winston.transports.Console({
     format: isDevelopment ? consoleFormat : logFormat,
@@ -37,39 +46,40 @@ transports.push(
   })
 );
 
-// File transports (uniquement en production)
+// Fichiers: uniquement en prod
 if (!isDevelopment) {
   transports.push(
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
       format: logFormat,
-      maxsize: 5242880, // 5MB
+      maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5
     }),
     new winston.transports.File({
       filename: 'logs/combined.log',
       format: logFormat,
-      maxsize: 5242880, // 5MB
+      maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5
     })
   );
 }
 
-// Créer le logger
+// Logger
 export const logger = winston.createLogger({
   level: logLevel,
   format: logFormat,
   transports,
-  // Ne pas quitter le processus sur une erreur de log
   exitOnError: false
 });
 
-// Ajouter des méthodes utilitaires
-export const logRequest = (req: any, res: any, responseTime: number) => {
+// --------- Helpers ---------
+
+// Log d'une requête HTTP (Express)
+export const logRequest = (req: Request, res: Response, responseTime: number): void => {
   logger.info('Request processed', {
     method: req.method,
-    url: req.url,
+    url: req.originalUrl ?? req.url,
     statusCode: res.statusCode,
     responseTime: `${responseTime}ms`,
     userAgent: req.get('User-Agent'),
@@ -77,11 +87,12 @@ export const logRequest = (req: any, res: any, responseTime: number) => {
   });
 };
 
-export const logError = (error: Error, req?: any) => {
+// Log d'une erreur applicative
+export const logError = (error: Error, req?: Request): void => {
   logger.error('Application error', {
     message: error.message,
     stack: error.stack,
-    url: req?.url,
+    url: req?.originalUrl ?? req?.url,
     method: req?.method,
     body: req?.body,
     params: req?.params,
@@ -89,9 +100,9 @@ export const logError = (error: Error, req?: any) => {
   });
 };
 
-// Stream pour morgan (si utilisé)
+// Stream compatible morgan
 export const loggerStream = {
-  write: (message: string) => {
+  write(message: string): void {
     logger.info(message.trim());
   }
 };
