@@ -10,7 +10,9 @@ module.exports = [
       'dist/**/*',
       'build/**/*',
       'coverage/**/*',
-      'node_modules/**/*'
+      'node_modules/**/*',
+      'src/**/*.test.ts',
+      'src/__tests__/**/*.ts'
     ],
   },
 
