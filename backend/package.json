@@ -20,7 +20,11 @@
     "lint:format": "npm run lint:fix && npm run format",
     "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage",
     "lint": "eslint \"src/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "prisma:generate": "prisma generate"
+  },
+  "prisma": {
+    "schema": "src/infrastructure/config/schema.prisma"
   },
   "keywords": [],
   "author": "",

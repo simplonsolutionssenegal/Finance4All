@@ -1,25 +1,22 @@
+// src/infrastructure/database/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
-// Initialisation avec logging pour debug
-export const prisma = new PrismaClient({
-  log: ['query', 'error', 'warn'],
-});
-
-/**
- * Déclaration d'augmentation pour ajouter le modèle User au client Prisma
- * Cela n'est normalement pas nécessaire car Prisma génère ses types automatiquement
- * mais peut aider dans certains cas où TypeScript ne reconnaît pas les modèles.
- */
+// Déclare une variable globale (uniquement en dev) pour éviter de recréer le client en HMR
 declare global {
-  namespace PrismaNamespace {
-    interface PrismaClient {
-      user: {
-        findUnique: (args: { where: { id: string } }) => Promise<any>;
-        create: (args: { data: any }) => Promise<any>;
-        // Ajoutez d'autres méthodes au besoin
-      }
-    }
-  }
+  // eslint-disable-next-line no-var
+  var __PRISMA__: PrismaClient | undefined;
 }
 
+// Choisis les logs que tu veux (évite 'query' en prod si trop verbeux)
+const logLevels: Array<'error' | 'warn' | 'info' | 'query'> =
+  process.env.NODE_ENV === 'development' ? ['error', 'warn', 'query'] : ['error', 'warn'];
+
+export const prisma: PrismaClient =
+  globalThis.__PRISMA__ ?? new PrismaClient({ log: logLevels });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.__PRISMA__ = prisma;
+}
+
+// (facultatif) re-export du type
 export type { PrismaClient } from '@prisma/client';
