@@ -3,16 +3,14 @@ import { PrismaClient } from '@prisma/client';
 
 // Déclare une variable globale (uniquement en dev) pour éviter de recréer le client en HMR
 declare global {
-  // eslint-disable-next-line no-var
   var __PRISMA__: PrismaClient | undefined;
 }
 
 // Choisis les logs que tu veux (évite 'query' en prod si trop verbeux)
-const logLevels: Array<'error' | 'warn' | 'info' | 'query'> =
+const logLevels: ('error' | 'warn' | 'info' | 'query')[] =
   process.env.NODE_ENV === 'development' ? ['error', 'warn', 'query'] : ['error', 'warn'];
 
-export const prisma: PrismaClient =
-  globalThis.__PRISMA__ ?? new PrismaClient({ log: logLevels });
+export const prisma: PrismaClient = globalThis.__PRISMA__ ?? new PrismaClient({ log: logLevels });
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.__PRISMA__ = prisma;

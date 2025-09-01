@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 
 // ⚠️ Typage sûr : number
-const PORT: number = Number(process.env.PORT ?? '5000');
+const PORT = Number(process.env.PORT ?? '5000');
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
@@ -22,7 +22,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
-  }),
+  })
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

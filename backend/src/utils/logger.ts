@@ -9,14 +9,14 @@ const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.prettyPrint(),
+  winston.format.prettyPrint()
 );
 
 // Format console lisible en dev
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
-  winston.format.printf((info) => {
+  winston.format.printf(info => {
     // typage sûr du payload winston
     const { timestamp, level, message, ...rest } = info as winston.Logform.TransformableInfo & {
       timestamp?: string;
@@ -32,7 +32,7 @@ const consoleFormat = winston.format.combine(
     }
 
     return log;
-  }),
+  })
 );
 
 // Transports
@@ -43,7 +43,7 @@ transports.push(
   new winston.transports.Console({
     format: isDevelopment ? consoleFormat : logFormat,
     level: logLevel,
-  }),
+  })
 );
 
 // Fichiers: uniquement en prod
@@ -61,7 +61,7 @@ if (!isDevelopment) {
       format: logFormat,
       maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5,
-    }),
+    })
   );
 }
 
@@ -94,7 +94,8 @@ export const logError = (error: Error, req?: Request): void => {
     stack: error.stack,
     url: req?.originalUrl ?? req?.url,
     method: req?.method,
-    body: req?.body,
+    // Utilisation de JSON.stringify pour sécuriser l'objet body qui peut être de type any
+    body: req?.body ? JSON.stringify(req.body) : undefined,
     params: req?.params,
     query: req?.query,
   });
