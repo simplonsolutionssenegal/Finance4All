@@ -20,6 +20,20 @@ export class UserService {
     return this.userRepository.findByOrganisationId(organisationId);
   }
 
+  async getUsersByStatus(statuses: UserStatus[]): Promise<User[]> {
+    if (!statuses || statuses.length === 0) {
+      return this.userRepository.findAll();
+    }
+    return this.userRepository.findUsersByStatus(statuses);
+  }
+
+  async getUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[]): Promise<User[]> {
+    if (!statuses || statuses.length === 0) {
+      return this.userRepository.findByOrganisationId(organisationId);
+    }
+    return this.userRepository.findUsersByOrganisationAndStatus(organisationId, statuses);
+  }
+
   async createUser(data: {
     email: string;
     firstName: string,
