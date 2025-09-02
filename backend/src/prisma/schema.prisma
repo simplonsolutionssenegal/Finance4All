@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserStatus {
+  ACTIF
+  EN_ATTENTE
+  INACTIF
+  SUSPENDU
+}
+
+
+
 model Role {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -23,7 +32,9 @@ model User {
   lastName  String?
   avatar    String?
   password  String
+  status   UserStatus    @default(ACTIF)
   isActive  Boolean  @default(true)
+  lastLoginAt  DateTime  @default(now())
   roleId    Int
   organisationId Int?
   role      Role     @relation(fields: [roleId], references: [id])
