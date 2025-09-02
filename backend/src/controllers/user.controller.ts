@@ -146,6 +146,7 @@ export class UserController {
     async (req: Request, res: Response, _next: NextFunction) => {
       const organisationId = Number(req.params.id);
       const statusParam = req.query.status;
+      const roleParam = req.query.role;
 
       if (isNaN(organisationId)) {
         res.status(400).json({ status: 'fail', message: 'ID organisation invalide' });
@@ -162,6 +163,11 @@ export class UserController {
         ? statusParam as UserStatus[] 
         : [statusParam] as UserStatus[];
       
+      // Convertir le paramètre de rôle en tableau (peut être une chaîne ou un tableau de chaînes)
+      const roles = roleParam 
+        ? (Array.isArray(roleParam) ? roleParam : [roleParam]) as string[]
+        : undefined;
+      
       // Valider les statuts
       const validStatuses = Object.values(UserStatus);
       const invalidStatuses = statuses.filter(status => !validStatuses.includes(status as UserStatus));
@@ -174,7 +180,7 @@ export class UserController {
         return;
       }
 
-      const users = await userService.getUsersByOrganisationAndStatus(organisationId, statuses);
+      const users = await userService.getUsersByOrganisationAndStatus(organisationId, statuses, roles);
 
       res.status(200).json({
         status: 'success',

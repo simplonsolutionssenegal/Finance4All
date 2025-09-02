@@ -130,11 +130,16 @@ export class PrismaUserRepository implements UserRepositoryPort {
         ));
     }
 
-    async findUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[]): Promise<User[]> {
+    async findUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[], roles?: string[]): Promise<User[]> {
         const users = await prisma.user.findMany({
             where: { 
                 organisationId,
-                status: { in: statuses }
+                status: { in: statuses },
+                ...(roles && roles.length > 0 ? {
+                    role: {
+                        name: { in: roles }
+                    }
+                } : {})
             },
             include: {
                 role: true,
