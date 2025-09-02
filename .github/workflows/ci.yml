@@ -168,6 +168,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install frontend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Generate test coverage for SonarQube
+        working-directory: ./backend
+        run: npm run test:coverage
+
       - name: Run SonarQube Scan (Backend)
         uses: SonarSource/sonarqube-scan-action@master
         with:
