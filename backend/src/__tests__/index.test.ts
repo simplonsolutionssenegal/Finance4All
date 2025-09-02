@@ -28,9 +28,6 @@ jest.mock('@clerk/express', () => ({
   clerkMiddleware: jest.fn(() => (_req: any, _res: any, next: any) => next()),
 }));
 
-import app from '@/index';
-import request from 'supertest';
-
 describe('Index', () => {
   it('should be defined', () => {
     expect(app).toBeDefined();
