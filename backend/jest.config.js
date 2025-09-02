@@ -13,6 +13,7 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/**/*.test.ts',
+    '!src/**/*.test.ts',
     '!src/**/*.spec.ts'
   ],
   coverageDirectory: 'coverage',
