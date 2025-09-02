@@ -8,7 +8,7 @@ export interface UserRepositoryPort {
 
     findUsersByStatus(statuses: UserStatus[]): Promise<User[]>;
 
-    findUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[]): Promise<User[]>;
+    findUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[], roles?: string[]): Promise<User[]>;
 
     create(data: {
         email: string; 

@@ -27,11 +27,20 @@ export class UserService {
     return this.userRepository.findUsersByStatus(statuses);
   }
 
-  async getUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[]): Promise<User[]> {
+  async getUsersByOrganisationAndStatus(organisationId: number, statuses: UserStatus[], roles?: string[]): Promise<User[]> {
     if (!statuses || statuses.length === 0) {
+      // Si pas de statuts spécifiés, on récupère tous les utilisateurs de l'organisation
+      // avec le filtre de rôle si spécifié
+      if (roles && roles.length > 0) {
+        return this.userRepository.findUsersByOrganisationAndStatus(
+          organisationId, 
+          Object.values(UserStatus), // Tous les statuts
+          roles
+        );
+      }
       return this.userRepository.findByOrganisationId(organisationId);
     }
-    return this.userRepository.findUsersByOrganisationAndStatus(organisationId, statuses);
+    return this.userRepository.findUsersByOrganisationAndStatus(organisationId, statuses, roles);
   }
 
   async createUser(data: {
