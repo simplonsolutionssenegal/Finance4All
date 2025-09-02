@@ -7,7 +7,7 @@ export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
-  constructor(message: string, statusCode: number = 500) {
+  constructor(message: string, statusCode = 500) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
@@ -21,45 +21,55 @@ const handleAppError = (error: AppError, res: Response): void => {
   res.status(error.statusCode).json({
     status: 'error',
     message: error.message,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
   });
 };
 
 const handleZodError = (error: ZodError, res: Response): void => {
-  const formattedErrors = error.issues.map((err: any) => ({
-    field: err.path.join('.'),
+  const formattedErrors = error.issues.map(err => ({
+    field: Array.isArray(err.path) ? err.path.join('.') : String(err.path),
     message: err.message,
-    code: err.code
+    code: err.code,
   }));
 
   res.status(400).json({
     status: 'error',
     message: 'Validation failed',
-    errors: formattedErrors
+    errors: formattedErrors,
   });
 };
 
-const handlePrismaError = (error: any, res: Response): void => {
+interface PrismaError extends Error {
+  code?: string;
+  meta?: {
+    target?: string[];
+    [key: string]: unknown;
+  };
+}
+
+const handlePrismaError = (error: PrismaError, res: Response): void => {
   const prismaErrorHandlers: Record<string, () => void> = {
     P2002: () =>
       res.status(409).json({
         status: 'error',
         message: 'Duplicate entry',
-        field: error.meta?.target
+        field: error.meta?.target,
       }),
     P2025: () =>
       res.status(404).json({
         status: 'error',
-        message: 'Record not found'
+        message: 'Record not found',
       }),
     P2003: () =>
       res.status(400).json({
         status: 'error',
-        message: 'Foreign key constraint failed'
-      })
+        message: 'Foreign key constraint failed',
+      }),
   };
 
-  const handler = prismaErrorHandlers[error.code];
+  const errorCode = error.code ?? '';
+  const handler = errorCode ? prismaErrorHandlers[errorCode] : undefined;
+
   if (handler) {
     handler();
     return;
@@ -70,34 +80,41 @@ const handlePrismaError = (error: any, res: Response): void => {
     message: 'Database error',
     ...(process.env.NODE_ENV === 'development' && {
       code: error.code,
-      details: error.message
-    })
+      details: error.message,
+    }),
   });
 };
 
-const handleSpecialErrors = (error: Error, res: Response): boolean => {
+interface ErrorWithConstructor extends Error {
+  constructor: {
+    name: string;
+  };
+  body?: unknown;
+}
+
+const handleSpecialErrors = (error: ErrorWithConstructor, res: Response): boolean => {
   const errorHandlers: Record<string, () => void> = {
     PrismaClientValidationError: () =>
       res.status(400).json({
         status: 'error',
         message: 'Invalid data provided',
-        ...(process.env.NODE_ENV === 'development' && { details: error.message })
+        ...(process.env.NODE_ENV === 'development' && { details: error.message }),
       }),
     PrismaClientInitializationError: () =>
       res.status(503).json({
         status: 'error',
-        message: 'Database connection failed'
+        message: 'Database connection failed',
       }),
     JsonWebTokenError: () =>
       res.status(401).json({
         status: 'error',
-        message: 'Invalid token'
+        message: 'Invalid token',
       }),
     TokenExpiredError: () =>
       res.status(401).json({
         status: 'error',
-        message: 'Token expired'
-      })
+        message: 'Token expired',
+      }),
   };
 
   const handler = errorHandlers[error.constructor.name] || errorHandlers[error.name];
@@ -109,7 +126,7 @@ const handleSpecialErrors = (error: Error, res: Response): boolean => {
   if ('body' in error) {
     res.status(400).json({
       status: 'error',
-      message: 'Invalid JSON in request body'
+      message: 'Invalid JSON in request body',
     });
     return true;
   }
@@ -119,10 +136,10 @@ const handleSpecialErrors = (error: Error, res: Response): boolean => {
 
 // Middleware de gestion d'erreurs
 export const errorMiddleware = (
-  error: Error,
+  error: Error | PrismaError | ErrorWithConstructor,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void => {
   logError(error, req);
 
@@ -136,8 +153,8 @@ export const errorMiddleware = (
     return;
   }
 
-  if ('code' in error && typeof (error as any).code === 'string') {
-    handlePrismaError(error as any, res);
+  if ('code' in error && typeof error.code === 'string') {
+    handlePrismaError(error as Error & { code: string }, res);
     return;
   }
 
@@ -153,14 +170,14 @@ export const errorMiddleware = (
     message,
     ...(process.env.NODE_ENV === 'development' && {
       stack: error.stack,
-      name: error.name
-    })
+      name: error.name,
+    }),
   });
 };
 
 // Middleware pour capturer les erreurs async
 export const asyncHandler = (
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);

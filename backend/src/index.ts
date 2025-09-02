@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 
 import { logger } from '@/utils/logger';
-import { errorMiddleware } from '@/middleware/error.middleware';
+import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
 
 // Charger les variables d'environnement
@@ -12,26 +12,29 @@ dotenv.config();
 
 // Créer l'application Express
 const app = express();
-const PORT = process.env.PORT ?? 5000;
+
+// ⚠️ Typage sûr : number
+const PORT = Number(process.env.PORT ?? '5000');
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Logger des requêtes en développement
 if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    // Evite no-unsafe-assignment: on loggue comme unknown
     logger.info(`${req.method} ${req.url}`, {
-      body: req.body,
-      query: req.query,
-      params: req.params
+      body: req.body as unknown,
+      query: req.query as unknown,
+      params: req.params as unknown,
     });
     next();
   });
@@ -41,52 +44,51 @@ if (process.env.NODE_ENV === 'development') {
 app.use(`/api/${process.env.API_VERSION ?? 'v1'}`, apiRoutes);
 
 // Route de santé
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 
 // Route 404
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     status: 'error',
     message: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
   });
 });
 
 // Middleware de gestion d'erreurs
 app.use(errorMiddleware);
 
-// Démarrage du serveur
-const startServer = async () => {
+// Démarrage du serveur (synchrone => plus de require-await / no-floating-promises)
+function startServer(): void {
   try {
-    // Démarrer le serveur
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error });
     process.exit(1);
   }
-};
+}
 
 // Gestion propre de l'arrêt
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   logger.info('Received SIGINT, shutting down gracefully');
-
+  // Si tu dois faire de l'async ici, utilise une IIFE :
+  // void (async () => { await cleanup(); process.exit(0); })();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
   logger.info('Received SIGTERM, shutting down gracefully');
-
   process.exit(0);
 });
 
