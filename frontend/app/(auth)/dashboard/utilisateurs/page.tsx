@@ -115,7 +115,7 @@ const UsersPage = () => {
     }
   };
 
-
+  // Chargement initial
   useEffect(() => {
     loadUsers('', {
       role: [],

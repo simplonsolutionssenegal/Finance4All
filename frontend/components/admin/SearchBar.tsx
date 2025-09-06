@@ -31,6 +31,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     onSearch(value);
   };
 
+  
   const handleApplyFilters = (filters: any) => {
     onApplyFilters?.(filters);
     setFilterOpen(false); // fermer le popup après application (sécurité)
