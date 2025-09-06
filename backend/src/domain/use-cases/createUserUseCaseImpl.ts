@@ -1,25 +1,37 @@
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '../entities/User';
+import { UserStatus } from '@prisma/client';
 /**
  * Implémentation concrète du cas d'utilisation de création d'utilisateur
  */
 export class CreateUserUseCaseImpl implements CreateUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async execute(name: string, email: string): Promise<User> {
-    if (!name || !email) {
-      throw new Error('Le nom et l\'email sont requis');
-    }
+  async execute(dto: CreateUserDTO): Promise<User> {
+    const { email, username, password, roleId } = dto;
 
-    if (!this.isValidEmail(email)) {
-      throw new Error('Format d\'email invalide');
+    if (!email || !username || !password || !roleId) {
+      throw new Error("email, username, password et roleId sont requis");
     }
+    this.isValidEmail(email);
 
-    const userId = Date.now().toString();
-    const user = new User(userId, name, email);
-    return this.userRepository.save(user);
+    return this.userRepository.create({
+      email,
+      username,
+      password,
+      roleId,
+      firstName: dto.firstName ?? null,
+      lastName: dto.lastName ?? null,
+      avatar: dto.avatar ?? null,
+      organisationId: dto.organisationId ?? null,
+      status: dto.status ?? UserStatus.ACTIF,
+      isActive: dto.isActive ?? true,
+      lastLoginAt: dto.lastLoginAt ?? new Date()
+    });
   }
+
+
 
   private isValidEmail(email: string): boolean {
     // Utilisation d'une regex plus sécurisée sans risque de backtracking
