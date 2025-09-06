@@ -39,29 +39,98 @@ const UsersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔎 Chargement
-  useEffect(() => {
-    (async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const res = await fetch(`${NEXT_PUBLIC_API_UR}users/organizations/37/users`);
-        if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-        const api: ApiResponse = await res.json();
-        if (api.status !== 'success' || !Array.isArray(api.data)) {
-          throw new Error('Format de réponse API inattendu');
-        }
-        setUsers(api.data);
-        setFilteredUsers(api.data);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erreur inconnue');
-      } finally {
-        setIsLoading(false);
+  // Fonction pour construire l'URL de filtrage
+  const buildFilterUrl = (searchTerm: string, filters: FilterOptions) => {
+    const baseUrl = `${NEXT_PUBLIC_API_UR}users/organizations/37/users`;
+    console.log('Base URL:', baseUrl);
+    // Si pas de filtres actifs et pas de recherche, utiliser l'endpoint classique
+    const hasActiveFilters = filters.role.length > 0 || filters.status.length > 0 || filters.lastConnection;
+    
+    if (!hasActiveFilters && !searchTerm.trim()) {
+      return baseUrl;
+    }
+
+    // Sinon utiliser l'endpoint de filtrage
+    const filterUrl = `${baseUrl}/filter`;
+    const params = new URLSearchParams();
+
+    // Ajouter les statuts
+    filters.status.forEach(status => {
+      // Mapper les valeurs frontend vers backend
+      let backendStatus = status;
+      if (status === 'ACTIF') backendStatus = 'ACTIF';
+      else if (status === 'INACTIF') backendStatus = 'INACTIF';
+      else if (status === 'PENDING') backendStatus = 'EN_ATTENTE';
+      
+      params.append('status', backendStatus);
+    });
+
+    // Ajouter les rôles
+    filters.role.forEach(role => {
+      params.append('role', role.toLowerCase());
+    });
+
+    // Ajouter la dernière connexion
+    if (filters.lastConnection) {
+      params.append('lastLogin', filters.lastConnection);
+      
+      if (filters.lastConnection === 'custom' && filters.customDate) {
+        params.append('customDate', filters.customDate);
       }
-    })();
+    }
+
+    // Ajouter la recherche si présente
+    if (searchTerm.trim()) {
+      params.append('search', searchTerm.trim());
+    }
+
+    return `${filterUrl}?${params.toString()}`;
+  };
+
+  // Fonction pour charger les utilisateurs avec filtres
+  const loadUsers = async (searchTerm: string = '', filters: FilterOptions) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const url = buildFilterUrl(searchTerm, filters);
+      console.log('Fetching URL:', url); // Pour debug
+      
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+      
+      const api: ApiResponse = await res.json();
+      if (api.status !== 'success' || !Array.isArray(api.data)) {
+        throw new Error('Format de réponse API inattendu');
+      }
+      
+      setUsers(api.data);
+      setFilteredUsers(api.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur inconnue');
+      setUsers([]);
+      setFilteredUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    loadUsers('', {
+      role: [],
+      status: [],
+      lastConnection: '',
+      customDate: '',
+    });
   }, []);
 
-  // 📋 Options dynamiques pour le popup (évite de hardcoder)
+
+  useEffect(() => {
+    loadUsers(searchTerm, filters);
+  }, [searchTerm, filters]);
+
+  // 📋 Options dynamiques pour le popup (on garde la logique existante pour les options)
   const rolesOptions = useMemo(
     () => Array.from(new Set(users.map(u => (u.role ?? '').toLowerCase()))).filter(Boolean).sort(),
     [users]
@@ -71,70 +140,27 @@ const UsersPage = () => {
     [users]
   );
 
-  // 🧮 Filtrage combiné (recherche + filtres)
-useEffect(() => {
-  const term = searchTerm.trim().toLowerCase();
-
-  const next = users.filter((u) => {
-    const matchSearch =
-      term === '' ||
-      (u.firstName ?? '').toLowerCase().includes(term) ||
-      (u.lastName ?? '').toLowerCase().includes(term) ||
-      (u.email ?? '').toLowerCase().includes(term);
-
-    // roles en lowercase
-    const matchRole =
-      filters.role.length === 0 ||
-      filters.role.includes((u.role ?? '').toLowerCase());
-
-    // status en UPPERCASE
-    const matchStatus =
-      filters.status.length === 0 ||
-      filters.status.includes((u.status ?? '').toUpperCase());
-
-    // dates
-    let matchDate = true;
-    if (filters.lastConnection) {
-      if (!u.lastLoginAt) matchDate = false;
-      else {
-        const d = new Date(u.lastLoginAt);
-        if (Number.isNaN(d.getTime())) matchDate = false;
-        else {
-          const now = new Date();
-          if (filters.lastConnection === 'recent') {
-            const from = new Date(); from.setDate(now.getDate() - 7);
-            matchDate = d >= from && d <= now;
-          } else if (filters.lastConnection === 'month') {
-            const from = new Date(); from.setDate(now.getDate() - 30);
-            matchDate = d >= from && d <= now;
-          } else if (filters.lastConnection === 'custom' && filters.customDate) {
-            const start = new Date(filters.customDate); start.setHours(0,0,0,0);
-            const end   = new Date(filters.customDate); end.setHours(23,59,59,999);
-            matchDate = d >= start && d <= end;
-          }
-        }
-      }
-    }
-
-    return matchSearch && matchRole && matchStatus && matchDate;
-  });
-
-  setFilteredUsers(next);
-}, [users, searchTerm, filters]);
-
-
-  const handleSearch = (term: string) => setSearchTerm(term);
-
-  const handleDeleteUser = async (userId: string | number) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/v1/users/organizations/2/users/${userId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(`Erreur lors de la suppression: ${res.status}`);
-      setUsers(prev => prev.filter(u => u.id !== Number(userId)));
-      setFilteredUsers(prev => prev.filter(u => u.id !== Number(userId))); // évite un “flash”
-    } catch (e) {
-      console.error(e);
-    }
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    // Le useEffect se chargera de faire l'appel API
   };
+
+  const handleApplyFilters = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    // Le useEffect se chargera de faire l'appel API
+  };
+
+  // const handleDeleteUser = async (userId: string | number) => {
+  //   try {
+  //     const res = await fetch(`http://localhost:5000/api/v1/users/organizations/2/users/${userId}`, { method: 'DELETE' });
+  //     if (!res.ok) throw new Error(`Erreur lors de la suppression: ${res.status}`);
+      
+  //     // Recharger les données après suppression
+  //     loadUsers(searchTerm, filters);
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // };
 
   if (error) {
     return (
@@ -142,7 +168,10 @@ useEffect(() => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Erreur de chargement</h2>
           <p className="text-red-600">{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          <button 
+            onClick={() => loadUsers(searchTerm, filters)} 
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
             Réessayer
           </button>
         </div>
@@ -156,14 +185,14 @@ useEffect(() => {
       <SearchBar
         onSearch={handleSearch}
         resultsCount={filteredUsers.length}
-        onApplyFilters={setFilters}               // ⬅️ branchement principal
-        rolesOptions={rolesOptions}               // ⬅️ options dynamiques
-        statusesOptions={statusesOptions}         // ⬅️ options dynamiques
+        onApplyFilters={handleApplyFilters}
+        rolesOptions={rolesOptions}
+        statusesOptions={statusesOptions}
       />
       <UserTable
         users={filteredUsers}
         isLoading={isLoading}
-        onDeleteUser={handleDeleteUser}
+       
       />
     </div>
   );

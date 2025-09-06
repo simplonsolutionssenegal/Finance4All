@@ -34,13 +34,13 @@ interface User  {
 interface UserTableProps {
   users: User[];
   isLoading: boolean;
-  onDeleteUser: (id: string | number) => void;
+  // onDeleteUser: (id: string | number) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
   users,
   isLoading,
-  onDeleteUser,
+  // onDeleteUser,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 5;
@@ -235,7 +235,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => onDeleteUser(user.id)}
+                      // onClick={() => onDeleteUser(user.id)}
                       title="Supprimer"
                       aria-label={`Supprimer ${user.firstName} ${user.lastName}`}
                       className="inline-flex h-7 w-7 items-center justify-center rounded bg-red-50 hover:bg-red-100"

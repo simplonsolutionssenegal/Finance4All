@@ -10,7 +10,6 @@ interface SearchBarProps {
   resultsCount: number;
   onApplyFilters?: (filters: any) => void;
 
-  // ⬇️ nouvelles props pour alimenter le popup
   rolesOptions?: string[];
   statusesOptions?: string[];
 }

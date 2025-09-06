@@ -4,12 +4,13 @@ import { prisma } from './prisma';
 import { UserRepository } from '../../domain/repositories/UserRepository';
 import { User as DomainUser } from '../../domain/entities/User';
 
-// Map sûr entre les types Prisma et ton domaine
+
 function toDomain(user: PrismaUser): DomainUser {
   return new DomainUser(user.id, user.name, user.email);
 }
 
 export class PrismaUserRepository implements UserRepository {
+  
   async findById(id: string): Promise<DomainUser | null> {
     const user = await prisma.user.findUnique({ where: { id } });
     return user ? toDomain(user) : null;

@@ -1,7 +1,7 @@
 import { UserStatus } from '@prisma/client';
 import { User } from '../../domain/entities/User';
 
-export interface CreateUserDTO {
+export interface CreateRoleDTO {
     /**
    * Exécute la création d'un utilisateur
    * @param name - Le nom de l'utilisateur
@@ -22,6 +22,6 @@ export interface CreateUserDTO {
 }
 
 export interface CreateUserUseCase {
-  execute(dto: CreateUserDTO): Promise<User>;
+  execute(dto: CreateRoleDTO): Promise<User>;
 }
 
