@@ -4,5 +4,5 @@ export interface ForgotPasswordUseCase {
    * @param email - L'email de l'utilisateur
    * @returns Une promesse contenant le résultat de l'opération
    */
-  execute(email: string): Promise<{ success: boolean; message: string }>;
+  execute(email: string | undefined): Promise<{ success: boolean; message: string }>;
 }
