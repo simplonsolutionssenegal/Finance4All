@@ -6,11 +6,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useForgotPassword } from "@/hooks/useForgotPassword";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const { isLoading, error, success, successMessage, sendResetLink, resetState } = useForgotPassword();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -18,6 +19,11 @@ export default function ForgotPassword() {
     
     if (emailError && value.trim() !== "") {
       setEmailError("");
+    }
+    
+    // Reset success state when user starts typing again
+    if (success) {
+      resetState();
     }
   };
 
@@ -34,17 +40,10 @@ export default function ForgotPassword() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      await new Promise(resolve => {
-        setTimeout(resolve, 1000);
-      });
-      console.log("Email soumis:", email);
+      await sendResetLink(email);
     } catch (error) {
       console.error("Erreur lors de l'envoi:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -114,24 +113,54 @@ export default function ForgotPassword() {
               />
             </div>
 
-            {/* Message d'erreur */}
+            {/* Message d'erreur de validation */}
             {emailError && (
               <div className="text-red-500 text-sm font-medium">
                 {emailError}
               </div>
             )}
 
+            {/* Message d'erreur API */}
+            {error && (
+              <div className="text-red-500 text-sm font-medium bg-red-50 p-3 rounded-md border border-red-200">
+                {error}
+              </div>
+            )}
+
+            {/* Message de succès */}
+            {success && successMessage && (
+              <div className="text-green-600 text-sm font-medium bg-green-50 p-3 rounded-md border border-green-200">
+                {successMessage}
+              </div>
+            )}
+
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || success}
               className="w-full h-12 bg-primary-300 hover:bg-primary-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
+              {isLoading ? "Envoi en cours..." : success ? "Lien envoyé !" : "Envoyer le lien de réinitialisation"}
             </Button>
 
             <p className="text-sm text-neutral-400 text-center">
               Assurez-vous de vérifier vos courriers indésirables si vous ne recevez pas notre e-mail dans quelques minutes.
             </p>
+
+            {/* Bouton pour renvoyer l'email en cas de succès */}
+            {success && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetState();
+                    setEmail("");
+                  }}
+                  className="text-primary-200 hover:text-primary-300 text-sm font-medium transition-colors underline"
+                >
+                  Renvoyer le lien de réinitialisation
+                </button>
+              </div>
+            )}
           </form>
 
           <div className="mt-8 text-center">
