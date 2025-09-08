@@ -95,7 +95,7 @@ describe('Forgot Password', () => {
       const result = await forgotPasswordUseCase.execute(email);
 
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Utilisateur trouvé. Redirigez vers l\'interface de réinitialisation Clerk.');
+      expect(result.message).toBe('Un lien de réinitialisation a été envoyé à votre adresse email.');
     });
 
     it('should throw error when user does not exist', async () => {
