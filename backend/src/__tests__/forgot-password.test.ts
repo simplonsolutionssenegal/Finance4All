@@ -50,18 +50,27 @@ describe('Forgot Password', () => {
 
   describe('Email validation', () => {
     it('should accept valid email format', async () => {
-      const validEmail = 'test@example.com';
-      mockClerkClient.users.getUserList.mockResolvedValue({
-        data: [{ id: 'user_123', emailAddresses: [{ emailAddress: validEmail }] }],
-        totalCount: 1,
-      } as any);
+      const validEmails = [
+        'test@example.com',
+        'user.name@domain.co.uk',
+        'user+tag@example.org',
+        'user123@test-domain.com',
+        'a@b.co',
+      ];
 
-      const result = await forgotPasswordUseCase.execute(validEmail);
+      for (const email of validEmails) {
+        mockClerkClient.users.getUserList.mockResolvedValue({
+          data: [{ id: 'user_123', emailAddresses: [{ emailAddress: email }] }],
+          totalCount: 1,
+        } as any);
 
-      expect(result.success).toBe(true);
-      expect(mockClerkClient.users.getUserList).toHaveBeenCalledWith({
-        emailAddress: [validEmail],
-      });
+        const result = await forgotPasswordUseCase.execute(email);
+
+        expect(result.success).toBe(true);
+        expect(mockClerkClient.users.getUserList).toHaveBeenCalledWith({
+          emailAddress: [email],
+        });
+      }
     });
 
     it('should reject invalid email format', async () => {
@@ -70,6 +79,11 @@ describe('Forgot Password', () => {
         'test@',
         '@example.com',
         'test.example.com',
+        'test@.com',
+        'test@example.',
+        'test@example.c',
+        'test space@example.com',
+        'test@exam ple.com',
       ];
 
       for (const email of invalidEmails) {
