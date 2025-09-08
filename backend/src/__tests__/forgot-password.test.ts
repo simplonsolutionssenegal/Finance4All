@@ -123,4 +123,113 @@ describe('Forgot Password', () => {
         .rejects.toThrow('Erreur lors de l\'envoi du lien de réinitialisation');
     });
   });
+
+  describe('Error mapping tests', () => {
+    it('should map not found errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('User not found'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Aucun compte n\'est associé à cette adresse email.');
+    });
+
+    it('should map does not exist errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('User does not exist'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Aucun compte n\'est associé à cette adresse email.');
+    });
+
+    it('should map rate limit errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Rate limit exceeded'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Trop de tentatives. Veuillez réessayer plus tard.');
+    });
+
+    it('should map already exists errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Reset link already exists'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard');
+    });
+
+    it('should map already sent errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Reset link already sent'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard');
+    });
+
+    it('should map unauthorized errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Unauthorized access'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Erreur de configuration Clerk.');
+    });
+
+    it('should map 401 errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('401 Unauthorized'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Erreur de configuration Clerk.');
+    });
+
+    it('should map forbidden errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Forbidden access'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Accès refusé à l\'API Clerk.');
+    });
+
+    it('should map 403 errors correctly', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('403 Forbidden'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Accès refusé à l\'API Clerk.');
+    });
+
+    it('should handle development environment errors', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
+      const email = 'test@example.com';
+      const customError = 'Custom Clerk error';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error(customError));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow(customError);
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should handle production environment with unknown errors', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue(new Error('Unknown Clerk error'));
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Erreur lors de l\'envoi du lien de réinitialisation');
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should handle non-Error exceptions', async () => {
+      const email = 'test@example.com';
+      mockClerkClient.users.getUserList.mockRejectedValue('String error');
+
+      await expect(forgotPasswordUseCase.execute(email))
+        .rejects.toThrow('Erreur inconnue lors de l\'envoi du lien de réinitialisation');
+    });
+  });
 });
