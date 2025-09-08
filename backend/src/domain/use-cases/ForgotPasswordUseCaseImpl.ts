@@ -23,7 +23,7 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
       
       return {
         success: true,
-        message: 'Utilisateur trouvé. Redirigez vers l\'interface de réinitialisation Clerk.',
+        message: 'Un lien de réinitialisation a été envoyé à votre adresse email.',
       };
     } catch (error) {
       // Gestion des erreurs spécifiques à Clerk
