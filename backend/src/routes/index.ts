@@ -5,7 +5,7 @@ import forgotPasswordRoutes from '../infrastructure/web/routes/forgot-password.r
 const router = Router();
 
 router.use('/users', userRoutes);
-router.use('/forgot-password', forgotPasswordRoutes);
+router.use('/auth/forgot-password', forgotPasswordRoutes);
 
 // Route de test
 router.get('/test', (req, res) => {

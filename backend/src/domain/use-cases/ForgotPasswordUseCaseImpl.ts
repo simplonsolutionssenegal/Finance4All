@@ -31,24 +31,24 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
         console.error('Clerk API Error:', error.message);
         
         if (error.message.includes('not found') || error.message.includes('does not exist')) {
-          throw new Error('Aucun compte n\'est associé à cette adresse email');
+          throw new Error('Aucun compte n\'est associé à cette adresse email.');
         }
         if (error.message.includes('rate limit')) {
-          throw new Error('Trop de tentatives. Veuillez réessayer plus tard');
+          throw new Error('Trop de tentatives. Veuillez réessayer plus tard.');
         }
         if (error.message.includes('already exists') || error.message.includes('already sent')) {
           throw new Error('Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard');
         }
         if (error.message.includes('unauthorized') || error.message.includes('401')) {
-          throw new Error('Erreur de configuration Clerk. Vérifiez la clé secrète');
+          throw new Error('Erreur de configuration Clerk.');
         }
         if (error.message.includes('forbidden') || error.message.includes('403')) {
-          throw new Error('Accès refusé à l\'API Clerk');
+          throw new Error('Accès refusé à l\'API Clerk.');
         }
         
         // Pour le debug, on retourne l'erreur réelle en développement
         if (process.env.NODE_ENV === 'development') {
-          throw new Error(`Erreur Clerk: ${error.message}`);
+          throw new Error(`${error.message}`);
         }
         
         throw new Error('Erreur lors de l\'envoi du lien de réinitialisation');
