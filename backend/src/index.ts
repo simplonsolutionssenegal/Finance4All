@@ -14,7 +14,19 @@ dotenv.config();
 // Créer l'application Express
 const app = express();
 const PORT = process.env.PORT ?? 5000;
-app.use(clerkMiddleware());
+
+// Middleware Clerk conditionnel pour les routes protégées
+app.use((req, res, next) => {
+  const publicRoutes = [
+    '/api/v1/forgot-password',
+  ];
+  
+  if (publicRoutes.includes(req.path)) {
+    return next();
+  }
+  
+  return clerkMiddleware()(req, res, next);
+});
 
 // Middleware globaux
 app.use(helmet()); // Sécurité

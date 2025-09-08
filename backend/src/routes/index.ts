@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import userRoutes from '../infrastructure/web/routes/user.routes';
+import forgotPasswordRoutes from '../infrastructure/web/routes/forgot-password.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
+router.use('/forgot-password', forgotPasswordRoutes);
 
 // Route de test
 router.get('/test', (req, res) => {
