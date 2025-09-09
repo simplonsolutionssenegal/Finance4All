@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ResetPasswordUseCase } from '../../../application/use-cases/ResetPasswordUseCase';
+import { ForgotAndResetPasswordControllerUtils } from './ControllerUtils';
 
 export class ResetPasswordController {
   constructor(private readonly resetPasswordUseCase: ResetPasswordUseCase) {}
@@ -9,21 +10,9 @@ export class ResetPasswordController {
 
     try {
       const result = await this.resetPasswordUseCase.execute(userId, newPassword);
-      this.sendSuccessResponse(res, result.message, { success: result.success });
+      ForgotAndResetPasswordControllerUtils.sendSuccessResponse(res, result.message, { success: result.success });
     } catch (error) {
-      this.sendErrorResponse(res, error);
+      ForgotAndResetPasswordControllerUtils.sendErrorResponse(res, error);
     }
-  }
-
-  private sendSuccessResponse(res: Response, message: string, data: Record<string, unknown>): void {
-    res.status(200).json({ status: 'success', message, data });
-  }
-
-  private sendErrorResponse(res: Response, error: unknown): void {
-    res.status(400).json({
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Erreur inconnue',
-      data: { success: false },
-    });
   }
 }
