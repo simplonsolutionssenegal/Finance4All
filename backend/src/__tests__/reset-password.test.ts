@@ -23,17 +23,21 @@ describe('Reset Password - Complete Functionality', () => {
   let mockClerkClient: jest.Mocked<typeof clerkClient>;
   let app: express.Application;
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Configuration de l'app Express pour les tests de routes
+  const setupExpressApp = () => {
     app = express();
     app.use(express.json());
     app.use('/api/v1/auth/reset-password', resetPasswordRoutes);
     app.use(errorMiddleware);
+  };
 
-    // Mock de Clerk
+  const setupClerkMock = () => {
     mockClerkClient = clerkClient as jest.Mocked<typeof clerkClient>;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupExpressApp();
+    setupClerkMock();
   });
 
   describe('ResetPasswordUseCaseImpl', () => {
@@ -344,11 +348,15 @@ describe('Reset Password - Complete Functionality', () => {
     let controller: ResetPasswordController;
     let mockUseCase: jest.Mocked<ResetPasswordUseCaseImpl>;
 
-    beforeEach(() => {
+    const setupControllerMocks = () => {
       mockUseCase = {
         execute: jest.fn(),
       } as any;
       controller = new ResetPasswordController(mockUseCase);
+    };
+
+    beforeEach(() => {
+      setupControllerMocks();
     });
 
     it('should return success response for valid request', async () => {

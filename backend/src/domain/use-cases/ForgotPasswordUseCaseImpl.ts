@@ -1,5 +1,6 @@
 import { ForgotPasswordUseCase } from '@/application/use-cases/ForgotPasswordUseCase';
 import { clerkClient } from '@clerk/express';
+import { UseCaseErrorHandler } from './UseCaseErrorHandler';
 
 export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
   async execute(email: string | undefined): Promise<{ success: boolean; message: string }> {
@@ -12,7 +13,7 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
         message: 'Un lien de réinitialisation a été envoyé à votre adresse email.',
       };
     } catch (error) {
-      this.handleClerkError(error);
+      UseCaseErrorHandler.handleClerkError(error, 'l\'envoi du lien de réinitialisation');
     }
   }
 
@@ -36,38 +37,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     }
   }
 
-  private handleClerkError(error: unknown): never {
-    if (!(error instanceof Error)) {
-      throw new Error('Erreur inconnue lors de l\'envoi du lien de réinitialisation');
-    }
-
-    const errorMessage = error.message.toLowerCase();
-    const specificError = this.getSpecificErrorMessage(errorMessage);
-
-    if (specificError) {
-      throw new Error(specificError);
-    }
-
-    throw new Error(error.message);
-  }
-
-  private getSpecificErrorMessage(errorMessage: string): string | null {
-    const errorMappings = new Map([
-      [['not found', 'does not exist', 'aucun compte'], 'Aucun compte n\'est associé à cette adresse email'],
-      [['rate limit'], 'Trop de tentatives. Veuillez réessayer plus tard.'],
-      [['already exists', 'already sent'], 'Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard'],
-      [['unauthorized', '401'], 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.'],
-      [['forbidden', '403'], 'Vous n\'avez pas les permissions pour envoyer un lien de réinitialisation.'],
-    ]);
-
-    for (const [keywords, message] of errorMappings) {
-      if (keywords.some(keyword => errorMessage.includes(keyword))) {
-        return message;
-      }
-    }
-
-    return null;
-  }
 
   private isValidEmail(email: string): boolean {
     // Vérifications de base

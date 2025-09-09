@@ -25,17 +25,21 @@ describe('Forgot Password - Complete Functionality', () => {
   let mockClerkClient: jest.Mocked<typeof clerkClient>;
   let app: express.Application;
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Configuration de l'app Express pour les tests de routes
+  const setupExpressApp = () => {
     app = express();
     app.use(express.json());
     app.use('/api/v1/auth/forgot-password', forgotPasswordRoutes);
     app.use(errorMiddleware);
+  };
 
-    // Mock de Clerk
+  const setupClerkMock = () => {
     mockClerkClient = clerkClient as jest.Mocked<typeof clerkClient>;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupExpressApp();
+    setupClerkMock();
   });
 
   describe('ForgotPasswordUseCaseImpl', () => {
@@ -272,7 +276,7 @@ describe('Forgot Password - Complete Functionality', () => {
     let mockJson: jest.Mock;
     let mockStatus: jest.Mock;
 
-    beforeEach(() => {
+    const setupControllerMocks = () => {
       mockUseCase = {
         execute: jest.fn(),
       } as unknown as jest.Mocked<ForgotPasswordUseCaseImpl>;
@@ -287,6 +291,10 @@ describe('Forgot Password - Complete Functionality', () => {
       };
 
       controller = new ForgotPasswordController(mockUseCase);
+    };
+
+    beforeEach(() => {
+      setupControllerMocks();
     });
 
     it('should return success response when use case succeeds', async () => {
