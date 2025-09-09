@@ -1,17 +1,7 @@
 import { ForgotPasswordUseCase } from '@/application/use-cases/ForgotPasswordUseCase';
 import { clerkClient } from '@clerk/express';
 
-/**
- * Implémentation du cas d'usage pour la réinitialisation de mot de passe
- * Utilise l'API Clerk pour vérifier l'existence de l'utilisateur
- */
 export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
-  /**
-   * Exécute le processus de réinitialisation de mot de passe
-   * @param email - L'adresse email de l'utilisateur
-   * @returns Promise avec le résultat de l'opération
-   * @throws Error si l'email est invalide ou si l'utilisateur n'existe pas
-   */
   async execute(email: string | undefined): Promise<{ success: boolean; message: string }> {
     this.validateEmail(email);
 
@@ -26,11 +16,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     }
   }
 
-  /**
-   * Valide le format de l'email
-   * @param email - L'adresse email à valider
-   * @throws Error si l'email est vide ou invalide
-   */
   private validateEmail(email: string | undefined): void {
     if (!email || (typeof email === 'string' && email.trim() === '')) {
       throw new Error('L\'email est requis');
@@ -41,11 +26,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     }
   }
 
-  /**
-   * Vérifie si l'utilisateur existe dans Clerk
-   * @param email - L'adresse email de l'utilisateur
-   * @throws Error si l'utilisateur n'existe pas
-   */
   private async checkUserExists(email: string): Promise<void> {
     const users = await clerkClient.users.getUserList({
       emailAddress: [email],
@@ -56,11 +36,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     }
   }
 
-  /**
-   * Gère les erreurs spécifiques à l'API Clerk
-   * @param error - L'erreur à traiter
-   * @throws Error avec un message approprié selon le type d'erreur
-   */
   private handleClerkError(error: unknown): never {
     if (!(error instanceof Error)) {
       throw new Error('Erreur inconnue lors de l\'envoi du lien de réinitialisation');
@@ -81,11 +56,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     throw new Error('Erreur inconnue lors de l\'envoi du lien de réinitialisation');
   }
 
-  /**
-   * Mappe les messages d'erreur Clerk vers des messages utilisateur
-   * @param errorMessage - Le message d'erreur de Clerk
-   * @returns Le message d'erreur mappé ou null si aucun mapping trouvé
-   */
   private getSpecificErrorMessage(errorMessage: string): string | null {
     const errorMappings = new Map([
       [['not found', 'does not exist', 'aucun compte'], 'Aucun compte n\'est associé à cette adresse email'],
@@ -104,11 +74,6 @@ export class ForgotPasswordUseCaseImpl implements ForgotPasswordUseCase {
     return null;
   }
 
-  /**
-   * Valide le format d'un email avec une regex sécurisée
-   * @param email - L'adresse email à valider
-   * @returns true si l'email est valide, false sinon
-   */
   private isValidEmail(email: string): boolean {
     // Vérifications de base
     if (!email || email.length < 5) return false;

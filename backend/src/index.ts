@@ -17,6 +17,7 @@ const PORT = process.env.PORT ?? 5000;
 
 // Middleware Clerk conditionnel pour les routes protégées
 app.use((req, res, next) => {
+  // les routes publiques qui necessitent pas d'authentification
   const publicRoutes = [
     '/api/v1/auth/forgot-password',
   ];
