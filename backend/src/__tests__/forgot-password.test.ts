@@ -84,6 +84,98 @@ describe('Forgot Password - Complete Functionality', () => {
         }
       });
 
+      it('should reject emails with multiple @ symbols', async () => {
+        const emailsWithMultipleAt = [
+          'user@@example.com',
+          'user@example@com',
+          '@@example.com',
+        ];
+
+        for (const email of emailsWithMultipleAt) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with local part starting or ending with dots', async () => {
+        const emailsWithDotsInLocal = [
+          '.user@example.com',
+          'user.@example.com',
+          '.user.@example.com',
+        ];
+
+        for (const email of emailsWithDotsInLocal) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with consecutive dots in local part', async () => {
+        const emailsWithConsecutiveDots = [
+          'user..name@example.com',
+          'user...name@example.com',
+        ];
+
+        for (const email of emailsWithConsecutiveDots) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with domain part starting or ending with dots', async () => {
+        const emailsWithDotsInDomain = [
+          'user@.example.com',
+          'user@example.com.',
+          'user@.example.com.',
+        ];
+
+        for (const email of emailsWithDotsInDomain) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with consecutive dots in domain part', async () => {
+        const emailsWithConsecutiveDotsInDomain = [
+          'user@example..com',
+          'user@example...com',
+        ];
+
+        for (const email of emailsWithConsecutiveDotsInDomain) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with TLD shorter than 2 characters', async () => {
+        const emailsWithShortTld = [
+          'user@example.c',
+          'user@example.',
+        ];
+
+        for (const email of emailsWithShortTld) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails shorter than 5 characters', async () => {
+        const shortEmails = [
+          'a@b',
+          'ab@c',
+          'abc@d',
+        ];
+
+        for (const email of shortEmails) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
+      it('should reject emails with domain without dots', async () => {
+        const emailsWithoutDotsInDomain = [
+          'user@example',
+          'user@domain',
+        ];
+
+        for (const email of emailsWithoutDotsInDomain) {
+          await expect(useCase.execute(email)).rejects.toThrow('Format d\'email invalide');
+        }
+      });
+
       it('should reject empty or whitespace email', async () => {
         const emptyEmails = ['', '   ', '\t', '\n'];
 
@@ -121,8 +213,8 @@ describe('Forgot Password - Complete Functionality', () => {
       it('should handle Clerk API errors gracefully', async () => {
         const email = 'test@example.com';
         const errorCases = [
-          { error: 'unauthorized access', expectedMessage: 'Erreur de configuration Clerk.' },
-          { error: '403 forbidden', expectedMessage: 'Accès refusé à l\'API Clerk.' },
+          { error: 'unauthorized access', expectedMessage: 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.' },
+          { error: '403 forbidden', expectedMessage: 'Vous n\'avez pas les permissions pour envoyer un lien de réinitialisation.' },
           { error: 'rate limit exceeded', expectedMessage: 'Trop de tentatives. Veuillez réessayer plus tard.' },
           { error: 'already sent recently', expectedMessage: 'Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard' },
         ];
@@ -137,7 +229,7 @@ describe('Forgot Password - Complete Functionality', () => {
         const email = 'test@example.com';
         mockClerkClient.users.getUserList.mockRejectedValue(new Error('Unknown Clerk error'));
 
-        await expect(useCase.execute(email)).rejects.toThrow('Erreur inconnue lors de l\'envoi du lien de réinitialisation');
+        await expect(useCase.execute(email)).rejects.toThrow('Unknown Clerk error');
       });
 
       it('should handle non-Error exceptions', async () => {
@@ -158,10 +250,10 @@ describe('Forgot Password - Complete Functionality', () => {
           { error: 'Rate limit exceeded', expected: 'Trop de tentatives. Veuillez réessayer plus tard.' },
           { error: 'Reset link already exists', expected: 'Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard' },
           { error: 'Reset link already sent', expected: 'Un lien de réinitialisation a déjà été envoyé récemment. Veuillez vérifier votre boîte email ou réessayer plus tard' },
-          { error: 'Unauthorized access', expected: 'Erreur de configuration Clerk.' },
-          { error: '401 Unauthorized', expected: 'Erreur de configuration Clerk.' },
-          { error: 'Forbidden access', expected: 'Accès refusé à l\'API Clerk.' },
-          { error: '403 Forbidden', expected: 'Accès refusé à l\'API Clerk.' },
+          { error: 'Unauthorized access', expected: 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.' },
+          { error: '401 Unauthorized', expected: 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.' },
+          { error: 'Forbidden access', expected: 'Vous n\'avez pas les permissions pour envoyer un lien de réinitialisation.' },
+          { error: '403 Forbidden', expected: 'Vous n\'avez pas les permissions pour envoyer un lien de réinitialisation.' },
         ];
 
         for (const mapping of errorMappings) {
@@ -372,7 +464,7 @@ describe('Forgot Password - Complete Functionality', () => {
 
       expect(response.body).toEqual({
         status: 'error',
-        message: 'Erreur de configuration Clerk.',
+        message: 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.',
         data: { success: false },
       });
     });
@@ -388,7 +480,7 @@ describe('Forgot Password - Complete Functionality', () => {
 
       expect(response.body).toEqual({
         status: 'error',
-        message: 'Accès refusé à l\'API Clerk.',
+        message: 'Vous n\'avez pas les permissions pour envoyer un lien de réinitialisation.',
         data: { success: false },
       });
     });
@@ -404,7 +496,7 @@ describe('Forgot Password - Complete Functionality', () => {
 
       expect(response.body).toEqual({
         status: 'error',
-        message: 'Erreur inconnue lors de l\'envoi du lien de réinitialisation',
+        message: 'Unknown Clerk error',
         data: { success: false },
       });
     });
