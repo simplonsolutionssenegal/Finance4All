@@ -1,65 +1,62 @@
-import { useClerk } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ZodError } from 'zod';
 
 import { buildApiUrl, API_CONFIG, DEFAULT_HEADERS, ApiResponseSchema, type ApiResponse } from '@/lib/api';
 
-interface UseForgotPasswordReturn {
+interface UseResetPasswordReturn {
     isLoading: boolean;
     error: string | null;
     success: boolean;
     successMessage: string | null;
-    sendResetLink: (email: string) => Promise<void>;
+    resetPassword: (newPassword: string) => Promise<void>;
     resetState: () => void;
 }
 
-export function useForgotPassword(): UseForgotPasswordReturn {
-    const { client, session } = useClerk();
+export function useResetPassword(): UseResetPasswordReturn {
+    const { user } = useUser();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const router = useRouter();
 
-    const sendResetLink = async (email: string): Promise<void> => {
+    const resetPassword = async (newPassword: string): Promise<void> => {
         setIsLoading(true);
         setError(null);
         setSuccess(false);
         setSuccessMessage(null);
 
         try {
-            const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.FORGOT_PASSWORD), {
+            if (!user?.id) {
+                throw new Error('Utilisateur non authentifié. Veuillez vous connecter.');
+            }
+
+            const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.RESET_PASSWORD), {
                 method: 'POST',
                 headers: DEFAULT_HEADERS,
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ 
+                    userId: user.id, 
+                    newPassword 
+                }),
             });
 
             const rawData = await response.json();
             
-            // Validation avec Zod
+            // Validation des format de réponse
             const data: ApiResponse = ApiResponseSchema.parse(rawData);
 
             if (!response.ok) {
-                throw new Error(data.message || 'Erreur lors de l\'envoi du lien de réinitialisation');
-            }
-
-            if (session) {
-                throw new Error('Vous êtes déjà connecté. Veuillez utiliser la page de changement de mot de passe dans votre profil.');
+                throw new Error(data.message || 'Erreur lors de la réinitialisation du mot de passe');
             }
 
             if (data.status === 'success' && data.data.success) {
-                
-                const result = await client.signIn.create({
-                    strategy: 'email_link',
-                    identifier: email,
-                    redirectUrl: `${window.location.origin}/reset-password`,
-                });
-
-                if (result) {
-                    setSuccess(true);
-                    setSuccessMessage(data.message || 'Lien de réinitialisation envoyé avec succès !');
-                }
+                setSuccess(true);
+                setSuccessMessage(data.message || 'Mot de passe réinitialisé avec succès !');
+                router.push('/login');
             } else {
-                throw new Error(data.message || 'Erreur lors de l\'envoi du lien de réinitialisation');
+                throw new Error(data.message || 'Erreur lors de la réinitialisation du mot de passe');
             }
         } catch (err) {
             let errorMessage = 'Une erreur inattendue s\'est produite';
@@ -68,7 +65,6 @@ export function useForgotPassword(): UseForgotPasswordReturn {
                 errorMessage = err.message;
             } else if (err instanceof ZodError) {
                 errorMessage = 'Format de réponse invalide du serveur';
-                console.error('Erreur de validation Zod:', err.errors);
             }
             
             setError(errorMessage);
@@ -89,7 +85,7 @@ export function useForgotPassword(): UseForgotPasswordReturn {
         error,
         success,
         successMessage,
-        sendResetLink,
+        resetPassword,
         resetState,
     };
 }
