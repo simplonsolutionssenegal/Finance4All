@@ -20,8 +20,11 @@ export default function ForgotPassword() {
     if (emailError && value.trim() !== "") {
       setEmailError("");
     }
+
+    if(error && value.trim() !== "") {
+      resetState();
+    }
     
-    // Reset success state when user starts typing again
     if (success) {
       resetState();
     }

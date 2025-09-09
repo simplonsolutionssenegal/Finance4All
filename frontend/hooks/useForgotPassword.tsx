@@ -14,7 +14,7 @@ interface UseForgotPasswordReturn {
 }
 
 export function useForgotPassword(): UseForgotPasswordReturn {
-    const { client } = useClerk();
+    const { client, session } = useClerk();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -42,11 +42,16 @@ export function useForgotPassword(): UseForgotPasswordReturn {
                 throw new Error(data.message || 'Erreur lors de l\'envoi du lien de réinitialisation');
             }
 
+            if (session) {
+                throw new Error('Vous êtes déjà connecté. Veuillez utiliser la page de changement de mot de passe dans votre profil.');
+            }
+
             if (data.status === 'success' && data.data.success) {
+                
                 const result = await client.signIn.create({
                     strategy: 'email_link',
                     identifier: email,
-                    redirectUrl: `${window.location.origin}/reset-password`,
+                    redirectUrl: `${window.location.origin}`,
                 });
 
                 if (result) {

@@ -16,7 +16,7 @@ export const API_CONFIG = {
   
   // Endpoints
   ENDPOINTS: {
-    FORGOT_PASSWORD: `/api/${process.env.API_VERSION ?? 'v1'}/forgot-password`,
+    FORGOT_PASSWORD: `/api/${process.env.API_VERSION ?? 'v1'}/auth/forgot-password`,
   },
 } as const;
 
