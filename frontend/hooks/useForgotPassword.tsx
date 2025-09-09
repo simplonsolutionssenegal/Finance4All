@@ -64,11 +64,10 @@ export function useForgotPassword(): UseForgotPasswordReturn {
         } catch (err) {
             let errorMessage = 'Une erreur inattendue s\'est produite';
             
-            if (err instanceof Error) {
-                errorMessage = err.message;
-            } else if (err instanceof ZodError) {
+            if (err instanceof ZodError) {
                 errorMessage = 'Format de réponse invalide du serveur';
-                console.error('Erreur de validation Zod:', err.errors);
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
             }
             
             setError(errorMessage);
