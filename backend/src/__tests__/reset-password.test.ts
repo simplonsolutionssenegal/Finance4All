@@ -331,6 +331,12 @@ describe('Reset Password - Complete Functionality', () => {
 
         await expect(useCase.execute(validUserId, validPassword)).rejects.toThrow('Unknown error occurred');
       });
+
+      it('should handle non-Error exceptions', async () => {
+        mockClerkClient.users.updateUser.mockRejectedValue('String error');
+
+        await expect(useCase.execute(validUserId, validPassword)).rejects.toThrow('Erreur inconnue lors de la mise à jour du mot de passe');
+      });
     });
   });
 

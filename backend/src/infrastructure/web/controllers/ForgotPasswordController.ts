@@ -9,22 +9,21 @@ export class ForgotPasswordController {
 
     try {
       const result = await this.forgotPasswordUseCase.execute(email);
-      
-      res.status(200).json({
-        status: 'success',
-        message: result.message,
-        data: {
-          success: result.success,
-        },
-      });
+      this.sendSuccessResponse(res, result.message, { success: result.success });
     } catch (error) {
-      res.status(400).json({
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
-        data: {
-          success: false,
-        },
-      });
+      this.sendErrorResponse(res, error);
     }
+  }
+
+  private sendSuccessResponse(res: Response, message: string, data: Record<string, unknown>): void {
+    res.status(200).json({ status: 'success', message, data });
+  }
+
+  private sendErrorResponse(res: Response, error: unknown): void {
+    res.status(400).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Erreur inconnue',
+      data: { success: false },
+    });
   }
 }
