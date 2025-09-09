@@ -240,7 +240,7 @@ export default function ResetPassword() {
             </Button>
 
             <p className="text-sm text-neutral-400 text-center">
-              Votre mot de passe doit contenir au moins 8 caractères pour être sécurisé.
+              Votre mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial pour être sécurisé.
             </p>
           </form>
 
