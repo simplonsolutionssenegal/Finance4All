@@ -1,5 +1,4 @@
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ZodError } from 'zod';
 
@@ -20,7 +19,6 @@ export function useResetPassword(): UseResetPasswordReturn {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const router = useRouter();
 
     const resetPassword = async (newPassword: string): Promise<void> => {
         setIsLoading(true);
@@ -54,17 +52,16 @@ export function useResetPassword(): UseResetPasswordReturn {
             if (data.status === 'success' && data.data.success) {
                 setSuccess(true);
                 setSuccessMessage(data.message || 'Mot de passe réinitialisé avec succès !');
-                router.push('/login');
             } else {
                 throw new Error(data.message || 'Erreur lors de la réinitialisation du mot de passe');
             }
         } catch (err) {
             let errorMessage = 'Une erreur inattendue s\'est produite';
             
-            if (err instanceof Error) {
-                errorMessage = err.message;
-            } else if (err instanceof ZodError) {
+            if (err instanceof ZodError) {
                 errorMessage = 'Format de réponse invalide du serveur';
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
             }
             
             setError(errorMessage);
