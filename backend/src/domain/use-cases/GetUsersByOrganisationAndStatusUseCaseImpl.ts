@@ -1,15 +1,17 @@
+// backend/src/domain/use-cases/GetUsersByOrganisationAndStatusUseCaseImpl.ts
 import { GetUsersByOrganisationAndStatusUseCase, LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 import { User } from '@/domain/entities/User';
 import { UserRepository } from '@/domain/repositories/UserRepository';
-import { UserStatus } from '@prisma/client';
+import { UserStatus } from '@prisma/client'; // 👈 IMPORTANT
 
-export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrganisationAndStatusUseCase
+export class GetUsersByOrganisationAndStatusUseCaseImpl
+  implements GetUsersByOrganisationAndStatusUseCase
 {
   constructor(private readonly userRepo: UserRepository) {}
 
- execute(
+  async execute(
     organisationId: number,
-    statuses: UserStatus[],
+    statuses: UserStatus[] | undefined,
     roles?: string[],
     lastLoginFilter?: LastLoginFilter
   ): Promise<User[]> {
@@ -17,17 +19,15 @@ export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrg
       throw new Error('organisationId invalide');
     }
 
-    // S’il n’y a pas de statuses -> retourne toute l’org (optionnellement filtrée par roles/date)
-    const effectiveStatuses =
-      Array.isArray(statuses) && statuses.length > 0
-        ? statuses
-        : (Object.values(UserStatus) as UserStatus[]);
+    // défaut : tous les statuts si non fourni OU tableau vide
+    const effectiveStatuses: UserStatus[] =
+      statuses && statuses.length > 0 ? statuses : (Object.values(UserStatus) as UserStatus[]);
 
     return this.userRepo.findUsersByOrganisationAndStatus(
       organisationId,
       effectiveStatuses,
       roles,
-      lastLoginFilter // 👈 on propage !
+      lastLoginFilter
     );
   }
 }
