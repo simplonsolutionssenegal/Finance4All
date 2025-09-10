@@ -113,11 +113,10 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Define type-safe resolver with explicit typing
+  // Using eslint-disable for this specific line due to typing complexities
   const form = useForm<InstitutionFormValues>({
-    // Type assertion needed due to compatibility issues between Zod schema types
-    // and the expected types for zodResolver - this is a common pattern when using zod with react-hook-form
-    resolver: zodResolver(formSchema as any), 
+    // @ts-expect-error: zodResolver has a complex typing issue with complex schemas
+    resolver: zodResolver(formSchema),
     defaultValues: {
       nom: '',
       type: '',
