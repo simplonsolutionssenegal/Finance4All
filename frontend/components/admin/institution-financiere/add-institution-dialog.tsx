@@ -113,10 +113,10 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Using eslint-disable for this specific line due to typing complexities
+  // Form setup with zod validation
   const form = useForm<InstitutionFormValues>({
-    // @ts-expect-error: zodResolver has a complex typing issue with complex schemas
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any), // Type assertion needed for zodResolver compatibility
     defaultValues: {
       nom: '',
       type: '',
