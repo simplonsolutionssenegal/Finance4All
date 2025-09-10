@@ -3,6 +3,8 @@
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 
+import { apiClient } from "@/lib/api";
+
 interface UseResetPasswordReturn {
   isLoading: boolean;
   error: string | null;
@@ -42,28 +44,17 @@ export const useResetPassword = (): UseResetPasswordReturn => {
       }
 
       // Appeler l'API backend pour réinitialiser le mot de passe
-      const response = await fetch("/api/v1/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          newPassword,
-        }),
-      });
+      const response = await apiClient.resetPassword(user.id, newPassword);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Erreur lors de la réinitialisation");
+      if (response.status === "error") {
+        throw new Error(response.message);
       }
 
-      if (data.status === "success") {
+      if (response.status === "success") {
         setSuccess(true);
-        setSuccessMessage(data.message || "Mot de passe réinitialisé avec succès");
+        setSuccessMessage(response.message || "Mot de passe réinitialisé avec succès");
       } else {
-        throw new Error(data.message || "Format de réponse invalide du serveur");
+        throw new Error("Format de réponse invalide du serveur");
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";

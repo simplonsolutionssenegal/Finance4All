@@ -7,15 +7,25 @@ jest.mock("@clerk/nextjs", () => ({
   useUser: jest.fn(),
 }));
 
+// Mock API client
+jest.mock("@/lib/api", () => ({
+  apiClient: {
+    resetPassword: jest.fn(),
+  },
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
 
 const mockUseUser = require("@clerk/nextjs").useUser;
 
+const mockApiClient = require("@/lib/api").apiClient;
+
 describe("useResetPassword hook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (global.fetch as jest.Mock).mockClear();
+    mockApiClient.resetPassword.mockClear();
   });
 
   it("should be a function", () => {
@@ -42,16 +52,11 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        status: "success",
-        message: "Mot de passe réinitialisé avec succès",
-        data: { success: true },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.resetPassword.mockResolvedValue({
+      status: "success",
+      message: "Mot de passe réinitialisé avec succès",
+      data: { success: true },
+    });
 
     const { result } = renderHook(() => useResetPassword());
 
@@ -63,6 +68,7 @@ describe("useResetPassword hook", () => {
     expect(result.current.successMessage).toBe("Mot de passe réinitialisé avec succès");
     expect(result.current.error).toBe(null);
     expect(result.current.isLoading).toBe(false);
+    expect(mockApiClient.resetPassword).toHaveBeenCalledWith("user123", "newPassword123");
   });
 
   it("should handle API error response", async () => {
@@ -70,16 +76,11 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    const mockResponse = {
-      ok: false,
-      json: jest.fn().mockResolvedValue({
-        status: "error",
-        message: "Erreur lors de la réinitialisation",
-        data: { success: false },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.resetPassword.mockResolvedValue({
+      status: "error",
+      message: "Erreur lors de la réinitialisation",
+      data: { success: false },
+    });
 
     const { result } = renderHook(() => useResetPassword());
 
@@ -113,7 +114,7 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+    mockApiClient.resetPassword.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useResetPassword());
 
@@ -149,16 +150,11 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        status: "success",
-        message: "Success",
-        data: { success: true },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.resetPassword.mockResolvedValue({
+      status: "success",
+      message: "Success",
+      data: { success: true },
+    });
 
     const { result } = renderHook(() => useResetPassword());
 
@@ -166,19 +162,7 @@ describe("useResetPassword hook", () => {
       await result.current.resetPassword("newPassword123");
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/auth/reset-password"),
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: "user123",
-          newPassword: "newPassword123",
-        }),
-      }
-    );
+    expect(mockApiClient.resetPassword).toHaveBeenCalledWith("user123", "newPassword123");
   });
 
   it("should handle invalid API response format", async () => {
@@ -186,14 +170,9 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        invalid: "response",
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.resetPassword.mockResolvedValue({
+      invalid: "response",
+    } as any);
 
     const { result } = renderHook(() => useResetPassword());
 

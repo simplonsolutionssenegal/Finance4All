@@ -7,15 +7,25 @@ jest.mock("@clerk/nextjs", () => ({
   useClerk: jest.fn(),
 }));
 
-// Mock fetch
+// Mock API client
+jest.mock("@/lib/api", () => ({
+  apiClient: {
+    forgotPassword: jest.fn(),
+  },
+}));
+
+// Mock fetch (no longer needed but kept for compatibility)
 global.fetch = jest.fn();
 
 const mockUseClerk = require("@clerk/nextjs").useClerk;
+
+const mockApiClient = require("@/lib/api").apiClient;
 
 describe("useForgotPassword hook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (global.fetch as jest.Mock).mockClear();
+    mockApiClient.forgotPassword.mockClear();
   });
 
   it("should be a function", () => {
@@ -53,16 +63,11 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        status: "success",
-        message: "Lien de réinitialisation envoyé avec succès",
-        data: { success: true },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.forgotPassword.mockResolvedValue({
+      status: "success",
+      message: "Lien de réinitialisation envoyé avec succès",
+      data: { success: true },
+    });
 
     const { result } = renderHook(() => useForgotPassword());
 
@@ -79,6 +84,7 @@ describe("useForgotPassword hook", () => {
       identifier: "test@example.com",
       redirectUrl: expect.stringContaining("/reset-password"),
     });
+    expect(mockApiClient.forgotPassword).toHaveBeenCalledWith("test@example.com");
   });
 
   it("should handle API error response", async () => {
@@ -91,16 +97,11 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    const mockResponse = {
-      ok: false,
-      json: jest.fn().mockResolvedValue({
-        status: "error",
-        message: "Erreur lors de l'envoi du lien",
-        data: { success: false },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.forgotPassword.mockResolvedValue({
+      status: "error",
+      message: "Erreur lors de l'envoi du lien",
+      data: { success: false },
+    });
 
     const { result } = renderHook(() => useForgotPassword());
 
@@ -155,7 +156,7 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+    mockApiClient.forgotPassword.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useForgotPassword());
 
@@ -202,16 +203,11 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        status: "success",
-        message: "Success",
-        data: { success: true },
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.forgotPassword.mockResolvedValue({
+      status: "success",
+      message: "Success",
+      data: { success: true },
+    });
 
     const { result } = renderHook(() => useForgotPassword());
 
@@ -219,18 +215,7 @@ describe("useForgotPassword hook", () => {
       await result.current.sendResetLink("test@example.com");
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/auth/forgot-password"),
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: "test@example.com",
-        }),
-      }
-    );
+    expect(mockApiClient.forgotPassword).toHaveBeenCalledWith("test@example.com");
   });
 
   it("should handle invalid API response format", async () => {
@@ -243,14 +228,9 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        invalid: "response",
-      }),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    mockApiClient.forgotPassword.mockResolvedValue({
+      invalid: "response",
+    } as any);
 
     const { result } = renderHook(() => useForgotPassword());
 

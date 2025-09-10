@@ -3,6 +3,8 @@
 import { useClerk } from "@clerk/nextjs";
 import { useState } from "react";
 
+import { apiClient } from "@/lib/api";
+
 interface UseForgotPasswordReturn {
   isLoading: boolean;
   error: string | null;
@@ -49,27 +51,17 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
       });
 
       // Appeler l'API backend pour enregistrer la demande
-      const response = await fetch("/api/v1/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-        }),
-      });
+      const response = await apiClient.forgotPassword(email);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Erreur lors de l'envoi du lien");
+      if (response.status === "error") {
+        throw new Error(response.message);
       }
 
-      if (data.status === "success") {
+      if (response.status === "success") {
         setSuccess(true);
-        setSuccessMessage(data.message || "Lien de réinitialisation envoyé avec succès");
+        setSuccessMessage(response.message || "Lien de réinitialisation envoyé avec succès");
       } else {
-        throw new Error(data.message || "Format de réponse invalide du serveur");
+        throw new Error("Format de réponse invalide du serveur");
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
