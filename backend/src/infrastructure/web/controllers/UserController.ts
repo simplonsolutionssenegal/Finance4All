@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CreateUserUseCase } from '../../../application/use-cases/CreateUserUseCase';
 import { asyncHandler } from '../middleware/error.middleware';
 import { UserService } from '../services/user.service';
-import { PrismaUserRepository } from '@/infrastructure/database/prisma-user.repository';
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
 import { UserStatus } from '@prisma/client';
 import { GetUsersByOrganisationUseCase } from '@/application/use-cases/GetUsersByOrganisationUseCase';
 import { GetUsersByOrganisationAndStatusUseCase } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
