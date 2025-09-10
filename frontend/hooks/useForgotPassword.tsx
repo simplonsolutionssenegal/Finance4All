@@ -1,9 +1,8 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs";
-import { useState } from "react";
-
-import { apiClient } from "@/lib/api";
+import { useClerk, useSignIn } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useState, useCallback, useRef } from "react";
 
 interface UseForgotPasswordReturn {
   isLoading: boolean;
@@ -11,7 +10,10 @@ interface UseForgotPasswordReturn {
   success: boolean;
   successMessage: string | null;
   sendResetLink: (email: string) => Promise<void>;
+  resetPassword: (password: string, code: string) => Promise<void>;
   resetState: () => void;
+  retryCount: number;
+  canRetry: boolean;
 }
 
 export const useForgotPassword = (): UseForgotPasswordReturn => {
@@ -19,21 +21,31 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
-  const { client, session } = useClerk();
+  const lastAttemptRef = useRef<number>(0);
+  const maxRetries = 3;
+  const retryDelay = 60000; // 1 minute
 
-  const resetState = () => {
+  const { session } = useClerk();
+  const { signIn } = useSignIn();
+  const router = useRouter();
+
+  const resetState = useCallback(() => {
     setError(null);
     setSuccess(false);
     setSuccessMessage(null);
     setIsLoading(false);
-  };
+  }, []);
+
+  const canRetry = retryCount < maxRetries && (Date.now() - lastAttemptRef.current) > retryDelay;
 
   const sendResetLink = async (email: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
     setSuccessMessage(null);
+    lastAttemptRef.current = Date.now();
 
     try {
       // Vérifier si l'utilisateur est déjà connecté
@@ -43,33 +55,52 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         return;
       }
 
-      // Créer le lien de réinitialisation avec Clerk
-      await client.signIn.create({
-        strategy: "email_link",
-        identifier: email,
-        redirectUrl: `${window.location.origin}/reset-password`,
-      });
-
-      // Appeler l'API backend pour enregistrer la demande
-      const response = await apiClient.forgotPassword(email);
-
-      if (response.status === "error") {
-        throw new Error(response.message);
-      }
-
-      if (response.status === "success") {
-        setSuccess(true);
-        setSuccessMessage(response.message || "Lien de réinitialisation envoyé avec succès");
-      } else {
-        throw new Error(response.message || "Erreur inconnue du serveur");
-      }
+      await signIn
+        ?.create({
+          strategy: 'reset_password_email_code',
+          identifier: email,
+        })
+        .then((_) => {
+          setSuccess(true)
+          setSuccessMessage("Lien de réinitialisation envoyé avec succès")
+          setRetryCount(0) // Reset retry count on success
+        })
+        .catch((err) => {
+          console.error('error', err.errors[0].longMessage)
+          setError(err.errors[0].longMessage)
+          setRetryCount(prev => prev + 1)
+        })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
       setError(errorMessage);
+      setRetryCount(prev => prev + 1)
     } finally {
       setIsLoading(false);
     }
   };
+
+  const resetPassword = async (password: string, code: string) => {
+    await signIn
+      ?.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code,
+        password,
+      })
+      .then((result) => {
+        // Password reset successful
+        if (result.status === 'complete') {
+          setSuccess(true)
+          setSuccessMessage("Mot de passe réinitialisé avec succès")
+          router.push('/login')
+        } else {
+          setError("Erreur lors de la réinitialisation du mot de passe")
+        }
+      })
+      .catch((err) => {
+        console.error('error', err.errors[0].longMessage)
+        setError(err.errors[0].longMessage)
+      })
+  }
 
   return {
     isLoading,
@@ -77,6 +108,9 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
     success,
     successMessage,
     sendResetLink,
+    resetPassword,
     resetState,
+    retryCount,
+    canRetry,
   };
 };
