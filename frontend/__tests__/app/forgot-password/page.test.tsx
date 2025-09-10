@@ -22,12 +22,14 @@ jest.mock("@/hooks/useForgotPassword", () => ({
     success: false,
     successMessage: null,
     sendResetLink: jest.fn(),
+    resetPassword: jest.fn(),
     resetState: jest.fn(),
   })),
 }));
 
 describe("ForgotPassword", () => {
   const mockSendResetLink = jest.fn();
+  const mockResetPassword = jest.fn();
   const mockResetState = jest.fn();
 
   beforeEach(() => {
@@ -39,6 +41,7 @@ describe("ForgotPassword", () => {
       success: false,
       successMessage: null,
       sendResetLink: mockSendResetLink,
+      resetPassword: mockResetPassword,
       resetState: mockResetState,
     });
   });
@@ -68,9 +71,20 @@ describe("ForgotPassword", () => {
     expect(submitButton).toBeInTheDocument();
   });
 
-  it("renders back to login link", () => {
+  it("renders back to previous step link when in step 2", () => {
+    const { useForgotPassword } = require("@/hooks/useForgotPassword");
+    useForgotPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: true,
+      successMessage: "Lien envoyé avec succès !",
+      sendResetLink: mockSendResetLink,
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
     render(<ForgotPassword />);
-    const backLink = screen.getByText("← Retour à la connexion");
+    const backLink = screen.getByText("← Précédent");
     expect(backLink).toBeInTheDocument();
   });
 
@@ -105,7 +119,7 @@ describe("ForgotPassword", () => {
     fireEvent.submit(form!);
     
     await waitFor(() => {
-      expect(screen.getByText("Le champ email est requis.")).toBeInTheDocument();
+      expect(screen.getByText("L'adresse email est requise.")).toBeInTheDocument();
     });
   });
 
@@ -165,7 +179,7 @@ describe("ForgotPassword", () => {
     expect(screen.getByText("Erreur lors de l'envoi")).toBeInTheDocument();
   });
 
-  it("displays success message", () => {
+  it("displays success message in step 1", () => {
     const { useForgotPassword } = require("@/hooks/useForgotPassword");
     useForgotPassword.mockReturnValue({
       isLoading: false,
@@ -173,45 +187,13 @@ describe("ForgotPassword", () => {
       success: true,
       successMessage: "Lien envoyé avec succès !",
       sendResetLink: mockSendResetLink,
+      resetPassword: mockResetPassword,
       resetState: mockResetState,
     });
 
     render(<ForgotPassword />);
-    expect(screen.getByText("Lien envoyé avec succès !")).toBeInTheDocument();
-    expect(screen.getByText("Lien envoyé !")).toBeInTheDocument();
-  });
-
-  it("shows resend button when success", () => {
-    const { useForgotPassword } = require("@/hooks/useForgotPassword");
-    useForgotPassword.mockReturnValue({
-      isLoading: false,
-      error: null,
-      success: true,
-      successMessage: "Lien envoyé avec succès !",
-      sendResetLink: mockSendResetLink,
-      resetState: mockResetState,
-    });
-
-    render(<ForgotPassword />);
-    expect(screen.getByText("Renvoyer le lien de réinitialisation")).toBeInTheDocument();
-  });
-
-  it("calls resetState when resend button is clicked", () => {
-    const { useForgotPassword } = require("@/hooks/useForgotPassword");
-    useForgotPassword.mockReturnValue({
-      isLoading: false,
-      error: null,
-      success: true,
-      successMessage: "Lien envoyé avec succès !",
-      sendResetLink: mockSendResetLink,
-      resetState: mockResetState,
-    });
-
-    render(<ForgotPassword />);
-    const resendButton = screen.getByText("Renvoyer le lien de réinitialisation");
-    fireEvent.click(resendButton);
-    
-    expect(mockResetState).toHaveBeenCalled();
+    // When success is true, it should show step 2 form
+    expect(screen.getByLabelText("Nouveau mot de passe*")).toBeInTheDocument();
   });
 
   it("clears email error when typing in email field", () => {
@@ -222,6 +204,7 @@ describe("ForgotPassword", () => {
       success: false,
       successMessage: null,
       sendResetLink: mockSendResetLink,
+      resetPassword: mockResetPassword,
       resetState: mockResetState,
     });
 
@@ -236,8 +219,8 @@ describe("ForgotPassword", () => {
     // Then type in the field to clear the error
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     
-    // The error should be cleared (this tests line 21-22)
-    expect(screen.queryByText("Le champ email est requis.")).not.toBeInTheDocument();
+    // The error should be cleared
+    expect(screen.queryByText("L'adresse email est requise.")).not.toBeInTheDocument();
   });
 
   it("calls resetState when typing in email field after error", () => {
@@ -248,36 +231,19 @@ describe("ForgotPassword", () => {
       success: false,
       successMessage: null,
       sendResetLink: mockSendResetLink,
+      resetPassword: mockResetPassword,
       resetState: mockResetState,
     });
 
     render(<ForgotPassword />);
     const emailInput = screen.getByPlaceholderText("Votre email");
     
-    // Type in the field to trigger resetState (line 24-26)
+    // Type in the field to trigger resetState
     fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     
     expect(mockResetState).toHaveBeenCalled();
   });
 
-  it("displays success state correctly", () => {
-    const { useForgotPassword } = require("@/hooks/useForgotPassword");
-    useForgotPassword.mockReturnValue({
-      isLoading: false,
-      error: null,
-      success: true,
-      successMessage: "Lien envoyé avec succès !",
-      sendResetLink: mockSendResetLink,
-      resetState: mockResetState,
-    });
-
-    render(<ForgotPassword />);
-    
-    // Verify that success state is displayed correctly
-    expect(screen.getByText("Lien envoyé avec succès !")).toBeInTheDocument();
-    expect(screen.getByText("Lien envoyé !")).toBeInTheDocument();
-    expect(screen.getByText("Renvoyer le lien de réinitialisation")).toBeInTheDocument();
-  });
 
   it("handles form submission error", async () => {
     const { useForgotPassword } = require("@/hooks/useForgotPassword");
@@ -289,6 +255,7 @@ describe("ForgotPassword", () => {
       success: false,
       successMessage: null,
       sendResetLink: jest.fn().mockRejectedValue(new Error("API Error")),
+      resetPassword: mockResetPassword,
       resetState: mockResetState,
     });
 
@@ -304,5 +271,175 @@ describe("ForgotPassword", () => {
     });
     
     consoleSpy.mockRestore();
+  });
+
+  // Tests for step 2 functionality
+  describe("Step 2 - Password Reset", () => {
+    beforeEach(() => {
+      const { useForgotPassword } = require("@/hooks/useForgotPassword");
+      useForgotPassword.mockReturnValue({
+        isLoading: false,
+        error: null,
+        success: true, // This triggers step 2
+        successMessage: "Lien envoyé avec succès !",
+        sendResetLink: mockSendResetLink,
+        resetPassword: mockResetPassword,
+        resetState: mockResetState,
+      });
+    });
+
+    it("renders step 2 form when success is true", () => {
+      render(<ForgotPassword />);
+      
+      expect(screen.getByLabelText("Nouveau mot de passe*")).toBeInTheDocument();
+      expect(screen.getByText("Code de réinitialisation*")).toBeInTheDocument();
+      expect(screen.getByText("Mot de passe réinitialisé !")).toBeInTheDocument();
+    });
+
+    it("handles password input change in step 2", () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      fireEvent.change(passwordInput, { target: { value: "newPassword123" } });
+      expect(passwordInput).toHaveValue("newPassword123");
+    });
+
+    it("shows validation error for empty password in step 2", async () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      const form = passwordInput.closest("form");
+      
+      fireEvent.submit(form!);
+      
+      await waitFor(() => {
+        expect(screen.getByText("Le mot de passe est requis.")).toBeInTheDocument();
+      });
+    });
+
+    it("shows validation error for short password in step 2", async () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      const form = passwordInput.closest("form");
+      
+      fireEvent.change(passwordInput, { target: { value: "123" } });
+      fireEvent.submit(form!);
+      
+      await waitFor(() => {
+        expect(screen.getByText("Le mot de passe doit contenir au moins 8 caractères.")).toBeInTheDocument();
+      });
+    });
+
+    it("shows validation error for weak password in step 2", async () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      const form = passwordInput.closest("form");
+      
+      fireEvent.change(passwordInput, { target: { value: "12345678" } });
+      fireEvent.submit(form!);
+      
+      await waitFor(() => {
+        expect(screen.getByText("Le mot de passe doit contenir au moins 3 des éléments suivants : majuscules, minuscules, chiffres, caractères spéciaux.")).toBeInTheDocument();
+      });
+    });
+
+    it("displays loading state in step 2", () => {
+      const { useForgotPassword } = require("@/hooks/useForgotPassword");
+      useForgotPassword.mockReturnValue({
+        isLoading: true,
+        error: null,
+        success: true,
+        successMessage: "Lien envoyé avec succès !",
+        sendResetLink: mockSendResetLink,
+        resetPassword: mockResetPassword,
+        resetState: mockResetState,
+      });
+
+      render(<ForgotPassword />);
+      expect(screen.getByText("Réinitialisation en cours...")).toBeInTheDocument();
+    });
+
+    it("displays success state in step 2", () => {
+      const { useForgotPassword } = require("@/hooks/useForgotPassword");
+      useForgotPassword.mockReturnValue({
+        isLoading: false,
+        error: null,
+        success: true,
+        successMessage: "Mot de passe réinitialisé avec succès",
+        sendResetLink: mockSendResetLink,
+        resetPassword: mockResetPassword,
+        resetState: mockResetState,
+      });
+
+      render(<ForgotPassword />);
+      expect(screen.getByText("Mot de passe réinitialisé !")).toBeInTheDocument();
+    });
+
+    it("handles back button click in step 2", () => {
+      render(<ForgotPassword />);
+      const backButton = screen.getByText("← Précédent");
+      fireEvent.click(backButton);
+      
+      expect(mockResetState).toHaveBeenCalled();
+    });
+  });
+
+  // Tests for password validation
+  describe("Password Validation", () => {
+    beforeEach(() => {
+      const { useForgotPassword } = require("@/hooks/useForgotPassword");
+      useForgotPassword.mockReturnValue({
+        isLoading: false,
+        error: null,
+        success: true,
+        successMessage: "Lien envoyé avec succès !",
+        sendResetLink: mockSendResetLink,
+        resetPassword: mockResetPassword,
+        resetState: mockResetState,
+      });
+    });
+
+    it("accepts valid password with all complexity requirements", async () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      const form = passwordInput.closest("form");
+      
+      fireEvent.change(passwordInput, { target: { value: "NewPassword123!" } });
+      fireEvent.submit(form!);
+      
+      // Should not show validation error
+      await waitFor(() => {
+        expect(screen.queryByText(/Le mot de passe doit contenir au moins 3 des éléments suivants/)).not.toBeInTheDocument();
+      });
+    });
+
+    it("rejects password that is too long", async () => {
+      render(<ForgotPassword />);
+      const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+      const form = passwordInput.closest("form");
+      
+      const longPassword = "a".repeat(129);
+      fireEvent.change(passwordInput, { target: { value: longPassword } });
+      fireEvent.submit(form!);
+      
+      await waitFor(() => {
+        expect(screen.getByText("Le mot de passe est trop long.")).toBeInTheDocument();
+      });
+    });
+  });
+
+  // Tests for email validation edge cases
+  describe("Email Validation Edge Cases", () => {
+    it("rejects email that is too long", async () => {
+      render(<ForgotPassword />);
+      const emailInput = screen.getByPlaceholderText("Votre email");
+      const form = emailInput.closest("form");
+      
+      const longEmail = `${"a".repeat(250)}@example.com`;
+      fireEvent.change(emailInput, { target: { value: longEmail } });
+      fireEvent.submit(form!);
+      
+      await waitFor(() => {
+        expect(screen.getByText("L'adresse email est trop longue.")).toBeInTheDocument();
+      });
+    });
   });
 });
