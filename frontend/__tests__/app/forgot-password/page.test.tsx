@@ -213,4 +213,96 @@ describe("ForgotPassword", () => {
     
     expect(mockResetState).toHaveBeenCalled();
   });
+
+  it("clears email error when typing in email field", () => {
+    const { useForgotPassword } = require("@/hooks/useForgotPassword");
+    useForgotPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: false,
+      successMessage: null,
+      sendResetLink: mockSendResetLink,
+      resetState: mockResetState,
+    });
+
+    render(<ForgotPassword />);
+    const emailInput = screen.getByPlaceholderText("Votre email");
+    
+    // First trigger validation error
+    fireEvent.change(emailInput, { target: { value: "" } });
+    const form = emailInput.closest("form");
+    fireEvent.submit(form!);
+    
+    // Then type in the field to clear the error
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    
+    // The error should be cleared (this tests line 21-22)
+    expect(screen.queryByText("Le champ email est requis.")).not.toBeInTheDocument();
+  });
+
+  it("calls resetState when typing in email field after error", () => {
+    const { useForgotPassword } = require("@/hooks/useForgotPassword");
+    useForgotPassword.mockReturnValue({
+      isLoading: false,
+      error: "Some error message",
+      success: false,
+      successMessage: null,
+      sendResetLink: mockSendResetLink,
+      resetState: mockResetState,
+    });
+
+    render(<ForgotPassword />);
+    const emailInput = screen.getByPlaceholderText("Votre email");
+    
+    // Type in the field to trigger resetState (line 24-26)
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    
+    expect(mockResetState).toHaveBeenCalled();
+  });
+
+  it("displays success state correctly", () => {
+    const { useForgotPassword } = require("@/hooks/useForgotPassword");
+    useForgotPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: true,
+      successMessage: "Lien envoyé avec succès !",
+      sendResetLink: mockSendResetLink,
+      resetState: mockResetState,
+    });
+
+    render(<ForgotPassword />);
+    
+    // Verify that success state is displayed correctly
+    expect(screen.getByText("Lien envoyé avec succès !")).toBeInTheDocument();
+    expect(screen.getByText("Lien envoyé !")).toBeInTheDocument();
+    expect(screen.getByText("Renvoyer le lien de réinitialisation")).toBeInTheDocument();
+  });
+
+  it("handles form submission error", async () => {
+    const { useForgotPassword } = require("@/hooks/useForgotPassword");
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    useForgotPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: false,
+      successMessage: null,
+      sendResetLink: jest.fn().mockRejectedValue(new Error("API Error")),
+      resetState: mockResetState,
+    });
+
+    render(<ForgotPassword />);
+    const emailInput = screen.getByPlaceholderText("Votre email");
+    const form = emailInput.closest("form");
+    
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.submit(form!);
+    
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith("Erreur lors de l'envoi:", expect.any(Error));
+    });
+    
+    consoleSpy.mockRestore();
+  });
 });

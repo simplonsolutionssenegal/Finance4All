@@ -184,4 +184,67 @@ describe("useResetPassword hook", () => {
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
+
+  it("should handle success response with default message", async () => {
+    mockUseUser.mockReturnValue({
+      user: { id: "user123" },
+    });
+
+    mockApiClient.resetPassword.mockResolvedValue({
+      status: "success",
+      message: null, // Test line 55 - default message
+      data: { success: true },
+    });
+
+    const { result } = renderHook(() => useResetPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123");
+    });
+
+    expect(result.current.success).toBe(true);
+    expect(result.current.successMessage).toBe("Mot de passe réinitialisé avec succès");
+    expect(result.current.error).toBe(null);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("should handle unknown error response", async () => {
+    mockUseUser.mockReturnValue({
+      user: { id: "user123" },
+    });
+
+    mockApiClient.resetPassword.mockResolvedValue({
+      status: "unknown_status", // Test line 57-58
+      message: null,
+      data: { success: false },
+    });
+
+    const { result } = renderHook(() => useResetPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123");
+    });
+
+    expect(result.current.error).toBe("Erreur inconnue du serveur");
+    expect(result.current.success).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("should handle non-Error exception", async () => {
+    mockUseUser.mockReturnValue({
+      user: { id: "user123" },
+    });
+
+    mockApiClient.resetPassword.mockRejectedValue("String error"); // Test line 60
+
+    const { result } = renderHook(() => useResetPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123");
+    });
+
+    expect(result.current.error).toBe("Erreur inconnue");
+    expect(result.current.success).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
 });

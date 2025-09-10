@@ -226,4 +226,114 @@ describe("ResetPassword", () => {
     fireEvent.click(confirmPasswordEyeButton);
     expect(confirmPasswordInput).toHaveAttribute("type", "text");
   });
+
+  it("clears password error when typing in password field", () => {
+    const { useResetPassword } = require("@/hooks/useResetPassword");
+    useResetPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: false,
+      successMessage: null,
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
+    render(<ResetPassword />);
+    const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+    
+    // First trigger validation error
+    fireEvent.change(passwordInput, { target: { value: "" } });
+    const submitButton = screen.getByRole("button", { name: /réinitialiser le mot de passe/i });
+    fireEvent.click(submitButton);
+    
+    // Then type in the field to clear the error (line 25-27)
+    fireEvent.change(passwordInput, { target: { value: "newPassword123" } });
+    
+    // The error should be cleared
+    expect(screen.queryByText("Le nouveau mot de passe est requis.")).not.toBeInTheDocument();
+  });
+
+  it("calls resetState when typing in password field after error", () => {
+    const { useResetPassword } = require("@/hooks/useResetPassword");
+    useResetPassword.mockReturnValue({
+      isLoading: false,
+      error: "Some error message",
+      success: false,
+      successMessage: null,
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
+    render(<ResetPassword />);
+    const passwordInput = screen.getByPlaceholderText("Votre nouveau mot de passe");
+    
+    // Type in the field to trigger resetState (line 29-31)
+    fireEvent.change(passwordInput, { target: { value: "newPassword123" } });
+    
+    expect(mockResetState).toHaveBeenCalled();
+  });
+
+  it("displays success state correctly", () => {
+    const { useResetPassword } = require("@/hooks/useResetPassword");
+    useResetPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: true,
+      successMessage: "Mot de passe réinitialisé avec succès !",
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
+    render(<ResetPassword />);
+    
+    // Verify that success state is displayed correctly
+    expect(screen.getByText("Mot de passe réinitialisé avec succès !")).toBeInTheDocument();
+    expect(screen.getByText("Mot de passe modifié !")).toBeInTheDocument();
+  });
+
+  it("clears confirm password error when typing in confirm password field", () => {
+    const { useResetPassword } = require("@/hooks/useResetPassword");
+    useResetPassword.mockReturnValue({
+      isLoading: false,
+      error: null,
+      success: false,
+      successMessage: null,
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
+    render(<ResetPassword />);
+    const confirmPasswordInput = screen.getByPlaceholderText("Confirmez votre nouveau mot de passe");
+    
+    // First trigger validation error
+    fireEvent.change(confirmPasswordInput, { target: { value: "" } });
+    const submitButton = screen.getByRole("button", { name: /réinitialiser le mot de passe/i });
+    fireEvent.click(submitButton);
+    
+    // Then type in the field to clear the error (line 42-44)
+    fireEvent.change(confirmPasswordInput, { target: { value: "newPassword123" } });
+    
+    // The error should be cleared
+    expect(screen.queryByText("La confirmation du mot de passe est requise.")).not.toBeInTheDocument();
+  });
+
+  it("calls resetState when typing in confirm password field after error", () => {
+    const { useResetPassword } = require("@/hooks/useResetPassword");
+    useResetPassword.mockReturnValue({
+      isLoading: false,
+      error: "Some error message",
+      success: false,
+      successMessage: null,
+      resetPassword: mockResetPassword,
+      resetState: mockResetState,
+    });
+
+    render(<ResetPassword />);
+    const confirmPasswordInput = screen.getByPlaceholderText("Confirmez votre nouveau mot de passe");
+    
+    // Type in the field to trigger resetState (line 46-48)
+    fireEvent.change(confirmPasswordInput, { target: { value: "newPassword123" } });
+    
+    expect(mockResetState).toHaveBeenCalled();
+  });
 });

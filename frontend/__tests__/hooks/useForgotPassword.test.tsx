@@ -275,4 +275,85 @@ describe("useForgotPassword hook", () => {
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
+
+  it("should handle success response with default message", async () => {
+    const mockSignInCreate = jest.fn().mockResolvedValue({});
+    mockUseClerk.mockReturnValue({
+      client: {
+        signIn: {
+          create: mockSignInCreate,
+        },
+      },
+      session: null,
+    });
+
+    mockApiClient.forgotPassword.mockResolvedValue({
+      status: "success",
+      message: null, // Test line 62 - default message
+      data: { success: true },
+    });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.sendResetLink("test@example.com");
+    });
+
+    expect(result.current.success).toBe(true);
+    expect(result.current.successMessage).toBe("Lien de réinitialisation envoyé avec succès");
+    expect(result.current.error).toBe(null);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("should handle unknown error response", async () => {
+    const mockSignInCreate = jest.fn().mockResolvedValue({});
+    mockUseClerk.mockReturnValue({
+      client: {
+        signIn: {
+          create: mockSignInCreate,
+        },
+      },
+      session: null,
+    });
+
+    mockApiClient.forgotPassword.mockResolvedValue({
+      status: "unknown_status", // Test line 64-65
+      message: null,
+      data: { success: false },
+    });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.sendResetLink("test@example.com");
+    });
+
+    expect(result.current.error).toBe("Erreur inconnue du serveur");
+    expect(result.current.success).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("should handle non-Error exception", async () => {
+    const mockSignInCreate = jest.fn().mockResolvedValue({});
+    mockUseClerk.mockReturnValue({
+      client: {
+        signIn: {
+          create: mockSignInCreate,
+        },
+      },
+      session: null,
+    });
+
+    mockApiClient.forgotPassword.mockRejectedValue("String error"); // Test line 67
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.sendResetLink("test@example.com");
+    });
+
+    expect(result.current.error).toBe("Erreur inconnue");
+    expect(result.current.success).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
 });
