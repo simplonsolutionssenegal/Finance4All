@@ -197,7 +197,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
     >
       <DialogContent className='sm:max-w-[600px] p-0 overflow-hidden'>
         <DialogTitle className="sr-only">Ajouter une institution financière</DialogTitle>
-        <DialogDescription className="sr-only">Formulaire d ajout d une institution financiere</DialogDescription>
+        <DialogDescription className="sr-only">Formulaire d&apos;ajout d&apos;une institution financière</DialogDescription>
         {/* Header unifié avec titre et étapes */}
         <div className='bg-black text-white'>
           {/* En-tête principal */}
