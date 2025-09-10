@@ -114,8 +114,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   const totalSteps = 3;
 
   const form = useForm<InstitutionFormValues>({
-    // @ts-expect-error - zodResolver typing issue
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       nom: '',
       type: '',
