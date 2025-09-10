@@ -1,6 +1,6 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from '@testing-library/react';
 
-import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from '@/components/theme-provider';
 
 const mockMatchMedia = (matches: boolean) => ({
   matches,
@@ -8,7 +8,7 @@ const mockMatchMedia = (matches: boolean) => ({
   removeListener: jest.fn(),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
-  media: "(prefers-color-scheme: dark)",
+  media: '(prefers-color-scheme: dark)',
   onchange: null,
   dispatchEvent: jest.fn(),
 });
@@ -30,12 +30,12 @@ const mockLocalStorage = () => {
 };
 
 // Mock matchMedia globally before tests
-Object.defineProperty(window, "matchMedia", {
+Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: jest.fn().mockImplementation(() => mockMatchMedia(false)),
 });
 
-describe("ThemeProvider", () => {
+describe('ThemeProvider', () => {
   let mockStorage: ReturnType<typeof mockLocalStorage>;
   let originalMatchMedia: typeof window.matchMedia;
 
@@ -45,7 +45,7 @@ describe("ThemeProvider", () => {
 
   beforeEach(() => {
     mockStorage = mockLocalStorage();
-    Object.defineProperty(window, "localStorage", {
+    Object.defineProperty(window, 'localStorage', {
       value: mockStorage,
       writable: true,
       configurable: true,
@@ -55,7 +55,7 @@ describe("ThemeProvider", () => {
     window.matchMedia = jest.fn().mockImplementation(() => mockMatchMedia(false));
 
     // Reset document classes
-    document.documentElement.className = "";
+    document.documentElement.className = '';
   });
 
   afterAll(() => {
@@ -64,43 +64,43 @@ describe("ThemeProvider", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    document.documentElement.className = "";
+    document.documentElement.className = '';
   });
 
-  it("renders children correctly", () => {
+  it('renders children correctly', () => {
     render(
       <ThemeProvider>
-        <div data-testid="child">Test Content</div>
+        <div data-testid='child'>Test Content</div>
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("child")).toBeInTheDocument();
-    expect(screen.getByText("Test Content")).toBeInTheDocument();
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
-  it("uses default theme when no stored theme exists", () => {
+  it('uses default theme when no stored theme exists', () => {
     mockStorage.getItem.mockReturnValue(null);
 
     const TestComponent = () => {
       const { theme } = useTheme();
-      return <div data-testid="theme">{theme}</div>;
+      return <div data-testid='theme'>{theme}</div>;
     };
 
     render(
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme='light'>
         <TestComponent />
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("theme")).toHaveTextContent("light");
+    expect(screen.getByTestId('theme')).toHaveTextContent('light');
   });
 
-  it("loads stored theme from localStorage", () => {
-    mockStorage.getItem.mockReturnValue("dark");
+  it('loads stored theme from localStorage', () => {
+    mockStorage.getItem.mockReturnValue('dark');
 
     const TestComponent = () => {
       const { theme } = useTheme();
-      return <div data-testid="theme">{theme}</div>;
+      return <div data-testid='theme'>{theme}</div>;
     };
 
     render(
@@ -109,152 +109,150 @@ describe("ThemeProvider", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
+    expect(screen.getByTestId('theme')).toHaveTextContent('dark');
   });
 
-  it("applies theme class to document element", () => {
+  it('applies theme class to document element', () => {
     render(
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme='dark'>
         <div>Content</div>
       </ThemeProvider>
     );
 
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-    expect(document.documentElement.classList.contains("light")).toBe(false);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
   });
 
-  it("handles system theme with dark preference", () => {
-    Object.defineProperty(window, "matchMedia", {
+  it('handles system theme with dark preference', () => {
+    Object.defineProperty(window, 'matchMedia', {
       value: jest.fn(() => mockMatchMedia(true)),
       writable: true,
     });
 
     render(
-      <ThemeProvider defaultTheme="system">
+      <ThemeProvider defaultTheme='system'>
         <div>Content</div>
       </ThemeProvider>
     );
 
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it("handles system theme with light preference", () => {
-    Object.defineProperty(window, "matchMedia", {
+  it('handles system theme with light preference', () => {
+    Object.defineProperty(window, 'matchMedia', {
       value: jest.fn(() => mockMatchMedia(false)),
       writable: true,
     });
 
     render(
-      <ThemeProvider defaultTheme="system">
+      <ThemeProvider defaultTheme='system'>
         <div>Content</div>
       </ThemeProvider>
     );
 
-    expect(document.documentElement.classList.contains("light")).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(true);
   });
 
-  it("provides setTheme function that can be called", () => {
+  it('provides setTheme function that can be called', () => {
     const TestComponent = () => {
       const { setTheme } = useTheme();
-      expect(typeof setTheme).toBe("function");
+      expect(typeof setTheme).toBe('function');
       return <div>Test</div>;
     };
 
     render(
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme='light'>
         <TestComponent />
       </ThemeProvider>
     );
   });
 
-  it("uses custom storage key", () => {
-    mockStorage.getItem.mockReturnValue("dark");
+  it('uses custom storage key', () => {
+    mockStorage.getItem.mockReturnValue('dark');
 
     render(
-      <ThemeProvider storageKey="custom-theme">
+      <ThemeProvider storageKey='custom-theme'>
         <div>Content</div>
       </ThemeProvider>
     );
 
-    expect(mockStorage.getItem).toHaveBeenCalledWith("custom-theme");
+    expect(mockStorage.getItem).toHaveBeenCalledWith('custom-theme');
   });
 
-  it("calculates actualTheme correctly for system theme", () => {
-    Object.defineProperty(window, "matchMedia", {
+  it('calculates actualTheme correctly for system theme', () => {
+    Object.defineProperty(window, 'matchMedia', {
       value: jest.fn(() => mockMatchMedia(true)),
       writable: true,
     });
 
     const TestComponent = () => {
       const { actualTheme } = useTheme();
-      return <div data-testid="actual-theme">{actualTheme}</div>;
+      return <div data-testid='actual-theme'>{actualTheme}</div>;
     };
 
     render(
-      <ThemeProvider defaultTheme="system">
+      <ThemeProvider defaultTheme='system'>
         <TestComponent />
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("actual-theme")).toHaveTextContent("dark");
+    expect(screen.getByTestId('actual-theme')).toHaveTextContent('dark');
   });
 
-  it("calculates actualTheme correctly for non-system theme", () => {
+  it('calculates actualTheme correctly for non-system theme', () => {
     const TestComponent = () => {
       const { actualTheme } = useTheme();
-      return <div data-testid="actual-theme">{actualTheme}</div>;
+      return <div data-testid='actual-theme'>{actualTheme}</div>;
     };
 
     render(
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme='light'>
         <TestComponent />
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("actual-theme")).toHaveTextContent("light");
+    expect(screen.getByTestId('actual-theme')).toHaveTextContent('light');
   });
 
-  it("applies initial theme class to document element", () => {
+  it('applies initial theme class to document element', () => {
     render(
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme='dark'>
         <div>Content</div>
       </ThemeProvider>
     );
 
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it("renders ThemeProvider context successfully", () => {
+  it('renders ThemeProvider context successfully', () => {
     render(
       <ThemeProvider>
-        <div data-testid="content">Content</div>
+        <div data-testid='content'>Content</div>
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("content")).toBeInTheDocument();
+    expect(screen.getByTestId('content')).toBeInTheDocument();
   });
 });
 
-describe("useTheme hook", () => {
-  it("throws error when used outside ThemeProvider", () => {
+describe('useTheme hook', () => {
+  it('throws error when used outside ThemeProvider', () => {
     const TestComponent = () => {
       useTheme();
       return <div>Test</div>;
     };
 
-    expect(() => render(<TestComponent />)).toThrow(
-      "useTheme must be used within a ThemeProvider"
-    );
+    expect(() => render(<TestComponent />)).toThrow('useTheme must be used within a ThemeProvider');
   });
 
-  it("returns theme context when used within provider", () => {
+  it('returns theme context when used within provider', () => {
     const TestComponent = () => {
       const context = useTheme();
       expect(context).toBeDefined();
-      expect(typeof context.theme).toBe("string");
-      expect(typeof context.setTheme).toBe("function");
-      expect(typeof context.actualTheme).toBe("string");
-      return <div data-testid="success">Success</div>;
+      expect(typeof context.theme).toBe('string');
+      expect(typeof context.setTheme).toBe('function');
+      expect(typeof context.actualTheme).toBe('string');
+      return <div data-testid='success'>Success</div>;
     };
 
     render(
@@ -263,40 +261,36 @@ describe("useTheme hook", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("success")).toBeInTheDocument();
+    expect(screen.getByTestId('success')).toBeInTheDocument();
   });
 
-  it("provides correct theme values", () => {
+  it('provides correct theme values', () => {
     const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }) => (
-        <ThemeProvider defaultTheme="dark">{children}</ThemeProvider>
-      ),
+      wrapper: ({ children }) => <ThemeProvider defaultTheme='dark'>{children}</ThemeProvider>,
     });
 
-    expect(result.current.theme).toBe("dark");
-    expect(result.current.actualTheme).toBe("dark");
-    expect(typeof result.current.setTheme).toBe("function");
+    expect(result.current.theme).toBe('dark');
+    expect(result.current.actualTheme).toBe('dark');
+    expect(typeof result.current.setTheme).toBe('function');
   });
 
-  it("updates theme when setTheme is called", () => {
+  it('updates theme when setTheme is called', () => {
     const mockStorage = mockLocalStorage();
-    Object.defineProperty(window, "localStorage", {
+    Object.defineProperty(window, 'localStorage', {
       value: mockStorage,
       writable: true,
     });
 
     const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }) => (
-        <ThemeProvider defaultTheme="light">{children}</ThemeProvider>
-      ),
+      wrapper: ({ children }) => <ThemeProvider defaultTheme='light'>{children}</ThemeProvider>,
     });
 
-    expect(result.current.theme).toBe("light");
+    expect(result.current.theme).toBe('light');
 
     act(() => {
-      result.current.setTheme("dark");
+      result.current.setTheme('dark');
     });
 
-    expect(result.current.theme).toBe("dark");
+    expect(result.current.theme).toBe('dark');
   });
 });

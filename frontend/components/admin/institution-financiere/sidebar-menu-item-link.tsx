@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { SidebarMenuButton } from "@/components/ui/sidebar";
+import Link from 'next/link';
+
+import { SidebarMenuButton } from '@/components/ui/sidebar';
 
 interface SidebarMenuItemLinkProps {
   href: string;
@@ -21,14 +22,9 @@ export function SidebarMenuItemLink({
 }: Readonly<SidebarMenuItemLinkProps>) {
   return (
     <Link href={href} passHref>
-      <SidebarMenuButton
-        asChild
-        isActive={active}
-        className={className}
-        {...props}
-      >
-        <div className="flex items-center">
-          {icon && <span className="mr-2">{icon}</span>}
+      <SidebarMenuButton asChild isActive={active} className={className} {...props}>
+        <div className='flex items-center'>
+          {icon && <span className='mr-2'>{icon}</span>}
           {children}
         </div>
       </SidebarMenuButton>
