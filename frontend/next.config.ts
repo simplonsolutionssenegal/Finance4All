@@ -4,11 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     optimizeCss: false,
-    // Limiter les fonctionnalités expérimentales qui pourraient causer l'erreur de bus
-    serverComponentsExternalPackages: [],
   },
-  // Utiliser un compilateur plus stable
-  swcMinify: false,
+  // Packages externes pour les composants serveur
+  serverExternalPackages: [],
+  // Minification utilisée par défaut dans Next.js 15
   output: "standalone",
   // Réduire les ressources utilisées
   poweredByHeader: false,
