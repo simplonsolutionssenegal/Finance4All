@@ -8,9 +8,9 @@ import { InstitutionFinanciere } from '../../../domain/entities/InstitutionFinan
 export class InstitutionFinanciereController {
   constructor(
     private readonly createInstitutionFinanciereUseCase: CreateInstitutionFinanciereUseCase,
-    private readonly getAllInstitutionsFinancieresUseCase: GetAllInstitutionsFinancieresUseCase,
-    private readonly getInstitutionFinanciereByIdUseCase?: GetInstitutionFinanciereByIdUseCase,
-    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase,
+  private readonly getAllInstitutionsFinancieresUseCase: GetAllInstitutionsFinancieresUseCase,
+  private readonly getInstitutionFinanciereByIdUseCase?: GetInstitutionFinanciereByIdUseCase,
+  private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase,
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {

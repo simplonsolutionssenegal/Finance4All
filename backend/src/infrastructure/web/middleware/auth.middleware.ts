@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../../../config';
 
 interface JwtPayload {
   userId: string;
@@ -23,7 +22,8 @@ export const authMiddleware = (allowedRoles: string[] = []) => {
       const token = authHeader.split(' ')[1];
 
       try {
-        const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  const decoded = jwt.verify(token, secret) as JwtPayload;
 
         // Attacher l'utilisateur à la requête
         req.user = {

@@ -42,7 +42,7 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
   }
 
   async delete(id: string): Promise<boolean> {
-    try {
+  try {
       await this.prisma.institutionFinanciere.delete({
         where: { id },
       });

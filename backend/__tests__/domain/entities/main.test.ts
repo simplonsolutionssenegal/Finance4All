@@ -1,26 +1,19 @@
-<<<<<<< HEAD
 import { describe, it, expect, jest } from '@jest/globals';
+
 jest.mock('express', () => {
   const listen = jest.fn();
   const use = jest.fn();
-  const post = jest.fn();
-  const get = jest.fn();
-  const router = { post, get, use };
-  const express = () => ({
-    use: use,
-    listen: listen,
-  });
-  express.Router = () => router;
+  const express = () => ({ use, listen });
+  express.Router = () => ({ get: jest.fn(), post: jest.fn(), use: jest.fn() });
   express.json = () => {};
   express.urlencoded = () => {};
   return express;
 });
 
-describe('Main', () => {
-  it('should listen on the configured port', () => {
+describe('main bootstrap', () => {
+  it('starts server (listen called)', () => {
     require('@/main');
     const express = require('express');
     expect(express().listen).toHaveBeenCalled();
-  const use = jest.fn();
+  });
 });
-      const app = express();
