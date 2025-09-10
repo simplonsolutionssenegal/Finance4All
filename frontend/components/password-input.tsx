@@ -55,6 +55,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
   }
 );
 
+// NOSONAR - This is a React component displayName, not a hard-coded password
 PasswordInput.displayName = "PasswordInput";
 
 export { PasswordInput };
