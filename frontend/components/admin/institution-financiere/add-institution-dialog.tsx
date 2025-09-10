@@ -12,7 +12,7 @@ import * as z from 'zod';
 // Composants UI
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -194,6 +194,8 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
       }}
     >
       <DialogContent className='sm:max-w-[600px] p-0 overflow-hidden'>
+        <DialogTitle className="sr-only">Ajouter une institution financière</DialogTitle>
+        <DialogDescription className="sr-only">Formulaire d'ajout d'une institution financière</DialogDescription>
         {/* Header unifié avec titre et étapes */}
         <div className='bg-black text-white'>
           {/* En-tête principal */}
