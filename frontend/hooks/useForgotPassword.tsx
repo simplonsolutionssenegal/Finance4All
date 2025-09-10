@@ -2,7 +2,7 @@
 
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 
 interface UseForgotPasswordReturn {
   isLoading: boolean;
@@ -12,8 +12,6 @@ interface UseForgotPasswordReturn {
   sendResetLink: (email: string) => Promise<void>;
   resetPassword: (password: string, code: string) => Promise<void>;
   resetState: () => void;
-  retryCount: number;
-  canRetry: boolean;
 }
 
 export const useForgotPassword = (): UseForgotPasswordReturn => {
@@ -21,11 +19,6 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  
-  const lastAttemptRef = useRef<number>(0);
-  const maxRetries = 3;
-  const retryDelay = 60000; // 1 minute
 
   const { session } = useClerk();
   const { signIn } = useSignIn();
@@ -38,14 +31,11 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
     setIsLoading(false);
   }, []);
 
-  const canRetry = retryCount < maxRetries && (Date.now() - lastAttemptRef.current) > retryDelay;
-
   const sendResetLink = async (email: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
     setSuccessMessage(null);
-    lastAttemptRef.current = Date.now();
 
     try {
       // Vérifier si l'utilisateur est déjà connecté
@@ -62,18 +52,21 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         })
         .then((_) => {
           setSuccess(true)
-          setSuccessMessage("Lien de réinitialisation envoyé avec succès")
-          setRetryCount(0) // Reset retry count on success
+          setSuccessMessage("Un lien de réinitialisation a été envoyé à votre email.")
         })
         .catch((err) => {
-          console.error('error', err.errors[0].longMessage)
-          setError(err.errors[0].longMessage)
-          setRetryCount(prev => prev + 1)
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          console.error('errorMessage', errorMessage)
+          if (errorMessage.includes('Couldn\'t find your account')) {
+            setError("Aucun compte n'est associé à cette adresse email")
+          } else if(errorMessage.includes('You\'re already signed in')) {
+            setError("Vous êtes déjà connecté. Veuillez utiliser la page de changement de mot de passe dans votre profil.")
+          } else {
+            setError("Une erreur est survenue lors de l'envoi de l'email")
+          }
         })
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
-      setError(errorMessage);
-      setRetryCount(prev => prev + 1)
+    } catch (_err) {
+      setError("Une erreur inattendue est survenue")
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +80,10 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         password,
       })
       .then((result) => {
-        // Password reset successful
         if (result.status === 'complete') {
           setSuccess(true)
           setSuccessMessage("Mot de passe réinitialisé avec succès")
-          router.push('/login')
+          router.push('/')
         } else {
           setError("Erreur lors de la réinitialisation du mot de passe")
         }
@@ -110,7 +102,5 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
     sendResetLink,
     resetPassword,
     resetState,
-    retryCount,
-    canRetry,
   };
 };
