@@ -6,6 +6,9 @@ export const validateEmail = (email: string): string => {
   if (!email.trim()) return "L'adresse email est requise.";
 
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+  // Rejeter les emails avec des doubles points consécutifs
+  if (email.includes('..')) return "Veuillez entrer une adresse email valide.";
   if (!emailRegex.test(email)) return "Veuillez entrer une adresse email valide.";
 
   if (email.length > 254) return "L'adresse email est trop longue.";
