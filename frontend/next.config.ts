@@ -1,13 +1,14 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     optimizeCss: false,
   },
-  // Déplacement de serverComponentsExternalPackages vers serverExternalPackages
+  // Packages externes pour les composants serveur
   serverExternalPackages: [],
-  output: 'standalone',
+  // Minification utilisée par défaut dans Next.js 15
+  output: "standalone",
   // Réduire les ressources utilisées
   poweredByHeader: false,
   reactStrictMode: false,
@@ -16,9 +17,6 @@ const nextConfig: NextConfig = {
     emotion: false,
     styledComponents: false,
     reactRemoveProperties: false,
-  },
-  images: {
-    unoptimized: true, // Evite les erreurs d'optimisation des images
   },
 };
 
