@@ -78,7 +78,7 @@ describe("useResetPassword hook", () => {
 
     mockApiClient.resetPassword.mockResolvedValue({
       status: "error",
-      message: "Erreur lors de la réinitialisation",
+      message: "Le mot de passe doit contenir au moins 8 caractères",
       data: { success: false },
     });
 
@@ -88,7 +88,7 @@ describe("useResetPassword hook", () => {
       await result.current.resetPassword("newPassword123");
     });
 
-    expect(result.current.error).toBe("Erreur lors de la réinitialisation");
+    expect(result.current.error).toBe("Le mot de passe doit contenir au moins 8 caractères");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -114,7 +114,7 @@ describe("useResetPassword hook", () => {
       user: { id: "user123" },
     });
 
-    mockApiClient.resetPassword.mockRejectedValue(new Error("Network error"));
+    mockApiClient.resetPassword.mockRejectedValue(new Error("Erreur de connexion au serveur"));
 
     const { result } = renderHook(() => useResetPassword());
 
@@ -122,7 +122,7 @@ describe("useResetPassword hook", () => {
       await result.current.resetPassword("newPassword123");
     });
 
-    expect(result.current.error).toBe("Network error");
+    expect(result.current.error).toBe("Erreur de connexion au serveur");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -180,7 +180,7 @@ describe("useResetPassword hook", () => {
       await result.current.resetPassword("newPassword123");
     });
 
-    expect(result.current.error).toBe("Format de réponse invalide du serveur");
+    expect(result.current.error).toBe("Erreur inconnue du serveur");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });

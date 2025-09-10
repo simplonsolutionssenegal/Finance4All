@@ -1,6 +1,5 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -10,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useForgotPassword } from "@/hooks/useForgotPassword";
 
 export default function ForgotPassword() {
-  const {signOut} = useClerk();
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const { isLoading, error, success, successMessage, sendResetLink, resetState } = useForgotPassword();
@@ -175,15 +173,6 @@ export default function ForgotPassword() {
             >
               ← Retour à la connexion
             </a>
-          </div>
-
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => signOut()}
-              className="text-primary-200 hover:text-primary-300 text-sm font-medium transition-colors"
-            >
-              Se déconnecter
-            </button>
           </div>
         </div>
       </div>

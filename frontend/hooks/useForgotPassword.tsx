@@ -61,7 +61,7 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         setSuccess(true);
         setSuccessMessage(response.message || "Lien de réinitialisation envoyé avec succès");
       } else {
-        throw new Error("Format de réponse invalide du serveur");
+        throw new Error(response.message || "Erreur inconnue du serveur");
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";

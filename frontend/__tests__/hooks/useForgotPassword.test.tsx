@@ -99,7 +99,7 @@ describe("useForgotPassword hook", () => {
 
     mockApiClient.forgotPassword.mockResolvedValue({
       status: "error",
-      message: "Erreur lors de l'envoi du lien",
+      message: "Aucun compte n'est associé à cette adresse email",
       data: { success: false },
     });
 
@@ -109,7 +109,7 @@ describe("useForgotPassword hook", () => {
       await result.current.sendResetLink("test@example.com");
     });
 
-    expect(result.current.error).toBe("Erreur lors de l'envoi du lien");
+    expect(result.current.error).toBe("Aucun compte n'est associé à cette adresse email");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -156,7 +156,7 @@ describe("useForgotPassword hook", () => {
       session: null,
     });
 
-    mockApiClient.forgotPassword.mockRejectedValue(new Error("Network error"));
+    mockApiClient.forgotPassword.mockRejectedValue(new Error("Erreur de connexion au serveur"));
 
     const { result } = renderHook(() => useForgotPassword());
 
@@ -164,7 +164,7 @@ describe("useForgotPassword hook", () => {
       await result.current.sendResetLink("test@example.com");
     });
 
-    expect(result.current.error).toBe("Network error");
+    expect(result.current.error).toBe("Erreur de connexion au serveur");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -238,7 +238,7 @@ describe("useForgotPassword hook", () => {
       await result.current.sendResetLink("test@example.com");
     });
 
-    expect(result.current.error).toBe("Format de réponse invalide du serveur");
+    expect(result.current.error).toBe("Erreur inconnue du serveur");
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });

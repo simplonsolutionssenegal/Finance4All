@@ -40,7 +40,7 @@ describe('API Client', () => {
     it('should handle API error response', async () => {
       const mockErrorResponse = {
         status: 'error',
-        message: 'Erreur lors de l\'envoi du lien',
+        message: 'Format d\'email invalide',
         data: { success: false },
       };
 
@@ -53,19 +53,19 @@ describe('API Client', () => {
 
       expect(result).toEqual({
         status: 'error',
-        message: 'Erreur lors de l\'envoi du lien',
+        message: 'Format d\'email invalide',
         data: { success: false },
       });
     });
 
     it('should handle network error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockFetch.mockRejectedValueOnce(new Error('Erreur de connexion au serveur'));
 
       const result = await apiClient.forgotPassword('test@example.com');
 
       expect(result).toEqual({
         status: 'error',
-        message: 'Network error',
+        message: 'Erreur de connexion au serveur',
       });
     });
 
@@ -110,7 +110,7 @@ describe('API Client', () => {
     it('should handle API error response', async () => {
       const mockErrorResponse = {
         status: 'error',
-        message: 'Erreur lors de la réinitialisation',
+        message: 'Le mot de passe ne respecte pas la politique de sécurité',
         data: { success: false },
       };
 
@@ -123,19 +123,19 @@ describe('API Client', () => {
 
       expect(result).toEqual({
         status: 'error',
-        message: 'Erreur lors de la réinitialisation',
+        message: 'Le mot de passe ne respecte pas la politique de sécurité',
         data: { success: false },
       });
     });
 
     it('should handle network error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockFetch.mockRejectedValueOnce(new Error('Erreur de connexion au serveur'));
 
       const result = await apiClient.resetPassword('user123', 'newPassword123');
 
       expect(result).toEqual({
         status: 'error',
-        message: 'Network error',
+        message: 'Erreur de connexion au serveur',
       });
     });
 
