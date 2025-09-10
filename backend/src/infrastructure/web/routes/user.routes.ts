@@ -15,19 +15,10 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/UserController';
 import { UserService } from '../services/user.service';
-import { PrismaUserRepository } from '@/infrastructure/database/prisma-user.repository';
-import { asyncHandler } from '../middleware/error.middleware';
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
 import { GetUsersByOrganisationUseCaseImpl } from '@/domain/use-cases/GetUsersByOrganisationUseCaseImpl';
 import { GetUsersByOrganisationAndStatusUseCaseImpl } from '@/domain/use-cases/GetUsersByOrganisationAndStatusUseCaseImpl';
 
-// Initialisation des dépendances
-// const userRepository = new PrismaUserRepository();
-// const getUsersByOrganisationUC = new GetUsersByOrganisationUseCaseImpl(userRepository);
-// const getUsersByOrgAndStatusUC = new GetUsersByOrganisationAndStatusUseCaseImpl(userRepository);
-
-
-
-// const userController = new UserController(userService);
 const userRepo = new PrismaUserRepository();
 
 
@@ -41,7 +32,7 @@ const userService = new UserService(getUsersByOrganisation, getUsersByOrgAndFilt
 const userController = new UserController(userService);
 const router = Router();
 
-router.get('/organizations/:organisationId/users', (req, res) => userController.getUsersByOrganisation(req, res));
-router.get('/organizations/:organisationId/users/filter', (req, res) => userController.getUsersByOrganisationFilter(req, res));
+router.get('/organisations/:organisationId/users', (req, res) => userController.getUsersByOrganisation(req, res));
+router.get('/organisations/:organisationId/users/filter', (req, res) => userController.getUsersByOrganisationFilter(req, res));
 
 export { router as userRoutes };
