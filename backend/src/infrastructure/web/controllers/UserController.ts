@@ -14,7 +14,7 @@ export class UserController {
       res.status(201).json(user);
     } catch (error) {
       res.status(400).json({
-        error: 'Erreur lors de la création de l\'utilisateur',
+        error: "Erreur lors de la création de l'utilisateur",
         message: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }

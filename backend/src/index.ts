@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger';
 import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
 import { clerkMiddleware } from '@clerk/express';
+import { setupSwagger } from '@/infrastructure/config/swagger';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -22,7 +23,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
-  }),
+  })
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -40,7 +41,10 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Routes
+// Configuration de Swagger pour la documentation API
+setupSwagger(app);
+
+// Routes API
 app.use(`/api/${process.env.API_VERSION ?? 'v1'}`, apiRoutes);
 
 // Route de santé

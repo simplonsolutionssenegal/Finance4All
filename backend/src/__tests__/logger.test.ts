@@ -30,10 +30,10 @@ describe('Logger Utility', () => {
   it('should log request information', () => {
     // Spy on the logger.info method
     const infoSpy = jest.spyOn(logger, 'info');
-    
+
     // Call the function
     logRequest(mockRequest, mockResponse, 100);
-    
+
     // Check if logger.info was called
     expect(infoSpy).toHaveBeenCalled();
     // Verify it was called with correct first parameter
@@ -44,10 +44,10 @@ describe('Logger Utility', () => {
     // Spy on the logger.error method
     const errorSpy = jest.spyOn(logger, 'error');
     const testError = new Error('Test error');
-    
+
     // Call the function
     logError(testError, mockRequest);
-    
+
     // Check if logger.error was called
     expect(errorSpy).toHaveBeenCalled();
     // Verify it was called with correct first parameter

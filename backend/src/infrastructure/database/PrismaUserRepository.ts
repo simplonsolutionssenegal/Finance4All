@@ -1,12 +1,12 @@
 // src/infrastructure/database/PrismaUserRepository.ts
 import type { User as PrismaUser } from '@prisma/client';
 import { prisma } from './prisma';
-import { UserRepository } from '../../domain/repositories/UserRepository';
-import { User as DomainUser } from '../../domain/entities/User';
+import { UserRepository } from '@/domain/repositories/UserRepository';
+import { User as DomainUser } from '@/domain/entities/User';
 
 // Map sûr entre les types Prisma et ton domaine
 function toDomain(user: PrismaUser): DomainUser {
-  return new DomainUser(user.id, user.name, user.email);
+  return new DomainUser(user.id, user.name ?? '', user.email);
 }
 
 export class PrismaUserRepository implements UserRepository {
