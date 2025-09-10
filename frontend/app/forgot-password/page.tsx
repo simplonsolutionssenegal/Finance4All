@@ -9,59 +9,32 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { useForgotPassword } from "@/hooks/useForgotPassword";
+import { useFormState } from "@/hooks/useFormState";
+import { validateEmail, validatePassword, validateOTPCode } from "@/lib/validation";
 
-const validateEmail = (email: string): string => {
-  if (!email.trim()) return "L'adresse email est requise.";
-
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(email)) return "Veuillez entrer une adresse email valide.";
-
-  if (email.length > 254) return "L'adresse email est trop longue.";
-
-  return "";
-};
-
-const validatePassword = (password: string): string => {
-  if (!password.trim()) return "Le mot de passe est requis.";
-
-  if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
-
-  if (password.length > 128) return "Le mot de passe est trop long.";
-
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-  const complexityScore = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
-
-  if (complexityScore < 3) {
-    return "Le mot de passe doit contenir au moins 3 des éléments suivants : majuscules, minuscules, chiffres, caractères spéciaux.";
-  }
-
-  return "";
-};
-
-interface FormState {
+interface ForgotPasswordFormValues extends Record<string, unknown> {
   email: string;
   password: string;
   code: string;
-  emailError: string;
-  passwordError: string;
-  codeError: string;
 }
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
 
-  const [formState, setFormState] = useState<FormState>({
+  const initialValues: ForgotPasswordFormValues = {
     email: "",
     password: "",
-    code: "",
-    emailError: "",
-    passwordError: "",
-    codeError: ""
-  });
+    code: ""
+  };
+
+  const {
+    formState,
+    updateField,
+    setFieldError,
+    resetForm,
+    hasError,
+    getError
+  } = useFormState(initialValues);
 
   const { isLoading, error, success, successMessage, sendResetLink, resetPassword, resetState } = useForgotPassword();
 
@@ -80,13 +53,13 @@ export default function ForgotPassword() {
 
   const isFormValid = useMemo(() => {
     if (step === 1) {
-      return formState.email.trim() !== "" && !formState.emailError;
+      return (formState.values.email as string).trim() !== "" && !hasError('email');
     }
-    return formState.password.trim() !== "" &&
-      formState.code.trim() !== "" &&
-      !formState.passwordError &&
-      !formState.codeError;
-  }, [formState, step]);
+    return (formState.values.password as string).trim() !== "" &&
+      (formState.values.code as string).trim() !== "" &&
+      !hasError('password') &&
+      !hasError('code');
+  }, [formState, step, hasError]);
 
   const buttonText = useMemo(() => {
     if (isLoading) {
@@ -98,80 +71,66 @@ export default function ForgotPassword() {
     return step === 1 ? "Envoyer le lien de réinitialisation" : "Réinitialiser le mot de passe";
   }, [isLoading, success, step]);
 
-  const handleInputChange = useCallback((field: keyof FormState, value: string) => {
-    setFormState(prev => ({
-      ...prev,
-      [field]: value,
-      [`${field}Error`]: ""
-    }));
-
+  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    updateField('email', e.target.value);
     if (error) {
       resetState();
     }
-  }, [error, resetState]);
-
-  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    handleInputChange('email', e.target.value);
-  }, [handleInputChange]);
+  }, [updateField, error, resetState]);
 
   const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    handleInputChange('password', e.target.value);
-  }, [handleInputChange]);
+    updateField('password', e.target.value);
+    if (error) {
+      resetState();
+    }
+  }, [updateField, error, resetState]);
 
   const handleCodeChange = useCallback((value: string) => {
-    handleInputChange('code', value);
-  }, [handleInputChange]);
+    updateField('code', value);
+    if (error) {
+      resetState();
+    }
+  }, [updateField, error, resetState]);
 
   const handleSendResetLink = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const emailValidationError = validateEmail(formState.email);
+    const emailValidationError = validateEmail(formState.values.email as string);
     if (emailValidationError) {
-      setFormState(prev => ({ ...prev, emailError: emailValidationError }));
+      setFieldError('email', emailValidationError);
       return;
     }
 
     try {
-      await sendResetLink(formState.email);
+      await sendResetLink(formState.values.email as string);
     } catch (error) {
       console.error("Erreur lors de l'envoi:", error);
     }
-  }, [formState.email, sendResetLink]);
+  }, [formState.values.email, sendResetLink, setFieldError]);
 
   const handleResetPassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const passwordValidationError = validatePassword(formState.password);
+    const passwordValidationError = validatePassword(formState.values.password as string);
     if (passwordValidationError) {
-      setFormState(prev => ({ ...prev, passwordError: passwordValidationError }));
+      setFieldError('password', passwordValidationError);
       return;
     }
 
-    if (!formState.code.trim()) {
-      setFormState(prev => ({ ...prev, codeError: "Le code est requis." }));
+    const codeValidationError = validateOTPCode(formState.values.code as string);
+    if (codeValidationError) {
+      setFieldError('code', codeValidationError);
       return;
     }
 
-    if (formState.code.length < 6) {
-      setFormState(prev => ({ ...prev, codeError: "Le code doit contenir au moins 6 caractères." }));
-      return;
-    }
-
-    await resetPassword(formState.password, formState.code);
-  }, [formState.password, formState.code, resetPassword]);
+    await resetPassword(formState.values.password as string, formState.values.code as string);
+  }, [formState.values.password, formState.values.code, resetPassword, setFieldError]);
 
   const handleResetForm = useCallback(() => {
-    setFormState({
-      email: "",
-      password: "",
-      code: "",
-      emailError: "",
-      passwordError: "",
-      codeError: ""
-    });
+    resetForm();
     resetState();
     setStep(1);
-  }, [resetState]);
+  }, [resetForm, resetState]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -231,9 +190,9 @@ export default function ForgotPassword() {
                   id="email"
                   type="email"
                   placeholder="Votre email"
-                  value={formState.email}
+                  value={formState.values.email as string}
                   onChange={handleEmailChange}
-                  className={`w-full h-12 ${formState.emailError
+                  className={`w-full h-12 ${hasError('email')
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500"
                     : "border-neutral-400 focus:border-primary-200 focus:ring-primary-200"
                     }`}
@@ -241,17 +200,17 @@ export default function ForgotPassword() {
                   autoComplete="email"
                   maxLength={254}
                   required
-                  aria-invalid={!!formState.emailError}
-                  aria-describedby={formState.emailError ? "email-error" : undefined}
+                  aria-invalid={hasError('email')}
+                  aria-describedby={hasError('email') ? "email-error" : undefined}
                 />
-                {formState.emailError && (
+                {hasError('email') && (
                   <div
                     id="email-error"
                     className="text-red-500 text-sm font-medium"
                     role="alert"
                     aria-live="polite"
                   >
-                    {formState.emailError}
+                    {getError('email')}
                   </div>
                 )}
               </div>
@@ -311,9 +270,9 @@ export default function ForgotPassword() {
                 <PasswordInput
                   id="password"
                   placeholder="Votre nouveau mot de passe"
-                  value={formState.password}
+                  value={formState.values.password as string}
                   onChange={handlePasswordChange}
-                  className={`w-full h-12 ${formState.passwordError
+                  className={`w-full h-12 ${hasError('password')
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500"
                     : "border-neutral-400 focus:border-primary-200 focus:ring-primary-200"
                     }`}
@@ -322,17 +281,17 @@ export default function ForgotPassword() {
                   maxLength={128}
                   minLength={8}
                   required
-                  aria-invalid={!!formState.passwordError}
-                  aria-describedby={formState.passwordError ? "password-error" : undefined}
+                  aria-invalid={hasError('password')}
+                  aria-describedby={hasError('password') ? "password-error" : undefined}
                 />
-                {formState.passwordError && (
+                {hasError('password') && (
                   <div
                     id="password-error"
                     className="text-red-500 text-sm font-medium"
                     role="alert"
                     aria-live="polite"
                   >
-                    {formState.passwordError}
+                    {getError('password')}
                   </div>
                 )}
               </div>
@@ -342,7 +301,7 @@ export default function ForgotPassword() {
                   Code de réinitialisation*
                 </Label>
                 <InputOTP
-                  value={formState.code}
+                  value={formState.values.code as string}
                   onChange={handleCodeChange}
                   maxLength={6}
                   containerClassName="justify-center"
@@ -357,13 +316,13 @@ export default function ForgotPassword() {
                     ))}
                   </InputOTPGroup>
                 </InputOTP>
-                {formState.codeError && (
+                {hasError('code') && (
                   <div
                     className="text-red-500 text-sm font-medium"
                     role="alert"
                     aria-live="polite"
                   >
-                    {formState.codeError}
+                    {getError('code')}
                   </div>
                 )}
               </div>

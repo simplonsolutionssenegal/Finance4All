@@ -1,12 +1,9 @@
 import { useState, useCallback } from "react";
 
-/**
- * Interface générique pour l'état d'un formulaire avec gestion d'erreurs
- */
-export interface FormState<T extends Record<string, unknown>> {
-  values: T;
-  errors: Partial<Record<keyof T, string>>;
-}
+import type { FormState, FormHook } from "../lib/form-types";
+
+// Réexport des types pour maintenir la compatibilité
+export type { FormState, FormHook } from "../lib/form-types";
 
 /**
  * Hook personnalisé pour gérer l'état d'un formulaire avec validation
@@ -15,7 +12,7 @@ export interface FormState<T extends Record<string, unknown>> {
  */
 export function useFormState<T extends Record<string, unknown>>(
   initialValues: T
-) {
+): FormHook<T> {
   const [formState, setFormState] = useState<FormState<T>>({
     values: initialValues,
     errors: {}
