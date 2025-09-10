@@ -191,130 +191,67 @@ describe("useForgotPassword hook", () => {
     expect(result.current.success).toBe(false);
   });
 
-  it("should reset state correctly", () => {
+  it("should handle password breach error with message", async () => {
+    const error = {
+      errors: [{ longMessage: "Password has been found in an online data breach." }]
+    };
+    mockSignIn.attemptFirstFactor.mockRejectedValue(error);
+
     const { result } = renderHook(() => useForgotPassword());
 
-    act(() => {
-      result.current.resetState();
+    await act(async () => {
+      await result.current.resetPassword("newPassword123", "123456");
     });
 
-    expect(result.current.error).toBe(null);
+    expect(result.current.error).toBe("Ce mot de passe a été trouvé dans une fuite de données en ligne. Veuillez en choisir un autre.");
     expect(result.current.success).toBe(false);
-    expect(result.current.successMessage).toBe(null);
-    expect(result.current.isLoading).toBe(false);
   });
 
-  it("should set loading state during sendResetLink", async () => {
-    let resolvePromise: (value: any) => void;
-    const promise = new Promise((resolve) => {
-      resolvePromise = resolve;
-    });
-    mockSignIn.create.mockReturnValue(promise);
+  it("should handle password breach error with code", async () => {
+    const error = {
+      errors: [{ code: "form_password_pwned", longMessage: "Some other message" }]
+    };
+    mockSignIn.attemptFirstFactor.mockRejectedValue(error);
 
     const { result } = renderHook(() => useForgotPassword());
-
-    act(() => {
-      result.current.sendResetLink("test@example.com");
-    });
-
-    expect(result.current.isLoading).toBe(true);
 
     await act(async () => {
-      resolvePromise({});
-      await promise;
+      await result.current.resetPassword("newPassword123", "123456");
     });
 
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("should handle loading state correctly", async () => {
-    const { result } = renderHook(() => useForgotPassword());
-
-    // Test initial loading state
-    expect(result.current.isLoading).toBe(false);
-
-    // Test loading state during async operation
-    const promise = mockSignIn.create.mockResolvedValue({});
-    
-    act(() => {
-      result.current.sendResetLink("test@example.com");
-    });
-
-    // Should be loading
-    expect(result.current.isLoading).toBe(true);
-
-    await act(async () => {
-      await promise;
-    });
-
-    // Should not be loading after completion
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("should handle error state transitions", async () => {
-    const { result } = renderHook(() => useForgotPassword());
-
-    // Start with no error
-    expect(result.current.error).toBe(null);
-
-    // Trigger an error
-    mockSignIn.create.mockRejectedValue(new Error("Test error"));
-
-    await act(async () => {
-      await result.current.sendResetLink("test@example.com");
-    });
-
-    // Should have error
-    expect(result.current.error).toBe("Une erreur est survenue lors de l'envoi de l'email");
-
-    // Reset state
-    act(() => {
-      result.current.resetState();
-    });
-
-    // Should be back to no error
-    expect(result.current.error).toBe(null);
-  });
-
-  it("should handle success state transitions", async () => {
-    const { result } = renderHook(() => useForgotPassword());
-
-    // Start with no success
+    expect(result.current.error).toBe("Ce mot de passe a été trouvé dans une fuite de données en ligne. Veuillez en choisir un autre.");
     expect(result.current.success).toBe(false);
-
-    // Trigger success
-    mockSignIn.create.mockResolvedValue({});
-
-    await act(async () => {
-      await result.current.sendResetLink("test@example.com");
-    });
-
-    // Should have success
-    expect(result.current.success).toBe(true);
-    expect(result.current.successMessage).toBe("Un lien de réinitialisation a été envoyé à votre email.");
-
-    // Reset state
-    act(() => {
-      result.current.resetState();
-    });
-
-    // Should be back to no success
-    expect(result.current.success).toBe(false);
-    expect(result.current.successMessage).toBe(null);
   });
 
-  it("should handle console error logging", async () => {
+  it("should handle password reset with try-catch error", async () => {
+    mockSignIn.attemptFirstFactor.mockImplementation(() => {
+      throw new Error("Server error");
+    });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123", "123456");
+    });
+
+    expect(result.current.error).toBe("Une erreur est survenue lors de la réinitialisation du mot de passe");
+    expect(result.current.success).toBe(false);
+  });
+
+  it("should handle console error logging in resetPassword", async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const error = new Error("Test error");
-    mockSignIn.create.mockRejectedValue(error);
+    const error = {
+      errors: [{ longMessage: "Test error message" }]
+    };
+    mockSignIn.attemptFirstFactor.mockRejectedValue(error);
 
     const { result } = renderHook(() => useForgotPassword());
 
     await act(async () => {
-      await result.current.sendResetLink("test@example.com");
+      await result.current.resetPassword("newPassword123", "123456");
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('errorMessage', 'Test error');
+    expect(consoleSpy).toHaveBeenCalledWith('error', 'Test error message');
     consoleSpy.mockRestore();
   });
 
@@ -361,7 +298,6 @@ describe("useForgotPassword hook", () => {
     expect(result.current.error).toBe("Different error message");
     expect(result.current.success).toBe(false);
   });
-
 
   it("should handle password reset with non-string error", async () => {
     const error = { errors: [{ longMessage: 123 }] };

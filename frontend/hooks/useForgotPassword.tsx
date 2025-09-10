@@ -73,25 +73,35 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
   };
 
   const resetPassword = async (password: string, code: string) => {
-    await signIn
-      ?.attemptFirstFactor({
-        strategy: 'reset_password_email_code',
-        code,
-        password,
-      })
-      .then((result) => {
-        if (result.status === 'complete') {
-          setSuccess(true)
-          setSuccessMessage("Mot de passe réinitialisé avec succès")
-          router.push('/')
-        } else {
-          setError("Erreur lors de la réinitialisation du mot de passe")
-        }
-      })
-      .catch((err) => {
-        console.error('error', err.errors[0].longMessage)
-        setError(err.errors[0].longMessage)
-      })
+    try {
+
+      await signIn
+        ?.attemptFirstFactor({
+          strategy: 'reset_password_email_code',
+          code,
+          password,
+        })
+        .then((result) => {
+          if (result.status === 'complete') {
+            setSuccess(true)
+            setSuccessMessage("Mot de passe réinitialisé avec succès")
+            router.push('/')
+          } else {
+            setError("Erreur lors de la réinitialisation du mot de passe")
+          }
+        })
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          console.error('error', errorMessage)
+          if (errorMessage.includes('Password has been found') || err.errors[0].code === 'form_password_pwned') {
+            setError("Ce mot de passe a été trouvé dans une fuite de données en ligne. Veuillez en choisir un autre.")
+          } else {
+            setError(err.errors[0].longMessage)
+          }
+        })
+      } catch (_err) {
+        setError("Une erreur est survenue lors de la réinitialisation du mot de passe")
+    }
   }
 
   return {
