@@ -113,7 +113,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Form setup with zod validation
+  // Form setup with zod validation - using proper types
   const form = useForm<InstitutionFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(formSchema as any), // Type assertion needed for zodResolver compatibility
