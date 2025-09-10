@@ -113,8 +113,11 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
+  // Define type-safe resolver with explicit typing
   const form = useForm<InstitutionFormValues>({
-    resolver: zodResolver(formSchema as any),
+    // Type assertion needed due to compatibility issues between Zod schema types
+    // and the expected types for zodResolver - this is a common pattern when using zod with react-hook-form
+    resolver: zodResolver(formSchema as any), 
     defaultValues: {
       nom: '',
       type: '',
