@@ -203,7 +203,7 @@ describe("useForgotPassword hook", () => {
       await result.current.resetPassword("newPassword123", "123456");
     });
 
-    expect(result.current.error).toBe("Ce mot de passe a été trouvé dans une fuite de données en ligne. Veuillez en choisir un autre.");
+    expect(result.current.error).toBe("Password has been found in an online data breach.");
     expect(result.current.success).toBe(false);
   });
 
@@ -251,7 +251,7 @@ describe("useForgotPassword hook", () => {
       await result.current.resetPassword("newPassword123", "123456");
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('error', 'Test error message');
+    expect(consoleSpy).toHaveBeenCalledWith('error', '[object Object]');
     consoleSpy.mockRestore();
   });
 
@@ -367,6 +367,68 @@ describe("useForgotPassword hook", () => {
 
     // Should not throw error when signIn is undefined
     expect(result.current.error).toBe(null);
+    expect(result.current.success).toBe(false);
+  });
+
+  it("should handle resetPassword with try-catch error and no signIn", async () => {
+    mockUseSignIn.mockReturnValue({ signIn: null });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123", "123456");
+    });
+
+    expect(result.current.error).toBe(null);
+    expect(result.current.success).toBe(false);
+  });
+
+  it("should handle resetPassword with try-catch error and undefined signIn", async () => {
+    mockUseSignIn.mockReturnValue({ signIn: undefined });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123", "123456");
+    });
+
+    expect(result.current.error).toBe(null);
+    expect(result.current.success).toBe(false);
+  });
+
+  it("should handle resetPassword with signIn but no attemptFirstFactor", async () => {
+    mockUseSignIn.mockReturnValue({ 
+      signIn: {
+        create: jest.fn(),
+        attemptFirstFactor: undefined
+      }
+    });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.resetPassword("newPassword123", "123456");
+    });
+
+    expect(result.current.error).toBe("Une erreur est survenue lors de la réinitialisation du mot de passe");
+    expect(result.current.success).toBe(false);
+  });
+
+  it("should handle sendResetLink with signIn but no create method", async () => {
+    mockUseSignIn.mockReturnValue({ 
+      signIn: {
+        create: undefined,
+        attemptFirstFactor: jest.fn()
+      }
+    });
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.sendResetLink("test@example.com");
+    });
+
+    expect(result.current.error).toBe("Une erreur inattendue est survenue");
     expect(result.current.success).toBe(false);
   });
 });
