@@ -82,7 +82,7 @@ const config: Config = {
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   transformIgnorePatterns: [
-    "/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform))", // Permet la transformation des modules ES6
+    "/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform|@clerk))", // Permet la transformation des modules ES6 et Clerk
   ],
 
   // Options that will be passed to the testEnvironment
