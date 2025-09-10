@@ -45,30 +45,30 @@ describe("RootLayout", () => {
     expect(typeof RootLayout).toBe("function");
     const result = RootLayout({ children: mockChildren });
     expect(result).toBeDefined();
-    expect(result.type.name).toBe("ClerkProvider");
+    expect(result.type).toBe("html");
   });
 
-  it("returns ClerkProvider with html element inside", () => {
+  it("returns html element with correct attributes", () => {
     const result = RootLayout({ children: mockChildren });
-    const htmlElement = result.props.children;
-    expect(htmlElement.type).toBe("html");
-    expect(htmlElement.props.lang).toBe("fr");
-    expect(htmlElement.props.suppressHydrationWarning).toBe(true);
+    expect(result.type).toBe("html");
+    expect(result.props.lang).toBe("fr");
+    expect(result.props.suppressHydrationWarning).toBe(true);
   });
 
   it("contains body element with children", () => {
     const result = RootLayout({ children: mockChildren });
-    const htmlElement = result.props.children;
-    const body = htmlElement.props.children;
+    const body = result.props.children;
     expect(body.type).toBe("body");
     expect(body.props.className).toContain("antialiased");
   });
 
-  it("contains ThemeProvider with correct default theme", () => {
+  it("contains ClerkProvider with ThemeProvider inside", () => {
     const result = RootLayout({ children: mockChildren });
-    const htmlElement = result.props.children;
-    const body = htmlElement.props.children;
-    const themeProvider = body.props.children;
+    const body = result.props.children;
+    const clerkProvider = body.props.children;
+    expect(clerkProvider.type.name).toBe("ClerkProvider");
+    
+    const themeProvider = clerkProvider.props.children;
     expect(themeProvider.type.name).toBe("ThemeProvider");
     expect(themeProvider.props.defaultTheme).toBe("light");
   });
@@ -76,7 +76,7 @@ describe("RootLayout", () => {
   it("renders with empty children", () => {
     const result = RootLayout({ children: null });
     expect(result).toBeDefined();
-    expect(result.type.name).toBe("ClerkProvider");
+    expect(result.type).toBe("html");
   });
 
   it("renders multiple children correctly", () => {
@@ -89,6 +89,6 @@ describe("RootLayout", () => {
 
     const result = RootLayout({ children: multipleChildren });
     expect(result).toBeDefined();
-    expect(result.type.name).toBe("ClerkProvider");
+    expect(result.type).toBe("html");
   });
 });
