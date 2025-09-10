@@ -17,6 +17,7 @@
     "sonar:backend": "cd backend && sonar-scanner"
   },
   "devDependencies": {
+    "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "concurrently": "^7.6.0",
     "eslint-config-prettier": "^10.1.8",
