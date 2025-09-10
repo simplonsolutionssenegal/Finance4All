@@ -8,7 +8,31 @@ datasource db {
 }
 
 model User {
-  id    String @id
-  name  String
-  email String @unique
+  id        String   @id @default(uuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InstitutionFinanciere {
+  id                String    @id @default(uuid())
+  nom               String
+  type              String
+  description       String
+  siteWeb           String
+  logo              String?
+  contactNom        String?
+  contactEmail      String?
+  contactTelephone  String?
+  regionsDesservies String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
 }
