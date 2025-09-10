@@ -41,7 +41,7 @@ const UsersPage = () => {
 
   // Fonction pour construire l'URL de filtrage
   const buildFilterUrl = (searchTerm: string, filters: FilterOptions) => {
-    const baseUrl = `${NEXT_PUBLIC_API_UR}users/organizations/37/users`;
+    const baseUrl = `${NEXT_PUBLIC_API_UR}users/organisations/37/users`;
     console.log('Base URL:', baseUrl);
     // Si pas de filtres actifs et pas de recherche, utiliser l'endpoint classique
     const hasActiveFilters = filters.role.length > 0 || filters.status.length > 0 || filters.lastConnection;
@@ -149,18 +149,6 @@ const UsersPage = () => {
     setFilters(newFilters);
     // Le useEffect se chargera de faire l'appel API
   };
-
-  // const handleDeleteUser = async (userId: string | number) => {
-  //   try {
-  //     const res = await fetch(`http://localhost:5000/api/v1/users/organizations/2/users/${userId}`, { method: 'DELETE' });
-  //     if (!res.ok) throw new Error(`Erreur lors de la suppression: ${res.status}`);
-      
-  //     // Recharger les données après suppression
-  //     loadUsers(searchTerm, filters);
-  //   } catch (e) {
-  //     console.error(e);
-  //   }
-  // };
 
   if (error) {
     return (
