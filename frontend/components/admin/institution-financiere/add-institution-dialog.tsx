@@ -145,54 +145,54 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
   function onSubmit(_values: InstitutionFormValues) {
     // Envoyer les données à l'API (à implémenter par l'équipe back-end)
     // En attendant, on simule la sauvegarde avec un toast
-    toast.success('Institution financière ajoutée avec succès');
-    onOpenChange(false);
-    form.reset();
-    setLogoPreview(null);
-    setSelectedRegions([]);
-    setCurrentStep(1);
+    //toast.success('Institution financière ajoutée avec succès');
+   // onOpenChange(false);
+    //form.reset();
+    //setLogoPreview(null);
+    //setSelectedRegions([]);
+    //setCurrentStep(1);
   }
 
   const handleLogoChange = (files: FileList | null) => {
-    if (files && files.length > 0) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setLogoPreview(null);
-    }
+    // if (files && files.length > 0) {
+    //   const file = files[0];
+    //   const reader = new FileReader();
+    //   reader.onloadend = () => {
+    //     setLogoPreview(reader.result as string);
+    //   };
+    //   reader.readAsDataURL(file);
+    // } else {
+    //   setLogoPreview(null);
+    // }
   };
 
   const toggleRegion = (region: string) => {
-    setSelectedRegions(current => {
-      const isSelected = current.includes(region);
-      let newRegions;
+    // setSelectedRegions(current => {
+    //   const isSelected = current.includes(region);
+    //   let newRegions;
 
-      if (isSelected) {
-        newRegions = current.filter(r => r !== region);
-      } else {
-        newRegions = [...current, region];
-      }
+    //   if (isSelected) {
+    //     newRegions = current.filter(r => r !== region);
+    //   } else {
+    //     newRegions = [...current, region];
+    //   }
 
-      form.setValue('regionsDesservies', newRegions);
-      return newRegions;
-    });
+    //   form.setValue('regionsDesservies', newRegions);
+    //   return newRegions;
+    // });
   };
 
   return (
     <Dialog
       open={open}
       onOpenChange={isOpen => {
-        if (!isOpen) {
-          form.reset();
-          setLogoPreview(null);
-          setSelectedRegions([]);
-          setCurrentStep(1);
-        }
-        onOpenChange(isOpen);
+        // if (!isOpen) {
+        //   form.reset();
+        //   setLogoPreview(null);
+        //   setSelectedRegions([]);
+        //   setCurrentStep(1);
+        // }
+        //onOpenChange(isOpen);
       }}
     >
       <DialogContent className='sm:max-w-[600px] p-0 overflow-hidden'>
