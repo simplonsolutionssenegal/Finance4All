@@ -33,7 +33,7 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
 
   async update(
     id: string,
-    institution: Partial<InstitutionFinanciere>,
+    institution: Partial<InstitutionFinanciere>
   ): Promise<InstitutionFinanciere | null> {
     return this.prisma.institutionFinanciere.update({
       where: { id },

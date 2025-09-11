@@ -4,7 +4,7 @@ import Joi from 'joi';
 export const validateCreateInstitutionFinanciere = (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): void => {
   const schema = Joi.object({
     nom: Joi.string().min(2).required().messages({
@@ -19,18 +19,18 @@ export const validateCreateInstitutionFinanciere = (
       'string.min': 'La description doit contenir au moins 10 caractères',
     }),
     siteWeb: Joi.string().uri().required().messages({
-      'string.empty': 'L\'URL du site web est requise',
-      'string.uri': 'L\'URL du site web n\'est pas valide',
+      'string.empty': "L'URL du site web est requise",
+      'string.uri': "L'URL du site web n'est pas valide",
     }),
     logo: Joi.string().allow(null, ''),
     contactNom: Joi.string().min(2).allow(null, '').messages({
       'string.min': 'Le nom du contact doit contenir au moins 2 caractères',
     }),
     contactEmail: Joi.string().email().allow(null, '').messages({
-      'string.email': 'L\'adresse email n\'est pas valide',
+      'string.email': "L'adresse email n'est pas valide",
     }),
     contactTelephone: Joi.string().min(8).allow(null, '').messages({
-      'string.min': 'Le numéro de téléphone n\'est pas valide',
+      'string.min': "Le numéro de téléphone n'est pas valide",
     }),
     regionsDesservies: Joi.array().items(Joi.string()).min(1).required().messages({
       'array.min': 'Au moins une région desservie doit être spécifiée',

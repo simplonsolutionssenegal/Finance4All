@@ -9,8 +9,8 @@ describe('PrismaInstitutionFinanciereRepository', () => {
     institutionFinanciere: {
       create: jest.fn(),
       findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
+  findMany: jest.fn(),
+  update: jest.fn(),
       delete: jest.fn(),
     },
   };
@@ -164,7 +164,6 @@ describe('PrismaInstitutionFinanciereRepository', () => {
       });
       expect(result).toBe(true);
     });
-
     it('should return false when delete fails with error', async () => {
       mockPrisma.institutionFinanciere.delete.mockRejectedValue(new Error('Delete failed'));
 

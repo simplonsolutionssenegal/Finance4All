@@ -2,78 +2,84 @@ import { InstitutionFinanciere } from '../../domain/entities/InstitutionFinancie
 import { InstitutionFinanciereRepository } from '../../domain/repositories/InstitutionFinanciereRepository';
 
 export class CreateInstitutionFinanciereUseCase {
-	constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}
+  constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}
 
-	async execute(data: Omit<InstitutionFinanciere, 'id' | 'createdAt' | 'updatedAt'>): Promise<InstitutionFinanciere> {
-		// Basic presence validation
-		const requiredFields: Array<keyof typeof data> = ['nom', 'type', 'description', 'siteWeb', 'regionsDesservies'];
-		for (const field of requiredFields) {
-			if (!data[field] || (Array.isArray(data[field]) && (data[field] as unknown[]).length === 0)) {
-				throw new Error(`Champ requis manquant: ${String(field)}`);
-			}
-		}
+  async execute(data: Omit<InstitutionFinanciere, 'id' | 'createdAt' | 'updatedAt'>): Promise<InstitutionFinanciere> {
+    // 1. Nom
+    if (!data.nom || data.nom.length < 2 || data.nom.length > 100) {
+      throw new Error("Le nom de l'institution doit contenir entre 2 et 100 caractères");
+    }
+    // 2. Type
+    if (!data.type || data.type.length > 50) {
+      throw new Error("Le type d'institution est requis et doit faire moins de 50 caractères");
+    }
+    // 3. Description
+    if (!data.description || data.description.length < 10 || data.description.length > 1000) {
+      throw new Error('La description doit contenir entre 10 et 1000 caractères');
+    }
+    // 4. URL site web
+    if (!this.isValidUrl(data.siteWeb)) {
+      throw new Error('Une URL valide est requise pour le site web');
+    }
+    // 5. Régions desservies
+    if (!Array.isArray(data.regionsDesservies) || data.regionsDesservies.length < 1 || data.regionsDesservies.length > 20) {
+      throw new Error('Entre 1 et 20 régions desservies doivent être spécifiées');
+    }
+    for (const region of data.regionsDesservies) {
+      if (!region || region.length > 100) {
+        throw new Error('Chaque région desservie doit faire moins de 100 caractères');
+      }
+    }
+    // 6. Email contact (optionnel)
+    if (data.contactEmail && !this.isValidEmail(data.contactEmail)) {
+      throw new Error("L'adresse email du contact n'est pas valide");
+    }
+    // 7. Téléphone contact (optionnel)
+    if (data.contactTelephone && (data.contactTelephone.length < 8 || data.contactTelephone.length > 20)) {
+      throw new Error("Le numéro de téléphone doit contenir entre 8 et 20 caractères");
+    }
+    // 8. Nom contact (optionnel)
+    if (data.contactNom && data.contactNom.length > 100) {
+      throw new Error("Le nom du contact doit faire moins de 100 caractères");
+    }
+    // 9. Logo URL length (optionnel)
+    if (data.logo && data.logo.length > 500) {
+      throw new Error("L'URL du logo doit faire moins de 500 caractères");
+    }
 
-		// Length constraints (defensive)
-		if (data.nom.length > 150) {
-			throw new Error('Le nom ne doit pas dépasser 150 caractères');
-		}
-		if (data.description.length > 2000) {
-			throw new Error('La description ne doit pas dépasser 2000 caractères');
-		}
+    // Normalisation simple
+    const institution: InstitutionFinanciere = {
+      id: '',
+      nom: data.nom.trim(),
+      type: data.type.trim(),
+      description: data.description.trim(),
+      siteWeb: data.siteWeb.trim(),
+      logo: data.logo ?? null,
+      contactNom: data.contactNom ?? null,
+      contactEmail: data.contactEmail ?? null,
+      contactTelephone: data.contactTelephone ?? null,
+      regionsDesservies: data.regionsDesservies.map(r => r.trim()),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-		// URL validation
-		try {
-			const url = new URL(data.siteWeb);
-			if (!['http:', 'https:'].includes(url.protocol)) {
-				throw new Error();
-			}
-		} catch {
-			throw new Error("URL du site web invalide");
-		}
+    return this.institutionFinanciereRepository.create(institution);
+  }
 
-		// Email validation (optional field)
-		if (data.contactEmail) {
-			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-			if (!emailRegex.test(data.contactEmail)) {
-				throw new Error("Adresse email de contact invalide");
-			}
-		}
+  private isValidUrl(url: string): boolean {
+    if (!url || url.length > 2048) return false;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
 
-		// Regions validation
-		if (!Array.isArray(data.regionsDesservies) || data.regionsDesservies.length === 0) {
-			throw new Error('Au moins une région desservie est requise');
-		}
-		if (data.regionsDesservies.length > 50) {
-			throw new Error('Nombre de régions desservies trop élevé');
-		}
-		for (const region of data.regionsDesservies) {
-			if (typeof region !== 'string' || region.length === 0) {
-				throw new Error('Nom de région invalide');
-			}
-			if (region.length > 100) {
-				throw new Error('Nom de région trop long');
-			}
-		}
-
-		// Create domain object (repository persists raw object)
-		const institution: InstitutionFinanciere = {
-			id: '', // will be assigned by DB
-			nom: data.nom.trim(),
-			type: data.type,
-			description: data.description.trim(),
-			siteWeb: data.siteWeb.trim(),
-			logo: data.logo ?? null,
-			contactNom: data.contactNom ?? null,
-			contactEmail: data.contactEmail ?? null,
-			contactTelephone: data.contactTelephone ?? null,
-			regionsDesservies: data.regionsDesservies.map(r => r.trim()),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		};
-
-		// Persist
-		const created = await this.institutionFinanciereRepository.create(institution);
-		return created;
-	}
+  private isValidEmail(email: string): boolean {
+    if (!email || email.length > 254) return false;
+    const emailRegex = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    return emailRegex.test(email);
+  }
 }
 

@@ -35,7 +35,7 @@ export const authMiddleware = (allowedRoles: string[] = []) => {
         if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
           res.status(403).json({
             success: false,
-            message: 'Vous n\'avez pas les droits suffisants pour accéder à cette ressource.',
+            message: "Vous n'avez pas les droits suffisants pour accéder à cette ressource.",
           });
           return;
         }

@@ -5,7 +5,7 @@ export class DeleteInstitutionFinanciereUseCase {
 
   async execute(id: string): Promise<boolean> {
     if (!id) {
-      throw new Error('ID de l\'institution financière requis');
+      throw new Error("ID de l'institution financière requis");
     }
 
     // Vérifier si l'institution existe avant de la supprimer
@@ -17,7 +17,7 @@ export class DeleteInstitutionFinanciereUseCase {
     const deleted = await this.institutionFinanciereRepository.delete(id);
 
     if (!deleted) {
-      throw new Error('Erreur lors de la suppression de l\'institution financière');
+      throw new Error("Erreur lors de la suppression de l'institution financière");
     }
 
     return deleted;

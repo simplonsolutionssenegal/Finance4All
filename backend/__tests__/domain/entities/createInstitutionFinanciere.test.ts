@@ -199,15 +199,11 @@ describe('CreateInstitutionFinanciereUseCase', () => {
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "L'adresse email du contact n'est pas valide"
       );
-    });
+  });
 
     it('should throw error when contactNom is too long', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { 
-        ...validInstitutionData, 
-        contactNom: 'a'.repeat(101) // > 100 caractères
-      };
-
+      const invalidData = { ...validInstitutionData, contactNom: 'a'.repeat(101) };
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "Le nom du contact doit faire moins de 100 caractères"
       );
@@ -215,11 +211,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
     it('should throw error when logo URL is too long', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { 
-        ...validInstitutionData, 
-        logo: 'https://example.com/' + 'a'.repeat(501) // > 500 caractères
-      };
-
+      const invalidData = { ...validInstitutionData, logo: 'https://example.com/' + 'a'.repeat(501) };
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "L'URL du logo doit faire moins de 500 caractères"
       );
