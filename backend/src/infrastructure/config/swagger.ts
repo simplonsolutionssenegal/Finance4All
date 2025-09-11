@@ -67,7 +67,7 @@ export const setupSwagger = (app: Express): void => {
     swaggerUi.setup(swaggerSpec, {
       explorer: true,
       customCss: '.swagger-ui .topbar { display: none }',
-    })
+    }),
   );
 
   // Route pour le fichier JSON Swagger
