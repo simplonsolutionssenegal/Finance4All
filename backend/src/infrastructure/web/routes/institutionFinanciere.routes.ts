@@ -14,22 +14,22 @@ const router = express.Router();
 // Instancier les dépendances
 const institutionFinanciereRepository = new PrismaInstitutionFinanciereRepository(prisma);
 const createInstitutionFinanciereUseCase = new CreateInstitutionFinanciereUseCase(
-  institutionFinanciereRepository
+  institutionFinanciereRepository,
 );
 const getAllInstitutionsFinancieresUseCase = new GetAllInstitutionsFinancieresUseCase(
-  institutionFinanciereRepository
+  institutionFinanciereRepository,
 );
 const getInstitutionFinanciereByIdUseCase = new GetInstitutionFinanciereByIdUseCase(
-  institutionFinanciereRepository
+  institutionFinanciereRepository,
 );
 const deleteInstitutionFinanciereUseCase = new DeleteInstitutionFinanciereUseCase(
-  institutionFinanciereRepository
+  institutionFinanciereRepository,
 );
 const institutionFinanciereController = new InstitutionFinanciereController(
   createInstitutionFinanciereUseCase,
   getAllInstitutionsFinancieresUseCase,
   getInstitutionFinanciereByIdUseCase,
-  deleteInstitutionFinanciereUseCase
+  deleteInstitutionFinanciereUseCase,
 );
 
 // Routes pour les institutions financières
@@ -37,7 +37,7 @@ router.post(
   '/',
   // authMiddleware(['ADMIN']),
   validateCreateInstitutionFinanciere,
-  (req, res) => institutionFinanciereController.create(req, res)
+  (req, res) => institutionFinanciereController.create(req, res),
 );
 
 // Route pour récupérer toutes les institutions financières
@@ -51,7 +51,7 @@ router.get('/:id', (req, res) => institutionFinanciereController.getById(req, re
 router.delete(
   '/:id',
   // authMiddleware(['ADMIN']),
-  (req, res) => institutionFinanciereController.delete(req, res)
+  (req, res) => institutionFinanciereController.delete(req, res),
 );
 
 export default router;

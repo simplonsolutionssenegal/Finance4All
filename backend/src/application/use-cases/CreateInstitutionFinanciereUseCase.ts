@@ -15,11 +15,11 @@ export class CreateInstitutionFinanciereUseCase {
   private validateInstitutionData(institutionData: InstitutionFinanciere): void {
     // Protection contre les attaques par déni de service : limiter les tailles
     if (!institutionData.nom || institutionData.nom.length < 2 || institutionData.nom.length > 100) {
-      throw new Error("Le nom de l'institution doit contenir entre 2 et 100 caractères");
+      throw new Error('Le nom de l\'institution doit contenir entre 2 et 100 caractères');
     }
 
     if (!institutionData.type || institutionData.type.length > 50) {
-      throw new Error("Le type d'institution est requis et doit faire moins de 50 caractères");
+      throw new Error('Le type d\'institution est requis et doit faire moins de 50 caractères');
     }
 
     if (!institutionData.description || institutionData.description.length < 10 || institutionData.description.length > 1000) {
@@ -43,19 +43,19 @@ export class CreateInstitutionFinanciereUseCase {
 
     // Validation conditionnelle des champs de contact avec limites
     if (institutionData.contactEmail && !this.isValidEmail(institutionData.contactEmail)) {
-      throw new Error("L'adresse email du contact n'est pas valide");
+      throw new Error('L\'adresse email du contact n\'est pas valide');
     }
 
     if (institutionData.contactTelephone && (institutionData.contactTelephone.length < 8 || institutionData.contactTelephone.length > 20)) {
-      throw new Error("Le numéro de téléphone doit contenir entre 8 et 20 caractères");
+      throw new Error('Le numéro de téléphone doit contenir entre 8 et 20 caractères');
     }
 
     if (institutionData.contactNom && institutionData.contactNom.length > 100) {
-      throw new Error("Le nom du contact doit faire moins de 100 caractères");
+      throw new Error('Le nom du contact doit faire moins de 100 caractères');
     }
 
     if (institutionData.logo && institutionData.logo.length > 500) {
-      throw new Error("L'URL du logo doit faire moins de 500 caractères");
+      throw new Error('L\'URL du logo doit faire moins de 500 caractères');
     }
   }
 
