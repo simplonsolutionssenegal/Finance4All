@@ -2,9 +2,7 @@
 "use client";
 
 import { useState } from "react";
-
-import UserCreationForm from "@/components/admin/UserCreationForm";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { SquarePen, Trash2 } from 'lucide-react';
 
 interface User  {
@@ -43,15 +41,14 @@ const UserTable: React.FC<UserTableProps> = ({
   // onDeleteUser,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
+
   const itemsPerPage = 5;
   const totalPages = Math.ceil(users.length / itemsPerPage);
   const paginatedUsers = users.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const [editOpen, setEditOpen] = useState<boolean>(false);
-  const [editUser, setEditUser] = useState<User | null>(null);
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<
@@ -74,26 +71,7 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   };
 
-  const getRoleBadge = (role: string) => {
-    const roleConfig: Record<
-      string,
-      { color: string; label: string }
-    > = {
-      admin: { color: "bg-purple-100  text-purple-800", label: "Administrateur" },
-      manager: { color: "bg-blue-100 text-blue-800", label: "Manager" },
-      user: { color: "bg-gray-100 text-gray-800", label: "Utilisateur" },
-    };
 
-    const config = roleConfig[role] || roleConfig.user;
-
-    return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
-      >
-        {config.label}
-      </span>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -142,19 +120,16 @@ const UserTable: React.FC<UserTableProps> = ({
             <tr>
               <th
                 scope="col"
-                className="px-2 py-3 text-left text-xs   uppercase tracking-wider"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
-                Nom et Prénom
+                Nom
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Rôle
               </th>
               <th
                 scope="col"
-                className="px-2 py-3 text-left text-xs   uppercase tracking-wider"
-              >
-                Roles
-              </th>
-              <th
-                scope="col"
-                className="px-2 py-3 text-left text-xs   uppercase tracking-wider"
+                className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 Email
               </th>
@@ -222,15 +197,11 @@ const UserTable: React.FC<UserTableProps> = ({
                           type="button"
                           title="Modifier"
                           aria-label={`Modifier ${user.firstName} ${user.lastName}`}
-                          onClick={() => setEditUser(user)}
                           className="inline-flex h-7 w-7 items-center justify-center rounded  hover:bg-blue-700"
                         >
                           <SquarePen className="h-4 w-4 text-blue-600" strokeWidth={2.5} />
                         </button>
                       </DialogTrigger>
-                      <DialogContent>
-                        <UserCreationForm onUserCreated={() => setEditOpen(false)} user={editUser} />
-                      </DialogContent>
                     </Dialog>
 
                     <button

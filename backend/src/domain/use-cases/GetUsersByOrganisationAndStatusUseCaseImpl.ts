@@ -4,10 +4,9 @@ import { User } from '@/domain/entities/User';
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { UserStatus } from '@prisma/client'; // 👈 IMPORTANT
 
-export class GetUsersByOrganisationAndStatusUseCaseImpl
-  implements GetUsersByOrganisationAndStatusUseCase
-{
-  constructor(private readonly userRepo: UserRepository) {}
+export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrganisationAndStatusUseCase {
+
+  constructor(private readonly userRepo: UserRepository) { }
 
   async execute(
     organisationId: number,
