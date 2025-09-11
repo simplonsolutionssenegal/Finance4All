@@ -178,15 +178,25 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
     });
   };
 
+  // Centralise the reset logic so both Dialog onOpenChange and manual close button share it
+  const resetDialogState = () => {
+    form.reset();
+    setLogoPreview(null);
+    setSelectedRegions([]);
+    setCurrentStep(1);
+  };
+
+  const internalClose = () => {
+    resetDialogState();
+    onOpenChange(false);
+  };
+
   return (
     <Dialog
       open={open}
       onOpenChange={isOpen => {
         if (!isOpen) {
-          form.reset();
-          setLogoPreview(null);
-          setSelectedRegions([]);
-          setCurrentStep(1);
+          resetDialogState();
         }
         onOpenChange(isOpen);
       }}
@@ -198,7 +208,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
           <div className='flex items-center justify-between px-5 py-4 border-b border-gray-700'>
             <h2 className='text-2xl font-bold'>Ajouter une institution</h2>
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={internalClose}
               className='rounded-full p-1.5 hover:bg-white/10 transition-colors'
               aria-label='Fermer'
             >
@@ -374,7 +384,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
                   <FormField
                     control={form.control}
                     name='logo'
-                    render={({ field: { onChange, ...fieldProps } }) => (
+                    render={({ field: { onChange, value, ...fieldProps } }) => (
                       <FormItem>
                         <FormLabel className='text-sm font-medium text-gray-700'>
                           Logo de l&apos;institution
@@ -419,12 +429,14 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
                                   </p>
                                 </div>
                               )}
+                              {/* File inputs should remain uncontrolled; react-hook-form's value is ignored intentionally */}
                               <Input
                                 type='file'
                                 accept='image/jpeg,image/jpg,image/png'
                                 className='hidden'
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 onChange={e => {
-                                  onChange(e.target.files);
+                                  onChange(e.target.files as any); // pass FileList to RHF
                                   handleLogoChange(e.target.files);
                                 }}
                                 {...fieldProps}
