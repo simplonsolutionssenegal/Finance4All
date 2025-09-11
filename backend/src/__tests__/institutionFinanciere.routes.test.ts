@@ -1,9 +1,4 @@
-import request from 'supertest';
-import app from '../index';
-import { prisma } from '../infrastructure/database/prisma';
-import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
-
-// Mock de Clerk middleware pour éviter les erreurs d'authentification
+// Mock de Clerk middleware pour éviter les erreurs d'authentification - DOIT être avant les imports
 jest.mock('@clerk/express', () => ({
   clerkMiddleware: () => (req: any, res: any, next: any) => {
     // Mock d'un utilisateur authentifié pour les tests
@@ -23,6 +18,11 @@ jest.mock('../infrastructure/database/prisma', () => ({
     },
   },
 }));
+
+const request = require('supertest');
+import app from '../index';
+import { prisma } from '../infrastructure/database/prisma';
+import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
 
 // Type augmentation for jest mocks
 type MockPrismaClient = {
