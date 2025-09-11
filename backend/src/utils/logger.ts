@@ -9,7 +9,7 @@ const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.prettyPrint(),
+  winston.format.prettyPrint()
 );
 
 // Format console lisible en dev
@@ -32,7 +32,7 @@ const consoleFormat = winston.format.combine(
     }
 
     return log;
-  }),
+  })
 );
 
 // Transports
@@ -43,7 +43,7 @@ transports.push(
   new winston.transports.Console({
     format: isDevelopment ? consoleFormat : logFormat,
     level: logLevel,
-  }),
+  })
 );
 
 // Fichiers: uniquement en prod
@@ -61,7 +61,7 @@ if (!isDevelopment) {
       format: logFormat,
       maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5,
-    }),
+    })
   );
 }
 

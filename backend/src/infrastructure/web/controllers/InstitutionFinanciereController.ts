@@ -10,7 +10,7 @@ export class InstitutionFinanciereController {
     private readonly createInstitutionFinanciereUseCase: CreateInstitutionFinanciereUseCase,
     private readonly getAllInstitutionsFinancieresUseCase: GetAllInstitutionsFinancieresUseCase,
     private readonly getInstitutionFinanciereByIdUseCase?: GetInstitutionFinanciereByIdUseCase,
-    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase,
+    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {
@@ -81,7 +81,7 @@ export class InstitutionFinanciereController {
       } else {
         res.status(500).json({
           success: false,
-          message: 'Erreur lors de la récupération de l\'institution financière',
+          message: "Erreur lors de la récupération de l'institution financière",
           error: error instanceof Error ? error.message : 'Erreur inconnue',
         });
       }
@@ -111,7 +111,7 @@ export class InstitutionFinanciereController {
       } else {
         res.status(500).json({
           success: false,
-          message: 'Erreur lors de la suppression de l\'institution financière',
+          message: "Erreur lors de la suppression de l'institution financière",
           error: error instanceof Error ? error.message : 'Erreur inconnue',
         });
       }
