@@ -86,5 +86,28 @@ describe('Institution Financière Entity and Use Cases', () => {
 
       await expect(deleteUseCase.execute('1')).rejects.toThrow('Database error');
     });
+
+    it('should throw error when delete operation fails and returns false', async () => {
+      const deleteUseCase = new DeleteInstitutionFinanciereUseCase(mockInstitutionRepository);
+      const mockInstitution: InstitutionFinanciere = {
+        id: '1',
+        nom: 'Banque Test',
+        type: 'BANQUE',
+        description: 'Description test',
+        siteWeb: 'https://test.com',
+        regionsDesservies: ['Île-de-France'],
+      };
+
+      mockInstitutionRepository.findById.mockResolvedValue(mockInstitution);
+      // Simuler le cas où delete retourne false (échec de suppression sans exception)
+      mockInstitutionRepository.delete.mockResolvedValue(false);
+
+      await expect(deleteUseCase.execute('1')).rejects.toThrow(
+        'Erreur lors de la suppression de l\'institution financière'
+      );
+
+      expect(mockInstitutionRepository.findById).toHaveBeenCalledWith('1');
+      expect(mockInstitutionRepository.delete).toHaveBeenCalledWith('1');
+    });
   });
 });

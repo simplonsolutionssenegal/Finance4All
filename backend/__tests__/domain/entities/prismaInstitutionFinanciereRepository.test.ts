@@ -10,6 +10,7 @@ describe('PrismaInstitutionFinanciereRepository', () => {
       create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
+      update: jest.fn(),
       delete: jest.fn(),
     },
   };
@@ -112,6 +113,46 @@ describe('PrismaInstitutionFinanciereRepository', () => {
     });
   });
 
+  describe('update', () => {
+    it('should call prisma update with correct data', async () => {
+      const updateData = { nom: 'Nouveau nom', type: 'MUTUELLE' };
+      const updatedInstitution = { ...mockInstitution, ...updateData };
+      
+      mockPrisma.institutionFinanciere.update.mockResolvedValue(updatedInstitution);
+
+      const result = await repository.update('1', updateData);
+
+      expect(mockPrisma.institutionFinanciere.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: updateData,
+      });
+      expect(result).toEqual(updatedInstitution);
+    });
+
+    it('should handle partial updates correctly', async () => {
+      const updateData = { description: 'Nouvelle description' };
+      const updatedInstitution = { ...mockInstitution, ...updateData };
+      
+      mockPrisma.institutionFinanciere.update.mockResolvedValue(updatedInstitution);
+
+      const result = await repository.update('1', updateData);
+
+      expect(mockPrisma.institutionFinanciere.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: updateData,
+      });
+      expect(result).toEqual(updatedInstitution);
+    });
+
+    it('should return null when update fails', async () => {
+      mockPrisma.institutionFinanciere.update.mockResolvedValue(null);
+
+      const result = await repository.update('999', { nom: 'Test' });
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('delete', () => {
     it('should call prisma delete with correct id', async () => {
       mockPrisma.institutionFinanciere.delete.mockResolvedValue(true);
@@ -122,6 +163,25 @@ describe('PrismaInstitutionFinanciereRepository', () => {
         where: { id: '1' },
       });
       expect(result).toBe(true);
+    });
+
+    it('should return false when delete fails with error', async () => {
+      mockPrisma.institutionFinanciere.delete.mockRejectedValue(new Error('Delete failed'));
+
+      const result = await repository.delete('999');
+
+      expect(mockPrisma.institutionFinanciere.delete).toHaveBeenCalledWith({
+        where: { id: '999' },
+      });
+      expect(result).toBe(false);
+    });
+
+    it('should return false when record not found during delete', async () => {
+      mockPrisma.institutionFinanciere.delete.mockRejectedValue(new Error('Record not found'));
+
+      const result = await repository.delete('nonexistent');
+
+      expect(result).toBe(false);
     });
   });
 });
