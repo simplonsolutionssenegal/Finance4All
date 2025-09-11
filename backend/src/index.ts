@@ -1,4 +1,4 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -7,17 +7,15 @@ import { logger } from '@/utils/logger';
 import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
 import { clerkMiddleware } from '@clerk/express';
+import { setupSwagger } from '@/infrastructure/config/swagger';
 
 // Charger les variables d'environnement
 dotenv.config();
 
 // Créer l'application Express
 const app = express();
-
-// Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
-app.disable('x-powered-by');
-
 const PORT = process.env.PORT ?? 5000;
+app.use(clerkMiddleware());
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
@@ -25,15 +23,8 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
+  }),
 );
-
-// Appliquer le middleware Clerk seulement sur les routes API, pas sur la route health
-if (process.env.NODE_ENV !== 'test') {
-  app.use('/api', clerkMiddleware());
-}
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -50,7 +41,10 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Routes
+// Configuration de Swagger pour la documentation API
+setupSwagger(app);
+
+// Routes API
 app.use(`/api/${process.env.API_VERSION ?? 'v1'}`, apiRoutes);
 
 // Route de santé
@@ -59,7 +53,7 @@ app.get('/health', (_req: Request, res: Response) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV ?? 'development',
+    environment: process.env.NODE_ENV,
   });
 });
 
@@ -102,9 +96,7 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Démarrer l'application seulement si ce fichier est exécuté directement
-if (require.main === module) {
-  startServer();
-}
+// Démarrer l'application
+startServer();
 
 export default app;
