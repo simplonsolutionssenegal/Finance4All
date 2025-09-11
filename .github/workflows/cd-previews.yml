@@ -19,7 +19,7 @@ jobs:
       pr-ref: ${{ steps.pr-details.outputs.ref }}
       pr-sha: ${{ steps.pr-details.outputs.sha }}
       pr-number: ${{ steps.pr-details.outputs.number }}
-
+    
     steps:
       - name: Get PR details
         uses: actions/github-script@v7
@@ -35,31 +35,32 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
-      - name: React to comment (optimized)
+      - name: React to comment
         uses: actions/github-script@v7
         with:
           script: |
+            // Get PR details
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-
-            // Opérations parallèles
-            await Promise.all([
-              github.rest.reactions.createForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id,
-                content: 'rocket'
-              }),
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to KIND...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
-              })
-            ]);
+            
+            // Ajouter une réaction au commentaire
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+            
+            // Ajouter un commentaire de confirmation
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+            });
 
   run-ci:
     name: Run CI Tests
@@ -69,12 +70,6 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-      FROM_NAME: ${{ secrets.FROM_NAME }}
 
   build-and-deploy:
     name: Build Images & Deploy Preview
@@ -96,8 +91,15 @@ jobs:
               http = true
               insecure = true
 
+      - name: Debug buildx config
+        run: |
+          docker buildx inspect default
+
       - name: Login to Nexus Registry
         run: |
+          echo  "${{ secrets.NEXUS_PASSWORD }}"
+          echo  "${{ secrets.NEXUS_PREVIEW }}"
+          echo  "${{ secrets.NEXUS_USER }}"
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
@@ -106,69 +108,14 @@ jobs:
         with:
           context: ./frontend
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          secrets: |
-            "clerk_publishable_key=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
-            "clerk_secret_key=${{ secrets.CLERK_SECRET_KEY }}"
-          build-args: |
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            NEXT_PUBLIC_API_URL=http://${{ steps.server-ip.outputs.ip }}:30081
           tags: |
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-      - name: Build and push backend preview image
-        if: needs.run-ci.outputs.backend-changed == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          secrets: |
-            "clerk_publishable_key=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
-            "clerk_secret_key=${{ secrets.CLERK_SECRET_KEY }}"
-            "clerk_webhook_secret=${{ secrets.CLERK_WEBHOOK_SECRET }}"
-            "frontend_url=${{ secrets.FRONTEND_URL }}"
-            "gmail_user=${{ secrets.GMAIL_USER }}"
-            "gmail_app_password=${{ secrets.GMAIL_APP_PASSWORD }}"
-            "from_email=${{ secrets.FROM_EMAIL }}"
-            "from_name=${{ secrets.FROM_NAME }}"
-          build-args: |
-            CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
-            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
-            GMAIL_USER=${{ secrets.GMAIL_USER }}
-            GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
-            FROM_EMAIL=${{ secrets.FROM_EMAIL }}
-            FROM_NAME=${{ secrets.FROM_NAME }}
-          tags: |
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
-
-      - name: Get server public IP
-        id: server-ip
-        run: |
-          PUBLIC_IP=$(curl -s --max-time 10 ifconfig.me || curl -s --max-time 10 icanhazip.com || echo "localhost")
-          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
-          echo "Server IP: ${PUBLIC_IP}"
-
       - name: Setup KIND
         run: |
-          # Vérifier si le cluster existe et est fonctionnel
-          if kind get clusters | grep -q "preview-cluster" && kubectl cluster-info --context=kind-preview-cluster >/dev/null 2>&1; then
-            echo "✅ KIND cluster already exists and is healthy"
-            kubectl config use-context kind-preview-cluster
-          else
-            echo "🔧 Creating/recreating KIND cluster..."
-            # Nettoyer l'ancien cluster s'il existe mais est défaillant
-            kind delete cluster --name preview-cluster 2>/dev/null || true
-
-            # Configuration KIND avec ports fixes
-            cat <<EOF > /tmp/kind-config.yaml
+          # Créer la configuration KIND avec mapping de port
+          cat <<EOF > /tmp/kind-config.yaml
           kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
           name: preview-cluster
@@ -188,231 +135,87 @@ jobs:
               hostPort: 30081
               protocol: TCP
           EOF
-
-            kind create cluster --config /tmp/kind-config.yaml --wait=120s
-            kubectl config use-context kind-preview-cluster
+          
+          # Vérifier si le cluster existe déjà
+          if kind get clusters | grep -q "preview-cluster"; then
+            echo "KIND cluster already exists"
+          else
+            echo "Creating KIND cluster..."
+            kind create cluster --config /tmp/kind-config.yaml
           fi
+          
+          # Configurer kubectl pour utiliser KIND
+          kubectl config use-context kind-preview-cluster
+          
+          # Vérifier la connexion
+          kubectl cluster-info
 
-          echo "✅ KIND cluster ready"
+      - name: Get server public IP
+        id: server-ip
+        run: |
+          # Récupérer l'IP publique du serveur
+          PUBLIC_IP=$(curl -s ifconfig.me)
+          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
+          echo "Public IP: ${PUBLIC_IP}"
 
       - name: Load images to KIND and Deploy
         run: |
-          PR_NUMBER="${{ needs.check-preview-request.outputs.pr-number }}"
-
-          # Créer le namespace
-          kubectl create namespace preview-pr-${PR_NUMBER} --dry-run=client -o yaml | kubectl apply -f -
-
-          # Charger et déployer le backend si modifié
-          if [ "${{ needs.run-ci.outputs.backend-changed }}" == "true" ]; then
-            BACKEND_IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${PR_NUMBER}"
-            BACKEND_IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
-
-            # Gestion intelligente des images
-            if docker image inspect "${BACKEND_IMAGE_SHA_NAME}" >/dev/null 2>&1; then
-              echo "✅ Backend image with correct SHA already exists locally"
-              docker tag "${BACKEND_IMAGE_SHA_NAME}" "${BACKEND_IMAGE_NAME}" || true
-            else
-              echo "🔄 Pulling backend image"
-              docker pull "${BACKEND_IMAGE_NAME}" || echo "Warning: Backend PR-number tag not found"
-              docker pull "${BACKEND_IMAGE_SHA_NAME}"
-              docker tag "${BACKEND_IMAGE_SHA_NAME}" "${BACKEND_IMAGE_NAME}" || true
-            fi
-
-            kind load docker-image "${BACKEND_IMAGE_NAME}" --name preview-cluster
-
-            # Déployer PostgreSQL
-            cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: postgres-preview-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: postgres-preview-${PR_NUMBER}
-            template:
-              metadata:
-                labels:
-                  app: postgres-preview-${PR_NUMBER}
-              spec:
-                containers:
-                - name: postgres
-                  image: postgres:15-alpine
-                  ports:
-                  - containerPort: 5432
-                  env:
-                  - name: POSTGRES_DB
-                    value: "finance4all_preview"
-                  - name: POSTGRES_USER
-                    value: "finance4all"
-                  - name: POSTGRES_PASSWORD
-                    value: "finance4All_preview"
-                  - name: PGDATA
-                    value: "/var/lib/postgresql/data/pgdata"
-                  volumeMounts:
-                  - name: postgres-storage
-                    mountPath: /var/lib/postgresql/data
-                volumes:
-                - name: postgres-storage
-                  emptyDir: {}
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: postgres-service-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
-          spec:
-            selector:
-              app: postgres-preview-${PR_NUMBER}
-            ports:
-            - port: 5432
-              targetPort: 5432
-          ---
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: backend-preview-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: backend-preview-${PR_NUMBER}
-            template:
-              metadata:
-                labels:
-                  app: backend-preview-${PR_NUMBER}
-              spec:
-                containers:
-                - name: backend
-                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${PR_NUMBER}
-                  imagePullPolicy: Never
-                  ports:
-                  - containerPort: 5000
-                  env:
-                  - name: NODE_ENV
-                    value: "production"
-                  - name: PORT
-                    value: "5000"
-                  - name: API_VERSION
-                    value: "v1"
-                  - name: DATABASE_URL
-                    value: "postgresql://finance4all:finance4All_preview@postgres-service-${PR_NUMBER}:5432/finance4all_preview?schema=public"
-                  - name: CLERK_PUBLISHABLE_KEY
-                    value: "${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
-                  - name: CLERK_SECRET_KEY
-                    value: "${{ secrets.CLERK_SECRET_KEY }}"
-                  - name: CLERK_WEBHOOK_SECRET
-                    value: "${{ secrets.CLERK_WEBHOOK_SECRET }}"
-                  - name: FRONTEND_URL
-                    value: "http://${{ steps.server-ip.outputs.ip }}:30080"
-                  - name: GMAIL_USER
-                    value: "${{ secrets.GMAIL_USER }}"
-                  - name: GMAIL_APP_PASSWORD
-                    value: "${{ secrets.GMAIL_APP_PASSWORD }}"
-                  - name: FROM_EMAIL
-                    value: "${{ secrets.FROM_EMAIL }}"
-                  - name: FROM_NAME
-                    value: "${{ secrets.FROM_NAME }}"
-                  - name: CORS_ORIGIN
-                    value: "http://${{ steps.server-ip.outputs.ip }}:30080"
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: backend-service-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
-          spec:
-            selector:
-              app: backend-preview-${PR_NUMBER}
-            ports:
-            - port: 5000
-              targetPort: 5000
-              nodePort: 30081
-            type: NodePort
-          EOF
-
-            echo "⏳ Waiting for PostgreSQL to be ready..."
-            kubectl wait --for=condition=ready pod -l app=postgres-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
-
-            echo "⏳ Waiting for Backend to be ready..."
-            kubectl wait --for=condition=ready pod -l app=backend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
-          else
-            echo "Backend unchanged, skipping backend deployment"
-          fi
-
-          # Charger et déployer le frontend si modifié
+          # Charger l'image Docker dans KIND
           if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
-            FRONTEND_IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${PR_NUMBER}"
-            FRONTEND_IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
-
-            if docker image inspect "${FRONTEND_IMAGE_SHA_NAME}" >/dev/null 2>&1; then
-              echo "✅ Frontend image with correct SHA already exists locally"
-              docker tag "${FRONTEND_IMAGE_SHA_NAME}" "${FRONTEND_IMAGE_NAME}" || true
-            else
-              echo "🔄 Pulling frontend image"
-              docker pull "${FRONTEND_IMAGE_NAME}" || echo "Warning: Frontend PR-number tag not found"
-              docker pull "${FRONTEND_IMAGE_SHA_NAME}"
-              docker tag "${FRONTEND_IMAGE_SHA_NAME}" "${FRONTEND_IMAGE_NAME}" || true
-            fi
-
-            kind load docker-image "${FRONTEND_IMAGE_NAME}" --name preview-cluster
-
-            # Déployer le frontend
-            cat <<EOF | kubectl apply -f -
+            docker pull ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            kind load docker-image ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }} --name preview-cluster
+          fi
+          
+          # Créer le namespace
+          kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Déployer l'application
+          cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
           metadata:
-            name: frontend-preview-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
+            name: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
+            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
           spec:
             replicas: 1
             selector:
               matchLabels:
-                app: frontend-preview-${PR_NUMBER}
+                app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
             template:
               metadata:
                 labels:
-                  app: frontend-preview-${PR_NUMBER}
+                  app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
               spec:
                 containers:
                 - name: frontend
-                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${PR_NUMBER}
+                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
                   imagePullPolicy: Never
                   ports:
                   - containerPort: 80
-                  env:
-                  - name: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-                    value: "${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
-                  - name: CLERK_SECRET_KEY
-                    value: "${{ secrets.CLERK_SECRET_KEY }}"
-                  - name: PORT
-                    value: "80"
-                  - name: NEXT_PUBLIC_API_URL
-                    value: "http://${{ steps.server-ip.outputs.ip }}:30081"
           ---
           apiVersion: v1
           kind: Service
           metadata:
-            name: frontend-service-${PR_NUMBER}
-            namespace: preview-pr-${PR_NUMBER}
+            name: frontend-service-${{ needs.check-preview-request.outputs.pr-number }}
+            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
           spec:
             selector:
-              app: frontend-preview-${PR_NUMBER}
+              app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
             ports:
             - port: 80
               targetPort: 80
               nodePort: 30080
             type: NodePort
           EOF
+          
+          # Attendre que le déploiement soit prêt
+          kubectl wait --for=condition=ready pod -l app=frontend-preview-${{ needs.check-preview-request.outputs.pr-number }} -n preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --timeout=300s
 
-            echo "⏳ Waiting for Frontend to be ready..."
-            kubectl wait --for=condition=ready pod -l app=frontend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
-          else
-            echo "Frontend unchanged, skipping frontend deployment"
-          fi
+      - name: Get KIND cluster info
+        id: kind-info
+        run: |
+          # KIND utilise directement l'IP de l'hôte grâce au port mapping
+          echo "cluster-ready=true" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URLs
         uses: actions/github-script@v7
@@ -420,7 +223,6 @@ jobs:
           script: |
             const publicIp = '${{ steps.server-ip.outputs.ip }}';
             const frontendUrl = `http://${publicIp}:30080`;
-            const backendUrl = `http://${publicIp}:30081`;
 
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
@@ -428,19 +230,11 @@ jobs:
               repo: context.repo.repo,
               body: `🚀 **Preview déployé avec succès sur KIND !**
 
-              **URLs de preview (PR #${{ needs.check-preview-request.outputs.pr-number }}):**
+              **URLs de preview:**
               - Frontend: ${frontendUrl}
-              - Backend API: ${backendUrl}
-              - API Health: ${backendUrl}/health
 
               **Images Docker:**
               - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
-
-              **Services déployés:**
-              - PostgreSQL (base de données interne)
-              - Backend API (Node.js + Prisma)
-              - Frontend (Next.js)
 
               **Cluster:** KIND (preview-cluster)
               **Namespace:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
