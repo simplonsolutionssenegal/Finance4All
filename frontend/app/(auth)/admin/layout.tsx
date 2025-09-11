@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarProvider } from "@/components/ui/sidebar";
 import { Building2Icon, BarChart3Icon, Users2Icon, ShieldIcon, CreditCardIcon, FileTextIcon, SettingsIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+
 import { SidebarMenuItemLink } from "@/components/admin/institution-financiere/sidebar-menu-item-link";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AdminLayout({
   children,

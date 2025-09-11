@@ -1,9 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+
 import { AddInstitutionDialog } from "@/components/admin/institution-financiere/add-institution-dialog";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -82,7 +83,7 @@ export default function InstitutionFinancierePage() {
         <table className="w-full border-collapse">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Nom de l'institut</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Nom de l&apos;institut</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Statut</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">Actions</th>

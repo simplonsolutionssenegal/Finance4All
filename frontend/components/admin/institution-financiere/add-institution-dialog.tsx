@@ -1,8 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import * as z from "zod";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,10 +23,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { useState } from "react";
-import { Check } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -28,7 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+
 
 const MAX_FILE_SIZE = 5000000; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
@@ -109,6 +112,7 @@ export function AddInstitutionDialog({
   const totalSteps = 3;
   
   const form = useForm<InstitutionFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(formSchema as any),
     defaultValues: {
       nom: "",
@@ -135,9 +139,8 @@ export function AddInstitutionDialog({
     }
   };
 
-  function onSubmit(values: InstitutionFormValues) {
+  function onSubmit(_values: InstitutionFormValues) {
     // TODO: Implémenter la sauvegarde réelle vers l'API
-    console.log(values);
     toast.success("Institution financière ajoutée avec succès");
     onOpenChange(false);
     form.reset();
@@ -249,7 +252,7 @@ export function AddInstitutionDialog({
               })}
               
               {/* Ligne de progression */}
-              <div className="absolute left-0 right-0 top-4 h-[2px] bg-gray-700 -z-0 mx-10"></div>
+              <div className="absolute left-0 right-0 top-4 h-[2px] bg-gray-700 -z-0 mx-10" />
             </div>
           </div>
         </div>
@@ -266,7 +269,7 @@ export function AddInstitutionDialog({
                       name="nom"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700">Nom de l'institut</FormLabel>
+                          <FormLabel className="text-sm font-medium text-gray-700">Nom de l&apos;institut</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="Société générale" 
@@ -284,7 +287,7 @@ export function AddInstitutionDialog({
                       name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium text-gray-700">Type d'institution</FormLabel>
+                          <FormLabel className="text-sm font-medium text-gray-700">Type d&apos;institution</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger className="border-gray-200 focus:border-teal-500 focus:ring-teal-100 rounded-lg">
@@ -344,17 +347,19 @@ export function AddInstitutionDialog({
                   <FormField
                     control={form.control}
                     name="logo"
-                    render={({ field: { onChange, value, ...fieldProps } }) => (
+                    render={({ field: { onChange, ...fieldProps } }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Logo de l'institution</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Logo de l&apos;institution</FormLabel>
                         <FormControl>
                           <div className="flex flex-col">
                             <label className="border-2 border-dashed border-gray-200 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-teal-300 hover:bg-teal-50 transition-all">
                               {logoPreview ? (
                                 <div className="w-full h-32 flex items-center justify-center">
-                                  <img
+                                  <Image
                                     src={logoPreview}
                                     alt="Logo preview"
+                                    width={128}
+                                    height={128}
                                     className="max-h-full max-w-full object-contain"
                                   />
                                 </div>
@@ -399,7 +404,7 @@ export function AddInstitutionDialog({
                       Informations de contact
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      Ces informations permettront aux utilisateurs de contacter l'institution (tous les champs sont optionnels)
+                      Ces informations permettront aux utilisateurs de contacter l&apos;institution (tous les champs sont optionnels)
                     </p>
                   </div>
                   
@@ -552,7 +557,7 @@ export function AddInstitutionDialog({
                     Précédent
                   </Button>
                 ) : (
-                  <div></div>
+                  <div />
                 )}
                 
                 {currentStep < totalSteps ? (

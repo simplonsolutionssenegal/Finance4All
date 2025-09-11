@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 
 interface SidebarMenuItemLinkProps {
