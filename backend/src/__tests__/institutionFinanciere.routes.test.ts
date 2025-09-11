@@ -35,8 +35,23 @@ type MockPrismaClient = {
 };
 
 describe('Institution Financière Routes', () => {
+  let mockPrisma: MockPrismaClient;
+
+  beforeEach(() => {
+    // Reset all mocks before each test
+    jest.clearAllMocks();
+    mockPrisma = prisma as unknown as MockPrismaClient;
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterAll(async () => {
+    // Clean up any remaining handles
+    await new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 100);
+    });
   });
 
   describe('GET /api/v1/institutions', () => {
@@ -70,7 +85,6 @@ describe('Institution Financière Routes', () => {
       ];
 
       // Setup mock implementation
-      const mockPrisma = prisma as unknown as MockPrismaClient;
       mockPrisma.institutionFinanciere.findMany.mockResolvedValue(mockInstitutions);
 
       // Execute test
@@ -86,7 +100,6 @@ describe('Institution Financière Routes', () => {
 
     it('should handle errors and return 500', async () => {
       // Setup mock implementation to throw error
-      const mockPrisma = prisma as unknown as MockPrismaClient;
       mockPrisma.institutionFinanciere.findMany.mockRejectedValue(new Error('Database error'));
 
       // Execute test
@@ -114,7 +127,6 @@ describe('Institution Financière Routes', () => {
       };
 
       // Setup mock implementation
-      const mockPrisma = prisma as unknown as MockPrismaClient;
       mockPrisma.institutionFinanciere.findUnique.mockResolvedValue(mockInstitution);
       mockPrisma.institutionFinanciere.delete.mockResolvedValue(mockInstitution);
 
@@ -135,7 +147,6 @@ describe('Institution Financière Routes', () => {
 
     it('should return 404 when institution not found', async () => {
       // Setup mock implementation
-      const mockPrisma = prisma as unknown as MockPrismaClient;
       mockPrisma.institutionFinanciere.findUnique.mockResolvedValue(null);
 
       // Execute test
@@ -160,7 +171,6 @@ describe('Institution Financière Routes', () => {
       };
 
       // Setup mock implementation to throw error
-      const mockPrisma = prisma as unknown as MockPrismaClient;
       mockPrisma.institutionFinanciere.findUnique.mockResolvedValue(mockInstitution);
       mockPrisma.institutionFinanciere.delete.mockRejectedValue(new Error('Database error'));
 
