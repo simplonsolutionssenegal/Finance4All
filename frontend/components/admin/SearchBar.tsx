@@ -72,10 +72,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
         {/* (Optionnel) ton bouton d'ajout utilisateur / Dialog */}
         <div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
               <button
-                onClick={() => setOpen(true)}
+               
                 type="button"
                 className="w-full md:w-auto bg-[#6CB9C6] hover:bg-[#5AA7B3] text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center transition-colors duration-200"
               >
@@ -84,8 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </svg>
                 Ajouter un utilisateur
               </button>
-            </DialogTrigger>
-          </Dialog>
+          
         </div>
       </div>
 

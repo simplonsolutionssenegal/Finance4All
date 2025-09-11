@@ -28,7 +28,6 @@ type ApiResponse = { status: string; results: number; data: User[]; };
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({
     role: [],
@@ -36,6 +35,47 @@ const UsersPage = () => {
     lastConnection: '',
     customDate: '',
   });
+
+  // Fonction de recherche locale
+  const filterUsersBySearchTerm = (users: User[], term: string) => {
+    if (!term.trim()) return users;
+    
+    const searchLower = term.toLowerCase();
+    return users.filter(user => 
+      user.email.toLowerCase().includes(searchLower) ||
+      user.username.toLowerCase().includes(searchLower) ||
+      user.firstName.toLowerCase().includes(searchLower) ||
+      user.lastName.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower)
+    );
+  };
+  
+  // Filtrer les utilisateurs en fonction du terme de recherche et des filtres
+  const filteredUsers = useMemo(() => {
+    let result = [...users];
+    
+    // Appliquer la recherche textuelle
+    result = filterUsersBySearchTerm(result, searchTerm);
+    
+    // Appliquer les filtres
+    if (filters.role.length > 0) {
+      result = result.filter(user => 
+        filters.role.map(r => r.toLowerCase()).includes(user.role.toLowerCase())
+      );
+    }
+    
+    if (filters.status.length > 0) {
+      result = result.filter(user => 
+        filters.status.includes(user.status)
+      );
+    }
+    
+    // Gérer le filtre de dernière connexion si nécessaire
+    // ... (le code existant pour les filtres de date peut rester inchangé)
+    
+    return result;
+  }, [users, searchTerm, filters]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,13 +128,13 @@ const UsersPage = () => {
   };
 
   // Fonction pour charger les utilisateurs avec filtres
-  const loadUsers = async (searchTerm: string = '', filters: FilterOptions) => {
+  const loadUsers = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const url = buildFilterUrl(searchTerm, filters);
-      console.log('Fetching URL:', url); // Pour debug
+      const url = buildFilterUrl('', filters); // On ne passe plus le searchTerm ici
+      console.log('Fetching URL:', url);
       
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
@@ -105,11 +145,9 @@ const UsersPage = () => {
       }
       
       setUsers(api.data);
-      setFilteredUsers(api.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur inconnue');
       setUsers([]);
-      setFilteredUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -117,18 +155,14 @@ const UsersPage = () => {
 
   // Chargement initial
   useEffect(() => {
-    loadUsers('', {
-      role: [],
-      status: [],
-      lastConnection: '',
-      customDate: '',
-    });
+    loadUsers();
   }, []);
 
-
+  // Recharger les utilisateurs quand les filtres (sauf la recherche) changent
   useEffect(() => {
-    loadUsers(searchTerm, filters);
-  }, [searchTerm, filters]);
+    if (searchTerm) return; // Ne pas recharger si seule la recherche change
+    loadUsers();
+  }, [filters.role, filters.status, filters.lastConnection, filters.customDate]);
 
   // 📋 Options dynamiques pour le popup (on garde la logique existante pour les options)
   const rolesOptions = useMemo(
@@ -139,11 +173,6 @@ const UsersPage = () => {
     () => Array.from(new Set(users.map(u => (u.status ?? '').toUpperCase()))).filter(Boolean).sort(),
     [users]
   );
-
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    // Le useEffect se chargera de faire l'appel API
-  };
 
   const handleApplyFilters = (newFilters: FilterOptions) => {
     setFilters(newFilters);
@@ -157,7 +186,7 @@ const UsersPage = () => {
           <h2 className="text-lg font-semibold text-red-800 mb-2">Erreur de chargement</h2>
           <p className="text-red-600">{error}</p>
           <button 
-            onClick={() => loadUsers(searchTerm, filters)} 
+            onClick={() => loadUsers()} 
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Réessayer
@@ -171,7 +200,7 @@ const UsersPage = () => {
     <div className="p-2">
       <UserStats users={users} />
       <SearchBar
-        onSearch={handleSearch}
+        onSearch={setSearchTerm}
         resultsCount={filteredUsers.length}
         onApplyFilters={handleApplyFilters}
         rolesOptions={rolesOptions}
@@ -180,7 +209,6 @@ const UsersPage = () => {
       <UserTable
         users={filteredUsers}
         isLoading={isLoading}
-       
       />
     </div>
   );
