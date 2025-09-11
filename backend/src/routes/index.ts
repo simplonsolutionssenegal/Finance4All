@@ -1,9 +1,13 @@
 import { Router } from 'express';
-import userRoutes from '../infrastructure/web/routes/user.routes';
+import { userRoutes } from '../infrastructure/web/routes/user.routes';
+import { organizationRoutes } from '../infrastructure/web/routes/organization.routes';
+import { roleRoutes } from '../infrastructure/web/routes/role.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
+router.use('/organizations', organizationRoutes);
+router.use('/roles', roleRoutes);
 
 // Route de test
 router.get('/test', (req, res) => {
