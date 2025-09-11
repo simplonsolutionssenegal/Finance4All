@@ -6,7 +6,7 @@ export class GetInstitutionFinanciereByIdUseCase {
 
   async execute(id: string): Promise<InstitutionFinanciere | null> {
     if (!id) {
-      throw new Error('ID de l\'institution financière requis');
+      throw new Error("ID de l'institution financière requis");
     }
 
     const institution = await this.institutionFinanciereRepository.findById(id);

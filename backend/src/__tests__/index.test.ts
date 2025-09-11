@@ -40,10 +40,10 @@ describe('Index.ts - Clerk Integration', () => {
     it('should be compatible with Express middleware pattern', () => {
       const middleware = clerkMiddleware();
       expect(typeof middleware).toBe('function');
-      
+
       // Test que le middleware peut être utilisé dans app.use()
       const mockApp = { use: jest.fn() };
-      mockApp.use(middleware);//Simule l'utilisation du middleware
+      mockApp.use(middleware); //Simule l'utilisation du middleware
       expect(mockApp.use).toHaveBeenCalledWith(middleware);
     });
   });
