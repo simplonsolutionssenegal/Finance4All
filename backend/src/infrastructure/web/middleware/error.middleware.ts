@@ -139,7 +139,7 @@ export const errorMiddleware = (
   error: Error | PrismaError | ErrorWithConstructor,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void => {
   logError(error, req);
 
@@ -177,7 +177,7 @@ export const errorMiddleware = (
 
 // Middleware pour capturer les erreurs async
 export const asyncHandler = (
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);

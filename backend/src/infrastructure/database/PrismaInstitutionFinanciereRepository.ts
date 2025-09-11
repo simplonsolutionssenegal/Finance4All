@@ -6,7 +6,6 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(institution: InstitutionFinanciere): Promise<InstitutionFinanciere> {
-    // @ts-expect-error - Prisma client types are not correctly generated
     return this.prisma.institutionFinanciere.create({
       data: {
         nom: institution.nom,
@@ -23,22 +22,19 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
   }
 
   async findById(id: string): Promise<InstitutionFinanciere | null> {
-    // @ts-expect-error - Prisma client types are not correctly generated
     return this.prisma.institutionFinanciere.findUnique({
       where: { id },
     });
   }
 
   async findAll(): Promise<InstitutionFinanciere[]> {
-    // @ts-expect-error - Prisma client types are not correctly generated
     return this.prisma.institutionFinanciere.findMany();
   }
 
   async update(
     id: string,
-    institution: Partial<InstitutionFinanciere>
+    institution: Partial<InstitutionFinanciere>,
   ): Promise<InstitutionFinanciere | null> {
-    // @ts-expect-error - Prisma client types are not correctly generated
     return this.prisma.institutionFinanciere.update({
       where: { id },
       data: institution,
@@ -47,7 +43,6 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
 
   async delete(id: string): Promise<boolean> {
     try {
-      // @ts-expect-error - Prisma client types are not correctly generated
       await this.prisma.institutionFinanciere.delete({
         where: { id },
       });

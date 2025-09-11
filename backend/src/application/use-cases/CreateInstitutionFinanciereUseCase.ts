@@ -14,11 +14,11 @@ export class CreateInstitutionFinanciereUseCase {
 
   private validateInstitutionData(institutionData: InstitutionFinanciere): void {
     if (!institutionData.nom || institutionData.nom.length < 2) {
-      throw new Error("Le nom de l'institution doit contenir au moins 2 caractères");
+      throw new Error('Le nom de l\'institution doit contenir au moins 2 caractères');
     }
 
     if (!institutionData.type) {
-      throw new Error("Le type d'institution est requis");
+      throw new Error('Le type d\'institution est requis');
     }
 
     if (!institutionData.description || institutionData.description.length < 10) {
@@ -35,11 +35,11 @@ export class CreateInstitutionFinanciereUseCase {
 
     // Validation conditionnelle des champs de contact
     if (institutionData.contactEmail && !this.isValidEmail(institutionData.contactEmail)) {
-      throw new Error("L'adresse email du contact n'est pas valide");
+      throw new Error('L\'adresse email du contact n\'est pas valide');
     }
 
     if (institutionData.contactTelephone && institutionData.contactTelephone.length < 8) {
-      throw new Error("Le numéro de téléphone n'est pas valide");
+      throw new Error('Le numéro de téléphone n\'est pas valide');
     }
   }
 
