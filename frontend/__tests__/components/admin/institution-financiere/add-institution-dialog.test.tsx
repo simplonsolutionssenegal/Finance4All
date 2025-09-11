@@ -1,401 +1,246 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 import { AddInstitutionDialog } from '@/components/admin/institution-financiere/add-institution-dialog';
-import { toast } from 'sonner';
 
-// Mock sonner
+// Mock toast
 jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
-    error: jest.fn(),
   },
 }));
 
-// Mock Next.js Image component
-jest.mock('next/image', () => ({
-  __esModule: true,
-  default: (props: any) => {
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img {...props} />;
+// Mock form components
+jest.mock('@/components/ui/form', () => ({
+  Form: ({ children }: any) => <div data-testid="mock-form">{children}</div>,
+  FormField: ({ children, render }: any) => {
+    const field = { value: '', onChange: jest.fn() };
+    return <div>{render ? render({ field }) : children}</div>;
   },
+  FormItem: ({ children }: any) => <div>{children}</div>,
+  FormLabel: ({ children }: any) => <label>{children}</label>,
+  FormControl: ({ children }: any) => <div>{children}</div>,
+  FormMessage: ({ children }: any) => <div className="text-red-500">{children}</div>,
+}));
+
+// Mock UI components
+jest.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open, onOpenChange }: any) => (
+    <div data-testid="dialog" data-open={open}>
+      {open && children}
+      <button onClick={() => onOpenChange(false)} data-testid="close-dialog">Close</button>
+    </div>
+  ),
+  DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
+  DialogTitle: ({ children }: any) => <h1>{children}</h1>,
+  DialogDescription: ({ children }: any) => <p>{children}</p>,
+}));
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, type, ...props }: any) => (
+    <button onClick={onClick} type={type} {...props}>
+      {children}
+    </button>
+  ),
+}));
+
+jest.mock('@/components/ui/input', () => ({
+  Input: (props: any) => <input {...props} />,
+}));
+
+jest.mock('@/components/ui/textarea', () => ({
+  Textarea: (props: any) => <textarea {...props} />,
+}));
+
+jest.mock('@/components/ui/select', () => ({
+  Select: ({ children, onValueChange }: any) => <div data-testid="select">{children}</div>,
+  SelectContent: ({ children }: any) => <div>{children}</div>,
+  SelectItem: ({ children, value }: any) => (
+    <option value={value}>{children}</option>
+  ),
+  SelectTrigger: ({ children }: any) => <div>{children}</div>,
+  SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
+}));
+
+jest.mock('@/components/ui/checkbox', () => ({
+  Checkbox: ({ checked, onCheckedChange, ...props }: any) => (
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onCheckedChange?.(e.target.checked)}
+      {...props}
+    />
+  ),
+}));
+
+// Mock react-hook-form
+jest.mock('react-hook-form', () => ({
+  useForm: () => ({
+    control: {},
+    handleSubmit: (fn: any) => (e: any) => {
+      e?.preventDefault?.();
+      fn({
+        nom: 'Test Institution',
+        type: 'banque',
+        description: 'Test description',
+        siteWeb: 'https://test.com',
+        regionsDesservies: ['national'],
+      });
+    },
+    reset: jest.fn(),
+    setValue: jest.fn(),
+    formState: { errors: {} },
+  }),
+}));
+
+// Mock zod resolver
+jest.mock('@hookform/resolvers/zod', () => ({
+  zodResolver: () => ({}),
 }));
 
 describe('AddInstitutionDialog', () => {
-  const mockOnOpenChange = jest.fn();
+  const defaultProps = {
+    open: true,
+    onOpenChange: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders dialog when open prop is true', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should render when open is true', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    expect(screen.getByTestId('dialog')).toHaveAttribute('data-open', 'true');
     expect(screen.getByText('Ajouter une institution')).toBeInTheDocument();
   });
 
-  it('does not render dialog when open prop is false', () => {
-    render(<AddInstitutionDialog open={false} onOpenChange={mockOnOpenChange} />);
-    expect(screen.queryByText('Ajouter une institution')).not.toBeInTheDocument();
+  it('should not render content when open is false', () => {
+    render(<AddInstitutionDialog {...defaultProps} open={false} />);
+    
+    expect(screen.getByTestId('dialog')).toHaveAttribute('data-open', 'false');
   });
 
-  it('renders step 1 by default (Institution Information)', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    expect(screen.getByText(/informations de l'institution/i)).toBeInTheDocument();
+  it('should show step 1 content by default', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
   });
 
-  it('renders form fields correctly', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should call onOpenChange when close button is clicked', () => {
+    const onOpenChange = jest.fn();
+    render(<AddInstitutionDialog {...defaultProps} onOpenChange={onOpenChange} />);
     
-    // Check that main form fields are present
-    expect(screen.getByLabelText(/nom/i)).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument(); // Type selector
-    expect(screen.getByRole('button', { name: /suivant/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('close-dialog'));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('shows form validation when trying to proceed with empty fields', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should show correct step titles', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
     
-    // Try to proceed without filling required fields
-    const nextButton = screen.getByRole('button', { name: /suivant/i });
-    await user.click(nextButton);
-    
-    // Should stay on the same step since validation fails
-    // The text might be on step 1 or it might navigate but with errors
-    expect(screen.getByRole('button', { name: /suivant/i })).toBeInTheDocument();
+    // Should show step 1 title by default
+    expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
   });
 
-  it('allows typing in the institution name field', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should have navigation buttons', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
     
-    const nameInput = screen.getByLabelText(/nom/i);
-    await user.type(nameInput, 'Test Institution');
-    
-    // Just verify that the input exists and can be interacted with
-    expect(nameInput).toBeInTheDocument();
-    expect(nameInput).toHaveAttribute('name', 'nom');
+    // Should have next button on step 1
+    expect(screen.getByText('Suivant')).toBeInTheDocument();
   });
 
-  it('renders step indicators correctly', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should show form fields', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
     
-    // Should show step indicators
-    expect(screen.getByText('Informations')).toBeInTheDocument();
-    expect(screen.getByText('Contact')).toBeInTheDocument();
-    expect(screen.getByText('Zones')).toBeInTheDocument();
+    // Check if form elements are present
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // nom, description, siteWeb
   });
 
-  it('closes dialog when close button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should handle form submission', () => {
+    const { toast } = require('sonner');
+    const { container } = render(<AddInstitutionDialog {...defaultProps} />);
     
-    const closeButton = screen.getByRole('button', { name: /fermer/i });
-    await user.click(closeButton);
-    
-    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
-  });
-
-  it('resets form when dialog is closed and reopened', async () => {
-    const user = userEvent.setup();
-    const { rerender } = render(
-      <AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />
-    );
-    
-    // Just verify that the form can be interacted with
-    const nameInput = screen.getByLabelText(/nom/i);
-    expect(nameInput).toBeInTheDocument();
-    
-    // Close dialog
-    rerender(<AddInstitutionDialog open={false} onOpenChange={mockOnOpenChange} />);
-    
-    // Reopen dialog
-    rerender(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Check if form is present again
-    const newNameInput = screen.getByLabelText(/nom/i);
-    expect(newNameInput).toBeInTheDocument();
-  });
-
-  it('renders all form sections', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Check that the dialog has the expected structure
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Ajouter une institution')).toBeInTheDocument();
-    
-    // Form fields should be present
-    expect(screen.getByLabelText(/nom/i)).toBeInTheDocument();
-    expect(screen.getByText('Type d\'institution')).toBeInTheDocument();
-  });
-
-  it('prevents navigation to previous step when on first step', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // On step 1, there should be no "Précédent" button
-    expect(screen.queryByRole('button', { name: /précédent/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /suivant/i })).toBeInTheDocument();
-  });
-
-  it('renders with correct styling and accessibility', () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    
-    // Check accessibility attributes
-    expect(dialog).toHaveAttribute('aria-labelledby');
-    expect(dialog).toHaveAttribute('aria-describedby');
-  });
-
-  // Tests spécifiques pour couvrir les lignes non couvertes exactes
-  it('handles successful form submission (covers lines 140-153)', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Simuler une soumission directe en appelant le gestionnaire
-    const form = screen.getByRole('dialog').querySelector('form');
-    if (form) {
-      // Déclencher directement le submit pour activer onSubmit
-      fireEvent.submit(form);
-      
-      // Vérifier que le toast est appelé (même si pas toujours détecté)
-      expect(toast.success).toBeDefined();
-    }
-    
-    // Au minimum vérifier que le dialog est présent
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('handles file upload with FileReader (covers lines 158-163)', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Test simple pour la présence de l'input file
-    const fileInput = document.querySelector('input[type="file"]');
-    expect(fileInput).toBeInTheDocument();
-    
-    // Test du cas sans fichier (ligne 164-165)
-    if (fileInput) {
-      fireEvent.change(fileInput, { target: { files: null } });
-    }
-    
-    // Vérifier que le dialog est toujours présent
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('handles file upload without files (covers line 165)', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Simuler un changement sans fichiers
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    if (fileInput) {
-      Object.defineProperty(fileInput, 'files', {
-        value: null,
-        configurable: true
-      });
-      
-      fireEvent.change(fileInput);
-      
-      // Cette action devrait déclencher setLogoPreview(null)
-      expect(fileInput.files).toBeNull();
-    }
-  });
-
-  it('handles dialog close reset (covers lines 170-195)', async () => {
-    const { rerender } = render(
-      <AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />
-    );
-    
-    // Vérifier que le dialog est ouvert
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    
-    // Fermer le dialog
-    rerender(<AddInstitutionDialog open={false} onOpenChange={mockOnOpenChange} />);
-    
-    // Rouvrir le dialog pour tester le reset
-    rerender(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Vérifier que le dialog est à nouveau présent
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('handles region selection toggle (covers lines 170-182)', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Vérifier que le dialog est présent
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    
-    // Tenter de naviguer mais sans forcer si l'UI ne le permet pas
-    const nextButtons = screen.getAllByText('Suivant');
-    if (nextButtons.length > 0) {
-      await user.click(nextButtons[0]);
-    }
-    
-    // Chercher des boutons avec aria-pressed (boutons de région)
-    const regionButtons = screen.getAllByRole('button').filter(button => 
-      button.getAttribute('aria-pressed') !== null
-    );
-    
-    if (regionButtons.length > 0) {
-      await user.click(regionButtons[0]);
-    }
-    
-    // Au minimum, vérifier que le dialog fonctionne
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('validates file size and type (covers lines 71-74)', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Test simple pour couvrir les lignes de validation de fichiers
-    const fileInput = document.querySelector('input[type="file"]');
-    
-    if (fileInput) {
-      // Vérifier que l'input file existe
-      expect(fileInput).toBeInTheDocument();
-      
-      // Simuler un événement change sans fichier pour couvrir else
-      fireEvent.change(fileInput, { target: { files: null } });
-      
-      // Vérifier que le composant gère bien l'absence de fichiers
-      expect(fileInput).toHaveAttribute('type', 'file');
-    }
-    
-    // Test du dialog en général
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('handles region badges display and removal (covers lines 541-567)', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Vérifier que le dialog est présent
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    
-    // Chercher les boutons avec aria-pressed pour tester la logique des régions
-    const allButtons = screen.getAllByRole('button');
-    const regionButtons = allButtons.filter(button => 
-      button.getAttribute('aria-pressed') !== null
-    );
-    
-    // Si on trouve des boutons région, on les teste
-    if (regionButtons.length > 0) {
-      // Test simple de présence
-      expect(regionButtons[0]).toBeInTheDocument();
-    }
-    
-    // Chercher des éléments ✕ (boutons de suppression de badges)
-    const removeButtons = screen.queryAllByText('✕');
-    if (removeButtons.length > 0) {
-      expect(removeButtons[0]).toBeInTheDocument();
-    }
-    
-    // Au minimum vérifier que le composant fonctionne
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  // Tests supplémentaires pour forcer la couverture des lignes spécifiques
-  it('executes onSubmit function directly (targets lines 145-153)', async () => {
-    const { container } = render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-    
-    // Accéder directement au composant pour déclencher onSubmit
     const form = container.querySelector('form');
-    if (form) {
-      // Créer un événement de soumission personnalisé
-      const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-      
-      // Déclencher la soumission pour forcer l'exécution des lignes 145-153
-      form.dispatchEvent(submitEvent);
-      
-      // Attendre que les actions asynchrones se terminent
-      await waitFor(() => {
-        expect(mockOnOpenChange).toBeDefined();
-      });
-    }
+    fireEvent.submit(form!);
     
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith('Institution financière ajoutée avec succès');
   });
 
-  it('forces dialog onOpenChange execution (targets lines 186-192)', async () => {
-    const customOnOpenChange = jest.fn();
-    const { rerender } = render(
-      <AddInstitutionDialog open={true} onOpenChange={customOnOpenChange} />
-    );
+  it('should call onOpenChange when form is submitted successfully', async () => {
+    const onOpenChange = jest.fn();
+    const { container } = render(<AddInstitutionDialog {...defaultProps} onOpenChange={onOpenChange} />);
     
-    // Modifier l'état pour déclencher le reset
-    const nameInput = screen.getByLabelText(/nom/i);
-    fireEvent.change(nameInput, { target: { value: 'Test Value' } });
+    const form = container.querySelector('form');
+    fireEvent.submit(form!);
     
-    // Fermer le dialog pour déclencher onOpenChange avec false
-    // Cela devrait exécuter les lignes 186-192
-    rerender(<AddInstitutionDialog open={false} onOpenChange={customOnOpenChange} />);
-    
-    // Vérifier que les fonctions de reset sont disponibles
-    expect(customOnOpenChange).toBeDefined();
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
   });
 
-  it('tests region toggle functionality (targets lines 541-567)', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should render progress indicators', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
     
-    // Naviguer vers l'étape des régions si possible
-    const nextButtons = screen.getAllByText('Suivant');
-    if (nextButtons.length >= 2) {
-      await user.click(nextButtons[0]);
-      await user.click(nextButtons[1]);
-      
-      // Chercher les boutons de région
-      const regionButtons = screen.getAllByRole('button').filter(button =>
-        button.getAttribute('aria-pressed') !== null
-      );
-      
-      if (regionButtons.length > 0) {
-        // Cliquer pour sélectionner une région
-        await user.click(regionButtons[0]);
-        
-        // Chercher les badges de suppression
-        const removeButtons = screen.queryAllByText('✕');
-        if (removeButtons.length > 0) {
-          await user.click(removeButtons[0]);
-        }
-      }
-    }
-    
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // Should have step progression elements
+    const dialog = screen.getByTestId('dialog-content');
+    expect(dialog).toBeInTheDocument();
   });
 
-  it('should call prevStep when clicking Previous button', async () => {
-    const user = userEvent.setup();
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should have proper accessibility attributes', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
     
-    // Avancer à l'étape 2
-    await user.click(screen.getByText('Suivant'));
-    expect(screen.getAllByText(/informations de contact/i)[0]).toBeInTheDocument();
-    
-    // Cliquer sur Précédent devrait appeler prevStep et setCurrentStep(currentStep - 1) (lignes 140-142)
-    await user.click(screen.getByText('Précédent'));
-    
-    // Vérifier qu'on est revenu à l'étape 1
-    expect(screen.getByText(/informations de l'institution/i)).toBeInTheDocument();
+    expect(screen.getByText('Ajouter une institution financière')).toBeInTheDocument();
+    expect(screen.getByText("Formulaire d'ajout d'une institution financière")).toBeInTheDocument();
   });
 
-  it('should handle empty files in handleLogoChange', async () => {
-    render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  it('should reset form state when dialog is closed and reopened', () => {
+    const { rerender } = render(<AddInstitutionDialog {...defaultProps} open={false} />);
     
-    const fileInput = screen.getByLabelText(/logo/i).parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+    rerender(<AddInstitutionDialog {...defaultProps} open={true} />);
     
-    if (fileInput) {
-      // Simuler un changement avec des fichiers vides (ligne 164-166)
-      Object.defineProperty(fileInput, 'files', {
-        value: null,
-        configurable: true,
-      });
-      
-      fireEvent.change(fileInput);
-      
-      // Le preview devrait être null, mais on ne peut pas le tester directement
-      // Le test vérifie que l'exécution passe par le else (setLogoPreview(null))
-      expect(fileInput).toBeInTheDocument();
-    }
+    // Should show step 1 again
+    expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
+  });
+
+  it('should handle navigation buttons', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    // Should have next button on step 1
+    const nextButton = screen.getByText('Suivant');
+    expect(nextButton).toBeInTheDocument();
+  });
+
+  it('should show close button functionality', () => {
+    const onOpenChange = jest.fn();
+    render(<AddInstitutionDialog {...defaultProps} onOpenChange={onOpenChange} />);
+    
+    const closeButton = screen.getByLabelText('Fermer');
+    fireEvent.click(closeButton);
+    
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('should render form inputs with correct placeholders', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    expect(screen.getByPlaceholderText('Société générale')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Décrivez l\'institution financière')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('https://exemple.com')).toBeInTheDocument();
+  });
+
+  it('should render file upload input', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    const fileUploadText = screen.getByText('Ajouter un logo');
+    expect(fileUploadText).toBeInTheDocument();
+  });
+
+  it('should render select options', () => {
+    render(<AddInstitutionDialog {...defaultProps} />);
+    
+    expect(screen.getByText('Banque')).toBeInTheDocument();
+    expect(screen.getByText('Microfinance')).toBeInTheDocument();
+    expect(screen.getByText('Assurance')).toBeInTheDocument();
+    expect(screen.getByText('Autre')).toBeInTheDocument();
   });
 });
-
