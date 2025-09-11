@@ -157,6 +157,42 @@ describe('InstitutionFinanciereController', () => {
         message: 'Institution financière non trouvée',
       });
     });
+
+    it('should handle use case not initialized error in getById', async () => {
+      // Créer un contrôleur sans le use case getById
+      const controllerWithoutGetById = new InstitutionFinanciereController(
+        mockCreateUseCase,
+        mockGetAllUseCase,
+        undefined, // pas de getById use case
+        mockDeleteUseCase
+      );
+      
+      mockRequest.params = { id: '123' };
+
+      await controllerWithoutGetById.getById(mockRequest as any, mockResponse as any);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Erreur lors de la récupération de l'institution financière",
+        error: 'Use case not initialized',
+      });
+    });
+
+    it('should handle generic errors in getById', async () => {
+      mockRequest.params = { id: '123' };
+      const error = new Error('Database connection failed');
+      mockGetByIdUseCase.execute.mockRejectedValue(error);
+
+      await controller.getById(mockRequest as any, mockResponse as any);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Erreur lors de la récupération de l'institution financière",
+        error: 'Database connection failed',
+      });
+    });
   });
 
   describe('delete', () => {
@@ -171,6 +207,41 @@ describe('InstitutionFinanciereController', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
         message: 'Institution financière supprimée avec succès',
+      });
+    });
+
+    it('should handle use case not initialized error in delete', async () => {
+      // Créer un contrôleur sans le use case delete
+      const controllerWithoutDelete = new InstitutionFinanciereController(
+        mockCreateUseCase,
+        mockGetAllUseCase,
+        mockGetByIdUseCase,
+        undefined // pas de delete use case
+      );
+      
+      mockRequest.params = { id: '123' };
+
+      await controllerWithoutDelete.delete(mockRequest as any, mockResponse as any);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Erreur lors de la suppression de l'institution financière",
+        error: 'Use case not initialized',
+      });
+    });
+
+    it('should handle not found error in delete', async () => {
+      mockRequest.params = { id: '999' };
+      const error = new Error('Institution financière non trouvée');
+      mockDeleteUseCase.execute.mockRejectedValue(error);
+
+      await controller.delete(mockRequest as any, mockResponse as any);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Institution financière non trouvée',
       });
     });
 
