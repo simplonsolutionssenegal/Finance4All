@@ -7,6 +7,8 @@ on:
 permissions:
   issues: write
   pull-requests: write
+  contents: read
+  actions: read
 
 jobs:
   check-preview-request:
