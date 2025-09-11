@@ -1,7 +1,6 @@
-// Deprecated duplicate test file intentionally minimized.
-// Full coverage lives in add-institution-dialog-final.test.tsx.
-describe('deprecated add-institution-dialog-targeted', () => {
-  it('is intentionally empty', () => {
+// Clean placeholder to keep file during rebase; original targeted detailed tests retained elsewhere.
+describe('AddInstitutionDialog - placeholder', () => {
+  it('placeholder passes', () => {
     expect(true).toBe(true);
   });
 });
