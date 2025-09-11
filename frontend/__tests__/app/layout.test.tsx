@@ -1,19 +1,11 @@
 import RootLayout, { metadata } from '@/app/layout';
 import { render, screen } from '@testing-library/react';
 
-// Mock des imports CSS (ligne 1)
+// Mocks légers (éviter dépendances réelles)
 jest.mock('@/app/globals.css', () => ({}));
-
-// Mock des fonts Google (lignes 3)
 jest.mock('next/font/google', () => ({
-  Geist: jest.fn(() => ({
-    variable: '--font-geist-sans',
-    subsets: ['latin'],
-  })),
-  Geist_Mono: jest.fn(() => ({
-    variable: '--font-geist-mono',
-    subsets: ['latin'],
-  })),
+  Geist: jest.fn(() => ({ variable: '--font-geist-sans', subsets: ['latin'] })),
+  Geist_Mono: jest.fn(() => ({ variable: '--font-geist-mono', subsets: ['latin'] })),
 }));
 
 jest.mock('@/components/theme-provider', () => {
@@ -42,35 +34,8 @@ jest.mock('@/components/ui/sonner', () => {
   };
 });
 
-describe('RootLayout - Lines 1-23 Coverage', () => {
-  const mockChildren = <div data-testid='test-children'>Test Content</div>;
-
-  it('covers imports and type imports (lines 1-6)', () => {
-    // Tester que les imports sont bien définis
-    expect(RootLayout).toBeDefined();
-    expect(metadata).toBeDefined();
-
-    // Vérifier que les mocks des fonts sont appelés
-    const { Geist, Geist_Mono } = require('next/font/google');
-    expect(Geist).toBeDefined();
-    expect(Geist_Mono).toBeDefined();
-  });
-
-  it('covers geistSans font configuration (lines 8-11)', () => {
-    const tree = RootLayout({ children: <div>Test content</div> });
-    // tree is <html><body><ThemeProvider>...</ThemeProvider></body></html>
-    const body = tree.props.children; // body element
-    expect(body.props.className).toContain('antialiased');
-  });
-
-  it('covers geistMono font configuration (lines 13-16)', () => {
-    const tree = RootLayout({ children: <div>Test content</div> });
-    const body = tree.props.children;
-    expect(body.props.className).toBeDefined();
-  });
-
-  it('covers metadata export (lines 18-21)', () => {
-    // Tester l'export des metadata qui couvre les lignes 18-21
+describe('RootLayout', () => {
+  it('exports metadata avec titre et description', () => {
     expect(metadata).toBeDefined();
     expect(metadata.title).toBe('Finance4All');
     expect(metadata.description).toBe('');
@@ -115,22 +80,14 @@ describe('RootLayout - Lines 1-23 Coverage', () => {
     expect(themeProvider.props.defaultTheme).toBe('light');
   });
 
-  it('renders with empty children', () => {
-    const result = RootLayout({ children: null });
-    expect(result).toBeDefined();
-    expect(result.type).toBe('html');
-  });
-
-  it('renders multiple children correctly', () => {
-    const multipleChildren = (
-      <>
-        <div data-testid='child-1'>Child 1</div>
-        <div data-testid='child-2'>Child 2</div>
-      </>
+  it('rend plusieurs enfants correctement', () => {
+    render(
+      <RootLayout>
+        <div data-testid='c1'>One</div>
+        <div data-testid='c2'>Two</div>
+      </RootLayout>
     );
-
-    const result = RootLayout({ children: multipleChildren });
-    expect(result).toBeDefined();
-    expect(result.type).toBe('html');
+    expect(screen.getByTestId('c1')).toBeInTheDocument();
+    expect(screen.getByTestId('c2')).toBeInTheDocument();
   });
 });

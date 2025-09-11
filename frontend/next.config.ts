@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: false,
   },
-  // Packages externes pour les composants serveur
+  // External packages for server components
   serverExternalPackages: [],
   // Minification utilisée par défaut dans Next.js 15
   output: 'standalone',
@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
     emotion: false,
     styledComponents: false,
     reactRemoveProperties: false,
+  },
+  images: {
+    unoptimized: true, // Evite les erreurs d'optimisation des images
   },
 };
 
