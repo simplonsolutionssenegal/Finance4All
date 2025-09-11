@@ -157,7 +157,6 @@ describe('InstitutionFinanciereController', () => {
         message: 'Institution financière non trouvée',
       });
     });
-
     it('should handle use case not initialized error in getById', async () => {
       // Créer un contrôleur sans le use case getById
       const controllerWithoutGetById = new InstitutionFinanciereController(
@@ -244,7 +243,6 @@ describe('InstitutionFinanciereController', () => {
         message: 'Institution financière non trouvée',
       });
     });
-
     it('should handle delete errors', async () => {
       mockRequest.params = { id: '123' };
       const error = new Error('Database error');
