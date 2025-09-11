@@ -78,11 +78,7 @@ const _schema = z.object({
   regionsDesservies: z.array(z.string()).min(1, { message: 'Veuillez sélectionner au moins une région.' }),
 });
 
-// Derive a runtime hash of schema shape to mark value usage (avoids ESLint unused-var on formSchema)
-// Accessing keys ensures formSchema is treated as a runtime value
-const _schemaShape = (_schema as unknown as { _def: { shape: () => Record<string, unknown> } })._def.shape();
-const _schemaShapeSignature = Object.keys(_schemaShape).join('|');
-const _schemaFieldCount = Object.keys(_schemaShape).length;
+// NOTE: _schema is referenced at runtime in the resolver below; no extra shape extraction needed.
 
 
 export type InstitutionFormValues = z.infer<typeof _schema>;
@@ -340,7 +336,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
                   <FormField
                     control={form.control}
                     name="logo"
-                    render={({ field: { onChange, value: _ignoreValue, ...fieldProps } }) => (
+                    render={({ field: { onChange, value: _value, ...fieldProps } }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium text-gray-700">
                           Logo de l&apos;institution
