@@ -3,6 +3,15 @@ import app from '../index';
 import { prisma } from '../infrastructure/database/prisma';
 import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
 
+// Mock de Clerk middleware pour éviter les erreurs d'authentification
+jest.mock('@clerk/express', () => ({
+  clerkMiddleware: () => (req: any, res: any, next: any) => {
+    // Mock d'un utilisateur authentifié pour les tests
+    req.auth = { userId: 'test-user-id' };
+    next();
+  },
+}));
+
 // Mock du service Prisma
 jest.mock('../infrastructure/database/prisma', () => ({
   prisma: {
