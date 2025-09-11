@@ -2,7 +2,7 @@ name: CI-Build
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ['main']
   pull_request:
 
   workflow_call:
@@ -13,29 +13,8 @@ on:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
         description: 'Clerk publishable key'
         required: false
-      NEXT_PUBLIC_API_URL:
-        description: 'Endpoint Backend'
-        required: false
       CLERK_SECRET_KEY:
         description: 'Clerk secret key'
-        required: false
-      CLERK_WEBHOOK_SECRET:
-        description: 'Clerk webhook secret key'
-        required: false
-      FRONTEND_URL:
-        description: 'Frontend endpoint'
-        required: false
-      GMAIL_USER:
-        description: 'GMAIL APP user'
-        required: false
-      GMAIL_APP_PASSWORD:
-        description: 'GMAIL APP password'
-        required: false
-      FROM_EMAIL:
-        description: 'GMAIL FROM EMAIL value'
-        required: false
-      FROM_NAME:
-        description: 'GMAIL FROM NAME value'
         required: false
     outputs:
       frontend-changed:
@@ -47,9 +26,6 @@ on:
       build-success:
         description: "Build successful"
         value: ${{ jobs.build-frontend.result == 'success' && jobs.build-backend.result == 'success' }}
-      sonar-success:
-        description: "SonarQube analysis successful"
-        value: ${{ jobs.sonarqube-frontend.result == 'success' && jobs.sonarqube-backend.result == 'success' }}
 
 permissions:
   contents: read
@@ -87,7 +63,6 @@ jobs:
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
     steps:
       - name: Checkout code
@@ -97,18 +72,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Cache frontend node_modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: |
+          npm ci
+          npm rebuild
 
       - name: Run frontend linting
         working-directory: ./frontend
@@ -118,23 +88,19 @@ jobs:
         working-directory: ./frontend
         run: npm run type-check || npm run tsc --noEmit
 
-      - name: Run frontend tests (parallel)
+      - name: Run frontend tests
         working-directory: ./frontend
-        run: npm test -- --maxWorkers=50% --passWithNoTests
+        run: npm test
 
-      - name: Generate frontend test coverage (parallel)
+      - name: Generate frontend test coverage
         working-directory: ./frontend
-        run: npm run test:coverage -- --maxWorkers=50% || npm test -- --coverage --maxWorkers=50% || echo "No coverage configured"
+        run: npm run test:coverage || npm test -- --coverage || echo "No coverage configured"
 
   test-backend:
     name: 🧪 Run Backend Unit Tests
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.backend-changed == 'true'
-    env:
-      CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
 
     steps:
       - name: Checkout code
@@ -144,22 +110,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Cache root node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-root-${{ hashFiles('package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-root-
-
-      - name: Cache backend node_modules
-        uses: actions/cache@v4
-        with:
-          path: backend/node_modules
-          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
 
       - name: Install root dependencies
         run: npm ci
@@ -176,18 +126,18 @@ jobs:
         working-directory: ./backend
         run: npm run type-check || npm run tsc --noEmit
 
-      - name: Run backend tests (parallel)
+      - name: Run backend tests
         working-directory: ./backend
-        run: npm test -- --maxWorkers=50% --passWithNoTests
+        run: npm test
 
-      - name: Generate backend test coverage (parallel)
+      - name: Generate backend test coverage
         working-directory: ./backend
-        run: npm run test:coverage -- --maxWorkers=50% || npm test -- --coverage --maxWorkers=50% || echo "No coverage configured"
+        run: npm run test:coverage || npm test -- --coverage || echo "No coverage configured"
 
   sonarqube-frontend:
     name: 📊 SonarQube Frontend
     runs-on: ubuntu-latest
-    needs: [ detect-changes, test-frontend ]
+    needs: [detect-changes, test-frontend]
     if: always() && needs.detect-changes.outputs.frontend-changed == 'true'
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
@@ -202,21 +152,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Cache frontend node_modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
-
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
 
-      - name: Generate test coverage for SonarQube (parallel)
+      - name: Generate test coverage for SonarQube
         working-directory: ./frontend
-        run: npm run test:coverage -- --maxWorkers=50%
+        run: npm run test:coverage
 
       - name: Run SonarQube Scan (Frontend)
         uses: SonarSource/sonarqube-scan-action@master
@@ -235,12 +177,8 @@ jobs:
   sonarqube-backend:
     name: 📊 SonarQube Backend
     runs-on: ubuntu-latest
-    needs: [ detect-changes, test-backend ]
+    needs: [detect-changes, test-backend]
     if: always() && needs.detect-changes.outputs.backend-changed == 'true'
-    env:
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -255,9 +193,9 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Generate test coverage for SonarQube (parallel)
+      - name: Generate test coverage for SonarQube
         working-directory: ./backend
-        run: npm run test:coverage -- --maxWorkers=50%
+        run: npm run test:coverage
 
       - name: Run SonarQube Scan (Backend)
         uses: SonarSource/sonarqube-scan-action@master
@@ -276,12 +214,11 @@ jobs:
   build-frontend:
     name: 🛠 Build frontend
     runs-on: ubuntu-latest
-    needs: [ detect-changes, test-frontend ]
-    if: needs.detect-changes.outputs.frontend-changed == 'true' && needs.test-frontend.result == 'success'
+    needs: [detect-changes, test-frontend, sonarqube-frontend]
+    if: needs.detect-changes.outputs.frontend-changed == 'true' && needs.test-frontend.result == 'success' && needs.sonarqube-frontend.result == 'success'
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
     steps:
       - name: Checkout code
@@ -292,17 +229,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Cache frontend node_modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
-
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: |
+          rm -rf node_modules
+          npm ci
+          npm rebuild lightningcss --force
 
       - name: Build frontend application
         working-directory: ./frontend
@@ -311,17 +243,8 @@ jobs:
   build-backend:
     name: 🛠 Build backend
     runs-on: ubuntu-latest
-    needs: [ detect-changes, test-backend ]
-    if: needs.detect-changes.outputs.backend-changed == 'true' && needs.test-backend.result == 'success'
-    env:
-      CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-      FROM_NAME: ${{ secrets.FROM_NAME }}
+    needs: [ detect-changes, test-backend, sonarqube-backend ]
+    if: needs.detect-changes.outputs.backend-changed == 'true' && needs.test-backend.result == 'success' && needs.sonarqube-backend.result == 'success'
 
     steps:
       - name: Checkout code
@@ -332,17 +255,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Cache backend node_modules
-        uses: actions/cache@v4
-        with:
-          path: backend/node_modules
-          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
-
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: |
+          rm -rf node_modules
+          npm ci
 
       - name: Build backend application
         working-directory: ./backend
