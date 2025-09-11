@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Packages externes pour les composants serveur
   serverExternalPackages: [],
   // Minification utilisée par défaut dans Next.js 15
-  output: "standalone",
+  output: 'standalone',
   // Réduire les ressources utilisées
   poweredByHeader: false,
   reactStrictMode: false,

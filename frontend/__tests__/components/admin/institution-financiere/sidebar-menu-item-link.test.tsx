@@ -6,7 +6,11 @@ import { SidebarMenuItemLink } from '@/components/admin/institution-financiere/s
 // Mock Next.js Link component
 jest.mock('next/link', () => {
   return function MockLink({ children, href, passHref, ...props }: any) {
-    return <a href={href} {...props}>{children}</a>;
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    );
   };
 });
 
@@ -14,23 +18,26 @@ jest.mock('next/link', () => {
 jest.mock('@/components/ui/sidebar', () => ({
   SidebarMenuButton: ({ children, asChild, isActive, className, ...props }: any) => {
     if (asChild) {
-      return <div data-testid="sidebar-button" className={className} {...props}>{children}</div>;
+      return (
+        <div data-testid='sidebar-button' className={className} {...props}>
+          {children}
+        </div>
+      );
     }
-    return <button data-testid="sidebar-button" className={className} {...props}>{children}</button>;
+    return (
+      <button data-testid='sidebar-button' className={className} {...props}>
+        {children}
+      </button>
+    );
   },
 }));
 
 describe('SidebarMenuItemLink', () => {
   it('covers all lines 3-15 with icon and children', () => {
-    const mockIcon = <span data-testid="test-icon">🧪</span>;
+    const mockIcon = <span data-testid='test-icon'>🧪</span>;
 
     render(
-      <SidebarMenuItemLink
-        href="/test"
-        icon={mockIcon}
-        active={true}
-        className="custom-class"
-      >
+      <SidebarMenuItemLink href='/test' icon={mockIcon} active={true} className='custom-class'>
         Test Label
       </SidebarMenuItemLink>
     );
@@ -55,10 +62,7 @@ describe('SidebarMenuItemLink', () => {
 
   it('covers all lines 3-15 without icon', () => {
     render(
-      <SidebarMenuItemLink
-        href="/no-icon"
-        active={false}
-      >
+      <SidebarMenuItemLink href='/no-icon' active={false}>
         No Icon Label
       </SidebarMenuItemLink>
     );
@@ -81,15 +85,10 @@ describe('SidebarMenuItemLink', () => {
   });
 
   it('covers component with all optional props', () => {
-    const customIcon = <div data-testid="custom-icon">🎨</div>;
+    const customIcon = <div data-testid='custom-icon'>🎨</div>;
 
     render(
-      <SidebarMenuItemLink
-        href="/custom"
-        active={true}
-        icon={customIcon}
-        className="test-class"
-      >
+      <SidebarMenuItemLink href='/custom' active={true} icon={customIcon} className='test-class'>
         Custom Content
       </SidebarMenuItemLink>
     );
@@ -103,7 +102,7 @@ describe('SidebarMenuItemLink', () => {
 
   it('renders basic link without active state', () => {
     render(
-      <SidebarMenuItemLink href="/test" active={false}>
+      <SidebarMenuItemLink href='/test' active={false}>
         Test Link
       </SidebarMenuItemLink>
     );
@@ -115,7 +114,7 @@ describe('SidebarMenuItemLink', () => {
 
   it('renders with active state (covers lines 3-15)', () => {
     render(
-      <SidebarMenuItemLink href="/test" active={true}>
+      <SidebarMenuItemLink href='/test' active={true}>
         Active Link
       </SidebarMenuItemLink>
     );
@@ -127,10 +126,10 @@ describe('SidebarMenuItemLink', () => {
   });
 
   it('renders with icon (covers lines 3-15)', () => {
-    const TestIcon = <span data-testid="test-icon">🏠</span>;
-    
+    const TestIcon = <span data-testid='test-icon'>🏠</span>;
+
     render(
-      <SidebarMenuItemLink href="/test" icon={TestIcon}>
+      <SidebarMenuItemLink href='/test' icon={TestIcon}>
         Link with Icon
       </SidebarMenuItemLink>
     );
@@ -141,7 +140,7 @@ describe('SidebarMenuItemLink', () => {
 
   it('renders with custom className (covers lines 3-15)', () => {
     render(
-      <SidebarMenuItemLink href="/test" className="custom-class">
+      <SidebarMenuItemLink href='/test' className='custom-class'>
         Custom Class Link
       </SidebarMenuItemLink>
     );
@@ -153,16 +152,16 @@ describe('SidebarMenuItemLink', () => {
   });
 
   it('renders with all props including spread props (covers lines 3-15)', () => {
-    const TestIcon = <span data-testid="test-icon">📊</span>;
-    
+    const TestIcon = <span data-testid='test-icon'>📊</span>;
+
     render(
-      <SidebarMenuItemLink 
-        href="/dashboard" 
+      <SidebarMenuItemLink
+        href='/dashboard'
         active={true}
         icon={TestIcon}
-        className="dashboard-link"
-        data-testid="sidebar-link"
-        aria-label="Dashboard navigation"
+        className='dashboard-link'
+        data-testid='sidebar-link'
+        aria-label='Dashboard navigation'
       >
         Dashboard
       </SidebarMenuItemLink>
@@ -175,11 +174,7 @@ describe('SidebarMenuItemLink', () => {
   });
 
   it('renders without icon (covers conditional icon rendering)', () => {
-    render(
-      <SidebarMenuItemLink href="/test">
-        No Icon Link
-      </SidebarMenuItemLink>
-    );
+    render(<SidebarMenuItemLink href='/test'>No Icon Link</SidebarMenuItemLink>);
 
     expect(screen.getByText('No Icon Link')).toBeInTheDocument();
     // Verify no icon span is rendered
@@ -187,11 +182,7 @@ describe('SidebarMenuItemLink', () => {
   });
 
   it('renders with default active state (covers default prop)', () => {
-    render(
-      <SidebarMenuItemLink href="/test">
-        Default Active
-      </SidebarMenuItemLink>
-    );
+    render(<SidebarMenuItemLink href='/test'>Default Active</SidebarMenuItemLink>);
 
     const link = screen.getByRole('link');
     expect(link).toBeInTheDocument();

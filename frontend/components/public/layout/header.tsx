@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 export default function PublicHeader() {
   return (
     <header className='bg-white shadow-sm'>
@@ -22,12 +20,9 @@ export default function PublicHeader() {
               À Propos
             </a>
           </nav>
-          <Link
-            href='/login'
-            className='bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700'
-          >
+          <button className='bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700'>
             Se connecter
-          </Link>
+          </button>
         </div>
       </div>
     </header>

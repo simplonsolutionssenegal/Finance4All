@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import PublicHeader from '@/components/public/layout/header';
 
@@ -46,8 +46,7 @@ describe('PublicHeader', () => {
   it('should apply correct navigation link styles', () => {
     render(<PublicHeader />);
 
-    const nav = screen.getByRole('navigation');
-    const navLinks = within(nav).getAllByRole('link');
+    const navLinks = screen.getAllByRole('link');
     navLinks.forEach(link => {
       expect(link).toHaveClass('text-gray-700', 'hover:text-teal-600');
     });
@@ -55,13 +54,13 @@ describe('PublicHeader', () => {
 
   it('should render the login button', () => {
     render(<PublicHeader />);
-    const loginButton = screen.getByRole('link', { name: 'Se connecter' });
+    const loginButton = screen.getByRole('button', { name: 'Se connecter' });
     expect(loginButton).toBeInTheDocument();
   });
 
   it('should apply correct button styling', () => {
     render(<PublicHeader />);
-    const loginButton = screen.getByRole('link', { name: 'Se connecter' });
+    const loginButton = screen.getByRole('button', { name: 'Se connecter' });
     expect(loginButton).toHaveClass(
       'bg-teal-600',
       'text-white',
@@ -98,8 +97,7 @@ describe('PublicHeader', () => {
   it('should render all navigation links in correct order', () => {
     render(<PublicHeader />);
 
-    const nav = screen.getByRole('navigation');
-    const links = within(nav).getAllByRole('link');
+    const links = screen.getAllByRole('link');
     const expectedTexts = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
 
     expectedTexts.forEach((expectedText, index) => {
@@ -117,7 +115,7 @@ describe('PublicHeader', () => {
     expect(screen.getByRole('navigation')).toBeInTheDocument();
 
     // Button should be accessible
-    expect(screen.getByRole('link', { name: 'Se connecter' })).toBeInTheDocument();
+    expect(screen.getByRole('button')).toBeInTheDocument();
 
     // All links should be accessible
     const navLinks = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
