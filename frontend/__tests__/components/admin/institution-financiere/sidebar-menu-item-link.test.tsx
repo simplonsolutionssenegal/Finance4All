@@ -100,7 +100,9 @@ describe('SidebarMenuItemLink', () => {
     expect(screen.getByText('Custom Content')).toBeInTheDocument();
     expect(screen.getByTestId('sidebar-button')).toHaveClass('test-class');
   });
-});
+
+  it('renders basic link without active state', () => {
+    render(
       <SidebarMenuItemLink href="/test" active={false}>
         Test Link
       </SidebarMenuItemLink>
@@ -118,8 +120,9 @@ describe('SidebarMenuItemLink', () => {
       </SidebarMenuItemLink>
     );
 
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('active');
+    const link = screen.getByRole('link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/test');
     expect(screen.getByText('Active Link')).toBeInTheDocument();
   });
 
@@ -143,8 +146,10 @@ describe('SidebarMenuItemLink', () => {
       </SidebarMenuItemLink>
     );
 
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('custom-class');
+    const link = screen.getByRole('link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/test');
+    expect(screen.getByText('Custom Class Link')).toBeInTheDocument();
   });
 
   it('renders with all props including spread props (covers lines 3-15)', () => {
@@ -165,7 +170,6 @@ describe('SidebarMenuItemLink', () => {
 
     expect(screen.getByTestId('test-icon')).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByRole('button')).toHaveClass('dashboard-link', 'active');
     expect(screen.getByRole('link')).toHaveAttribute('href', '/dashboard');
     expect(screen.getByTestId('sidebar-link')).toBeInTheDocument();
   });
@@ -189,7 +193,9 @@ describe('SidebarMenuItemLink', () => {
       </SidebarMenuItemLink>
     );
 
-    const button = screen.getByRole('button');
-    expect(button).not.toHaveClass('active');
+    const link = screen.getByRole('link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/test');
+    expect(screen.getByText('Default Active')).toBeInTheDocument();
   });
 });
