@@ -141,17 +141,9 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
     });
   };
 
+  // Centralise le reset pour usage commun (fermeture manuelle + onOpenChange)
   const resetDialogState = () => {
-    form.reset({
-      nom: '',
-      type: '',
-      description: '',
-      siteWeb: 'https://',
-      contactNom: '',
-      contactEmail: '',
-      contactTelephone: '',
-      regionsDesservies: [],
-    });
+    form.reset();
     setLogoPreview(null);
     setSelectedRegions([]);
     setCurrentStep(1);
@@ -166,7 +158,9 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
     <Dialog
       open={open}
       onOpenChange={isOpen => {
-        if (!isOpen) resetDialogState();
+        if (!isOpen) {
+          resetDialogState();
+        }
         onOpenChange(isOpen);
       }}
     >
@@ -241,15 +235,14 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
                       name='nom'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className='text-sm font-medium text-gray-700'>Nom de l&apos;institut</FormLabel>
+                          <FormLabel className='text-sm font-medium text-gray-700'>Nom de l&apos;institution</FormLabel>
                           <FormControl>
-                            <Input placeholder='Société générale' className='border-gray-200 focus:border-teal-500 focus:ring-teal-100 rounded-lg' {...field} />
+                            <Input placeholder="Nom de l'institution" className='border-gray-200 focus:border-teal-500 focus:ring-teal-100 rounded-lg' {...field} />
                           </FormControl>
                           <FormMessage className='text-red-500 text-xs' />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
                       name='type'
@@ -326,6 +319,7 @@ export function AddInstitutionDialog({ open, onOpenChange }: Readonly<AddInstitu
                                   <p className='text-xs text-gray-500 mt-1'>Formats JPG, JPEG ou PNG, max 5 Mo</p>
                                 </div>
                               )}
+                              {/* File inputs should remain uncontrolled; react-hook-form's value is ignored intentionally */}
                               <Input
                                 type='file'
                                 accept='image/jpeg,image/jpg,image/png'
