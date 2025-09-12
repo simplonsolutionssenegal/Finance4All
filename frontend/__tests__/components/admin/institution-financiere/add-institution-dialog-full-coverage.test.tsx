@@ -486,8 +486,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // First upload a file to set preview
     const file = new File(['a'], 'a.png', { type: 'image/png' });
-  // Replace userEvent.upload with manual fireEvent
-  Object.defineProperty(fileInput, 'files', { value: [file] });
+  // Simulate initial upload: we just fire a change event with a mock FileList payload
   fireEvent.change(fileInput, { target: { files: [file] } });
     // Now trigger change with empty FileList => else branch
     await act(async () => {
