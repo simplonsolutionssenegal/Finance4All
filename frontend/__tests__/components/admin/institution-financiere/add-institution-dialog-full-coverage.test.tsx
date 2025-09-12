@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-// Type augmentation (helps editors recognize jest-dom matchers when isolated)
+// Local matcher augmentation (kept because TS loses jest-dom matcher types otherwise)
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
