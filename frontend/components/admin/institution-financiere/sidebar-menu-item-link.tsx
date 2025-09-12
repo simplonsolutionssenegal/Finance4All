@@ -1,8 +1,14 @@
 'use client';
 
+<<<<<<< HEAD
 import Link from 'next/link';
 
 import { SidebarMenuButton } from '@/components/ui/sidebar';
+=======
+import Link from "next/link";
+
+import { SidebarMenuButton } from "@/components/ui/sidebar";
+>>>>>>> 32f7ef4 (fix: Resolve ESLint warnings and errors for code quality)
 
 interface SidebarMenuItemLinkProps {
   href: string;

@@ -1,27 +1,13 @@
-'use client';
+"use client";
 
-import {
-  Building2Icon,
-  BarChart3Icon,
-  Users2Icon,
-  ShieldIcon,
-  CreditCardIcon,
-  FileTextIcon,
-  SettingsIcon,
-} from 'lucide-react';
 import { usePathname } from 'next/navigation';
-
+import { Building2Icon, BarChart3Icon, Users2Icon, ShieldIcon, CreditCardIcon, FileTextIcon, SettingsIcon } from 'lucide-react';
 import { SidebarMenuItemLink } from '@/components/admin/institution-financiere/sidebar-menu-item-link';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarProvider,
-} from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarProvider } from '@/components/ui/sidebar';
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <div className='flex min-h-screen'>
