@@ -13,6 +13,10 @@ dotenv.config();
 
 // Créer l'application Express
 const app = express();
+
+// Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
+app.disable('x-powered-by');
+
 const PORT = process.env.PORT ?? 5000;
 app.use(clerkMiddleware());
 
