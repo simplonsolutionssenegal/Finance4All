@@ -53,7 +53,7 @@ app.get('/health', (_req: Request, res: Response) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
+    environment: process.env.NODE_ENV ?? 'development',
   });
 });
 
@@ -96,7 +96,9 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Démarrer l'application
-startServer();
+// Démarrer l'application seulement si ce fichier est exécuté directement
+if (require.main === module) {
+  startServer();
+}
 
 export default app;
