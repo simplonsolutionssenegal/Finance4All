@@ -1,9 +1,7 @@
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { UserRepository } from '../../domain/repositories/UserRepository';
-import { User } from '../entities/User';
-/**
- * Implémentation concrète du cas d'utilisation de création d'utilisateur
- */
+import { User, UserRole, UserStatus } from '../entities/User'; 
+
 export class CreateUserUseCaseImpl implements CreateUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
@@ -16,9 +14,15 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
       throw new Error('Format d\'email invalide');
     }
 
-    const userId = Date.now().toString();
-    const user = new User(userId, name, email);
-    return this.userRepository.save(user);
+    const userData = {
+      email,
+      password: '',
+      lastname: '',
+      firstname: '',
+      role: UserRole.BENEFICIAIRE,
+      status : UserStatus.ACTIF,
+    };
+    return await this.userRepository.create(userData);
   }
 
   private isValidEmail(email: string): boolean {
