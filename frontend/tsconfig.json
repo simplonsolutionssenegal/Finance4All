@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-  "incremental": false,
+    "incremental": true,
     "plugins": [
       {
         "name": "next"
@@ -32,8 +32,5 @@
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "__tests__/components/admin/institution-financiere/add-institution-dialog-final.test.tsx"
-  ]
+  "exclude": ["node_modules"]
 }

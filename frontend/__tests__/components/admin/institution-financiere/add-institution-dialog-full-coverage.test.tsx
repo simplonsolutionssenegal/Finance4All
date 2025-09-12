@@ -486,9 +486,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // First upload a file to set preview
     const file = new File(['a'], 'a.png', { type: 'image/png' });
-  // Replace userEvent.upload with manual fireEvent
-  // Make property configurable so Testing Library can redefine it in the synthetic event
-  Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+  // Simulate selection – rely on event injection only (avoid redefining DOM property)
   fireEvent.change(fileInput, { target: { files: [file] } });
     // Now trigger change with empty FileList => else branch
     await act(async () => {
