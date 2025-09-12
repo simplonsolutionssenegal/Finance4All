@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AddInstitutionDialog } from '@/components/admin/institution-financiere/add-institution-dialog';
-// Note: legacy targeted test file has been emptied; this file owns full coverage.
+// Unified full coverage test suite (no user-event dependency).
 
 // Mock sonner toast
 jest.mock('sonner', () => ({
