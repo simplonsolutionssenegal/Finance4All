@@ -19,9 +19,10 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "concurrently": "^7.6.0",
+    "cross-env": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^30.1.2",
-    "sonarqube-scanner": "^4.3.0",
+    "sonarqube-scanner": "^3.5.0",
     "ts-jest": "^29.4.1"
   },
   "dependencies": {
