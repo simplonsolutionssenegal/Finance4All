@@ -22,8 +22,8 @@ export const authMiddleware = (allowedRoles: string[] = []) => {
       const token = authHeader.split(' ')[1];
 
       try {
-  const secret = process.env.JWT_SECRET || 'your-secret-key';
-  const decoded = jwt.verify(token, secret) as JwtPayload;
+        const secret = process.env.JWT_SECRET ?? 'your-secret-key';
+        const decoded = jwt.verify(token, secret) as JwtPayload;
 
         // Attacher l'utilisateur à la requête
         req.user = {
@@ -35,7 +35,7 @@ export const authMiddleware = (allowedRoles: string[] = []) => {
         if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
           res.status(403).json({
             success: false,
-            message: "Vous n'avez pas les droits suffisants pour accéder à cette ressource.",
+            message: 'Vous n\'avez pas les droits suffisants pour accéder à cette ressource.',
           });
           return;
         }

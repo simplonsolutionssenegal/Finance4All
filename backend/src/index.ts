@@ -23,7 +23,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
-  })
+  }),
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -96,8 +96,13 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Démarrer l'application seulement si ce fichier est exécuté directement
-if (require.main === module) {
+// Démarrer l'application si exécuté directement ou en environnement de test (pour les tests d'intégration)
+if (
+  require.main === module ||
+  process.env.NODE_ENV === 'test' ||
+  // When NODE_ENV is unset in tests, JEST_WORKER_ID still indicates a Jest runtime
+  typeof process.env.JEST_WORKER_ID !== 'undefined'
+) {
   startServer();
 }
 

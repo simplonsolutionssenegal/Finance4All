@@ -7,11 +7,11 @@ export class CreateInstitutionFinanciereUseCase {
   async execute(data: Omit<InstitutionFinanciere, 'id' | 'createdAt' | 'updatedAt'>): Promise<InstitutionFinanciere> {
     // 1. Nom
     if (!data.nom || data.nom.length < 2 || data.nom.length > 100) {
-      throw new Error("Le nom de l'institution doit contenir entre 2 et 100 caractères");
+      throw new Error('Le nom de l\'institution doit contenir entre 2 et 100 caractères');
     }
     // 2. Type
     if (!data.type || data.type.length > 50) {
-      throw new Error("Le type d'institution est requis et doit faire moins de 50 caractères");
+      throw new Error('Le type d\'institution est requis et doit faire moins de 50 caractères');
     }
     // 3. Description
     if (!data.description || data.description.length < 10 || data.description.length > 1000) {
@@ -32,19 +32,19 @@ export class CreateInstitutionFinanciereUseCase {
     }
     // 6. Email contact (optionnel)
     if (data.contactEmail && !this.isValidEmail(data.contactEmail)) {
-      throw new Error("L'adresse email du contact n'est pas valide");
+      throw new Error('L\'adresse email du contact n\'est pas valide');
     }
     // 7. Téléphone contact (optionnel)
     if (data.contactTelephone && (data.contactTelephone.length < 8 || data.contactTelephone.length > 20)) {
-      throw new Error("Le numéro de téléphone doit contenir entre 8 et 20 caractères");
+      throw new Error('Le numéro de téléphone doit contenir entre 8 et 20 caractères');
     }
     // 8. Nom contact (optionnel)
     if (data.contactNom && data.contactNom.length > 100) {
-      throw new Error("Le nom du contact doit faire moins de 100 caractères");
+      throw new Error('Le nom du contact doit faire moins de 100 caractères');
     }
     // 9. Logo URL length (optionnel)
     if (data.logo && data.logo.length > 500) {
-      throw new Error("L'URL du logo doit faire moins de 500 caractères");
+      throw new Error('L\'URL du logo doit faire moins de 500 caractères');
     }
 
     // Normalisation simple

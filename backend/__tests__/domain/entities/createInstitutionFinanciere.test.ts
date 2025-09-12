@@ -224,7 +224,18 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
       const result = await createUseCase.execute(validInstitutionData);
 
-      expect(mockInstitutionRepository.create).toHaveBeenCalledWith(validInstitutionData);
+      expect(mockInstitutionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nom: validInstitutionData.nom,
+          type: validInstitutionData.type,
+          description: validInstitutionData.description,
+          siteWeb: validInstitutionData.siteWeb,
+          regionsDesservies: validInstitutionData.regionsDesservies,
+          contactEmail: validInstitutionData.contactEmail,
+          contactTelephone: validInstitutionData.contactTelephone,
+          id: '', // normalized before repository call
+        })
+      );
       expect(result.id).toBe('123');
       expect(result.nom).toBe(validInstitutionData.nom);
     });
@@ -239,7 +250,15 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
       const result = await createUseCase.execute(dataWithoutContact);
 
-      expect(mockInstitutionRepository.create).toHaveBeenCalledWith(dataWithoutContact);
+      expect(mockInstitutionRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nom: dataWithoutContact.nom,
+          contactEmail: null,
+          contactTelephone: null,
+          contactNom: null,
+          id: '',
+        })
+      );
       expect(result.id).toBe('123');
     });
   });
