@@ -481,12 +481,14 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // (Removed redundant extended real submission test; consolidated into earlier onSubmit success test)
 
   // NEW: Cover handleLogoChange else path lines 123 & onChange lines 355-357 with empty files
-  it('clears logo preview when file list is empty (lines 123,355-357)', async () => { // cache-bust tweak
+  it('clears logo preview when file list is empty (lines 123,355-357)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={() => {}} />);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // First upload a file to set preview
     const file = new File(['a'], 'a.png', { type: 'image/png' });
-  // Simulate initial upload: we just fire a change event with a mock FileList payload
+  // Replace userEvent.upload with manual fireEvent
+  // Make property configurable so Testing Library can redefine it in the synthetic event
+  Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
   fireEvent.change(fileInput, { target: { files: [file] } });
     // Now trigger change with empty FileList => else branch
     await act(async () => {
