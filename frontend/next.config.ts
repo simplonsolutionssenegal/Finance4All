@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
     styledComponents: false,
     reactRemoveProperties: false,
   },
+  images: {
+    unoptimized: true, // Evite les erreurs d'optimisation des images
+  },
 };
 
 export default nextConfig;

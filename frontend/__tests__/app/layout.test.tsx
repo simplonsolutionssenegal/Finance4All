@@ -1,5 +1,23 @@
 import RootLayout from "@/app/layout";
 
+// Mock Clerk pour éviter les problèmes de module ES
+jest.mock("@clerk/nextjs", () => ({
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="clerk-provider">{children}</div>
+  ),
+  useClerk: () => ({
+    client: {
+      signIn: {
+        create: jest.fn(),
+      },
+    },
+    session: null,
+  }),
+  useUser: () => ({
+    user: null,
+  }),
+}));
+
 jest.mock("@/components/theme-provider", () => {
   return {
     ThemeProvider: ({ children, defaultTheme }: { children: React.ReactNode; defaultTheme: string }) => (
@@ -30,8 +48,9 @@ describe("RootLayout", () => {
     expect(result.type).toBe("html");
   });
 
-  it("returns html element with correct properties", () => {
+  it("returns html element with correct attributes", () => {
     const result = RootLayout({ children: mockChildren });
+    expect(result.type).toBe("html");
     expect(result.props.lang).toBe("fr");
     expect(result.props.suppressHydrationWarning).toBe(true);
   });
@@ -43,10 +62,13 @@ describe("RootLayout", () => {
     expect(body.props.className).toContain("antialiased");
   });
 
-  it("contains ThemeProvider with correct default theme", () => {
+  it("contains ClerkProvider with ThemeProvider inside", () => {
     const result = RootLayout({ children: mockChildren });
     const body = result.props.children;
-    const themeProvider = body.props.children;
+    const clerkProvider = body.props.children;
+    expect(clerkProvider.type.name).toBe("ClerkProvider");
+    
+    const themeProvider = clerkProvider.props.children;
     expect(themeProvider.type.name).toBe("ThemeProvider");
     expect(themeProvider.props.defaultTheme).toBe("light");
   });
