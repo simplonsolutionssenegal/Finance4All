@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@testing-library/user-event": ["./types/testing-library-user-event-stub.d.ts"]
     },
     "types": ["jest", "@testing-library/jest-dom", "node"]
   },
