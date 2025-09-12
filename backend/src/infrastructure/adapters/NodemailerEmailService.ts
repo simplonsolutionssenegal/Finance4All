@@ -27,9 +27,21 @@ export class NodemailerEmailService implements EmailService {
       const transporter = nodemailer.createTransport({
         host,
         port,
-        secure, // true for 465, false for ports like 2525/587
+        secure,
         auth: { user, pass },
       });
+
+      // Vérifie la connexion au serveur SMTP (utile en debug)
+      try {
+        await transporter.verify();
+        logger.info('SMTP transporter verified successfully', { host, port, secure });
+      } catch (verifyErr: unknown) {
+        const message = verifyErr instanceof Error ? verifyErr.message : 'Unknown error';
+        logger.error('SMTP transporter verification failed', { message, host, port, secure });
+        if (process.env.NODE_ENV !== 'development') {
+          throw verifyErr as Error;
+        }
+      }
 
       await transporter.sendMail({
         from,
@@ -37,6 +49,7 @@ export class NodemailerEmailService implements EmailService {
         subject: 'Confirmation de votre compte',
         text: `Cliquez sur ce lien pour confirmer : https://example.com/confirm/${confirmationToken}`,
       });
+      logger.info('Confirmation email sent (or queued) successfully', { to: email });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       const stack = err instanceof Error ? err.stack : undefined;
