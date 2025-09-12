@@ -24,7 +24,7 @@ jest.mock('next/image', () => {
 const mockFileReader = {
   readAsDataURL: jest.fn(),
   onloadend: null as any,
-  result: 'data:image/png;base64,mockdata'
+  result: 'data:image/png;base64,mockdata',
 };
 
 (global as any).FileReader = jest.fn(() => mockFileReader);
@@ -36,7 +36,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
   beforeEach(() => {
     jest.clearAllMocks();
     mockOnOpenChange = jest.fn();
-    
+
     // Reset FileReader mock
     mockFileReader.readAsDataURL.mockClear();
     mockFileReader.result = 'data:image/png;base64,mockdata';
@@ -47,7 +47,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
 
     // Verify we start at step 1
-    expect(screen.getByText('Informations de l\'institution')).toBeInTheDocument();
+    expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
 
     // Click next to trigger setCurrentStep(currentStep + 1) - line 132
     const nextButton = screen.getByText('Suivant');
@@ -66,7 +66,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Navigate to step 2
     fireEvent.click(screen.getByText('Suivant'));
-    
+
     await waitFor(() => {
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
@@ -77,7 +77,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     fireEvent.click(prevButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Informations de l\'institution')).toBeInTheDocument();
+      expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
     });
   });
 
@@ -101,11 +101,11 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
         throw new Error('Simulated error');
       } catch (error) {
         // This covers lines 147-149 (catch block)
-        mockToast.error('Erreur lors de la création de l\'institution');
+        mockToast.error("Erreur lors de la création de l'institution");
       }
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('Erreur lors de la création de l\'institution');
+    expect(mockToast.error).toHaveBeenCalledWith("Erreur lors de la création de l'institution");
   });
 
   // Lines 117-125: handleLogoChange function
@@ -115,14 +115,14 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     // Test the file selection path (lines 153-160)
     await act(async () => {
       const file = new File(['test'], 'test.png', { type: 'image/png' });
-      
+
       // Simulate FileReader creation and usage (lines 154-160)
       const reader = new (global as any).FileReader();
       reader.onloadend = () => {
         // Line 157: setLogoPreview(reader.result as string)
       };
       reader.readAsDataURL(file); // Line 158
-      
+
       // Trigger onloadend
       reader.onloadend();
     });
@@ -200,7 +200,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     // Add multiple regions
     const region1 = screen.getByText('Couverture de Dakar');
     const region2 = screen.getByText('Couverture Centre du pays');
-    
+
     fireEvent.click(region1);
     fireEvent.click(region2);
 
@@ -215,11 +215,11 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Test step 1 labels
     expect(screen.getByText('Informations')).toBeInTheDocument();
-    expect(screen.getByText('Informations de l\'institution')).toBeInTheDocument();
+    expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
 
     // Navigate to step 2 and test labels
     fireEvent.click(screen.getByText('Suivant'));
-    
+
     await waitFor(() => {
       expect(screen.getByText('Contact')).toBeInTheDocument();
       const contactHeaders = screen.getAllByText('Informations de contact');
@@ -228,7 +228,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Navigate to step 3 and test labels
     fireEvent.click(screen.getByText('Suivant'));
-    
+
     await waitFor(() => {
       expect(screen.getByText('Zones')).toBeInTheDocument();
       expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
@@ -241,13 +241,13 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Test basic information fields
     expect(screen.getByPlaceholderText('Société générale')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Décrivez l\'institution financière')).toBeInTheDocument();
-    
+    expect(screen.getByPlaceholderText("Décrivez l'institution financière")).toBeInTheDocument();
+
     // Test type selection
-    expect(screen.getByText('Type d\'institution')).toBeInTheDocument();
-    
+    expect(screen.getByText("Type d'institution")).toBeInTheDocument();
+
     // Test logo upload section
-    expect(screen.getByText('Logo de l\'institution')).toBeInTheDocument();
+    expect(screen.getByText("Logo de l'institution")).toBeInTheDocument();
     expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
   });
 
@@ -302,7 +302,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    
+
     // Verify the file input exists and has correct attributes
     expect(fileInput).toBeInTheDocument();
     expect(fileInput.accept).toBe('image/jpeg,image/jpg,image/png');
@@ -331,11 +331,11 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Step 1: Fill basic information
     fireEvent.change(screen.getByPlaceholderText('Société générale'), {
-      target: { value: 'Test Institution' }
+      target: { value: 'Test Institution' },
     });
 
-    fireEvent.change(screen.getByPlaceholderText('Décrivez l\'institution financière'), {
-      target: { value: 'Description test' }
+    fireEvent.change(screen.getByPlaceholderText("Décrivez l'institution financière"), {
+      target: { value: 'Description test' },
     });
 
     // Navigate to step 2
@@ -348,7 +348,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
 
     // Step 2: Fill contact information (optional)
     fireEvent.change(screen.getByPlaceholderText('Nom complet'), {
-      target: { value: 'John Doe' }
+      target: { value: 'John Doe' },
     });
 
     // Navigate to step 3
@@ -364,7 +364,6 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     // Verify we can see the submit button
     expect(screen.getByText('Enregistrer')).toBeInTheDocument();
   });
-
 
   it('simulates file input change via handleLogoChange path (lines 117-124 & 349)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
@@ -410,7 +409,9 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
       externalOpen = v;
       rerender(<AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />);
     };
-    const { rerender } = render(<AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />);
+    const { rerender } = render(
+      <AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />
+    );
 
     const nomInput = screen.getByPlaceholderText('Société générale') as HTMLInputElement;
     fireEvent.change(nomInput, { target: { value: 'Temp Name' } });
@@ -505,6 +506,8 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping)', () =
     render(<Wrapper />);
     // Press Escape
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
-    await waitFor(() => expect(screen.queryByText('Ajouter une institution')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Ajouter une institution')).not.toBeInTheDocument()
+    );
   });
 });
