@@ -1,8 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { AddInstitutionDialog } from '@/components/admin/institution-financiere/add-institution-dialog';
-// Unified full coverage test suite (no user-event dependency).
+// Unified full coverage test suite (now using userEvent for interactions to auto-wrap updates in act).
 
 // Mock sonner toast
 jest.mock('sonner', () => ({
@@ -28,7 +29,7 @@ const mockFileReader = {
 
 (global as any).FileReader = jest.fn(() => mockFileReader);
 
-describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no user-event)', () => {
+describe('AddInstitutionDialog - Complete Coverage (userEvent interactions)', () => {
   const mockToast = require('sonner').toast;
   let mockOnOpenChange: jest.Mock;
 
@@ -44,16 +45,10 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // Lines 108: nextStep function
   it('covers nextStep functionality (line 108)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Verify we start at step 1
+    const user = userEvent.setup();
     expect(screen.getByText('Informations de l\'institution')).toBeInTheDocument();
-
-    // Click next to trigger setCurrentStep(currentStep + 1) - line 132
-    const nextButton = screen.getByText('Suivant');
-    fireEvent.click(nextButton);
-
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
-      // Look for contact form title which is unique to step 2
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
     });
@@ -62,19 +57,13 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // Lines 109: prevStep function
   it('covers prevStep functionality (line 109)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 2
-    fireEvent.click(screen.getByText('Suivant'));
-    
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
     });
-
-    // Go back to step 1 (covers lines 137-138: setCurrentStep(currentStep - 1))
-    const prevButton = screen.getByText('Précédent');
-    fireEvent.click(prevButton);
-
+    await user.click(screen.getByText('Précédent'));
     await waitFor(() => {
       expect(screen.getByText('Informations de l\'institution')).toBeInTheDocument();
     });
@@ -83,8 +72,9 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // Lines 111-116: onSubmit function (success path) via test helper button
   it('covers onSubmit success path (lines 111-116) via test helper', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
+    const user = userEvent.setup();
     const helper = await screen.findByTestId('__test_invoke_submit');
-    fireEvent.click(helper);
+    await user.click(helper);
     await waitFor(() => {
       expect(mockToast.success).toHaveBeenCalledWith('Institution financière ajoutée avec succès');
       expect(mockOnOpenChange).toHaveBeenCalledWith(false);
@@ -146,64 +136,39 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // Lines 127-134: toggleRegion function (add path)
   it('covers toggleRegion add functionality (lines 127-132)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 3 (regions)
-    fireEvent.click(screen.getByText('Suivant')); // to step 2
-    fireEvent.click(screen.getByText('Suivant')); // to step 3
-
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // Test adding a region (covers lines 166-175)
-    const region = screen.getByText('Couverture de Dakar');
-    fireEvent.click(region);
-
-    // Verify the region is now selected
-    expect(region).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
+  // There may be multiple elements containing the same text (badge + label), click the first interactive one
+  const dakarElements = screen.getAllByText('Couverture de Dakar');
+  await user.click(dakarElements[0]);
+  expect(dakarElements[0]).toBeInTheDocument();
   });
 
   it('covers toggleRegion remove functionality (lines 127-134 remove path)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-    fireEvent.click(screen.getByText('Suivant'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // First add a region
-    const region = screen.getByText('Couverture de Dakar');
-    fireEvent.click(region);
-
-    // Then remove it (covers lines 172-180)
-    fireEvent.click(region);
-
-    // The region should still exist in DOM but be deselected
-    expect(region).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
+  const regionCandidates = screen.getAllByText('Couverture de Dakar');
+  const region = regionCandidates[0];
+  await user.click(region);
+  await user.click(region); // toggle off
+  expect(region).toBeInTheDocument();
   });
 
   it('covers multiple region handling in toggleRegion', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-    fireEvent.click(screen.getByText('Suivant'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // Add multiple regions
-    const region1 = screen.getByText('Couverture de Dakar');
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
+  const region1 = screen.getAllByText('Couverture de Dakar')[0];
     const region2 = screen.getByText('Couverture Centre du pays');
-    
-    fireEvent.click(region1);
-    fireEvent.click(region2);
-
-    // Verify both regions are present
+    await user.click(region1);
+    await user.click(region2);
     expect(region1).toBeInTheDocument();
     expect(region2).toBeInTheDocument();
   });
@@ -252,12 +217,9 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
 
   it('covers step 2 form fields rendering (lines 370-444)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 2
-    fireEvent.click(screen.getByText('Suivant'));
-
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
-      // Test contact information fields
       expect(screen.getByPlaceholderText('Nom complet')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('contact@exemple.com')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('+237 XXX XXX XXX')).toBeInTheDocument();
@@ -266,13 +228,10 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
 
   it('covers step 3 form fields rendering (lines 445-520)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-    fireEvent.click(screen.getByText('Suivant'));
-
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
-      // Test regions selection
       expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
       expect(screen.getByText('Couverture de Dakar')).toBeInTheDocument();
       expect(screen.getByText('Couverture Centre du pays')).toBeInTheDocument();
@@ -284,13 +243,10 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
 
   it('covers submit button rendering on final step', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Navigate to final step
-    fireEvent.click(screen.getByText('Suivant'));
-    fireEvent.click(screen.getByText('Suivant'));
-
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
-      // Test submit button appears on final step
       expect(screen.getByText('Enregistrer')).toBeInTheDocument();
       expect(screen.queryByText('Suivant')).not.toBeInTheDocument();
     });
@@ -311,56 +267,28 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // Test dialog reset functionality
   it('covers dialog reset on close', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Fill some form data
+    const user = userEvent.setup();
     const nomInput = screen.getByPlaceholderText('Société générale');
-    fireEvent.change(nomInput, { target: { value: 'Test Data' } });
-
-    // Close the dialog
-    const closeButton = screen.getByLabelText('Fermer');
-    fireEvent.click(closeButton);
-
-    // Verify onOpenChange was called with false
+    await user.type(nomInput, 'Test Data');
+    await user.click(screen.getByLabelText('Fermer'));
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
   // Test complete workflow to ensure all paths are covered
   it('covers complete dialog workflow', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Step 1: Fill basic information
-    fireEvent.change(screen.getByPlaceholderText('Société générale'), {
-      target: { value: 'Test Institution' }
-    });
-
-    fireEvent.change(screen.getByPlaceholderText('Décrivez l\'institution financière'), {
-      target: { value: 'Description test' }
-    });
-
-    // Navigate to step 2
-    fireEvent.click(screen.getByText('Suivant'));
-
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('Société générale'), 'Test Institution');
+    await user.type(screen.getByPlaceholderText('Décrivez l\'institution financière'), 'Description test');
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
     });
-
-    // Step 2: Fill contact information (optional)
-    fireEvent.change(screen.getByPlaceholderText('Nom complet'), {
-      target: { value: 'John Doe' }
-    });
-
-    // Navigate to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // Step 3: Select regions
-    fireEvent.click(screen.getByText('Couverture de Dakar'));
-
-    // Verify we can see the submit button
+    await user.type(screen.getByPlaceholderText('Nom complet'), 'John Doe');
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
+    await user.click(screen.getByText('Couverture de Dakar'));
     expect(screen.getByText('Enregistrer')).toBeInTheDocument();
   });
 
@@ -381,86 +309,55 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
 
   it('removes a selected region via badge ✕ button (lines ~470-500 runtime)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Go to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-    fireEvent.click(screen.getByText('Suivant'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // Select region
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
     const regionBtn = screen.getByText('Couverture de Dakar');
-    fireEvent.click(regionBtn);
-
-    // Badge should appear with a button ✕
+  await user.click(regionBtn);
     const closeBadgeButton = screen.getByRole('button', { name: /✕/i });
-    fireEvent.click(closeBadgeButton);
-
-    // Region can be re-selected (ensures it was removed)
-    fireEvent.click(regionBtn);
+    await user.click(closeBadgeButton);
+    await user.click(regionBtn);
     expect(regionBtn).toBeInTheDocument();
   });
 
   it('resets all state on dialog close (lines 136-151)', async () => {
     let externalOpen = true;
+    const user = userEvent.setup();
     const handleChange = (v: boolean) => {
       externalOpen = v;
       rerender(<AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />);
     };
     const { rerender } = render(<AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />);
-
-    const nomInput = screen.getByPlaceholderText('Société générale') as HTMLInputElement;
-    fireEvent.change(nomInput, { target: { value: 'Temp Name' } });
-    expect(nomInput.value).toBe('Temp Name');
-
-    // Close via close button -> triggers reset logic
-    fireEvent.click(screen.getByLabelText('Fermer'));
-
-    // Ensure state actually closed
+  const nomInput = screen.getByPlaceholderText('Société générale') as HTMLInputElement;
+  // Using fireEvent.change for deterministic update with react-hook-form
+  fireEvent.change(nomInput, { target: { value: 'Temp Name' } });
+  expect(nomInput.value).toBe('Temp Name');
+    await user.click(screen.getByLabelText('Fermer'));
     expect(externalOpen).toBe(false);
-
-    // Reopen
     externalOpen = true;
     rerender(<AddInstitutionDialog open={externalOpen} onOpenChange={handleChange} />);
-
-    await waitFor(() => {
-      expect((screen.getByPlaceholderText('Société générale') as HTMLInputElement).value).toBe('');
-    });
+    await waitFor(() => expect((screen.getByPlaceholderText('Société générale') as HTMLInputElement).value).toBe(''));
   });
   // Test navigation between all steps
   it('covers complete navigation flow (lines 108-109, 127-134)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-    // Start at step 1
+    const user = userEvent.setup();
     expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
-
-    // Go to step 2
-    fireEvent.click(screen.getByText('Suivant'));
+    await user.click(screen.getByText('Suivant'));
     await waitFor(() => {
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
     });
-
-    // Go to step 3
-    fireEvent.click(screen.getByText('Suivant'));
-    await waitFor(() => {
-      expect(screen.getByText('Zones de couverture')).toBeInTheDocument();
-    });
-
-    // Go back to step 2
-    fireEvent.click(screen.getByText('Précédent'));
+    await user.click(screen.getByText('Suivant'));
+    await waitFor(() => expect(screen.getByText('Zones de couverture')).toBeInTheDocument());
+    await user.click(screen.getByText('Précédent'));
     await waitFor(() => {
       const contactHeaders = screen.getAllByText('Informations de contact');
       expect(contactHeaders.length).toBeGreaterThan(0);
     });
-
-    // Go back to step 1
-    fireEvent.click(screen.getByText('Précédent'));
-    await waitFor(() => {
-      expect(screen.getByText("Informations de l'institution")).toBeInTheDocument();
-    });
+    await user.click(screen.getByText('Précédent'));
+    await waitFor(() => expect(screen.getByText("Informations de l'institution")).toBeInTheDocument());
   });
 
   // Accessibility: ensure DialogTitle is present and announces proper heading
@@ -483,17 +380,14 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // NEW: Cover handleLogoChange else path lines 123 & onChange lines 355-357 with empty files
   it('clears logo preview when file list is empty (lines 123,355-357)', async () => {
     render(<AddInstitutionDialog open={true} onOpenChange={() => {}} />);
+    const user = userEvent.setup();
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    // First upload a file to set preview
     const file = new File(['a'], 'a.png', { type: 'image/png' });
-  // Simulate selection – rely on event injection only (avoid redefining DOM property)
-  fireEvent.change(fileInput, { target: { files: [file] } });
-    // Now trigger change with empty FileList => else branch
+    await user.upload(fileInput, file);
     await act(async () => {
       fireEvent.change(fileInput, { target: { files: [] } });
     });
-    // No error expected; implicit coverage of else path
-    expect((global as any).FileReader).toHaveBeenCalled(); // initial upload
+    expect((global as any).FileReader).toHaveBeenCalled();
   });
 
   // NEW: Trigger Dialog root onOpenChange close branch (lines 161-162) via Escape key

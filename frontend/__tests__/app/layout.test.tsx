@@ -57,27 +57,16 @@ describe('RootLayout - Lines 1-23 Coverage', () => {
   });
 
   it('covers geistSans font configuration (lines 8-11)', () => {
-    render(
-      <RootLayout>
-        <div>Test content</div>
-      </RootLayout>
-    );
-
-    // Vérifier que la classe font est appliquée au body
-    const body = document.querySelector('body');
-    expect(body?.className).toContain('antialiased');
+    const tree = RootLayout({ children: <div>Test content</div> });
+    // tree is <html><body><ThemeProvider>...</ThemeProvider></body></html>
+    const body = tree.props.children; // body element
+    expect(body.props.className).toContain('antialiased');
   });
 
   it('covers geistMono font configuration (lines 13-16)', () => {
-    render(
-      <RootLayout>
-        <div>Test content</div>
-      </RootLayout>
-    );
-
-    // Vérifier que les variables de font sont présentes dans le className
-    const body = document.querySelector('body');
-    expect(body?.className).toBeDefined();
+    const tree = RootLayout({ children: <div>Test content</div> });
+    const body = tree.props.children;
+    expect(body.props.className).toBeDefined();
   });
 
   it('covers metadata export (lines 18-21)', () => {
