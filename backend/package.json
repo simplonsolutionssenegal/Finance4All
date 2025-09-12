@@ -13,6 +13,7 @@
     "db:seed": "tsx src/prisma/seed.ts",
     "db:start": "./scripts/start-database.sh",
     "db:setup": "npm run db:start && npm run db:generate && npm run db:migrate",
+  "pretest": "prisma generate",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
