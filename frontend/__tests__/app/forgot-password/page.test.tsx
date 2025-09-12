@@ -49,7 +49,7 @@ describe("ForgotPassword Page", () => {
     render(<ForgotPassword />);
     const bgImage = screen.getByAltText("Background image");
     expect(bgImage).toBeInTheDocument();
-    expect(bgImage).toHaveAttribute("src", "/assets/images/login-bg.png");
+    expect(bgImage).toHaveAttribute("src", "/login-bg.png");
   });
 
   it("renders the ForgotPasswordForm component", () => {
