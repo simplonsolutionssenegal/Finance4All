@@ -1,10 +1,14 @@
 import express from 'express';
-import userRoutes from './infrastructure/web/routes/user.routes';
 import { errorMiddleware } from './infrastructure/web/middleware/error.middleware';
 import { config } from './infrastructure/config';
 import { logger } from './utils/logger';
+import { userRoutes } from './infrastructure/web/routes/user.routes';
 
 const app = express();
+
+// Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
+app.disable('x-powered-by');
+
 
 // Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
 app.disable('x-powered-by');
