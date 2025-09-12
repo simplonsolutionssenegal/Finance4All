@@ -7,8 +7,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id    String @id
-  name  String
-  email String @unique
+enum UserStatus {
+    ACTIF
+    EN_ATTENTE
+    INACTIF
+    SUSPENDU
+  }
+
+enum UserRole{
+  ADMIN
+  SUPER_ADMIN
+  BENEFICIAIRE
 }
+
+  model User {
+    id        Int      @id @default(autoincrement())
+    email     String   @unique
+    // username ne doit pas avoir de valeur par défaut fixe pour éviter les collisions d'unicité
+    username  String?   @unique
+    firstName String
+    lastName  String
+    avatar    String?
+    password  String
+    status   UserStatus    @default(ACTIF)
+    isActive  Boolean  @default(true)
+    lastLoginAt  DateTime  @default(now())
+    role    UserRole
+    organisationId Int?
+   
+    organisation   Organisation? @relation(fields: [organisationId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now())
+  }
+
+model Role {
+    id        Int      @id @default(autoincrement())
+    name      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now())
+  }
+
+model Organisation {
+    id        Int      @id @default(autoincrement())
+    name      String
+    address   String
+    phone     String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    avatar    String?
+    users     User[]
+  }

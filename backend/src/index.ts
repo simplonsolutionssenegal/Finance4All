@@ -77,8 +77,10 @@ function startServer(): void {
       logger.info(`Environment: ${process.env.NODE_ENV}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
     });
-  } catch (error) {
-    logger.error('Failed to start server', { error });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    const stack = err instanceof Error ? err.stack : undefined;
+    logger.error('Failed to start server', { message, stack, err });
     process.exit(1);
   }
 }

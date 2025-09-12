@@ -1,13 +1,19 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { UserController } from '../controllers/UserController';
 import { PrismaUserRepository } from '../../database/PrismaUserRepository';
-import { CreateUserUseCaseImpl } from '../../../domain/use-cases/createUserUseCaseImpl';
+import { SignUpUserUseCaseImpl } from '@/domain/use-cases/SignUpUserUseCaseImpl';
+import { NodemailerEmailService } from '@/infrastructure/adapters/NodemailerEmailService';
+import { BcryptAuthService } from '@/infrastructure/adapters/BcryptAuthService';
 
 const router = Router();
 const userRepository = new PrismaUserRepository();
-const createUserUseCase = new CreateUserUseCaseImpl(userRepository);
-const userController = new UserController(createUserUseCase);
+const emailService = new NodemailerEmailService();
 
-router.post('/', (req, res) => userController.create(req, res));
+const authService = new BcryptAuthService();
+const SignUpUserUseCase = new SignUpUserUseCaseImpl(userRepository, emailService, authService);
+
+const userController = new UserController(SignUpUserUseCase);
+
+router.post('/signup', (req: Request, res: Response) => userController.signUp(req, res));
 
 export default router;

@@ -1,34 +1,26 @@
-// src/infrastructure/database/PrismaUserRepository.ts
-import { prisma } from './prisma';
+import { PrismaClient } from '@prisma/client';
 import { UserRepository } from '@/domain/repositories/UserRepository';
-import { User as DomainUser } from '@/domain/entities/User';
+import { User, CreateUserData } from '@/domain/entities/User';
 
-// Type temporaire pour les tests - sera remplacé par Prisma generate
-interface PrismaUser {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// Map sûr entre les types Prisma et ton domaine
-function toDomain(user: PrismaUser): DomainUser {
-  return new DomainUser(user.id, user.name, user.email);
-}
+const prisma = new PrismaClient();
 
 export class PrismaUserRepository implements UserRepository {
-  async findById(id: string): Promise<DomainUser | null> {
-    const user = await prisma.user.findUnique({ where: { id } });
-    return user ? toDomain(user) : null;
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    return user ? (user as User) : null;
   }
 
-  async save(user: DomainUser): Promise<DomainUser> {
-    const created = await prisma.user.create({
+  async signUp(data: CreateUserData): Promise<User> {
+    const user = await prisma.user.create({
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        password: data.password,
+        role: data.role,
+        status: data.status,
       },
     });
-    return toDomain(created);
+    return user as User;
   }
 }
