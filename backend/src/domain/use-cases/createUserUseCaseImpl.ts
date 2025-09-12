@@ -1,5 +1,5 @@
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
-import { UserRepository } from '../../domain/repositories/UserRepository';
+import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '../entities/User';
 /**
  * Implémentation concrète du cas d'utilisation de création d'utilisateur
@@ -22,7 +22,8 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
   }
 
   private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Utilisation d'une regex plus sécurisée sans risque de backtracking
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
   }
 }
