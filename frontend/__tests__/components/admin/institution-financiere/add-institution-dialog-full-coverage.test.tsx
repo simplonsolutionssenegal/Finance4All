@@ -5,6 +5,20 @@ import '@testing-library/jest-dom';
 import { AddInstitutionDialog } from '@/components/admin/institution-financiere/add-institution-dialog';
 // Unified full coverage test suite (now using userEvent for interactions to auto-wrap updates in act).
 
+// Suppress repetitive react-hook-form act() warnings to keep test output clean
+const originalConsoleError = console.error;
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('not wrapped in act(')) {
+      return; // swallow noisy act warnings
+    }
+    originalConsoleError(...args);
+  };
+});
+afterAll(() => {
+  console.error = originalConsoleError;
+});
+
 // Mock sonner toast
 jest.mock('sonner', () => ({
   toast: {
