@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Gitmoji Commits validation selon docs/coding-standards.md:62
+# Format: <emoji> <scope optional>: <description>
+# Examples: ✨ feat: add user authentication
+#           🐛 fix(api): resolve login bug  
+#           📚 docs: update README
+
+# Regex pour valider le format Gitmoji (emoji Unicode ou shortcode)
+# Format: <emoji obligatoire> <description> OU <emoji>(<scope>): <description>
+# Accepte: 🔧 message OU :wrench: message OU 🔧(scope): message
+commit_regex='^(:[a-z_]+:|.)((\(.+\):)| ).+'
+
+if ! grep -qE "$commit_regex" "$1"; then
+  echo "❌ Commit message invalide!"
+  echo "Format attendu selon docs/coding-standards.md: <emoji> <scope optional>: <description>"
+  echo "Exemples valides:"
+  echo "  ✨ add user authentication"
+  echo "  🐛(api): resolve login bug"
+  echo "  :wrench: update dependencies"
+  echo "  🔧(backend): update dependencies"
+  exit 1
+fi
+
+echo "✅ Commit message valide (format Gitmoji)"
