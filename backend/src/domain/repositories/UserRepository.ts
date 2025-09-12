@@ -16,7 +16,7 @@ export interface UserRepository {
     lastLoginFilter?: LastLoginFilter
   ): Promise<User[]>;
 
-  findById(id: string): Promise<User | null>;
+  findById(id: number): Promise<User | null>;
   save(user: User): Promise<User>;
 
   create(data: {
@@ -25,14 +25,14 @@ export interface UserRepository {
     password: string;
     roleId: number;
 
-    firstName?: string | null;
-    lastName?: string | null;
-    avatar?: string | null;
+    firstName: string;          // ⬅ requis
+    lastName: string;           // ⬅ requis
+    avatar?: string | null;     // optionnel (BD nullable)
     organisationId?: number | null;
 
     status?: UserStatus;
     isActive?: boolean;
-    lastLoginAt?: Date | null;
+    lastLoginAt?: Date | null;  // facultatif (DB a default(now()))
   }): Promise<User>;
 
 }
