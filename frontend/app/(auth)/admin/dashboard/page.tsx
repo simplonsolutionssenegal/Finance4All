@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">
-              0 aujourd'hui
+              0 aujourd&apos;hui
             </p>
           </CardContent>
         </Card>
