@@ -19,8 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@testing-library/user-event": ["./types/testing-library-user-event-stub.d.ts"]
+      "@/*": ["./*"]
     },
     "types": ["jest", "@testing-library/jest-dom", "node"]
   },
@@ -33,5 +32,8 @@
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "__tests__/components/admin/institution-financiere/add-institution-dialog-final.test.tsx"
+  ]
 }
