@@ -3,10 +3,12 @@ jest.mock('express', () => {
   const use = jest.fn();
   const post = jest.fn();
   const get = jest.fn();
+  const disable = jest.fn();
   const router = { post, get, use };
   const express = () => ({
     use: use,
     listen: listen,
+    disable: disable,
   });
   express.Router = () => router;
   express.json = () => {};
