@@ -10,7 +10,7 @@ export default function ForgotPassword() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary-400 relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/login-bg.png"
+            src="/assets/images/login-bg.svg"
             alt="Background image"
             fill
             className="object-cover opacity-50"
