@@ -9,6 +9,7 @@ const mockApp = {
     return { close: jest.fn() };
   }),
   get: jest.fn(),
+  disable: jest.fn(),
 };
 
 const mockExpress = jest.fn(() => mockApp);
