@@ -1,5 +1,12 @@
+// src/infrastructure/database/PrismaUserRepository.ts
 import { PrismaClient, UserStatus } from '@prisma/client';
-import { User } from '@/domain/entities/User';
+import type {
+  User as PrismaUser,
+  Role as PrismaRole,
+  Organisation as PrismaOrganisation,
+} from '@prisma/client';
+
+import { User as DomainUser } from '@/domain/entities/User';
 import { Role } from '@/domain/entities/Role';
 import { Organisation } from '@/domain/entities/Organisation';
 import { UserRepository } from '@/domain/repositories/UserRepository';
@@ -7,51 +14,99 @@ import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationA
 
 const prisma = new PrismaClient();
 
+type PrismaUserWithRels = PrismaUser & {
+  role: PrismaRole;
+  organisation: PrismaOrganisation | null;
+};
+
+export function toDomain(u: PrismaUserWithRels): DomainUser {
+  return new DomainUser(
+    u.id,
+    u.email,
+    u.username,
+    u.firstName,                                // non-null (schéma)
+    u.lastName,                                 // non-null (schéma)
+    u.avatar ?? '',                 // domaine non-null → fallback
+    u.password,
+    u.isActive,
+    new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
+    u.status,
+    u.lastLoginAt ?? null,                      // tu as gardé Date | null dans le domaine
+    u.organisationId ?? null,
+    u.organisation
+      ? new Organisation(
+          u.organisation.id,
+          u.organisation.name,
+          u.organisation.avatar ?? '',
+          u.organisation.address,
+          u.organisation.phone,
+          u.organisation.createdAt,
+          u.organisation.updatedAt
+        )
+      : null,
+    u.createdAt,
+    u.updatedAt
+  );
+}
+
 export class PrismaUserRepository implements UserRepository {
 
-  async findAll(): Promise<User[]> {
-    const users = await prisma.user.findMany({
+  async findAll(): Promise<DomainUser[]> {
+    const user = await prisma.user.findMany({
       include: { role: true, organisation: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
-    return users.map(this.mapToDomain);
+    return user.map(toDomain);
   }
 
   async create(data: {
     email: string;
     username: string;
-    firstName?: string;
-    lastName?: string;
-    avatar?: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string | null;
     password: string;
     isActive?: boolean;
     roleId: number;
-    organisationId?: number;        // ✅ ajouté
-    status?: UserStatus;            // (optionnel)
-    lastLoginAt?: Date;             // (optionnel)
-  }): Promise<User> {
+    organisationId?: number | null;
+    status?: UserStatus;
+    lastLoginAt?: Date | null;
+  }): Promise<DomainUser> {
     const user = await prisma.user.create({
-      data,
-      include: { role: true, organisation: true }
+      data: {
+        email: data.email,
+        username: data.username,
+        firstName: data.firstName,                 // requis
+        lastName:  data.lastName,                  // requis
+        avatar:    data.avatar ?? null,            // BD nullable
+        password:  data.password,
+        isActive:  data.isActive ?? true,
+        roleId:    data.roleId,
+        organisationId: data.organisationId ?? null,
+        status:    data.status ?? 'ACTIF',
+        ...(data.lastLoginAt ? { lastLoginAt: data.lastLoginAt } : {}),
+      },
+      include: { role: true, organisation: true },
     });
-    return this.mapToDomain(user);
+
+    return toDomain(user);
   }
 
-  async findUsersByStatus(statuses: UserStatus[]): Promise<User[]> {
-    const users = await prisma.user.findMany({
+  async findUsersByStatus(statuses: UserStatus[]): Promise<DomainUser[]> {
+    const user = await prisma.user.findMany({
       where: { status: { in: statuses } },
       include: { role: true, organisation: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
-    return users.map(this.mapToDomain);
+    return user.map(toDomain);
   }
 
-   async findUsersByOrganisationAndStatus(
+  async findUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: any[],
+    statuses: UserStatus[],               // tape précis
     roles?: string[],
     lastLoginFilter?: LastLoginFilter
-  ): Promise<User[]> {
+  ): Promise<DomainUser[]> {
     const where: any = {
       organisationId,
       status: { in: statuses },
@@ -61,7 +116,6 @@ export class PrismaUserRepository implements UserRepository {
       where.role = { name: { in: roles } };
     }
 
-    // === lastLoginAt range ===
     if (lastLoginFilter) {
       const now = new Date();
 
@@ -71,7 +125,6 @@ export class PrismaUserRepository implements UserRepository {
       }
 
       if (lastLoginFilter.type === 'last_month') {
-        // mois calendaire précédent (UTC)
         const firstOfThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
         const firstOfPrevMonth = new Date(
           Date.UTC(
@@ -84,88 +137,58 @@ export class PrismaUserRepository implements UserRepository {
       }
 
       if (lastLoginFilter.type === 'custom_date') {
-        // de 00:00:00Z à 00:00:00Z du lendemain
-        const d = lastLoginFilter.date; // déjà en UTC min d’après ton controller
+        const d = lastLoginFilter.date;
         const next = new Date(d.getTime() + 24 * 60 * 60 * 1000);
         where.lastLoginAt = { gte: d, lt: next };
       }
     }
 
-    const rows = await prisma.user.findMany({
+    const user = await prisma.user.findMany({
       where,
       include: { role: true, organisation: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    return rows.map(this.mapToDomain);
+    return user.map(toDomain);
   }
 
-  async findByOrganisationId(organisationId: number): Promise<User[]> {
-    const users = await prisma.user.findMany({
+  async findByOrganisationId(organisationId: number): Promise<DomainUser[]> {
+    const user = await prisma.user.findMany({
       where: { organisationId },
       include: { role: true, organisation: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
-    return users.map(this.mapToDomain);
+    return user.map(toDomain);
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: number): Promise<DomainUser | null> {
     const user = await prisma.user.findUnique({
-      where: { id: Number(id) },
-      include: { role: true, organisation: true }
+      where: { id },                             // id est number dans ton interface
+      include: { role: true, organisation: true },
     });
-    
-    return user ? this.mapToDomain(user) : null;
+
+    return user ? toDomain(user) : null;
   }
 
-  async save(user: User): Promise<User> {
-    const updatedUser = await prisma.user.update({
+  async save(user: DomainUser): Promise<DomainUser> {
+    const created = await prisma.user.update({
       where: { id: user.id },
       data: {
         email: user.email,
         username: user.username,
-        firstName: user.firstName || null,
-        lastName: user.lastName || null,
-        avatar: user.avatar || null,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatar: user.avatar,
         isActive: user.isActive,
         status: user.status,
-        lastLoginAt: user.lastLoginAt || undefined, // Utilisation de undefined au lieu de null pour Prisma
-        organisationId: user.organisationId || null,
-        roleId: user.role?.id || 1 // Valeur par défaut si non définie
+        // si tu veux vraiment garder Date|null en domaine :
+        ...(user.lastLoginAt != null ? { lastLoginAt: user.lastLoginAt } : {}),
+        organisationId: user.organisationId ?? null,
+        roleId: user.role?.id ?? 1,
       },
-      include: { role: true, organisation: true }
+      include: { role: true, organisation: true },
     });
-    
-    return this.mapToDomain(updatedUser);
-  }
 
-  private mapToDomain(u: any): User {
-    return new User(
-      u.id,
-      u.email,
-      u.username,
-      u.firstName ?? null,
-      u.lastName ?? null,
-      u.avatar ?? null,
-      u.password,
-      u.isActive,
-      new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
-      u.status,
-      u.lastLoginAt ?? null,
-      u.organisationId ?? null,
-      u.organisation
-        ? new Organisation(
-            u.organisation.id,
-            u.organisation.name,
-            u.organisation.avatar ?? '',
-            u.organisation.address,
-            u.organisation.phone,
-            u.organisation.createdAt,
-            u.organisation.updatedAt
-          )
-        : null,
-      u.createdAt,
-      u.updatedAt
-    );
-  }
+    return toDomain(created);
+    }
 }
