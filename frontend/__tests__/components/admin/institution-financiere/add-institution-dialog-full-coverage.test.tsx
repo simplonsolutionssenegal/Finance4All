@@ -481,7 +481,7 @@ describe('AddInstitutionDialog - Complete Coverage (Updated line mapping, no use
   // (Removed redundant extended real submission test; consolidated into earlier onSubmit success test)
 
   // NEW: Cover handleLogoChange else path lines 123 & onChange lines 355-357 with empty files
-  it('clears logo preview when file list is empty (lines 123,355-357)', async () => {
+  it('clears logo preview when file list is empty (lines 123,355-357)', async () => { // cache-bust tweak
     render(<AddInstitutionDialog open={true} onOpenChange={() => {}} />);
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // First upload a file to set preview
