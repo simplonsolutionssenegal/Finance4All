@@ -2,6 +2,14 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
+# Arguments de build pour les variables d'environnement
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG CLERK_SECRET_KEY
+
+# Définir les variables d'environnement pour le build
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
+
 # Copier seulement les fichiers de dépendances
 COPY package*.json ./
 
