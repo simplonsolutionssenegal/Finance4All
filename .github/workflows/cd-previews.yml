@@ -195,6 +195,13 @@ jobs:
                   imagePullPolicy: Never
                   ports:
                   - containerPort: 80
+                  env:
+                  - name: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+                    value: "${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
+                  - name: CLERK_SECRET_KEY
+                    value: "${{ secrets.CLERK_SECRET_KEY }}"
+                  - name: PORT
+                    value: "80"
           ---
           apiVersion: v1
           kind: Service
