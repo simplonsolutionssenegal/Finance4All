@@ -13,6 +13,11 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
 
     if (!email || !username || !password || !roleId) {
       throw new Error('email, username, password et roleId sont requis');
+  async execute(dto: CreateUserDTO): Promise<User> {
+    const { email, username, password, roleId } = dto;
+
+    if (!email || !username || !password || !roleId) {
+      throw new Error('email, username, password et roleId sont requis');
     }
     this.isValidEmail(email);
 

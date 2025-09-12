@@ -9,10 +9,6 @@ const app = express();
 // Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
 app.disable('x-powered-by');
 
-
-// Désactiver l'en-tête X-Powered-By pour des raisons de sécurité
-app.disable('x-powered-by');
-
 app.use(express.json());
 
 app.use('/users', userRoutes);
