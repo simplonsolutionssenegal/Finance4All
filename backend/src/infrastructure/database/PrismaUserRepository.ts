@@ -45,7 +45,7 @@ export function toDomain(u: PrismaUserWithRels): DomainUser {
         )
       : null,
     u.createdAt,
-    u.updatedAt
+    u.updatedAt,
   );
 }
 
@@ -105,9 +105,14 @@ export class PrismaUserRepository implements UserRepository {
     organisationId: number,
     statuses: UserStatus[],               // tape précis
     roles?: string[],
-    lastLoginFilter?: LastLoginFilter
+    lastLoginFilter?: LastLoginFilter,
   ): Promise<DomainUser[]> {
-    const where: any = {
+    const where: {
+      organisationId: number;
+      status: { in: UserStatus[] };
+      role?: { name: { in: string[] } };
+      lastLoginAt?: { gte?: Date; lt?: Date };
+    } = {
       organisationId,
       status: { in: statuses },
     };

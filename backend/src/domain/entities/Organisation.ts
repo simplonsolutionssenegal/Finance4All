@@ -6,6 +6,6 @@ export class Organisation {
     public address: string,
     public phone: string,
     public createdAt: Date,
-    public updatedAt: Date
+    public updatedAt: Date,
   ) {}
 }
