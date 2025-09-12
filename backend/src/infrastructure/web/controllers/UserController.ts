@@ -7,6 +7,7 @@ export class UserController {
   ) {
   }
 
+
   async create(req: Request, res: Response): Promise<void> {
     try {
       const { name, email } = req.body as { name?: string; email?: string };
