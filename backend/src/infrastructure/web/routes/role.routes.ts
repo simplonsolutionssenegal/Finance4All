@@ -1,6 +1,5 @@
 // backend/src/infrastructure/web/routes/role.routes.ts
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 
 // --- imports hex ---
 // adapte les chemins si tu n'utilises pas les alias "@/..."

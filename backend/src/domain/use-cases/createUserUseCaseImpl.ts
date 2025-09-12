@@ -12,7 +12,7 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
     const { email, username, password, roleId } = dto;
 
     if (!email || !username || !password || !roleId) {
-      throw new Error("email, username, password et roleId sont requis");
+      throw new Error('email, username, password et roleId sont requis');
     }
     this.isValidEmail(email);
 
@@ -27,7 +27,7 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
       organisationId: dto.organisationId ?? null,
       status: dto.status ?? UserStatus.ACTIF,
       isActive: dto.isActive ?? true,
-      lastLoginAt: dto.lastLoginAt ?? new Date()
+      lastLoginAt: dto.lastLoginAt ?? new Date(),
     });
   }
 

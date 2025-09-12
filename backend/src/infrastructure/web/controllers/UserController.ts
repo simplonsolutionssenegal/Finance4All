@@ -1,35 +1,16 @@
-import { Request, Response, NextFunction } from 'express';
-import { CreateUserUseCase } from '../../../application/use-cases/CreateUserUseCase';
-import { asyncHandler } from '../middleware/error.middleware';
+import { Request, Response} from 'express';
 import { UserService } from '../services/user.service';
-import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
 import { UserStatus } from '@prisma/client';
-import { GetUsersByOrganisationUseCase } from '@/application/use-cases/GetUsersByOrganisationUseCase';
-import { GetUsersByOrganisationAndStatusUseCase } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 
 
-// const userService = new UserService(new PrismaUserRepository());
 
 export class UserController {
-  constructor(private readonly userService: UserService
+  constructor(
+    private readonly userService: UserService,
   ) { }
 
 
-  // async create(req: Request, res: Response): Promise<void> {
-  //   const { name, email } = req.body as { name: string; email: string };
-
-  //   try {
-  //     const user = await this.createUserUseCase.execute(name, email);
-  //     res.status(201).json(user);
-  //   } catch (error) {
-  //     res.status(400).json({
-  //       error: 'Erreur lors de la création de l\'utilisateur',
-  //       message: error instanceof Error ? error.message : 'Erreur inconnue',
-  //     });
-  //   }
-  // }
-
-
+ 
 
   async getUsersByOrganisation(req: Request, res: Response): Promise<void> {
     const organisationId = Number(req.params.organisationId);
@@ -69,18 +50,18 @@ export class UserController {
               address: u.organisation.address,
               phone: u.organisation.phone,
               createdAt: u.organisation.createdAt,
-              updatedAt: u.organisation.updatedAt
+              updatedAt: u.organisation.updatedAt,
             }
             : null,
           createdAt: u.createdAt,
-          updatedAt: u.updatedAt
+          updatedAt: u.updatedAt,
         }))
       });
     } catch (err) {
       console.error('Error filtering users:', err);
       res.status(500).json({
         status: 'error',
-        message: 'Erreur lors de la récupération des utilisateurs par organisation'
+        message: 'Erreur lors de la récupération des utilisateurs par organisation',
       });
     }
   }
@@ -94,7 +75,7 @@ export class UserController {
       if (Number.isNaN(organisationId)) {
         res.status(400).json({
           status: 'fail',
-          message: 'ID organisation invalide'
+          message: 'ID organisation invalide',
         });
         return;
       }
@@ -119,7 +100,7 @@ export class UserController {
         if (!customDate) {
           res.status(400).json({
             status: 'fail',
-            message: 'Le paramètre customDate est requis pour le filtre de date personnalisé'
+            message: 'Le paramètre customDate est requis pour le filtre de date personnalisé',
           });
           return;
         }
@@ -130,7 +111,7 @@ export class UserController {
         if (!dateRegex.test(dateStr)) {
           res.status(400).json({
             status: 'fail',
-            message: 'Format de date invalide. Utilisez le format YYYY-MM-DD (ex: 2025-09-01)'
+            message: 'Format de date invalide. Utilisez le format YYYY-MM-DD (ex: 2025-09-01)',
           });
           return;
         }
@@ -140,7 +121,7 @@ export class UserController {
         if (isNaN(date.getTime())) {
           res.status(400).json({
             status: 'fail',
-            message: 'Date invalide'
+            message: 'Date invalide',
           });
           return;
         }
@@ -174,18 +155,18 @@ export class UserController {
               address: u.organisation.address,
               phone: u.organisation.phone,
               createdAt: u.organisation.createdAt,
-              updatedAt: u.organisation.updatedAt
+              updatedAt: u.organisation.updatedAt,
             }
             : null,
           createdAt: u.createdAt,
-          updatedAt: u.updatedAt
+          updatedAt: u.updatedAt,
         }))
       });
     } catch (error) {
       console.error('Error filtering users:', error);
       res.status(500).json({
         status: 'error',
-        message: 'Une erreur est survenue lors du filtrage des utilisateurs'
+        message: 'Une erreur est survenue lors du filtrage des utilisateurs',
       });
     }
   }

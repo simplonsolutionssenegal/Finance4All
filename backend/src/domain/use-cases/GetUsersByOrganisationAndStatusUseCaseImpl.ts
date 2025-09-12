@@ -12,7 +12,7 @@ export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrg
     organisationId: number,
     statuses: UserStatus[] | undefined,
     roles?: string[],
-    lastLoginFilter?: LastLoginFilter
+    lastLoginFilter?: LastLoginFilter,
   ): Promise<User[]> {
     if (!Number.isFinite(organisationId) || organisationId <= 0) {
       throw new Error('organisationId invalide');
@@ -26,7 +26,7 @@ export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrg
       organisationId,
       effectiveStatuses,
       roles,
-      lastLoginFilter
+      lastLoginFilter,
     );
   }
 }
