@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
 import { InstitutionFinanciereController } from '@/infrastructure/web/controllers/InstitutionFinanciereController';
+import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
 describe('InstitutionFinanciereController', () => {
@@ -170,7 +171,7 @@ describe('InstitutionFinanciereController', () => {
 
     it('should handle not found', async () => {
       mockRequest.params = { id: '999' };
-      const error = new Error('Institution financière non trouvée');
+  const error = new InstitutionNotFoundError('999');
       mockGetByIdUseCase.execute.mockRejectedValue(error);
 
       await controller.getById(mockRequest as any, mockResponse as any);
@@ -258,7 +259,7 @@ describe('InstitutionFinanciereController', () => {
 
     it('should handle not found error in delete', async () => {
       mockRequest.params = { id: '999' };
-      const error = new Error('Institution financière non trouvée');
+  const error = new InstitutionNotFoundError('999');
       mockDeleteUseCase.execute.mockRejectedValue(error);
 
       await controller.delete(mockRequest as any, mockResponse as any);

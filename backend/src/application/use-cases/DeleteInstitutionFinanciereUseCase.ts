@@ -1,4 +1,5 @@
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
 export class DeleteInstitutionFinanciereUseCase {
   constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}
@@ -7,7 +8,7 @@ export class DeleteInstitutionFinanciereUseCase {
     // Vérifier si l'institution existe avant de la supprimer
     const existingInstitution = await this.institutionFinanciereRepository.findById(id);
     if (!existingInstitution) {
-      throw new Error('Institution financière non trouvée');
+      throw new InstitutionNotFoundError(id);
     }
 
     const deleted = await this.institutionFinanciereRepository.delete(id);

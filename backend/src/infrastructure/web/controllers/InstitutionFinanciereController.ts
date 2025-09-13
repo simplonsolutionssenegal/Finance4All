@@ -5,6 +5,7 @@ import { GetPaginatedInstitutionsFinancieresUseCase } from '@/application/use-ca
 import { GetInstitutionFinanciereByIdUseCase } from '@/application/use-cases/GetInstitutionFinanciereByIdUseCase';
 import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/DeleteInstitutionFinanciereUseCase';
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
 export class InstitutionFinanciereController {
   constructor(
@@ -89,7 +90,7 @@ export class InstitutionFinanciereController {
         message: 'Institution financière récupérée avec succès',
       });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Institution financière non trouvée') {
+      if (error instanceof InstitutionNotFoundError) {
         res.status(404).json({
           success: false,
           message: 'Institution financière non trouvée',
@@ -119,7 +120,7 @@ export class InstitutionFinanciereController {
         message: 'Institution financière supprimée avec succès',
       });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Institution financière non trouvée') {
+      if (error instanceof InstitutionNotFoundError) {
         res.status(404).json({
           success: false,
           message: 'Institution financière non trouvée',

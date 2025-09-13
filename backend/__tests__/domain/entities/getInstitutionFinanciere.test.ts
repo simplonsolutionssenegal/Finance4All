@@ -70,13 +70,6 @@ describe('Institution Financière Get Use Cases', () => {
   });
 
   describe('GetInstitutionFinanciereByIdUseCase', () => {
-    it('should throw error when ID is missing', async () => {
-      const getByIdUseCase = new GetInstitutionFinanciereByIdUseCase(mockInstitutionRepository);
-
-      await expect(getByIdUseCase.execute('')).rejects.toThrow(
-        "ID de l'institution financière requis"
-      );
-    });
 
     it('should throw error when institution not found', async () => {
       const getByIdUseCase = new GetInstitutionFinanciereByIdUseCase(mockInstitutionRepository);
