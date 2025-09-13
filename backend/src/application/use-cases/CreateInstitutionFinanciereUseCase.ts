@@ -1,5 +1,7 @@
 import { InstitutionFinanciere } from '../../domain/entities/InstitutionFinanciere';
 import { InstitutionFinanciereRepository } from '../../domain/repositories/InstitutionFinanciereRepository';
+import { isValidUrl } from '@/utils/isValidUrl';
+import { isValidEmail } from '@/utils/isValidEmail';
 
 export class CreateInstitutionFinanciereUseCase {
   constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}
@@ -18,7 +20,7 @@ export class CreateInstitutionFinanciereUseCase {
       throw new Error('La description doit contenir entre 10 et 1000 caractères');
     }
     // 4. URL site web
-    if (!this.isValidUrl(data.siteWeb)) {
+  if (!isValidUrl(data.siteWeb)) {
       throw new Error('Une URL valide est requise pour le site web');
     }
     // 5. Régions desservies
@@ -31,7 +33,7 @@ export class CreateInstitutionFinanciereUseCase {
       }
     }
     // 6. Email contact (optionnel)
-    if (data.contactEmail && !this.isValidEmail(data.contactEmail)) {
+  if (data.contactEmail && !isValidEmail(data.contactEmail)) {
       throw new Error('L\'adresse email du contact n\'est pas valide');
     }
     // 7. Téléphone contact (optionnel)
@@ -66,20 +68,5 @@ export class CreateInstitutionFinanciereUseCase {
     return this.institutionFinanciereRepository.create(institution);
   }
 
-  private isValidUrl(url: string): boolean {
-    if (!url || url.length > 2048) return false;
-    try {
-      const parsed = new URL(url);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  }
-
-  private isValidEmail(email: string): boolean {
-    if (!email || email.length > 254) return false;
-    const emailRegex = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    return emailRegex.test(email);
-  }
 }
 
