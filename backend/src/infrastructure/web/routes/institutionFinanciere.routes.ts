@@ -5,6 +5,7 @@ import { CreateInstitutionFinanciereUseCase } from '@/application/use-cases/Crea
 import { GetAllInstitutionsFinancieresUseCase } from '@/application/use-cases/GetAllInstitutionsFinancieresUseCase';
 import { GetInstitutionFinanciereByIdUseCase } from '@/application/use-cases/GetInstitutionFinanciereByIdUseCase';
 import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/DeleteInstitutionFinanciereUseCase';
+import { GetPaginatedInstitutionsFinancieresUseCase } from '@/application/use-cases/GetPaginatedInstitutionsFinancieresUseCase';
 import { validateCreateInstitutionFinanciere } from '@/infrastructure/web/middleware/institutionFinanciere.validation';
 import { prisma } from '@/infrastructure/database/prisma';
 //import { authMiddleware } from '../middleware/auth.middleware';
@@ -25,9 +26,13 @@ const getInstitutionFinanciereByIdUseCase = new GetInstitutionFinanciereByIdUseC
 const deleteInstitutionFinanciereUseCase = new DeleteInstitutionFinanciereUseCase(
   institutionFinanciereRepository,
 );
+const getPaginatedInstitutionsFinancieresUseCase = new GetPaginatedInstitutionsFinancieresUseCase(
+  institutionFinanciereRepository,
+);
 const institutionFinanciereController = new InstitutionFinanciereController(
   createInstitutionFinanciereUseCase,
   getAllInstitutionsFinancieresUseCase,
+  getPaginatedInstitutionsFinancieresUseCase,
   getInstitutionFinanciereByIdUseCase,
   deleteInstitutionFinanciereUseCase,
 );

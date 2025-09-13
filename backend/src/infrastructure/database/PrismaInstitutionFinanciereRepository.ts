@@ -38,6 +38,14 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
     return list as unknown as InstitutionFinanciere[];
   }
 
+  async findPaginated(skip: number, take: number): Promise<{ data: InstitutionFinanciere[]; total: number; }> {
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.institutionFinanciere.findMany({ skip, take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.institutionFinanciere.count(),
+    ]);
+    return { data: data as unknown as InstitutionFinanciere[], total };
+  }
+
   async update(
     id: string,
     institution: Partial<InstitutionFinanciere>,

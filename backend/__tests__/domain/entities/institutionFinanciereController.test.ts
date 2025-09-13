@@ -22,9 +22,10 @@ describe('InstitutionFinanciereController', () => {
   };
 
   // Mock Express Request and Response
-  const mockRequest = {
+  const mockRequest: any = {
     body: {},
     params: {},
+    query: {},
   };
 
   const mockResponse = {
@@ -32,11 +33,13 @@ describe('InstitutionFinanciereController', () => {
     json: jest.fn().mockReturnThis(),
   };
 
+  const mockPaginatedUseCase = { execute: jest.fn() };
   const controller = new InstitutionFinanciereController(
     mockCreateUseCase,
     mockGetAllUseCase,
+    mockPaginatedUseCase,
     mockGetByIdUseCase,
-    mockDeleteUseCase
+    mockDeleteUseCase,
   );
 
   const validInstitution: InstitutionFinanciere = {
@@ -49,6 +52,9 @@ describe('InstitutionFinanciereController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRequest.body = {};
+    mockRequest.params = {};
+    mockRequest.query = {};
   });
 
   describe('create', () => {
@@ -126,6 +132,24 @@ describe('InstitutionFinanciereController', () => {
         error: 'Database error',
       });
     });
+
+    it('should return paginated result when query params provided', async () => {
+      mockRequest.query = { page: '2', limit: '5' };
+      const paginatedResult = {
+        data: [validInstitution],
+        meta: { page: 2, limit: 5, totalItems: 12, totalPages: 3, hasNextPage: true, hasPrevPage: true },
+      };
+      mockPaginatedUseCase.execute.mockResolvedValue(paginatedResult);
+      await controller.getAll(mockRequest as any, mockResponse as any);
+      expect(mockPaginatedUseCase.execute).toHaveBeenCalledWith({ page: 2, limit: 5 });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: paginatedResult.data,
+        meta: paginatedResult.meta,
+        message: 'Institutions financières récupérées avec succès (pagination)'
+      }));
+    });
   });
 
   describe('getById', () => {
@@ -162,8 +186,9 @@ describe('InstitutionFinanciereController', () => {
       const controllerWithoutGetById = new InstitutionFinanciereController(
         mockCreateUseCase,
         mockGetAllUseCase,
-        undefined, // pas de getById use case
-        mockDeleteUseCase
+        undefined, // paginated
+        undefined, // getById
+        mockDeleteUseCase,
       );
       
       mockRequest.params = { id: '123' };
@@ -214,8 +239,9 @@ describe('InstitutionFinanciereController', () => {
       const controllerWithoutDelete = new InstitutionFinanciereController(
         mockCreateUseCase,
         mockGetAllUseCase,
+        undefined, // paginated
         mockGetByIdUseCase,
-        undefined // pas de delete use case
+        undefined, // delete
       );
       
       mockRequest.params = { id: '123' };
