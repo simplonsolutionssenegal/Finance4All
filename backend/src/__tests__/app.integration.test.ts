@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index';
+import app from '@/index';
 
 // Mock external dependencies
 jest.mock('@/utils/logger', () => ({
@@ -13,7 +13,7 @@ jest.mock('@clerk/express', () => ({
   clerkMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
-jest.mock('../infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/database/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

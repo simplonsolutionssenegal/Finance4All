@@ -1,9 +1,9 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PrismaUserRepository } from '../infrastructure/database/PrismaUserRepository';
-import { User as DomainUser } from '../domain/entities/User';
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
+import { User as DomainUser } from '@/domain/entities/User';
 
 // Mock Prisma
-jest.mock('../infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/database/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock('../infrastructure/database/prisma', () => ({
   },
 }));
 
-const mockPrisma = require('../infrastructure/database/prisma').prisma;
+const mockPrisma = require('@/infrastructure/database/prisma').prisma;
 
 describe('PrismaUserRepository', () => {
   let userRepository: PrismaUserRepository;

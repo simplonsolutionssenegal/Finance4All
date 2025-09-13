@@ -88,7 +88,7 @@ describe('Index.ts Integration Tests', () => {
       process.env.NODE_ENV = 'development';
       
       // Require the module to execute it
-      require('../index');
+  require('@/index');
       
       // Wait for async operations
       return new Promise(resolve => {
@@ -141,7 +141,7 @@ describe('Index.ts Integration Tests', () => {
       
       // Import the module dynamically to trigger signal handler registration
       jest.isolateModules(() => {
-        require('../index');
+  require('@/index');
       });
       
       // Check if SIGINT handler was registered
@@ -165,7 +165,7 @@ describe('Index.ts Integration Tests', () => {
       
       // Import the module dynamically to trigger signal handler registration
       jest.isolateModules(() => {
-        require('../index');
+  require('@/index');
       });
       
       // Check if SIGTERM handler was registered
@@ -193,7 +193,7 @@ describe('Index.ts Integration Tests', () => {
       
       // Import the module in isolation to trigger server startup
       jest.isolateModules(() => {
-        require('../index');
+  require('@/index');
       });
       
       // Wait for async operations
@@ -227,7 +227,7 @@ describe('Index.ts Integration Tests', () => {
       
       // Import the module in isolation
       jest.isolateModules(() => {
-        require('../index');
+  require('@/index');
       });
       
       // Wait for error handling
@@ -252,7 +252,7 @@ describe('Index.ts Integration Tests', () => {
       
       // Import the module in isolation
       jest.isolateModules(() => {
-        require('../index');
+  require('@/index');
       });
       
       // Wait for initialization

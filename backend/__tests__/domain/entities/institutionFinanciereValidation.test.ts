@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
-import { validateCreateInstitutionFinanciere } from '../infrastructure/web/middleware/institutionFinanciere.validation';
+import { validateCreateInstitutionFinanciere } from '@/infrastructure/web/middleware/institutionFinanciere.validation';
 
 describe('InstitutionFinanciere Validation Middleware', () => {
   const mockRequest = {

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { CreateInstitutionFinanciereUseCase } from '../../../application/use-cases/CreateInstitutionFinanciereUseCase';
-import { GetAllInstitutionsFinancieresUseCase } from '../../../application/use-cases/GetAllInstitutionsFinancieresUseCase';
-import { GetPaginatedInstitutionsFinancieresUseCase } from '../../../application/use-cases/GetPaginatedInstitutionsFinancieresUseCase';
-import { GetInstitutionFinanciereByIdUseCase } from '../../../application/use-cases/GetInstitutionFinanciereByIdUseCase';
-import { DeleteInstitutionFinanciereUseCase } from '../../../application/use-cases/DeleteInstitutionFinanciereUseCase';
-import { InstitutionFinanciere } from '../../../domain/entities/InstitutionFinanciere';
+import { CreateInstitutionFinanciereUseCase } from '@/application/use-cases/CreateInstitutionFinanciereUseCase';
+import { GetAllInstitutionsFinancieresUseCase } from '@/application/use-cases/GetAllInstitutionsFinancieresUseCase';
+import { GetPaginatedInstitutionsFinancieresUseCase } from '@/application/use-cases/GetPaginatedInstitutionsFinancieresUseCase';
+import { GetInstitutionFinanciereByIdUseCase } from '@/application/use-cases/GetInstitutionFinanciereByIdUseCase';
+import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/DeleteInstitutionFinanciereUseCase';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
 export class InstitutionFinanciereController {
   constructor(

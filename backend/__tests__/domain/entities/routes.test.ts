@@ -3,8 +3,8 @@ import request from 'supertest';
 import express from 'express';
 
 // Mock des routes enfants
-jest.mock('../infrastructure/web/routes/user.routes');
-jest.mock('../infrastructure/web/routes/institutionFinanciere.routes');
+jest.mock('@/infrastructure/web/routes/user.routes');
+jest.mock('@/infrastructure/web/routes/institutionFinanciere.routes');
 
 const mockUserRoutes = jest.fn((req: any, res: any, next: any) => {
   if (req.path === '/profile') {
@@ -22,8 +22,8 @@ const mockInstitutionRoutes = jest.fn((req: any, res: any, next: any) => {
   }
 });
 
-jest.mocked(require('../infrastructure/web/routes/user.routes')).default = mockUserRoutes;
-jest.mocked(require('../infrastructure/web/routes/institutionFinanciere.routes')).default = mockInstitutionRoutes;
+jest.mocked(require('@/infrastructure/web/routes/user.routes')).default = mockUserRoutes;
+jest.mocked(require('@/infrastructure/web/routes/institutionFinanciere.routes')).default = mockInstitutionRoutes;
 
 describe('API Routes', () => {
   let app: express.Application;
@@ -38,7 +38,7 @@ describe('API Routes', () => {
     app.use(express.json());
     
     // Importer et utiliser les routes après la configuration des mocks
-    const { apiRoutes } = require('../routes/index');
+  const { apiRoutes } = require('@/routes/index');
     app.use('/api', apiRoutes);
   });
 
@@ -160,13 +160,13 @@ describe('API Routes', () => {
 
   describe('Router Configuration', () => {
     it('should export apiRoutes correctly', () => {
-      const { apiRoutes } = require('../routes/index');
+  const { apiRoutes } = require('@/routes/index');
       expect(apiRoutes).toBeDefined();
       expect(typeof apiRoutes).toBe('function'); // Express Router is a function
     });
 
     it('should be configurable as Express middleware', () => {
-      const { apiRoutes } = require('../routes/index');
+  const { apiRoutes } = require('@/routes/index');
       const testApp = express();
       
       // Ne devrait pas lever d'erreur

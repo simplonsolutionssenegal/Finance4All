@@ -37,7 +37,7 @@ describe('Institution Financiere Routes Direct Coverage', () => {
     jest.clearAllMocks();
 
     // Import the router after all mocks are set up
-    router = require('../infrastructure/web/routes/institutionFinanciere.routes').default;
+  router = require('@/infrastructure/web/routes/institutionFinanciere.routes').default;
   });
 
   describe('Route Handler Function Coverage', () => {

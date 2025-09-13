@@ -1,11 +1,11 @@
 // Consolidated tests for Institution routes, entity, and delete use case
 import request from 'supertest';
 import express from 'express';
-import { prisma } from '../infrastructure/database/prisma';
-import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
-import { DeleteInstitutionFinanciereUseCase } from '../application/use-cases/DeleteInstitutionFinanciereUseCase';
+import { prisma } from '@/infrastructure/database/prisma';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/DeleteInstitutionFinanciereUseCase';
 
-jest.mock('../infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/database/prisma', () => ({
   prisma: {
     institutionFinanciere: {
       findMany: jest.fn(),
@@ -15,7 +15,7 @@ jest.mock('../infrastructure/database/prisma', () => ({
 }));
 
 // Import router after prisma mock
-import institutionFinanciereRoutes from '../infrastructure/web/routes/institutionFinanciere.routes';
+import institutionFinanciereRoutes from '@/infrastructure/web/routes/institutionFinanciere.routes';
 
 // Build isolated app instance for these route tests only
 const app = express();

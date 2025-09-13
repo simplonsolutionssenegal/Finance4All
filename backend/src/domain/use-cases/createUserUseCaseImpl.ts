@@ -1,6 +1,6 @@
-import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
-import type { UserRepository } from '@/domain/repositories/UserRepository';
-import { User } from '../entities/User';
+import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
+import { UserRepository } from '@/domain/repositories/UserRepository';
+import { User } from '@/domain/entities/User';
 import { isValidEmail } from '@/utils/isValidEmail';
 /**
  * Implémentation concrète du cas d'utilisation de création d'utilisateur

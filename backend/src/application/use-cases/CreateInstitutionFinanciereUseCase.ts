@@ -1,5 +1,5 @@
-import { InstitutionFinanciere } from '../../domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '../../domain/repositories/InstitutionFinanciereRepository';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { isValidUrl } from '@/utils/isValidUrl';
 import { isValidEmail } from '@/utils/isValidEmail';
 

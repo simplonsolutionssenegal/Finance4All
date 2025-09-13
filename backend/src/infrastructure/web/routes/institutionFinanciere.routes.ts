@@ -8,7 +8,7 @@ import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/Dele
 import { GetPaginatedInstitutionsFinancieresUseCase } from '@/application/use-cases/GetPaginatedInstitutionsFinancieresUseCase';
 import { validateCreateInstitutionFinanciere } from '@/infrastructure/web/middleware/institutionFinanciere.validation';
 import { prisma } from '@/infrastructure/database/prisma';
-//import { authMiddleware } from '../middleware/auth.middleware';
+// import { authMiddleware } from '@/infrastructure/web/middleware/auth.middleware';
 
 const router = express.Router();
 

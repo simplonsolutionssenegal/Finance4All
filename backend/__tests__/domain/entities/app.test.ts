@@ -47,7 +47,7 @@ describe('Express App Integration', () => {
     process.env.CORS_ORIGIN = 'http://localhost:3000';
 
     // Importer l'app après la configuration des mocks
-    app = require('../index').default;
+  app = require('@/index').default;
   });
 
   afterEach(() => {
@@ -176,8 +176,8 @@ describe('Express App Integration', () => {
       delete process.env.CORS_ORIGIN;
 
       // Recharger l'app
-      delete require.cache[require.resolve('../index')];
-      const appWithDefaults = require('../index').default;
+  delete require.cache[require.resolve('@/index')];
+  const appWithDefaults = require('@/index').default;
       
       expect(appWithDefaults).toBeDefined();
     });

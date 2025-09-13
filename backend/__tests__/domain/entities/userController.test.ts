@@ -1,9 +1,9 @@
 // @ts-nocheck
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { Request, Response } from 'express';
-import { UserController } from '../infrastructure/web/controllers/UserController';
-import { CreateUserUseCase } from '../application/use-cases/CreateUserUseCase';
-import { User } from '../domain/entities/User';
+import { UserController } from '@/infrastructure/web/controllers/UserController';
+import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
+import { User } from '@/domain/entities/User';
 
 describe('UserController', () => {
   let userController: UserController;

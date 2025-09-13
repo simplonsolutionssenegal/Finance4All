@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
-import { InstitutionFinanciereController } from '../infrastructure/web/controllers/InstitutionFinanciereController';
-import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
+import { InstitutionFinanciereController } from '@/infrastructure/web/controllers/InstitutionFinanciereController';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
 describe('InstitutionFinanciereController', () => {
   // Mock use cases

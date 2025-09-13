@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
-import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
-import { GetAllInstitutionsFinancieresUseCase } from '../application/use-cases/GetAllInstitutionsFinancieresUseCase';
-import { GetInstitutionFinanciereByIdUseCase } from '../application/use-cases/GetInstitutionFinanciereByIdUseCase';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { GetAllInstitutionsFinancieresUseCase } from '@/application/use-cases/GetAllInstitutionsFinancieresUseCase';
+import { GetInstitutionFinanciereByIdUseCase } from '@/application/use-cases/GetInstitutionFinanciereByIdUseCase';
 
 describe('Institution Financière Get Use Cases', () => {
   // Mock repository implementation

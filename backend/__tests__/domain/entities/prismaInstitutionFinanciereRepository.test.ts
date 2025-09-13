@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
-import { InstitutionFinanciere } from '../domain/entities/InstitutionFinanciere';
-import { PrismaInstitutionFinanciereRepository } from '../infrastructure/database/PrismaInstitutionFinanciereRepository';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { PrismaInstitutionFinanciereRepository } from '@/infrastructure/database/PrismaInstitutionFinanciereRepository';
 
 describe('PrismaInstitutionFinanciereRepository', () => {
   // Mock Prisma client

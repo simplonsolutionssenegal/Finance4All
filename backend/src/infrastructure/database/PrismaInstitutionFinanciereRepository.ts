@@ -1,5 +1,5 @@
-import { InstitutionFinanciere } from '../../domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '../../domain/repositories/InstitutionFinanciereRepository';
+import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { PrismaClient } from '@prisma/client';
 
 // NOTE: Prisma client generated types should give us strong typing. If eslint still

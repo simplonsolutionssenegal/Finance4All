@@ -1,4 +1,4 @@
-import { InstitutionFinanciereRepository } from '../../domain/repositories/InstitutionFinanciereRepository';
+import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 
 export class DeleteInstitutionFinanciereUseCase {
   constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}

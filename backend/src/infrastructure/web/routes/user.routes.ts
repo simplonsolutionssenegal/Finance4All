@@ -1,17 +1,13 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/UserController';
-import { RemoveUserUseCaseImpl } from '@/domain/use-cases/removeUserUseCaseImpl';
-import { UpdateUserRoleUseCaseImpl } from '@/domain/use-cases/updateUserRoleUseCaseImpl';
+import { UserController } from '@/infrastructure/web/controllers/UserController';
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
+import { CreateUserUseCaseImpl } from '@/domain/use-cases/createUserUseCaseImpl';
 
 const router = Router();
-const removeUserUseCase = new RemoveUserUseCaseImpl();
-const updateUserRoleUseCase = new UpdateUserRoleUseCaseImpl();
-const userController = new UserController(removeUserUseCase, updateUserRoleUseCase);
+const userRepository = new PrismaUserRepository();
+const createUserUseCase = new CreateUserUseCaseImpl(userRepository);
+const userController = new UserController(createUserUseCase);
 
 router.post('/', (req, res) => userController.create(req, res));
-router
-  .route('/:userId')
-  .delete((req, res) => userController.remove(req, res))
-  .patch((req, res) => userController.updateRole(req, res));
 
 export default router;
