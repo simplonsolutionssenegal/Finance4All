@@ -10,10 +10,10 @@ describe('CreateInstitutionFinanciereUseCase', () => {
     findById: jest.fn(),
     getAll: jest.fn(),
     delete: jest.fn(),
-    create: jest.fn((institution) => Promise.resolve({ ...institution, id: '123' })),
+    create: jest.fn((institution) => Promise.resolve(institution)), // use provided id
   };
 
-  const validInstitutionData: InstitutionFinanciere = {
+  const validInstitutionData: any = {
     nom: 'Banque Test',
     type: 'BANQUE',
     description: 'Une description valide avec plus de 10 caractères',
@@ -239,10 +239,10 @@ describe('CreateInstitutionFinanciereUseCase', () => {
             email: validInstitutionData.contact!.email,
             telephone: validInstitutionData.contact!.telephone,
           }),
-          id: '',
+          id: expect.any(String),
         })
       );
-      expect(result.id).toBe('123');
+      expect(result.id).toEqual(expect.any(String));
       expect(result.nom).toBe(validInstitutionData.nom);
     });
 
@@ -259,10 +259,10 @@ describe('CreateInstitutionFinanciereUseCase', () => {
         expect.objectContaining({
           nom: dataWithoutContact.nom,
           contact: null,
-          id: '',
+          id: expect.any(String),
         })
       );
-      expect(result.id).toBe('123');
+      expect(result.id).toEqual(expect.any(String));
     });
   });
 });

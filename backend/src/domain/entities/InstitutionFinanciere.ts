@@ -1,7 +1,7 @@
 import { ContactPerson } from './ContactPerson';
 
 export interface InstitutionFinanciere {
-  id?: string;
+  id: string;
   nom: string;
   type: string;
   description: string;
@@ -9,6 +9,9 @@ export interface InstitutionFinanciere {
   logo?: string | null;
   contact?: ContactPerson | null; // Normalized contact info
   regionsDesservies: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+// Data required to create an Institution (without id & timestamps)
+export type CreateInstitutionFinanciereData = Omit<InstitutionFinanciere, 'id' | 'createdAt' | 'updatedAt'>;

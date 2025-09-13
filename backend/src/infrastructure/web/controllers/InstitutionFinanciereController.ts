@@ -6,6 +6,8 @@ import { GetInstitutionFinanciereByIdUseCase } from '@/application/use-cases/Get
 import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/DeleteInstitutionFinanciereUseCase';
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
+import { CreateInstitutionFinanciereDTO } from '@/application/dto/CreateInstitutionFinanciereDTO';
+import { InstitutionFinancierePresenter } from '@/infrastructure/web/presenters/InstitutionFinancierePresenter';
 
 export class InstitutionFinanciereController {
   constructor(
@@ -18,14 +20,10 @@ export class InstitutionFinanciereController {
 
   async create(req: Request, res: Response): Promise<void> {
     try {
-      const institutionData = req.body as InstitutionFinanciere;
-      const newInstitution = await this.createInstitutionFinanciereUseCase.execute(institutionData);
-
-      res.status(201).json({
-        success: true,
-        data: newInstitution,
-        message: 'Institution financière créée avec succès',
-      });
+      const dto = req.body as CreateInstitutionFinanciereDTO; // input boundary shape (no id/timestamps expected)
+      const newInstitution = await this.createInstitutionFinanciereUseCase.execute(dto as any); // Use case currently expects validator input
+      const response = InstitutionFinancierePresenter.toResponse(newInstitution);
+      res.status(201).json({ success: true, data: response, message: 'Institution financière créée avec succès' });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({

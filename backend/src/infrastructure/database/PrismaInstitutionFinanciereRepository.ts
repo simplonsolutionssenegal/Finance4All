@@ -2,6 +2,8 @@ import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 import { ContactPerson } from '@/domain/entities/ContactPerson';
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { PrismaClient } from '@prisma/client';
+import { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';
+import { toDomainInstitution } from '@/infrastructure/database/mappers/institutionFinanciereMapper';
 
 // NOTE: Prisma client generated types should give us strong typing. If eslint still
 // reports unsafe-* rules (seen when generation lags), we explicitly cast to the
@@ -24,17 +26,17 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
         regionsDesservies: institution.regionsDesservies,
       },
     });
-    return this.toDomain(created);
+    return toDomainInstitution(created as InstitutionFinancierePersistence);
   }
 
   async findById(id: string): Promise<InstitutionFinanciere | null> {
     const record = await this.prisma.institutionFinanciere.findUnique({ where: { id } });
-    return record ? this.toDomain(record) : null;
+    return record ? toDomainInstitution(record as InstitutionFinancierePersistence) : null;
   }
 
   async findAll(): Promise<InstitutionFinanciere[]> {
     const list = await this.prisma.institutionFinanciere.findMany();
-    return list.map(r => this.toDomain(r));
+    return list.map(r => toDomainInstitution(r as InstitutionFinancierePersistence));
   }
 
   async findPaginated(skip: number, take: number): Promise<{ data: InstitutionFinanciere[]; total: number; }> {
@@ -42,7 +44,7 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
       this.prisma.institutionFinanciere.findMany({ skip, take, orderBy: { createdAt: 'desc' } }),
       this.prisma.institutionFinanciere.count(),
     ]);
-    return { data: data.map(d => this.toDomain(d)), total };
+    return { data: data.map(d => toDomainInstitution(d as InstitutionFinancierePersistence)), total };
   }
 
   async update(
@@ -69,7 +71,7 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
       }
 
       const updated = await this.prisma.institutionFinanciere.update({ where: { id }, data: updateData });
-      return this.toDomain(updated);
+      return toDomainInstitution(updated as InstitutionFinancierePersistence);
     } catch {
       return null;
     }
@@ -86,43 +88,4 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
     }
   }
   // Helper mapping function
-  private toDomain(record: PrismaInstitutionRecord): InstitutionFinanciere {
-    const contact: ContactPerson | null = record.contactNom
-      ? {
-          nom: record.contactNom,
-          email: record.contactEmail,
-          telephone: record.contactTelephone,
-        }
-      : null;
-
-    return {
-      id: record.id,
-      nom: record.nom,
-      type: record.type,
-      description: record.description,
-      siteWeb: record.siteWeb,
-      logo: record.logo,
-      contact,
-      regionsDesservies: record.regionsDesservies,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
-  }
 }
-
-interface PrismaInstitutionRecord {
-  id: string;
-  nom: string;
-  type: string;
-  description: string;
-  siteWeb: string;
-  logo: string | null;
-  contactNom: string | null;
-  contactEmail: string | null;
-  contactTelephone: string | null;
-  regionsDesservies: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// (previous implementation moved inside class)

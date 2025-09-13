@@ -84,6 +84,8 @@ d2('Institution Financière Entity and Use Cases', () => {
         description: 'Une banque de test',
         siteWeb: 'https://test.com',
         regionsDesservies: ['Île-de-France'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       expect2(institution.id).toBe('123');
       expect2(institution.nom).toBe('Banque Test');
@@ -117,6 +119,8 @@ d2('Institution Financière Entity and Use Cases', () => {
         description: 'Description test',
         siteWeb: 'https://test.com',
         regionsDesservies: ['Île-de-France'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockInstitutionRepository.findById.mockResolvedValue(inst);
       mockInstitutionRepository.delete.mockResolvedValue(true);
@@ -133,6 +137,8 @@ d2('Institution Financière Entity and Use Cases', () => {
         description: 'Description test',
         siteWeb: 'https://test.com',
         regionsDesservies: ['Île-de-France'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockInstitutionRepository.findById.mockResolvedValue(inst);
       mockInstitutionRepository.delete.mockRejectedValue(new Error('Database error'));

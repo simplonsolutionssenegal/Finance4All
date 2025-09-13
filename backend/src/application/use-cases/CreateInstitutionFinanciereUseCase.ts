@@ -1,6 +1,7 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { InstitutionFinanciere, CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { InstitutionFinanciereValidator, InstitutionFinanciereInput } from '@/application/validation/InstitutionFinanciereValidator';
+import { randomUUID } from 'crypto';
 
 export class CreateInstitutionFinanciereUseCase {
   private readonly validator: InstitutionFinanciereValidator;
@@ -10,12 +11,15 @@ export class CreateInstitutionFinanciereUseCase {
   }
 
   async execute(data: InstitutionFinanciereInput): Promise<InstitutionFinanciere> {
-    const validated = this.validator.validate(data);
+    // Validate & normalize input (CreateInstitutionFinanciereData shape)
+    const validated: CreateInstitutionFinanciereData = this.validator.validate(data);
+
+    const now = new Date();
     const institution: InstitutionFinanciere = {
-      id: '',
+      id: randomUUID(),
       ...validated,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
     return this.institutionFinanciereRepository.create(institution);
   }

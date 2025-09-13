@@ -1,9 +1,9 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
 import { ContactPerson } from '@/domain/entities/ContactPerson';
 import { isValidUrl } from '@/utils/isValidUrl';
 import { isValidEmail } from '@/utils/isValidEmail';
 
-export type InstitutionFinanciereInput = Omit<InstitutionFinanciere, 'id' | 'createdAt' | 'updatedAt'>;
+export type InstitutionFinanciereInput = CreateInstitutionFinanciereData;
 
 export class InstitutionFinanciereValidator {
   validate(input: InstitutionFinanciereInput): InstitutionFinanciereInput {
