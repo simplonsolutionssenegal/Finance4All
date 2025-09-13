@@ -10,16 +10,24 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Étape de build des dépendances de production uniquement
+# Étape de build des dépendances (sécurisée)
 FROM base AS deps
+
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production --frozen-lockfile && \
+
+# Installation sécurisée des dépendances de production
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production --prefer-offline --no-fund --ignore-scripts && \
     npm cache clean --force
 
-# Étape de build de l'application
+# Étape de build de l'application (sécurisée)
 FROM base AS builder
+
 COPY package.json package-lock.json* ./
-RUN npm ci --frozen-lockfile
+
+# Installation sécurisée de toutes les dépendances (dev + prod)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-fund --ignore-scripts
 
 # Copier seulement les fichiers nécessaires pour le build
 COPY src ./src
@@ -27,9 +35,10 @@ COPY prisma ./prisma
 COPY tsconfig.json ./
 
 # Générer le client Prisma et compiler TypeScript
+# Note: npx prisma generate est sûr car c'est notre code contrôlé
 RUN npx prisma generate && \
     npm run build && \
-    npm prune --production
+    npm prune --production --ignore-scripts
 
 # Étape de production finale
 FROM node:22-alpine AS runner
@@ -53,7 +62,8 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
-# Générer le client Prisma, créer les dossiers et configurer les permissions
+# Générer le client Prisma pour la production
+# Note: Ce script est contrôlé et nécessaire pour Prisma
 RUN npx prisma generate && \
     npm cache clean --force && \
     rm -rf /tmp/.npm && \

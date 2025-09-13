@@ -1,0 +1,49 @@
+# Ignorer les fichiers inutiles pour réduire le contexte Docker
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build output
+dist/
+build/
+out/
+
+# Environnement
+.env*
+!.env.example
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Git & CI
+.git/
+.gitignore
+README.md
+.github/
+.husky/
+
+# Tests & Coverage
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.eslintcache
+
+# Database
+*.sqlite
+*.db
+migrations/
+
+# Logs
+logs/
+*.log
+
+# Docs
+docs/
+*.md
+!package*.json
