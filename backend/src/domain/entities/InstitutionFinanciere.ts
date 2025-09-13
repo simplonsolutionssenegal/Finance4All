@@ -1,3 +1,5 @@
+import { ContactPerson } from './ContactPerson';
+
 export interface InstitutionFinanciere {
   id?: string;
   nom: string;
@@ -5,9 +7,7 @@ export interface InstitutionFinanciere {
   description: string;
   siteWeb: string;
   logo?: string | null;
-  contactNom?: string | null;
-  contactEmail?: string | null;
-  contactTelephone?: string | null;
+  contact?: ContactPerson | null; // Normalized contact info
   regionsDesservies: string[];
   createdAt?: Date;
   updatedAt?: Date;

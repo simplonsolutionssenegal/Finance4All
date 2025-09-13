@@ -19,8 +19,11 @@ describe('CreateInstitutionFinanciereUseCase', () => {
     description: 'Une description valide avec plus de 10 caractères',
     siteWeb: 'https://www.banquetest.com',
     regionsDesservies: ['Île-de-France'],
-    contactEmail: 'contact@banquetest.com',
-    contactTelephone: '+33123456789',
+    contact: {
+      nom: 'Contact Test',
+      email: 'contact@banquetest.com',
+      telephone: '+33123456789',
+    },
   };
 
   beforeEach(() => {
@@ -129,7 +132,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
     it('should throw error when contactEmail is invalid', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { ...validInstitutionData, contactEmail: 'invalid-email' };
+      const invalidData = { ...validInstitutionData, contact: { ...validInstitutionData.contact!, email: 'invalid-email', nom: validInstitutionData.contact!.nom, telephone: validInstitutionData.contact!.telephone } };
 
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "L'adresse email du contact n'est pas valide"
@@ -138,7 +141,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
     it('should throw error when contactTelephone is too short', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { ...validInstitutionData, contactTelephone: '123' };
+      const invalidData = { ...validInstitutionData, contact: { ...validInstitutionData.contact!, telephone: '123', nom: validInstitutionData.contact!.nom, email: validInstitutionData.contact!.email } };
 
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "Le numéro de téléphone doit contenir entre 8 et 20 caractères"
@@ -147,7 +150,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
     it('should throw error when contactTelephone is too long', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { ...validInstitutionData, contactTelephone: '1'.repeat(21) };
+      const invalidData = { ...validInstitutionData, contact: { ...validInstitutionData.contact!, telephone: '1'.repeat(21), nom: validInstitutionData.contact!.nom, email: validInstitutionData.contact!.email } };
 
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "Le numéro de téléphone doit contenir entre 8 et 20 caractères"
@@ -194,7 +197,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
     it('should throw error when email is too long', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
       const longEmail = 'a'.repeat(250) + '@example.com';
-      const invalidData = { ...validInstitutionData, contactEmail: longEmail };
+      const invalidData = { ...validInstitutionData, contact: { ...validInstitutionData.contact!, email: longEmail } };
 
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "L'adresse email du contact n'est pas valide"
@@ -203,7 +206,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
 
     it('should throw error when contactNom is too long', async () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
-      const invalidData = { ...validInstitutionData, contactNom: 'a'.repeat(101) };
+      const invalidData = { ...validInstitutionData, contact: { ...validInstitutionData.contact!, nom: 'a'.repeat(101) } };
       await expect(createUseCase.execute(invalidData)).rejects.toThrow(
         "Le nom du contact doit faire moins de 100 caractères"
       );
@@ -231,9 +234,12 @@ describe('CreateInstitutionFinanciereUseCase', () => {
           description: validInstitutionData.description,
           siteWeb: validInstitutionData.siteWeb,
           regionsDesservies: validInstitutionData.regionsDesservies,
-          contactEmail: validInstitutionData.contactEmail,
-          contactTelephone: validInstitutionData.contactTelephone,
-          id: '', // normalized before repository call
+          contact: expect.objectContaining({
+            nom: validInstitutionData.contact!.nom,
+            email: validInstitutionData.contact!.email,
+            telephone: validInstitutionData.contact!.telephone,
+          }),
+          id: '',
         })
       );
       expect(result.id).toBe('123');
@@ -244,8 +250,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
       const createUseCase = new CreateInstitutionFinanciereUseCase(mockInstitutionRepository);
       const dataWithoutContact = {
         ...validInstitutionData,
-        contactEmail: undefined,
-        contactTelephone: undefined,
+        contact: undefined,
       };
 
       const result = await createUseCase.execute(dataWithoutContact);
@@ -253,9 +258,7 @@ describe('CreateInstitutionFinanciereUseCase', () => {
       expect(mockInstitutionRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           nom: dataWithoutContact.nom,
-          contactEmail: null,
-          contactTelephone: null,
-          contactNom: null,
+          contact: null,
           id: '',
         })
       );

@@ -1,4 +1,5 @@
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { ContactPerson } from '@/domain/entities/ContactPerson';
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { PrismaClient } from '@prisma/client';
 
@@ -17,25 +18,23 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
         description: institution.description,
         siteWeb: institution.siteWeb,
         logo: institution.logo ?? null,
-        contactNom: institution.contactNom ?? null,
-        contactEmail: institution.contactEmail ?? null,
-        contactTelephone: institution.contactTelephone ?? null,
+        contactNom: institution.contact?.nom ?? null,
+        contactEmail: institution.contact?.email ?? null,
+        contactTelephone: institution.contact?.telephone ?? null,
         regionsDesservies: institution.regionsDesservies,
       },
     });
-    return created as unknown as InstitutionFinanciere;
+    return this.toDomain(created);
   }
 
   async findById(id: string): Promise<InstitutionFinanciere | null> {
-    const record = await this.prisma.institutionFinanciere.findUnique({
-      where: { id },
-    });
-    return (record as unknown as InstitutionFinanciere) ?? null;
+    const record = await this.prisma.institutionFinanciere.findUnique({ where: { id } });
+    return record ? this.toDomain(record) : null;
   }
 
   async findAll(): Promise<InstitutionFinanciere[]> {
     const list = await this.prisma.institutionFinanciere.findMany();
-    return list as unknown as InstitutionFinanciere[];
+    return list.map(r => this.toDomain(r));
   }
 
   async findPaginated(skip: number, take: number): Promise<{ data: InstitutionFinanciere[]; total: number; }> {
@@ -43,7 +42,7 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
       this.prisma.institutionFinanciere.findMany({ skip, take, orderBy: { createdAt: 'desc' } }),
       this.prisma.institutionFinanciere.count(),
     ]);
-    return { data: data as unknown as InstitutionFinanciere[], total };
+    return { data: data.map(d => this.toDomain(d)), total };
   }
 
   async update(
@@ -51,11 +50,26 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
     institution: Partial<InstitutionFinanciere>,
   ): Promise<InstitutionFinanciere | null> {
     try {
-      const updated = await this.prisma.institutionFinanciere.update({
-        where: { id },
-        data: institution,
-      });
-      return updated as unknown as InstitutionFinanciere;
+      const updateData: Record<string, unknown> = {};
+      if (institution.nom !== undefined) updateData.nom = institution.nom;
+      if (institution.type !== undefined) updateData.type = institution.type;
+      if (institution.description !== undefined) updateData.description = institution.description;
+      if (institution.siteWeb !== undefined) updateData.siteWeb = institution.siteWeb;
+      if (institution.logo !== undefined) updateData.logo = institution.logo;
+      if (institution.regionsDesservies !== undefined) updateData.regionsDesservies = institution.regionsDesservies;
+      if (institution.contact) {
+        updateData.contactNom = institution.contact.nom;
+        updateData.contactEmail = institution.contact.email ?? null;
+        updateData.contactTelephone = institution.contact.telephone ?? null;
+      }
+      if (institution.contact === null) {
+        updateData.contactNom = null;
+        updateData.contactEmail = null;
+        updateData.contactTelephone = null;
+      }
+
+      const updated = await this.prisma.institutionFinanciere.update({ where: { id }, data: updateData });
+      return this.toDomain(updated);
     } catch {
       return null;
     }
@@ -71,4 +85,44 @@ export class PrismaInstitutionFinanciereRepository implements InstitutionFinanci
       return false;
     }
   }
+  // Helper mapping function
+  private toDomain(record: PrismaInstitutionRecord): InstitutionFinanciere {
+    const contact: ContactPerson | null = record.contactNom
+      ? {
+          nom: record.contactNom,
+          email: record.contactEmail,
+          telephone: record.contactTelephone,
+        }
+      : null;
+
+    return {
+      id: record.id,
+      nom: record.nom,
+      type: record.type,
+      description: record.description,
+      siteWeb: record.siteWeb,
+      logo: record.logo,
+      contact,
+      regionsDesservies: record.regionsDesservies,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
 }
+
+interface PrismaInstitutionRecord {
+  id: string;
+  nom: string;
+  type: string;
+  description: string;
+  siteWeb: string;
+  logo: string | null;
+  contactNom: string | null;
+  contactEmail: string | null;
+  contactTelephone: string | null;
+  regionsDesservies: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// (previous implementation moved inside class)

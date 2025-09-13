@@ -1,4 +1,5 @@
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import { ContactPerson } from '@/domain/entities/ContactPerson';
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { isValidUrl } from '@/utils/isValidUrl';
 import { isValidEmail } from '@/utils/isValidEmail';
@@ -33,15 +34,16 @@ export class CreateInstitutionFinanciereUseCase {
       }
     }
     // 6. Email contact (optionnel)
-  if (data.contactEmail && !isValidEmail(data.contactEmail)) {
+    const contact = data.contact;
+    if (contact?.email && !isValidEmail(contact.email)) {
       throw new Error('L\'adresse email du contact n\'est pas valide');
     }
     // 7. Téléphone contact (optionnel)
-    if (data.contactTelephone && (data.contactTelephone.length < 8 || data.contactTelephone.length > 20)) {
+    if (contact?.telephone && (contact.telephone.length < 8 || contact.telephone.length > 20)) {
       throw new Error('Le numéro de téléphone doit contenir entre 8 et 20 caractères');
     }
     // 8. Nom contact (optionnel)
-    if (data.contactNom && data.contactNom.length > 100) {
+    if (contact?.nom && contact.nom.length > 100) {
       throw new Error('Le nom du contact doit faire moins de 100 caractères');
     }
     // 9. Logo URL length (optionnel)
@@ -50,6 +52,15 @@ export class CreateInstitutionFinanciereUseCase {
     }
 
     // Normalisation simple
+    let contactEntity: ContactPerson | null = null;
+    if (contact && (contact.nom || contact.email || contact.telephone)) {
+      contactEntity = {
+        nom: contact.nom.trim(),
+        email: contact.email?.trim() ?? null,
+        telephone: contact.telephone?.trim() ?? null,
+      };
+    }
+
     const institution: InstitutionFinanciere = {
       id: '',
       nom: data.nom.trim(),
@@ -57,9 +68,7 @@ export class CreateInstitutionFinanciereUseCase {
       description: data.description.trim(),
       siteWeb: data.siteWeb.trim(),
       logo: data.logo ?? null,
-      contactNom: data.contactNom ?? null,
-      contactEmail: data.contactEmail ?? null,
-      contactTelephone: data.contactTelephone ?? null,
+      contact: contactEntity,
       regionsDesservies: data.regionsDesservies.map(r => r.trim()),
       createdAt: new Date(),
       updatedAt: new Date(),
