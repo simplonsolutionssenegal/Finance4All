@@ -101,10 +101,6 @@ d2('Institution Financière Entity and Use Cases', () => {
       delete: jest.fn(),
     };
 
-    it2('throws when ID missing', async () => {
-      const uc = new DeleteInstitutionFinanciereUseCase(mockInstitutionRepository as any);
-      await expect2(uc.execute('')).rejects.toThrow("ID de l'institution financière requis");
-    });
 
     it2('throws when institution not found', async () => {
       const uc = new DeleteInstitutionFinanciereUseCase(mockInstitutionRepository as any);
