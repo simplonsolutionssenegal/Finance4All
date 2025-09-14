@@ -19,14 +19,14 @@ export function toDomain(u: PrismaUserWithRels): DomainUser {
     u.id,
     u.email,
     u.username,
-    u.firstName ?? null,                       // garde la nullabilité correcte
-    u.lastName ?? null,
+    u.firstName ?? '',                       // garde la ''abilité correcte
+    u.lastName ?? '',
     u.avatar ?? '',
     u.password,
     u.isActive,
     new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
     u.status,
-    u.lastLoginAt ?? null,
+    u.lastLoginAt ?? '',
     u.organisationId ?? null,
     u.organisation
       ? new Organisation(
