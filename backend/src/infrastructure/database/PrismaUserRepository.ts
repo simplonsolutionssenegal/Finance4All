@@ -1,11 +1,5 @@
 // src/infrastructure/database/PrismaUserRepository.ts
-import { PrismaClient, UserStatus } from '@prisma/client';
-import type {
-  User as PrismaUser,
-  Role as PrismaRole,
-  Organisation as PrismaOrganisation,
-} from '@prisma/client';
-
+import { PrismaClient, Prisma, UserStatus } from '@prisma/client';
 import { User as DomainUser } from '@/domain/entities/User';
 import { Role } from '@/domain/entities/Role';
 import { Organisation } from '@/domain/entities/Organisation';
@@ -14,34 +8,25 @@ import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationA
 
 const prisma = new PrismaClient();
 
-// type PrismaUserWithRels = PrismaUser & {
-//   role: PrismaRole;
-//   organisation: PrismaOrganisation | null;
-// };
-// PrismaUserRepository.ts — remplace le type par un Omit + overrides
+// 1) Type exact retourné par Prisma pour cet include
+type PrismaUserWithRels = Prisma.UserGetPayload<{
+  include: { role: true; organisation: true };
+}>;
 
-type PrismaUserWithRels = Omit<PrismaUser, 'firstName' | 'lastName' | 'lastLoginAt'> & {
-  firstName: string;
-  lastName: string;
-  lastLoginAt: Date; 
-  role: PrismaRole;
-  organisation: PrismaOrganisation | null;
-};
-
-
+// 2) Mapping vers le domaine (normalise les nulls si besoin)
 export function toDomain(u: PrismaUserWithRels): DomainUser {
   return new DomainUser(
     u.id,
     u.email,
     u.username,
-    u.firstName,                                
-    u.lastName,                                 
-    u.avatar ?? '',                 
+    u.firstName ?? null,                       // garde la nullabilité correcte
+    u.lastName ?? null,
+    u.avatar ?? '',
     u.password,
     u.isActive,
     new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
     u.status,
-    u.lastLoginAt ?? null,                      
+    u.lastLoginAt ?? null,
     u.organisationId ?? null,
     u.organisation
       ? new Organisation(
@@ -60,21 +45,17 @@ export function toDomain(u: PrismaUserWithRels): DomainUser {
 }
 
 export class PrismaUserRepository implements UserRepository {
-
   async findAll(): Promise<DomainUser[]> {
-    const user = await prisma.user.findMany({
+    const users: PrismaUserWithRels[] = await prisma.user.findMany({
       include: { role: true, organisation: true },
       orderBy: { createdAt: 'desc' },
     });
-    return user.map(toDomain);
+    return users.map(toDomain);
   }
-
-
- 
 
   async findUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: UserStatus[],               
+    statuses: UserStatus[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter,
   ): Promise<DomainUser[]> {
@@ -88,19 +69,14 @@ export class PrismaUserRepository implements UserRepository {
       status: { in: statuses },
     };
 
-    if (roles?.length) {
-      where.role = { name: { in: roles } };
-    }
+    if (roles?.length) where.role = { name: { in: roles } };
 
     if (lastLoginFilter) {
       const now = new Date();
-
       if (lastLoginFilter.type === 'recent') {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         where.lastLoginAt = { gte: sevenDaysAgo };
-      }
-
-      if (lastLoginFilter.type === 'last_month') {
+      } else if (lastLoginFilter.type === 'last_month') {
         const firstOfThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
         const firstOfPrevMonth = new Date(
           Date.UTC(
@@ -110,40 +86,36 @@ export class PrismaUserRepository implements UserRepository {
           ),
         );
         where.lastLoginAt = { gte: firstOfPrevMonth, lt: firstOfThisMonth };
-      }
-
-      if (lastLoginFilter.type === 'custom_date') {
+      } else if (lastLoginFilter.type === 'custom_date') {
         const d = lastLoginFilter.date;
         const next = new Date(d.getTime() + 24 * 60 * 60 * 1000);
         where.lastLoginAt = { gte: d, lt: next };
       }
     }
 
-    const user = await prisma.user.findMany({
+    const users: PrismaUserWithRels[] = await prisma.user.findMany({
       where,
       include: { role: true, organisation: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    return user.map(toDomain);
+    return users.map(toDomain);
   }
 
   async findByOrganisationId(organisationId: number): Promise<DomainUser[]> {
-    const user = await prisma.user.findMany({
+    const users: PrismaUserWithRels[] = await prisma.user.findMany({
       where: { organisationId },
       include: { role: true, organisation: true },
       orderBy: { createdAt: 'desc' },
     });
-    return user.map(toDomain);
+    return users.map(toDomain);
   }
 
   async findById(id: number): Promise<DomainUser | null> {
-    const user = await prisma.user.findUnique({
-      where: { id },                             // id est number dans ton interface
+    const u = await prisma.user.findUnique({
+      where: { id },
       include: { role: true, organisation: true },
     });
-
-    return user ? toDomain(user) : null;
+    return u ? toDomain(u as PrismaUserWithRels) : null; // asserter optionnel ici
   }
-
 }
