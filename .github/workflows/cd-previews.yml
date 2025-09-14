@@ -35,32 +35,31 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
-      - name: React to comment
+      - name: React to comment (optimized)
         uses: actions/github-script@v7
         with:
           script: |
-            // Get PR details
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
             
-            // Ajouter une réaction au commentaire
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket'
-            });
-            
-            // Ajouter un commentaire de confirmation
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
-            });
+            // Opérations parallèles
+            await Promise.all([
+              github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket'
+              }),
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to KIND...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              })
+            ]);
 
   run-ci:
     name: Run CI Tests
@@ -108,6 +107,11 @@ jobs:
         with:
           context: ./frontend
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          secrets: |
+            "clerk_publishable_key=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
+            "clerk_secret_key=${{ secrets.CLERK_SECRET_KEY }}"
           build-args: |
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
@@ -115,10 +119,19 @@ jobs:
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-      - name: Setup KIND
+      - name: Setup KIND (optimized)
         run: |
-          # Créer la configuration KIND avec mapping de port
-          cat <<EOF > /tmp/kind-config.yaml
+          # Vérifier si le cluster existe et est fonctionnel
+          if kind get clusters | grep -q "preview-cluster" && kubectl cluster-info --context=kind-preview-cluster >/dev/null 2>&1; then
+            echo "✅ KIND cluster already exists and is healthy"
+            kubectl config use-context kind-preview-cluster
+          else
+            echo "🔧 Creating/recreating KIND cluster..."
+            # Nettoyer l'ancien cluster s'il existe mais est défaillant
+            kind delete cluster --name preview-cluster 2>/dev/null || true
+            
+            # Configuration optimisée KIND
+            cat <<EOF > /tmp/kind-config.yaml
           kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
           name: preview-cluster
@@ -134,39 +147,53 @@ jobs:
             - containerPort: 30080
               hostPort: 30080
               protocol: TCP
-            - containerPort: 30081
-              hostPort: 30081
-              protocol: TCP
           EOF
-          
-          # Vérifier si le cluster existe déjà
-          if kind get clusters | grep -q "preview-cluster"; then
-            echo "KIND cluster already exists"
-          else
-            echo "Creating KIND cluster..."
-            kind create cluster --config /tmp/kind-config.yaml
+            
+            kind create cluster --config /tmp/kind-config.yaml --wait=120s
+            kubectl config use-context kind-preview-cluster
           fi
           
-          # Configurer kubectl pour utiliser KIND
-          kubectl config use-context kind-preview-cluster
-          
-          # Vérifier la connexion
-          kubectl cluster-info
+          echo "✅ KIND cluster ready"
 
-      - name: Get server public IP
+      - name: Get server public IP (cached)
         id: server-ip
         run: |
-          # Récupérer l'IP publique du serveur
-          PUBLIC_IP=$(curl -s ifconfig.me)
+          # Utiliser un cache simple pour éviter les appels répétés
+          if [ -f /tmp/public_ip.cache ] && [ $(($(date +%s) - $(stat -c %Y /tmp/public_ip.cache 2>/dev/null || echo 0))) -lt 300 ]; then
+            PUBLIC_IP=$(cat /tmp/public_ip.cache)
+            echo "Using cached IP: ${PUBLIC_IP}"
+          else
+            PUBLIC_IP=$(curl -s --max-time 10 ifconfig.me || curl -s --max-time 10 icanhazip.com || echo "localhost")
+            echo "${PUBLIC_IP}" > /tmp/public_ip.cache
+            echo "Fetched new IP: ${PUBLIC_IP}"
+          fi
           echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
-          echo "Public IP: ${PUBLIC_IP}"
 
       - name: Load images to KIND and Deploy
         run: |
-          # Charger l'image Docker dans KIND
+          # Charger l'image Docker dans KIND (seulement si frontend modifié)
           if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
-            docker pull ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            kind load docker-image ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }} --name preview-cluster
+            IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}"
+            IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
+            
+            # Vérifier si l'image avec le SHA spécifique existe localement
+            if docker image inspect "${IMAGE_SHA_NAME}" >/dev/null 2>&1; then
+              echo "✅ Image with correct SHA already exists locally: ${IMAGE_SHA_NAME}"
+              # Tag avec le numéro PR pour compatibilité
+              docker tag "${IMAGE_SHA_NAME}" "${IMAGE_NAME}" || true
+            else
+              echo "🔄 Pulling new image with SHA: ${IMAGE_SHA_NAME}"
+              # Pull les deux tags (par sécurité)
+              docker pull "${IMAGE_NAME}" || echo "Warning: PR-number tag not found"
+              docker pull "${IMAGE_SHA_NAME}"
+              # Tag local pour uniformité
+              docker tag "${IMAGE_SHA_NAME}" "${IMAGE_NAME}" || true
+            fi
+            
+            # Charger dans KIND avec le tag PR-number pour simplicité du déploiement
+            kind load docker-image "${IMAGE_NAME}" --name preview-cluster
+          else
+            echo "Frontend unchanged, skipping image operations"
           fi
           
           # Créer le namespace

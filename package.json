@@ -14,17 +14,33 @@
     "dev:backend": "cd backend && npm run dev",
     "sonar": "sonar-scanner",
     "sonar:frontend": "cd frontend && sonar-scanner",
-    "sonar:backend": "cd backend && sonar-scanner"
+    "sonar:backend": "cd backend && sonar-scanner",
+    "prepare": "husky || echo 'Husky not found, skipping hooks setup'"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "concurrently": "^7.6.0",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jest": "^30.1.2",
+    "lint-staged": "^16.1.6",
     "sonarqube-scanner": "^4.3.0",
     "ts-jest": "^29.4.1"
   },
   "dependencies": {
     "@testing-library/user-event": "^14.6.1"
+
+  "lint-staged": {
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "cd frontend && npm run lint:fix",
+      "cd frontend && npm run format"
+    ],
+    "backend/**/*.{js,ts}": [
+      "cd backend && npm run lint:fix",
+      "cd backend && npm run format"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
