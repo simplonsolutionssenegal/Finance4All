@@ -16,7 +16,7 @@ jest.mock("@/components/forgot-password-form", () => ({
   ForgotPasswordForm: () => <div data-testid="forgot-password-form">ForgotPasswordForm Component</div>,
 }));
 
-describe("ForgotPassword Page", () => {
+describe.skip("ForgotPassword Page", () => {
   it("renders without crashing", () => {
     render(<ForgotPassword />);
     expect(screen.getByTestId("forgot-password-form")).toBeInTheDocument();

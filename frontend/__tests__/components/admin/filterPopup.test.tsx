@@ -1,7 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+// __tests__/components/admin/filterPopup.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-  import { fireEvent } from '@testing-library/react';
 import FilterPopup, { type FilterOptions } from '@/components/admin/FilterPopup';
 
 describe('FilterPopup', () => {
@@ -10,7 +9,6 @@ describe('FilterPopup', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock des alertes pour vérifier les validations
     jest.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
@@ -20,11 +18,11 @@ describe('FilterPopup', () => {
   const renderClosed = () =>
     render(<FilterPopup isOpen={false} onClose={onClose} onApplyFilters={onApplyFilters} />);
 
-  // Helper: cliquer sur un "chip" (label) par son texte
-  const clickChip = async (text: string) => {
+  // Helper: cliquer un chip (souvent du texte à l'intérieur d'un <label>)
+  const clickChip = (text: string) => {
     const node = screen.getByText(text);
     const label = node.closest('label') ?? node;
-    await userEvent.click(label as HTMLElement);
+    fireEvent.click(label as HTMLElement);
   };
 
   it('ne rend rien quand isOpen=false', () => {
@@ -53,9 +51,9 @@ describe('FilterPopup', () => {
     expect(screen.getByText('En attente')).toBeInTheDocument();
   });
 
-  it('validation: empêche Confirmer sans aucun filtre sélectionné', async () => {
+  it('validation: empêche Confirmer sans aucun filtre sélectionné', () => {
     renderOpen();
-    await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
     expect(window.alert).toHaveBeenCalledWith(
       'Veuillez sélectionner au moins un filtre (statut, rôle ou date de connexion).'
     );
@@ -63,14 +61,14 @@ describe('FilterPopup', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('validation: exige une date quand "Choisir une date" est sélectionné sans date', async () => {
+  it('validation: exige une date quand "Choisir une date" est sélectionné sans date', () => {
     renderOpen();
 
     // Choisir "Choisir une date"
-    await clickChip('Choisir une date');
+    clickChip('Choisir une date');
 
     // Confirmer sans date -> alerte
-    await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
     expect(window.alert).toHaveBeenCalledWith(
       'Veuillez sélectionner une date pour le filtre personnalisé.'
     );
@@ -78,17 +76,17 @@ describe('FilterPopup', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('Confirmer: applique Rôle + Statut + Dernière connexion (non custom) et ferme', async () => {
+  it('Confirmer: applique Rôle + Statut + Dernière connexion (non custom) et ferme', () => {
     renderOpen();
 
     // Rôles
-    await clickChip('Admin');
+    clickChip('Admin');
     // Statuts
-    await clickChip('Actif');
+    clickChip('Actif');
     // Dernière connexion
-    await clickChip('Plus récent');
+    clickChip('Plus récent');
 
-    await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
 
     // Vérifie la payload envoyée
     expect(onApplyFilters).toHaveBeenCalledTimes(1);
@@ -104,50 +102,47 @@ describe('FilterPopup', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('Confirmer: applique la date custom si "Choisir une date" + saisie de date', async () => {
-  render(<FilterPopup isOpen={true} onClose={onClose} onApplyFilters={onApplyFilters} />);
+  it('Confirmer: applique la date custom si "Choisir une date" + saisie de date', () => {
+    renderOpen();
 
-  // Sélectionne "Choisir une date"
-  await userEvent.click(screen.getByText('Choisir une date').closest('label')!);
+    // Sélectionne "Choisir une date"
+    clickChip('Choisir une date');
 
-  // Récupère l'input type="date" via un sélecteur
-  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-  expect(dateInput).toBeInTheDocument();
+    // Récupère l'input type="date"
+    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+    expect(dateInput).toBeInTheDocument();
 
-  // Saisit la date (avec change pour JSDOM)
-  // userEvent.type() marche parfois, mais change() est plus fiable ici.
+    // Saisit la date
+    fireEvent.change(dateInput, { target: { value: '2025-08-15' } });
+    expect(dateInput.value).toBe('2025-08-15');
 
-  fireEvent.change(dateInput, { target: { value: '2025-08-15' } });
-  expect(dateInput.value).toBe('2025-08-15');
+    // Coche un statut pour satisfaire la validation "au moins un filtre"
+    clickChip('Actif');
 
-  // Coche un statut pour satisfaire la validation "au moins un filtre"
-  await userEvent.click(screen.getByText('Actif').closest('label')!);
+    // Confirme
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
 
-  // Confirme
-  await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
-
-  // Vérifie la payload envoyée
-  expect(onApplyFilters).toHaveBeenCalledTimes(1);
-  expect(onApplyFilters).toHaveBeenCalledWith({
-    role: [],
-    status: ['ACTIF'],
-    lastConnection: 'custom',
-    customDate: '2025-08-15',
+    // Vérifie la payload envoyée
+    expect(onApplyFilters).toHaveBeenCalledTimes(1);
+    expect(onApplyFilters).toHaveBeenCalledWith({
+      role: [],
+      status: ['ACTIF'],
+      lastConnection: 'custom',
+      customDate: '2025-08-15',
+    });
+    expect(onClose).toHaveBeenCalled();
   });
-  expect(onClose).toHaveBeenCalled();
-});
 
-
-  it('Annuler: reset les filtres, appelle onApplyFilters avec reset et ferme', async () => {
+  it('Annuler: reset les filtres, appelle onApplyFilters avec reset et ferme', () => {
     renderOpen();
 
     // Préselectionne quelques filtres
-    await clickChip('Admin');
-    await clickChip('Actif');
-    await clickChip('Plus récent');
+    clickChip('Admin');
+    clickChip('Actif');
+    clickChip('Plus récent');
 
     // Annuler
-    await userEvent.click(screen.getByRole('button', { name: /Annuler/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Annuler/i }));
 
     expect(onApplyFilters).toHaveBeenCalledTimes(1);
     const reset = onApplyFilters.mock.calls[0][0] as FilterOptions;
@@ -161,17 +156,17 @@ describe('FilterPopup', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('toggle rôle/statut: re-cliquer le même chip le retire', async () => {
+  it('toggle rôle/statut: re-cliquer le même chip le retire', () => {
     renderOpen();
 
     // Toggle "Admin" on/off
-    await clickChip('Admin');
-    await clickChip('Admin');
+    clickChip('Admin');
+    clickChip('Admin');
 
     // Ajoute "Actif" pour satisfaire la 1ère validation
-    await clickChip('Actif');
+    clickChip('Actif');
 
-    await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
 
     const payload = onApplyFilters.mock.calls[0][0] as FilterOptions;
     expect(payload.role).toEqual([]); // retiré

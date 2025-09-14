@@ -1,8 +1,9 @@
-import { render, screen ,fireEvent} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+// __tests__/components/admin/searchBar.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SearchBar from '@/components/admin/SearchBar';
-// ✅ On mocke FilterPopup pour piloter facilement les callbacks
+
+// ✅ Mock FilterPopup so we can control callbacks easily
 jest.mock('@/components/admin/FilterPopup', () => ({
   __esModule: true,
   default: ({ isOpen, onClose, onApplyFilters }: any) => (
@@ -30,19 +31,17 @@ describe('SearchBar', () => {
     expect(screen.getByText(/\(42\)/)).toBeInTheDocument();
   });
 
- it('appelle onSearch à la saisie (fireEvent)', () => {
-  const onSearch = jest.fn();
+  it('appelle onSearch à la saisie (fireEvent)', () => {
+    const onSearch = jest.fn();
+    render(<SearchBar onSearch={onSearch} resultsCount={0} />);
 
-  render(<SearchBar onSearch={onSearch} resultsCount={0} />);
+    const input = screen.getByPlaceholderText(/Rechercher un utilisateur/i);
+    fireEvent.change(input, { target: { value: 'Ali' } });
 
-  const input = screen.getByPlaceholderText(/Rechercher un utilisateur/i);
-  fireEvent.change(input, { target: { value: 'Ali' } });
+    expect(onSearch).toHaveBeenCalledWith('Ali');
+  });
 
-  expect(onSearch).toHaveBeenCalledWith('Ali');
-});
-
-  it('ouvre le popup de filtres puis le ferme', async () => {
-    const user = userEvent;
+  it('ouvre le popup de filtres puis le ferme', () => {
     render(<SearchBar onSearch={() => {}} resultsCount={0} />);
 
     const popup = screen.getByTestId('filter-popup');
@@ -50,16 +49,15 @@ describe('SearchBar', () => {
     expect(popup).toHaveAttribute('data-open', 'false');
 
     // Clique sur "Filtrer" -> ouvert
-    await user.click(screen.getByRole('button', { name: /Filtrer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Filtrer/i }));
     expect(popup).toHaveAttribute('data-open', 'true');
 
     // Fermer via le bouton du mock
-    await user.click(screen.getByRole('button', { name: /Fermer le filtre/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Fermer le filtre/i }));
     expect(popup).toHaveAttribute('data-open', 'false');
   });
 
-  it('appelle onApplyFilters avec les filtres et referme le popup', async () => {
-    const user = userEvent;
+  it('appelle onApplyFilters avec les filtres et referme le popup', () => {
     const onApplyFilters = jest.fn();
     render(
       <SearchBar
@@ -72,12 +70,12 @@ describe('SearchBar', () => {
     );
 
     // Ouvrir
-    await user.click(screen.getByRole('button', { name: /Filtrer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Filtrer/i }));
     const popup = screen.getByTestId('filter-popup');
     expect(popup).toHaveAttribute('data-open', 'true');
 
     // Appliquer filtres (via le mock)
-    await user.click(screen.getByRole('button', { name: /Appliquer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Appliquer/i }));
     expect(onApplyFilters).toHaveBeenCalledWith({
       role: ['admin'],
       status: ['ACTIF'],

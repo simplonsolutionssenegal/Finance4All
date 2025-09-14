@@ -1,8 +1,7 @@
 // frontend/components/admin/__tests__/UserTable.test.tsx
 import UserTable from '@/components/admin/UserTable';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 type User = Parameters<typeof UserTable>[0]['users'][number];
 
@@ -56,7 +55,7 @@ describe('UserTable', () => {
     ).toBeInTheDocument();
   });
 
-  test('affiche les lignes + pagination et le badge de statut', async () => {
+  test('affiche les lignes + pagination et le badge de statut', () => {
     // 7 users -> 2 pages (itemsPerPage=5)
     const users = buildUsers([
       { firstName: 'Jane', lastName: 'Doe', role: 'admin', status: 'ACTIF' },
@@ -87,7 +86,6 @@ describe('UserTable', () => {
     // Badge statut ACTIF : label "Actif" + classe Tailwind "text-green-600"
     const actifEls = screen.getAllByText('Actif');
     expect(actifEls.length).toBeGreaterThan(0);
-    // on vérifie la classe sur au moins un badge
     expect(actifEls[0].closest('span')?.className).toMatch(/text-green-600/);
 
     // Pagination: Suivant actif / Précédent disabled
@@ -97,7 +95,7 @@ describe('UserTable', () => {
     expect(nextBtn).toBeEnabled();
 
     // Aller page 2
-    await userEvent.click(nextBtn);
+    fireEvent.click(nextBtn);
     expect(screen.getByText(/Page 2 \/ 2/)).toBeInTheDocument();
 
     // "Lia Kim" sur la page 2
@@ -122,7 +120,6 @@ describe('UserTable', () => {
   test('affiche les initiales dans le rond (ex: JD pour Jane Doe)', () => {
     const users = buildUsers([{ firstName: 'Jane', lastName: 'Doe' }]);
     render(<UserTable users={users} isLoading={false} />);
-    // Les initiales sont rendues comme texte direct
     expect(screen.getByText('JD')).toBeInTheDocument();
   });
 });

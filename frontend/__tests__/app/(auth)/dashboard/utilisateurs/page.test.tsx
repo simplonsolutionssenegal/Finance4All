@@ -1,7 +1,7 @@
 // __tests__/app/(auth)/dashboard/utilisateurs/page.test.tsx
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+// import userEvent from '@testing-library/user-event';
 import UsersPage from '@/app/(auth)/dashboard/utilisateurs/page';
 
 // --- Setup global fetch & console ---
@@ -205,16 +205,19 @@ describe('UsersPage', () => {
         });
 
         it('affiche tout quand la recherche est vide', async () => {
-            const user = userEvent.setup();
             const input = screen.getByPlaceholderText('Rechercher...');
 
-            await user.type(input, 'john');
-            // await user.clear(input);
+            // Simule une saisie
+            fireEvent.change(input, { target: { value: 'john' } });
+
+            // Puis on vide pour vérifier “tout est affiché”
+            fireEvent.change(input, { target: { value: '' } });
 
             await waitFor(() => {
                 expect(screen.getByText('2 résultats')).toBeInTheDocument();
             });
         });
+
     });
 
     describe('Filtres distants', () => {
