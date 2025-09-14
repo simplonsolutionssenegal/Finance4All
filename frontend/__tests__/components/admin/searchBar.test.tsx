@@ -64,8 +64,6 @@ describe('SearchBar', () => {
         onSearch={() => {}}
         resultsCount={0}
         onApplyFilters={onApplyFilters}
-        rolesOptions={['admin', 'manager']}
-        statusesOptions={['ACTIF', 'INACTIF']}
       />
     );
 
