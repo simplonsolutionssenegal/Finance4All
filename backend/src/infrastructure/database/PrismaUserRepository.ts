@@ -14,24 +14,34 @@ import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationA
 
 const prisma = new PrismaClient();
 
-type PrismaUserWithRels = PrismaUser & {
+// type PrismaUserWithRels = PrismaUser & {
+//   role: PrismaRole;
+//   organisation: PrismaOrganisation | null;
+// };
+// PrismaUserRepository.ts — remplace le type par un Omit + overrides
+
+type PrismaUserWithRels = Omit<PrismaUser, 'firstName' | 'lastName' | 'lastLoginAt'> & {
+  firstName: string;
+  lastName: string;
+  lastLoginAt: Date; 
   role: PrismaRole;
   organisation: PrismaOrganisation | null;
 };
+
 
 export function toDomain(u: PrismaUserWithRels): DomainUser {
   return new DomainUser(
     u.id,
     u.email,
     u.username,
-    u.firstName,                                // non-null (schéma)
-    u.lastName,                                 // non-null (schéma)
-    u.avatar ?? '',                 // domaine non-null → fallback
+    u.firstName,                                
+    u.lastName,                                 
+    u.avatar ?? '',                 
     u.password,
     u.isActive,
     new Role(u.role.id, u.role.name, u.role.createdAt, u.role.updatedAt),
     u.status,
-    u.lastLoginAt ?? null,                      // tu as gardé Date | null dans le domaine
+    u.lastLoginAt ?? null,                      
     u.organisationId ?? null,
     u.organisation
       ? new Organisation(
@@ -41,7 +51,7 @@ export function toDomain(u: PrismaUserWithRels): DomainUser {
           u.organisation.address,
           u.organisation.phone,
           u.organisation.createdAt,
-          u.organisation.updatedAt
+          u.organisation.updatedAt,
         )
       : null,
     u.createdAt,
@@ -59,51 +69,12 @@ export class PrismaUserRepository implements UserRepository {
     return user.map(toDomain);
   }
 
-  async create(data: {
-    email: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string | null;
-    password: string;
-    isActive?: boolean;
-    roleId: number;
-    organisationId?: number | null;
-    status?: UserStatus;
-    lastLoginAt?: Date | null;
-  }): Promise<DomainUser> {
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        username: data.username,
-        firstName: data.firstName,                 // requis
-        lastName:  data.lastName,                  // requis
-        avatar:    data.avatar ?? null,            // BD nullable
-        password:  data.password,
-        isActive:  data.isActive ?? true,
-        roleId:    data.roleId,
-        organisationId: data.organisationId ?? null,
-        status:    data.status ?? 'ACTIF',
-        ...(data.lastLoginAt ? { lastLoginAt: data.lastLoginAt } : {}),
-      },
-      include: { role: true, organisation: true },
-    });
 
-    return toDomain(user);
-  }
-
-  async findUsersByStatus(statuses: UserStatus[]): Promise<DomainUser[]> {
-    const user = await prisma.user.findMany({
-      where: { status: { in: statuses } },
-      include: { role: true, organisation: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    return user.map(toDomain);
-  }
+ 
 
   async findUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: UserStatus[],               // tape précis
+    statuses: UserStatus[],               
     roles?: string[],
     lastLoginFilter?: LastLoginFilter,
   ): Promise<DomainUser[]> {
@@ -135,8 +106,8 @@ export class PrismaUserRepository implements UserRepository {
           Date.UTC(
             now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear(),
             now.getUTCMonth() === 0 ? 11 : now.getUTCMonth() - 1,
-            1
-          )
+            1,
+          ),
         );
         where.lastLoginAt = { gte: firstOfPrevMonth, lt: firstOfThisMonth };
       }
@@ -175,25 +146,4 @@ export class PrismaUserRepository implements UserRepository {
     return user ? toDomain(user) : null;
   }
 
-  async save(user: DomainUser): Promise<DomainUser> {
-    const created = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatar: user.avatar,
-        isActive: user.isActive,
-        status: user.status,
-        // si tu veux vraiment garder Date|null en domaine :
-        ...(user.lastLoginAt != null ? { lastLoginAt: user.lastLoginAt } : {}),
-        organisationId: user.organisationId ?? null,
-        roleId: user.role?.id ?? 1,
-      },
-      include: { role: true, organisation: true },
-    });
-
-    return toDomain(created);
-    }
 }

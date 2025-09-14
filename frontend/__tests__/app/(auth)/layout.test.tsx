@@ -1,59 +1,65 @@
-import { render, screen } from "@testing-library/react";
+// __tests__/app/(auth)/layout.test.tsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import AuthLayout from '@/app/(auth)/layout';
 
-import AuthLayout from "@/app/(auth)/layout";
+// On mocke Header et SideNav pour éviter leurs dépendances internes
+jest.mock('@/components/header', () => ({
+  __esModule: true,
+  default: () => <header data-testid="header-mock">HEADER</header>,
+}));
 
-describe("AuthLayout", () => {
-  const mockChildren = <div data-testid="test-children">Test Content</div>;
+jest.mock('@/components/sidenav', () => ({
+  __esModule: true,
+  default: () => <nav data-testid="sidenav-mock">SIDENAV</nav>,
+}));
 
-  it("renders without crashing", () => {
-    render(<AuthLayout>{mockChildren}</AuthLayout>);
-    expect(screen.getByTestId("test-children")).toBeInTheDocument();
-  });
+const Child = () => <div data-testid="content">Hello</div>;
 
-  it("renders children inside main element", () => {
-    render(<AuthLayout>{mockChildren}</AuthLayout>);
-    const main = screen.getByRole("main");
-    expect(main).toBeInTheDocument();
-    expect(main).toContainElement(screen.getByTestId("test-children"));
-  });
-
-  it("has correct structure with div and main", () => {
-    const { container } = render(<AuthLayout>{mockChildren}</AuthLayout>);
-    const outerDiv = container.firstChild;
-    expect(outerDiv).toBeInTheDocument();
-    expect(outerDiv?.firstChild).toHaveClass("min-h-screen");
-  });
-
-  it("main element has min-h-screen class", () => {
-    render(<AuthLayout>{mockChildren}</AuthLayout>);
-    const main = screen.getByRole("main");
-    expect(main).toHaveClass("min-h-screen");
-  });
-
-  it("should be a function that returns JSX", () => {
-    expect(typeof AuthLayout).toBe("function");
-    const result = AuthLayout({ children: mockChildren });
-    expect(result).toBeDefined();
-    expect(result.type).toBe("div");
-  });
-
-  it("renders multiple children correctly", () => {
-    const multipleChildren = (
-      <>
-        <div data-testid="child-1">Child 1</div>
-        <div data-testid="child-2">Child 2</div>
-      </>
+describe('AuthLayout', () => {
+  it('rend le header, la sidebar et le main avec les classes attendues', () => {
+    const { container } = render(
+      <AuthLayout>
+        <Child />
+      </AuthLayout>
     );
 
-    render(<AuthLayout>{multipleChildren}</AuthLayout>);
-    expect(screen.getByTestId("child-1")).toBeInTheDocument();
-    expect(screen.getByTestId("child-2")).toBeInTheDocument();
+    // racine
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveClass('flex', 'h-screen', 'flex-col');
+
+    // header mocké présent
+    expect(screen.getByTestId('header-mock')).toBeInTheDocument();
+
+    // conteneur (ligne) qui contient sidebar + main
+    // c'est le 2e enfant direct de la racine
+    const row = root.children[1] as HTMLElement;
+    expect(row).toHaveClass('flex', 'flex-1', 'overflow-hidden', 'm-2');
+
+    // sidenav mockée dans un conteneur avec classes de largeur
+    const sidenavContainer = row.children[0] as HTMLElement;
+    expect(sidenavContainer).toHaveClass('w-full', 'flex-none', 'md:w-64');
+    expect(screen.getByTestId('sidenav-mock')).toBeInTheDocument();
+
+    // main
+    const main = row.children[1] as HTMLElement;
+    expect(main.tagName.toLowerCase()).toBe('main');
+    expect(main).toHaveClass('flex-1', 'overflow-y-auto', 'p-2');
+
+    // children rendus
+    expect(screen.getByTestId('content')).toBeInTheDocument();
   });
 
-  it("renders with empty children", () => {
-    render(<AuthLayout>{null}</AuthLayout>);
-    const main = screen.getByRole("main");
+  it('supporte des children vides', () => {
+    const { container } = render(<AuthLayout>{null}</AuthLayout>);
+    const main = container.querySelector('main')!;
     expect(main).toBeInTheDocument();
-    expect(main).toHaveClass("min-h-screen");
+    expect(main).toHaveClass('flex-1', 'overflow-y-auto', 'p-2');
+  });
+
+  it('est une fonction qui renvoie du JSX', () => {
+    expect(typeof AuthLayout).toBe('function');
+    const view = render(<AuthLayout><Child /></AuthLayout>);
+    expect(view.container).toBeTruthy();
   });
 });

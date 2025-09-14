@@ -1,7 +1,9 @@
 // frontend/components/forms/FormSelect.tsx
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import React, { useState, type ChangeEvent } from "react";
+
+
 
 interface Option {
   value: string | number;
@@ -17,7 +19,6 @@ interface FormSelectProps {
   required?: boolean;
   options?: Option[];
   error?: string;
-  className?: string;
 }
 
 const FormSelect: React.FC<FormSelectProps> = ({

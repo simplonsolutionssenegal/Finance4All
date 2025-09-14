@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Calendar } from 'lucide-react';
+import React, { useState } from 'react';
 
 export interface FilterOptions {
     role: string[];                         // ex: ['admin','developpeur', ...] (lowercase à l'apply)

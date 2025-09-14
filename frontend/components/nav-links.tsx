@@ -1,4 +1,6 @@
 'use client'
+
+import clsx from 'clsx'
 import {
     Home,
     FileText,
@@ -8,7 +10,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import clsx from 'clsx'
+
 
 // Map of links to display in the side navigation.
 // Avec Lucide, on importe les icônes directement

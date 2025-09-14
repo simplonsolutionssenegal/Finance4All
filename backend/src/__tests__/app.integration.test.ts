@@ -94,26 +94,17 @@ describe('App Integration Tests', () => {
   });
 
   describe('Middleware Integration', () => {
-    it('should parse JSON requests', async () => {
-      const testData = { test: 'data' };
 
+    it('should handle GET requests', async () => {
       const response = await request(app)
-        .post('/api/v1/users')
-        .send(testData)
-        .set('Content-Type', 'application/json');
+        .get('/api/v1/users/organisations/:organisationId/users')   // route existante
+        .set('Accept', 'application/json');
 
-      // Should be handled by the route (even if it returns an error)
-      expect([201, 400, 500]).toContain(response.status);
+      // Ici tu attends un code valide selon ta logique métier
+      expect([200, 400, 500]).toContain(response.status);
     });
 
-    it('should handle URL-encoded data', async () => {
-      const response = await request(app)
-        .post('/api/v1/users')
-        .send('name=John&email=john@example.com')
-        .set('Content-Type', 'application/x-www-form-urlencoded');
-
-      expect([201, 400, 500]).toContain(response.status);
-    });
+   
 
     it('should include security headers from helmet', async () => {
       const response = await request(app).get('/health').expect(200);

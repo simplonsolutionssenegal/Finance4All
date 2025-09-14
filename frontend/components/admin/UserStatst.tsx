@@ -1,9 +1,20 @@
 // frontend/components/admin/UserStats.tsx
 
 interface User {
-  id?: string | number;
-  status: "active" | "pending" | "inactive" | string;
-  [key: string]: any; // si tu as d'autres propriétés utilisateur
+  id: number;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  status: string;
+  avatar: string;
+  isActive: boolean;
+  lastLoginAt: string;
+  organisationId: number;
+  organisation: { id: number; name: string; avatar: string; address: string; phone: string; createdAt: string; updatedAt: string; };
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface UserStatsProps {
@@ -18,7 +29,7 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
     inactive: users.filter((user) => user.status === "inactive").length,
   };
 
-  // Calculer les pourcentages pour chaque stat
+  
   const activePercentage =
     users.length > 0
       ? Math.round((stats.active / users.length) * 100)

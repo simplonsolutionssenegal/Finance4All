@@ -1,7 +1,8 @@
 // frontend/components/forms/FormInput.tsx
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import React, { useState, type ChangeEvent } from "react";
+
 
 interface FormInputProps {
   label: string;
@@ -13,7 +14,6 @@ interface FormInputProps {
   required?: boolean;
   placeholder?: string;
   error?: string;
-  className?: string;
 }
 
 const FormInput: React.FC<FormInputProps> = ({

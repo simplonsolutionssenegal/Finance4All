@@ -1,143 +1,202 @@
-import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
-import { User } from '@/domain/entities/User';
-import { prisma } from '@/infrastructure/database/prisma';
-
-// Mock Prisma User type
-type PrismaUser = {
-  id: string;
-  name: string;
-  email: string;
+// 1) MOCK de @prisma/client AVANT d'importer le repository
+const mockPrisma = {
+  user: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+  },
 };
 
-// Mock Prisma client
-jest.mock('@/infrastructure/database/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn(() => mockPrisma),
+  UserStatus: {
+    ACTIF: 'ACTIF',
+    EN_ATTENTE: 'EN_ATTENTE',
+    INACTIF: 'INACTIF',
+    SUSPENDU: 'SUSPENDU',
   },
 }));
 
-const mockPrisma = prisma as unknown as {
-  user: {
-    findUnique: jest.Mock;
-    create: jest.Mock;
+// 2) importer le repo APRES le mock
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
+import type { UserStatus } from '@prisma/client';
+
+function fakeRow(overrides: Partial<any> = {}) {
+  const now = new Date();
+  return {
+    id: 1,
+    email: 'john@example.com',
+    username: 'jdoe',
+    firstName: 'John',
+    lastName: 'Doe',
+    avatar: null,
+    password: 'hashed',
+    isActive: true,
+    status: 'ACTIF' as UserStatus,
+    lastLoginAt: now,
+    organisationId: 37,
+    organisation: {
+      id: 37, name: 'Acme', address: 'addr', phone: '000',
+      avatar: null, createdAt: now, updatedAt: now,
+    },
+    role: { id: 1, name: 'ADMIN', createdAt: now, updatedAt: now },
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
   };
-};
+}
 
 describe('PrismaUserRepository', () => {
-  let repository: PrismaUserRepository;
+  let repo: PrismaUserRepository;
 
   beforeEach(() => {
-    repository = new PrismaUserRepository();
     jest.clearAllMocks();
+    repo = new PrismaUserRepository();
+  });
+
+  describe('findAll', () => {
+    it('retourne la liste mappée et passe les bons include/orderBy', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([fakeRow(), fakeRow({ id: 2 })]);
+
+      const res = await repo.findAll();
+
+      expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
+        include: { role: true, organisation: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(res).toHaveLength(2);
+      expect(res[0].id).toBe(1);
+      expect(res[0].role.name).toBe('ADMIN');
+    });
+
+    it('retourne [] si aucun utilisateur', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      const res = await repo.findAll();
+      expect(res).toEqual([]);
+    });
+
+    it('propage les erreurs Prisma', async () => {
+      mockPrisma.user.findMany.mockRejectedValue(new Error('DB down'));
+      await expect(repo.findAll()).rejects.toThrow('DB down');
+    });
   });
 
   describe('findById', () => {
-    it('should find a user by id successfully', async () => {
-      const mockPrismaUser: PrismaUser = {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-      };
+    it('retourne un DomainUser si trouvé', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(fakeRow({ id: 42 }));
 
-      mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
+      const res = await repo.findById(42);
 
-      const result = await repository.findById('1');
-
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: '1' } });
-      expect(result).toBeInstanceOf(User);
-      expect(result?.id).toBe('1');
-      expect(result?.name).toBe('John Doe');
-      expect(result?.email).toBe('john@example.com');
-    });
-
-    it('should return null when user is not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      const result = await repository.findById('nonexistent');
-
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: 'nonexistent' } });
-      expect(result).toBeNull();
-    });
-
-    it('should handle database errors', async () => {
-      const error = new Error('Database connection failed');
-      mockPrisma.user.findUnique.mockRejectedValue(error);
-
-      await expect(repository.findById('1')).rejects.toThrow('Database connection failed');
-    });
-  });
-
-  describe('save', () => {
-    it('should save a user successfully', async () => {
-      const domainUser = new User('1', 'John Doe', 'john@example.com');
-      const mockPrismaUser: PrismaUser = {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-      };
-
-      mockPrisma.user.create.mockResolvedValue(mockPrismaUser);
-
-      const result = await repository.save(domainUser);
-
-      expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 42 },
+        include: { role: true, organisation: true },
       });
-      expect(result).toBeInstanceOf(User);
-      expect(result.id).toBe('1');
-      expect(result.name).toBe('John Doe');
-      expect(result.email).toBe('john@example.com');
+      expect(res?.id).toBe(42);
+      expect(res?.username).toBe('jdoe');
     });
 
-    it('should handle save errors', async () => {
-      const domainUser = new User('1', 'John Doe', 'invalid-email');
-      const error = new Error('Unique constraint failed');
-      mockPrisma.user.create.mockRejectedValue(error);
-
-      await expect(repository.save(domainUser)).rejects.toThrow('Unique constraint failed');
+    it('retourne null si non trouvé', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const res = await repo.findById(999);
+      expect(res).toBeNull();
     });
 
-    it('should save user with different data types', async () => {
-      const domainUser = new User('uuid-123', 'Jane Smith', 'jane.smith@example.com');
-      const mockPrismaUser: PrismaUser = {
-        id: 'uuid-123',
-        name: 'Jane Smith',
-        email: 'jane.smith@example.com',
-      };
-
-      mockPrisma.user.create.mockResolvedValue(mockPrismaUser);
-
-      const result = await repository.save(domainUser);
-
-      expect(result.id).toBe('uuid-123');
-      expect(result.name).toBe('Jane Smith');
-      expect(result.email).toBe('jane.smith@example.com');
+    it('propage les erreurs Prisma', async () => {
+      mockPrisma.user.findUnique.mockRejectedValue(new Error('DB error'));
+      await expect(repo.findById(1)).rejects.toThrow('DB error');
     });
   });
 
-  describe('toDomain conversion', () => {
-    it('should correctly convert Prisma user to domain user', async () => {
-      const mockPrismaUser: PrismaUser = {
-        id: 'test-id',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
+  describe('findByOrganisationId', () => {
+    it('filtre par organisationId et mappe', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([fakeRow(), fakeRow({ id: 2 })]);
 
-      mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
+      const res = await repo.findByOrganisationId(37);
 
-      const result = await repository.findById('test-id');
+      expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
+        where: { organisationId: 37 },
+        include: { role: true, organisation: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(res).toHaveLength(2);
+      expect(res[1].id).toBe(2);
+    });
 
-      expect(result).toBeInstanceOf(User);
-      expect(result?.id).toBe(mockPrismaUser.id);
-      expect(result?.name).toBe(mockPrismaUser.name);
-      expect(result?.email).toBe(mockPrismaUser.email);
+    it('propage les erreurs Prisma', async () => {
+      mockPrisma.user.findMany.mockRejectedValue(new Error('Oops'));
+      await expect(repo.findByOrganisationId(37)).rejects.toThrow('Oops');
+    });
+  });
+
+  describe('findUsersByOrganisationAndStatus', () => {
+    it('applique status + roles et lastLogin=recent', async () => {
+      const base = new Date('2025-09-10T00:00:00.000Z');
+      jest.useFakeTimers().setSystemTime(base);
+
+      mockPrisma.user.findMany.mockResolvedValue([fakeRow()]);
+
+      const res = await repo.findUsersByOrganisationAndStatus(
+        37,
+        ['ACTIF'],
+        ['ADMIN', 'MANAGER'],
+        { type: 'recent' } as any
+      );
+
+      const callArg = mockPrisma.user.findMany.mock.calls[0][0];
+      expect(callArg.where.organisationId).toBe(37);
+      expect(callArg.where.status).toEqual({ in: ['ACTIF'] });
+      expect(callArg.where.role).toEqual({ name: { in: ['ADMIN', 'MANAGER'] } });
+      expect(callArg.where.lastLoginAt.gte instanceof Date).toBe(true);
+
+      expect(res[0].id).toBe(1);
+      jest.useRealTimers();
+    });
+
+    it('applique last_month (mois calendaire précédent)', async () => {
+      // fige l'heure pour rendre le calcul déterministe
+      const base = new Date('2025-09-15T12:00:00.000Z');
+      jest.useFakeTimers().setSystemTime(base);
+
+      mockPrisma.user.findMany.mockResolvedValue([]);
+
+      await repo.findUsersByOrganisationAndStatus(10, ['ACTIF'], undefined, { type: 'last_month' } as any);
+
+      const callArg = mockPrisma.user.findMany.mock.calls[0][0];
+      expect(callArg.where.lastLoginAt.gte instanceof Date).toBe(true);
+      expect(callArg.where.lastLoginAt.lt   instanceof Date).toBe(true);
+
+      jest.useRealTimers();
+    });
+
+    it('applique custom_date (00:00 à 00:00+1)', async () => {
+      const d = new Date('2025-08-20T00:00:00.000Z');
+      mockPrisma.user.findMany.mockResolvedValue([fakeRow()]);
+
+      await repo.findUsersByOrganisationAndStatus(5, ['ACTIF', 'INACTIF'], [], { type: 'custom_date', date: d } as any);
+
+      const callArg = mockPrisma.user.findMany.mock.calls[0][0];
+      expect(callArg.where.status).toEqual({ in: ['ACTIF', 'INACTIF'] });
+      expect(callArg.where.lastLoginAt.gte.toISOString()).toBe(d.toISOString());
+      const next = new Date(d.getTime() + 24 * 60 * 60 * 1000).toISOString();
+      expect(callArg.where.lastLoginAt.lt.toISOString()).toBe(next);
+    });
+
+    it('sans roles / sans lastLoginFilter', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([]);
+
+      await repo.findUsersByOrganisationAndStatus(7, ['SUSPENDU']);
+
+      const callArg = mockPrisma.user.findMany.mock.calls[0][0];
+      expect(callArg.where).toEqual({
+        organisationId: 7,
+        status: { in: ['SUSPENDU'] },
+      });
+    });
+
+    it('propage les erreurs Prisma', async () => {
+      mockPrisma.user.findMany.mockRejectedValue(new Error('fail'));
+      await expect(
+        repo.findUsersByOrganisationAndStatus(1, ['ACTIF'])
+      ).rejects.toThrow('fail');
     });
   });
 });

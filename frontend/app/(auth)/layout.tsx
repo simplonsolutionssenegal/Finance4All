@@ -1,6 +1,7 @@
-import SideNav from '@/components/sidenav';
-import Header from '@/components/header';
 import type React from 'react';
+
+import Header from '@/components/header';
+import SideNav from '@/components/sidenav';
 
 export default function AuthLayout({ children } : Readonly<{ children: React.ReactNode;}>) {
   return (

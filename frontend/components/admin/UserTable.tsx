@@ -1,9 +1,9 @@
-// frontend/components/admin/UserTable.tsx
 "use client";
 
-import { useState } from "react";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { SquarePen, Trash2 } from 'lucide-react';
+import { useState } from "react";
+
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 
 interface User  {
   id: number;

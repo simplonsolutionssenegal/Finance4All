@@ -1,16 +1,10 @@
-import { Request, Response} from 'express';
+// backend/src/infrastructure/web/controllers/UserController.ts
+import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
 import { UserStatus } from '@prisma/client';
 
-
-
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-  ) { }
-
-
- 
+  constructor(private readonly userService: UserService) { }
 
   async getUsersByOrganisation(req: Request, res: Response): Promise<void> {
     const organisationId = Number(req.params.organisationId);
@@ -18,19 +12,18 @@ export class UserController {
     if (Number.isNaN(organisationId)) {
       res.status(400).json({
         status: 'fail',
-        message: 'ID organisation invalide'
+        message: 'ID organisation invalide',
       });
       return;
     }
 
     try {
-   
       const users = await this.userService.getUsersByOrganisation(organisationId);
 
       res.status(200).json({
         status: 'success',
         results: users.length,
-        data: users.map(u => ({
+        data: users.map((u) => ({
           id: u.id,
           email: u.email,
           username: u.username,
@@ -55,17 +48,15 @@ export class UserController {
             : null,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
-        }))
+        })),
       });
-    } catch (err) {
-      console.error('Error filtering users:', err);
-      res.status(500).json({
-        status: 'error',
-        message: 'Erreur lors de la récupération des utilisateurs par organisation',
+    } catch {
+      res.status(400).json({
+        error: 'Une erreur est survenue lors du filtrage des utilisateurs',
+        message: 'Erreur inconnue',
       });
     }
   }
-
 
   async getUsersByOrganisationFilter(req: Request, res: Response): Promise<void> {
     try {
@@ -80,17 +71,17 @@ export class UserController {
         return;
       }
 
-      // Convertir le paramètre en tableau de statuts
-      const statuses = status
-        ? (Array.isArray(status) ? status : [status]) as UserStatus[]
-        : [];
+      let statuses: UserStatus[] = [];
+      if (status !== undefined && status !== null) {
+        const s = Array.isArray(status) ? status : [status];
+        statuses = s as UserStatus[];
+      }
 
-      // Convertir le paramètre de rôle en tableau
-      const roles = role
-        ? (Array.isArray(role) ? role : [role]) as string[]
-        : undefined;
-
-      // Gérer le filtre de date de dernière connexion
+      let roles: string[] | undefined = undefined;
+      if (role !== undefined && role !== null) {
+        const r = Array.isArray(role) ? role : [role];
+        roles = r as string[];
+      }
       let lastLoginFilter;
       if (lastLogin === 'recent') {
         lastLoginFilter = { type: 'recent' } as const;
@@ -104,8 +95,7 @@ export class UserController {
           });
           return;
         }
-        
-        // Vérifier le format de la date (doit être YYYY-MM-DD)
+
         const dateStr = customDate as string;
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(dateStr)) {
@@ -115,8 +105,7 @@ export class UserController {
           });
           return;
         }
-        
-        // Créer la date en UTC pour éviter les problèmes de fuseau horaire
+
         const date = new Date(dateStr + 'T00:00:00.000Z');
         if (isNaN(date.getTime())) {
           res.status(400).json({
@@ -125,17 +114,21 @@ export class UserController {
           });
           return;
         }
-        
+
         lastLoginFilter = { type: 'custom_date' as const, date };
       }
 
-       const users = await this.userService.getUsersByOrganisationAndStatus(organisationId, statuses, roles, lastLoginFilter);
-     
+      const users = await this.userService.getUsersByOrganisationAndStatus(
+        organisationId,
+        statuses,
+        roles,
+        lastLoginFilter,
+      );
 
       res.status(200).json({
         status: 'success',
         results: users.length,
-        data: users.map(u => ({
+        data: users.map((u) => ({
           id: u.id,
           email: u.email,
           username: u.username,
@@ -160,10 +153,9 @@ export class UserController {
             : null,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
-        }))
+        })),
       });
-    } catch (error) {
-      console.error('Error filtering users:', error);
+    } catch {
       res.status(500).json({
         status: 'error',
         message: 'Une erreur est survenue lors du filtrage des utilisateurs',

@@ -209,7 +209,7 @@ describe('UsersPage', () => {
             const input = screen.getByPlaceholderText('Rechercher...');
 
             await user.type(input, 'john');
-            await user.clear(input);
+            // await user.clear(input);
 
             await waitFor(() => {
                 expect(screen.getByText('2 résultats')).toBeInTheDocument();

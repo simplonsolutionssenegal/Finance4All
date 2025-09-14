@@ -1,28 +1,23 @@
 'use client';
 
-import { useState, ChangeEvent } from 'react';
 import { Filter } from 'lucide-react';
-import FilterPopup from '@/components/admin/FilterPopup';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import React, { useState, type ChangeEvent } from 'react';
+
+import FilterPopup, { type FilterOptions } from '@/components/admin/FilterPopup';
 
 interface SearchBarProps {
   onSearch: (value: string) => void;
   resultsCount: number;
-  onApplyFilters?: (filters: any) => void;
-
-  rolesOptions?: string[];
-  statusesOptions?: string[];
+  onApplyFilters?: (filters: FilterOptions) => void;
+ 
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   resultsCount,
   onApplyFilters,
-  rolesOptions = [],
-  statusesOptions = [],
 }) => {
   const [searchValue, setSearchValue] = useState('');
-  const [open, setOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -31,8 +26,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     onSearch(value);
   };
 
-  
-  const handleApplyFilters = (filters: any) => {
+
+  const handleApplyFilters = (filters: FilterOptions) => {
     onApplyFilters?.(filters);
     setFilterOpen(false); // fermer le popup après application (sécurité)
   };
@@ -72,17 +67,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
         {/* (Optionnel) ton bouton d'ajout utilisateur / Dialog */}
         <div>
-              <button
-               
-                type="button"
-                className="w-full md:w-auto bg-[#6CB9C6] hover:bg-[#5AA7B3] text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center transition-colors duration-200"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Ajouter un utilisateur
-              </button>
-          
+          <button
+
+            type="button"
+            className="w-full md:w-auto bg-[#6CB9C6] hover:bg-[#5AA7B3] text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Ajouter un utilisateur
+          </button>
+
         </div>
       </div>
 
