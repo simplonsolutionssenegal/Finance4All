@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@testing-library/user-event": "^14.6.1"
-
+  },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
       "cd frontend && npm run lint:fix",
