@@ -116,6 +116,7 @@ describe("ForgotPasswordForm", () => {
     updateField: jest.fn(),
     setFieldError: jest.fn(),
     setErrors: jest.fn(),
+    validate: jest.fn(),
     clearErrors: jest.fn(),
     resetForm: jest.fn(),
     hasError: jest.fn((_field: string) => false),

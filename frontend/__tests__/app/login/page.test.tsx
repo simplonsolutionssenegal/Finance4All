@@ -1,30 +1,26 @@
 import { render, screen } from "@testing-library/react";
-
 import Login from "@/app/login/page";
 
-describe("Login", () => {
+jest.mock('@/components/connexion-form', () => ({
+  ConnexionForm: () => <div data-testid="connexion-form">Connexion Form</div>,
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: (props: any) => {
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img {...props} alt={props.alt} />
+    }
+  }));
+
+describe("Login Page", () => {
   it("renders without crashing", () => {
     render(<Login />);
-    expect(screen.getByText("Page de connexion")).toBeInTheDocument();
+    expect(screen.getByTestId("connexion-form")).toBeInTheDocument();
   });
 
-  it("displays the correct content", () => {
+  it("displays the main title", () => {
     render(<Login />);
-    const content = screen.getByText("Page de connexion");
-    expect(content).toBeInTheDocument();
-  });
-
-  it("renders as a div element", () => {
-    const { container } = render(<Login />);
-    const divElement = container.querySelector("div");
-    expect(divElement).toBeInTheDocument();
-    expect(divElement).toHaveTextContent("Page de connexion");
-  });
-
-  it("should be a function that returns JSX", () => {
-    expect(typeof Login).toBe("function");
-    const result = Login();
-    expect(result).toBeDefined();
-    expect(result.type).toBe("div");
+    expect(screen.getByText("Connextez-vous à votre espace de formation")).toBeInTheDocument();
   });
 });

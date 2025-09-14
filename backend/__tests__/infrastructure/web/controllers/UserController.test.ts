@@ -1,16 +1,28 @@
 import { Request, Response } from 'express';
-import { UserController } from 'backend/src/infrastructure/web/controllers/UserController';
-import { CreateUserUseCase } from 'backend/src/application/use-cases/CreateUserUseCase';
-import { User } from 'backend/src/domain/entities/User';
+import { UserController } from '@/infrastructure/web/controllers/UserController';
+import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
+import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
+import { User } from '@/domain/entities/User';
 
 describe('UserController', () => {
   let userController: UserController;
   let mockCreateUserUseCase: jest.Mocked<CreateUserUseCase>;
+  let mockRemoveUserUseCase: jest.Mocked<RemoveUserUseCase>;
+  let mockUpdateUserRoleUseCase: jest.Mocked<UpdateUserRoleUseCase>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
 
   beforeEach(() => {
     mockCreateUserUseCase = {
+      execute: jest.fn(),
+    };
+
+    mockRemoveUserUseCase = {
+      execute: jest.fn(),
+    };
+
+    mockUpdateUserRoleUseCase = {
       execute: jest.fn(),
     };
 
@@ -23,7 +35,7 @@ describe('UserController', () => {
       json: jest.fn(),
     };
 
-    userController = new UserController(mockCreateUserUseCase);
+    userController = new UserController(mockCreateUserUseCase, mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
   });
 
   describe('create', () => {

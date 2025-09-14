@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import type { FormState, FormHook } from "../lib/form-types";
+import type { FormState, FormHook } from '@/lib/form-types';
 
 // Réexport des types pour maintenir la compatibilité
 export type { FormState, FormHook } from "../lib/form-types";
@@ -55,6 +55,17 @@ export function useFormState<T extends Record<string, unknown>>(
     }));
   }, []);
 
+  //Valide le formulaire avec des erreurs personnalisées
+  const validate = useCallback((errors: Partial<Record<keyof T, string>>) => {
+    setFormState(prev => ({
+      ...prev,
+      errors: {
+        ...prev.errors,
+        ...errors
+      }
+    }));
+  }, []);
+
   //Efface toutes les erreurs
   const clearErrors = useCallback(() => {
     setFormState(prev => ({
@@ -89,6 +100,7 @@ export function useFormState<T extends Record<string, unknown>>(
     updateField,
     setFieldError,
     setErrors,
+    validate,
     clearErrors,
     resetForm,
     isValid,

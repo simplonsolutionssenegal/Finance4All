@@ -28,6 +28,7 @@ export interface FormHook<T extends Record<string, unknown>> {
   updateField: (field: keyof T, value: unknown) => void;
   setFieldError: (field: keyof T, error: string) => void;
   setErrors: (errors: Partial<Record<keyof T, string>>) => void;
+  validate: (errors: Partial<Record<keyof T, string>>) => void;
   clearErrors: () => void;
   resetForm: () => void;
   hasError: (field: keyof T) => boolean;

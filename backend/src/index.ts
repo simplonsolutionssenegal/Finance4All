@@ -18,7 +18,6 @@ const app = express();
 app.disable('x-powered-by');
 
 const PORT = process.env.PORT ?? 5000;
-app.use(clerkMiddleware());
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
@@ -26,8 +25,13 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
+
+// Appliquer le middleware Clerk seulement sur les routes API, pas sur la route health
+app.use('/api', clerkMiddleware());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
