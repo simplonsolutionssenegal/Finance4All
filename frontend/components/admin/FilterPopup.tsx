@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Calendar, Check as CheckIcon } from 'lucide-react';
+import React, { useState } from 'react';
 
 export interface FilterOptions {
   role: string[];
