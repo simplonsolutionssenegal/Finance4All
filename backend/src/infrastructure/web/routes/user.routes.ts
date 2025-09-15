@@ -1,19 +1,17 @@
 import { Router, Request, Response } from 'express';
-import { UserController } from '../controllers/UserController';
 import { PrismaUserRepository } from '../../database/PrismaUserRepository';
-import { SignUpUserUseCaseImpl } from '@/domain/use-cases/SignUpUserUseCaseImpl';
 import { NodemailerEmailService } from '@/infrastructure/adapters/NodemailerEmailService';
-import { BcryptAuthService } from '@/infrastructure/adapters/BcryptAuthService';
+import { RegisterClerkUserUseCaseImpl } from '@/domain/use-cases/RegisterClerkUserUseCaseImpl';
+import { ClerkUserController } from '../controllers/ClerkUserController';
 
 const router = Router();
 const userRepository = new PrismaUserRepository();
 const emailService = new NodemailerEmailService();
 
-const authService = new BcryptAuthService();
-const SignUpUserUseCase = new SignUpUserUseCaseImpl(userRepository, emailService, authService);
+const RegisterClerkUserUseCase = new RegisterClerkUserUseCaseImpl(userRepository, emailService);
 
-const userController = new UserController(SignUpUserUseCase);
+const clerkUserController = new ClerkUserController(RegisterClerkUserUseCase);
 
-router.post('/signup', (req: Request, res: Response) => userController.signUp(req, res));
+router.post('/register', (req: Request, res: Response) => clerkUserController.register(req, res));
 
 export default router;
