@@ -114,7 +114,7 @@ export class UserController {
   private parseLastLoginFilter(
     lastLogin: unknown,
     customDate: unknown,
-    res: Response
+    res: Response,
   ):
     | { type: 'recent' }
     | { type: 'last_month' }
@@ -172,7 +172,7 @@ export class UserController {
       const lastLoginFilter = this.parseLastLoginFilter(
         lastLogin,
         customDate,
-        res
+        res,
       );
       if (lastLogin === 'custom' && !lastLoginFilter) return; // stop si erreur customDate
 
