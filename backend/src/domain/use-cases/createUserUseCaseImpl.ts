@@ -17,10 +17,10 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
     const userData = {
       email,
       password: '',
-      lastname: '',
-      firstname: '',
+      lastName: '',
+      firstName: '',
       role: UserRole.BENEFICIAIRE,
-      status : UserStatus.ACTIF,
+      status: UserStatus.ACTIF,
     };
     return await this.userRepository.create(userData);
   }
