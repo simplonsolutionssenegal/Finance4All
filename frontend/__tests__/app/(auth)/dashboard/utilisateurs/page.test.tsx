@@ -11,7 +11,7 @@ beforeAll(() => {
     jest.spyOn(console, 'log').mockImplementation(() => { });
 });
 afterAll(() => {
-    (console.log as jest.Mock).mockRestore();
+    
 });
 beforeEach(() => {
     (global.fetch as jest.Mock).mockReset();
