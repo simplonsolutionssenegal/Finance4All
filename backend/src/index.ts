@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 import { logger } from '@/utils/logger';
 import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
-import { clerkMiddleware } from '@clerk/express';
 
 // Charger les variables d'environnement
 dotenv.config();
