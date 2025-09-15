@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 
-// Mock des dépendances
+// Mock des dépendances minimales
 jest.mock('@/infrastructure/database/prisma', () => ({
   prisma: {
     user: {
@@ -11,21 +11,20 @@ jest.mock('@/infrastructure/database/prisma', () => ({
   },
 }));
 jest.mock('@/infrastructure/database/PrismaUserRepository');
-jest.mock('@/domain/use-cases/createUserUseCaseImpl');
 
-const mockUserController = {
-  create: jest.fn(),
+const mockClerkUserController = {
+  register: jest.fn(),
 };
 
-jest.doMock('@/infrastructure/web/controllers/UserController', () => {
+jest.doMock('@/infrastructure/web/controllers/ClerkUserController', () => {
   return {
-    UserController: jest.fn().mockImplementation(() => {
-      return mockUserController;
+    ClerkUserController: jest.fn().mockImplementation(() => {
+      return mockClerkUserController;
     }),
   };
 });
 
-describe('User Routes', () => {
+describe('User Routes (Clerk)', () => {
   let app: express.Application;
   let userRoutes: express.Router;
 
@@ -42,96 +41,102 @@ describe('User Routes', () => {
     app.use('/users', userRoutes);
   });
 
-  describe('POST /users', () => {
-    it('should call userController.create method', async () => {
+  describe('POST /users/register', () => {
+    it('should call clerkUserController.register method', async () => {
       // Mock successful response
-      mockUserController.create.mockImplementation(async (req, res) => {
-        res.status(201).json({ id: '1', name: 'John Doe', email: 'john@example.com' });
+      mockClerkUserController.register.mockImplementation(async (req, res) => {
+        res.status(201).json({ id: '1', email: 'john@example.com', clerkId: 'clrk_123' });
       });
 
-      const userData = {
-        name: 'John Doe',
+      const payload = {
         email: 'john@example.com',
+        clerkId: 'clrk_123',
+        firstName: 'John',
+        lastName: 'Doe',
       };
 
-      const response = await request(app).post('/users').send(userData).expect(201);
+      const response = await request(app).post('/users/register').send(payload).expect(201);
 
       expect(response.body).toEqual({
         id: '1',
-        name: 'John Doe',
         email: 'john@example.com',
+        clerkId: 'clrk_123',
       });
     });
 
     it('should handle validation errors', async () => {
       // Mock error response
-      mockUserController.create.mockImplementation(async (req, res) => {
+      mockClerkUserController.register.mockImplementation(async (req, res) => {
         res.status(400).json({
-          error: "Erreur lors de la création de l'utilisateur",
+          error: "Erreur lors de l'inscription",
           message: 'Invalid email format',
         });
       });
 
-      const invalidUserData = {
-        name: 'John Doe',
+      const invalidPayload = {
         email: 'invalid-email',
+        clerkId: 'clrk_123',
+        firstName: 'John',
+        lastName: 'Doe',
       };
 
-      const response = await request(app).post('/users').send(invalidUserData).expect(400);
+      const response = await request(app).post('/users/register').send(invalidPayload).expect(400);
 
       expect(response.body).toEqual({
-        error: "Erreur lors de la création de l'utilisateur",
+        error: "Erreur lors de l'inscription",
         message: 'Invalid email format',
       });
     });
 
     it('should handle missing required fields', async () => {
       // Mock error response for missing fields
-      mockUserController.create.mockImplementation(async (req, res) => {
+      mockClerkUserController.register.mockImplementation(async (req, res) => {
         res.status(400).json({
-          error: "Erreur lors de la création de l'utilisateur",
-          message: 'Name is required',
+          error: "Erreur lors de l'inscription",
+          message: 'Required fields are missing',
         });
       });
 
-      const incompleteUserData = {
+      const incompletePayload = {
         email: 'john@example.com',
       };
 
-      const response = await request(app).post('/users').send(incompleteUserData).expect(400);
+      const response = await request(app).post('/users/register').send(incompletePayload).expect(400);
 
-      expect(response.body.error).toBe("Erreur lors de la création de l'utilisateur");
+      expect(response.body.error).toBe("Erreur lors de l'inscription");
     });
 
     it('should handle empty request body', async () => {
       // Mock error response for empty body
-      mockUserController.create.mockImplementation(async (req, res) => {
+      mockClerkUserController.register.mockImplementation(async (req, res) => {
         res.status(400).json({
-          error: "Erreur lors de la création de l'utilisateur",
+          error: "Erreur lors de l'inscription",
           message: 'Request body is required',
         });
       });
 
-      const response = await request(app).post('/users').send({}).expect(400);
+      const response = await request(app).post('/users/register').send({}).expect(400);
 
-      expect(response.body.error).toBe("Erreur lors de la création de l'utilisateur");
+      expect(response.body.error).toBe("Erreur lors de l'inscription");
     });
 
     it('should handle server errors', async () => {
       // Mock server error response
-      mockUserController.create.mockImplementation(async (req, res) => {
+      mockClerkUserController.register.mockImplementation(async (req, res) => {
         res.status(500).json({
           error: 'Internal server error',
           message: 'Database connection failed',
         });
       });
 
-      const userData = {
-        name: 'John Doe',
+      const payload = {
         email: 'john@example.com',
+        clerkId: 'clrk_123',
+        firstName: 'John',
+        lastName: 'Doe',
       };
 
-      const response = await request(app).post('/users').send(userData).expect(500);
+      const response = await request(app).post('/users/register').send(payload).expect(500);
 
       expect(response.body.error).toBe('Internal server error');
     });

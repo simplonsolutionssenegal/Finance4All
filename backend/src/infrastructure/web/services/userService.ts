@@ -5,6 +5,7 @@ export class UserService {
   constructor(private readonly createUserUseCase: CreateUserUseCase) {}
 
   async signUp(input: CreateUserInput) {
-    return this.createUserUseCase.execute(input);
+    const name = `${input.firstName} ${input.lastName}`.trim();
+    return this.createUserUseCase.execute(name, input.email);
   }
 }

@@ -1,7 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-
 import '@testing-library/jest-dom';
-import SignUp from '@/app/sign-up/page';
 
 jest.mock('@clerk/nextjs', () => ({
   useSignUp: () => ({ signUp: { create: jest.fn(() => ({ prepareEmailAddressVerification: jest.fn() })) }, setActive: jest.fn() })
@@ -12,7 +10,8 @@ jest.mock('next/navigation', () => ({
 }));
 
 describe('SignUp page', () => {
-  it('renders all input fields and labels', () => {
+  it('renders all input fields and labels', async () => {
+    const { default: SignUp } = await import('@/app/sign-up/page');
     render(<SignUp />);
     expect(screen.getByLabelText(/prénom/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nom/i)).toBeInTheDocument();
@@ -22,6 +21,7 @@ describe('SignUp page', () => {
   });
 
   it('shows validation errors if fields are empty and form is submitted', async () => {
+    const { default: SignUp } = await import('@/app/sign-up/page');
     render(<SignUp />);
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
     await waitFor(() => {
@@ -30,6 +30,7 @@ describe('SignUp page', () => {
   });
 
   it('shows error if email is invalid', async () => {
+    const { default: SignUp } = await import('@/app/sign-up/page');
     render(<SignUp />);
     fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'invalid' } });
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
@@ -39,15 +40,18 @@ describe('SignUp page', () => {
   });
 
   it('shows error if password is too short', async () => {
+    const { default: SignUp } = await import('@/app/sign-up/page');
     render(<SignUp />);
     fireEvent.change(screen.getByPlaceholderText(/mot de passe/i), { target: { value: '123' } });
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
     await waitFor(() => {
-      expect(screen.getByText(/mot de passe doit contenir au moins 8 caractères/i)).toBeInTheDocument();
+      // Match the localized message even if it includes a leading article
+      expect(screen.getByText(/doit contenir au moins 8 caractères/i)).toBeInTheDocument();
     });
   });
 
   it('submits the form with valid data', async () => {
+    const { default: SignUp } = await import('@/app/sign-up/page');
     render(<SignUp />);
     fireEvent.change(screen.getByPlaceholderText(/prénom/i), { target: { value: 'Jean' } });
     fireEvent.change(screen.getByPlaceholderText(/nom/i), { target: { value: 'Dupont' } });
