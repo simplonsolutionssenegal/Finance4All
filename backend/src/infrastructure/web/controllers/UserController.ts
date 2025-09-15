@@ -2,11 +2,12 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
 import { UserStatus } from '@prisma/client';
+import { User } from '@/domain/entities/User';
 
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
-  async listUsersByOrganisation(req: Request, res: Response): Promise<void> {
+  async getUsersByOrganisation(req: Request, res: Response): Promise<void> {
     const organisationId = Number(req.params.organisationId);
 
     if (Number.isNaN(organisationId)) {
@@ -70,7 +71,7 @@ export class UserController {
     return organisationId;
   }
 
-  private mapUserResponse(u: any) {
+  private mapUserResponse(u: User) {
     return {
       id: u.id,
       email: u.email,
@@ -186,7 +187,7 @@ export class UserController {
       res.status(200).json({
         status: 'success',
         results: users.length,
-        data: users.map(this.mapUserResponse),
+        data: users.map((u) => this.mapUserResponse(u)),
       });
     } catch {
       res.status(500).json({

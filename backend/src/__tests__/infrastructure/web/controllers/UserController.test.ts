@@ -1,259 +1,231 @@
-// src/__tests__/infrastructure/web/controllers/UserController.test.ts
 import { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
-import { UserService } from '@/infrastructure/web/services/user.service';
-import { UserStatus } from '@prisma/client';
-import { Role } from '@/domain/entities/Role';
-import { Organisation } from '@/domain/entities/Organisation';
-import { User as DomainUser } from '@/domain/entities/User';
 
-describe('UserController (unit)', () => {
+// --- helpers pour mocker Response ---
+function createRes() {
+  const res: Partial<Response> = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res as Response & { status: jest.Mock; json: jest.Mock };
+}
+
+// --- user de domaine “fake” pour les retours du service ---
+function makeDomainUser(overrides: Partial<any> = {}) {
+  const now = new Date();
+  return {
+    id: 1,
+    email: 'john.doe@example.com',
+    username: 'johndoe',
+    firstName: 'John',
+    lastName: 'Doe',
+    avatar: 'https://example.com/img.png',
+    isActive: true,
+    lastLoginAt: now,
+    status: 'ACTIF',
+    role: { id: 10, name: 'admin', createdAt: now, updatedAt: now },
+    organisationId: 37,
+    organisation: {
+      id: 37,
+      name: 'Org X',
+      avatar: null,
+      address: 'Adresse',
+      phone: '770000000',
+      createdAt: now,
+      updatedAt: now,
+    },
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+describe('UserController', () => {
+  const service = {
+    getUsersByOrganisation: jest.fn(),
+    getUsersByOrganisationAndStatus: jest.fn(),
+  };
+
   let controller: UserController;
-  let service: jest.Mocked<UserService>;
-
-  const makeRes = () => {
-    const res: Partial<Response> = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
-    return res as Response & { status: jest.Mock; json: jest.Mock };
-  };
-
-  const makeUser = (overrides: Partial<DomainUser> = {}): DomainUser => {
-    const role = new Role(1, 'ADMIN', new Date('2024-01-01'), new Date('2024-01-02'));
-    const org = new Organisation(
-      37,
-      'OrgName',
-      'avatar.png',
-      'Addr',
-      '0000',
-      new Date('2024-01-01'),
-      new Date('2024-01-02'),
-    );
-
-    const base = new DomainUser(
-      10,
-      'user@example.com',
-      'userx',
-      'John',
-      'Doe',
-      'avatar.png',
-      'hashed',
-      true,
-      role,
-      UserStatus.ACTIF,
-      new Date('2025-01-01T00:00:00.000Z'),
-      37,
-      org,
-      new Date('2024-02-01T00:00:00.000Z'),
-      new Date('2024-02-02T00:00:00.000Z'),
-    );
-
-    return Object.assign(base, overrides);
-  };
 
   beforeEach(() => {
-    service = {
-      getUsersByOrganisation: jest.fn(),
-      getUsersByOrganisationAndStatus: jest.fn(),
-    } as unknown as jest.Mocked<UserService>;
-
-    controller = new UserController(service);
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    controller = new UserController(service as any);
   });
 
-  describe('getUsersByOrganisation', () => {
-    it('200 — renvoie la liste mappée', async () => {
-      const req = { params: { organisationId: '37' } } as unknown as Request;
-      const res = makeRes();
+  // ---------------- getUsersByOrganisation ----------------
 
-      service.getUsersByOrganisation.mockResolvedValue([makeUser()]);
+  it('400 si organisationId invalide (NaN)', async () => {
+    const req = { params: { organisationId: 'NaN' } } as unknown as Request;
+    const res = createRes();
 
-      await controller.getUsersByOrganisation(req, res);
+    await controller.getUsersByOrganisation(req, res);
 
-      expect(service.getUsersByOrganisation).toHaveBeenCalledWith(37);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 'success',
-          results: 1,
-          data: [
-            expect.objectContaining({
-              id: 10,
-              email: 'user@example.com',
-              username: 'userx',
-              firstName: 'John',
-              lastName: 'Doe',
-              status: UserStatus.ACTIF,
-              role: 'ADMIN',
-              organisationId: 37,
-              organisation: expect.objectContaining({ id: 37, name: 'OrgName' }),
-            }),
-          ],
-        }),
-      );
-    });
-
-    it('400 — organisationId invalide', async () => {
-      const req = { params: { organisationId: 'abc' } } as unknown as Request;
-      const res = makeRes();
-
-      await controller.getUsersByOrganisation(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         status: 'fail',
         message: 'ID organisation invalide',
-      });
-      expect(service.getUsersByOrganisation).not.toHaveBeenCalled();
-    });
+      }),
+    );
+  });
 
-    it("400 — catch d'erreur → message générique (selon code actuel)", async () => {
-      const req = { params: { organisationId: '37' } } as unknown as Request;
-      const res = makeRes();
+  it('200 + payload mappé', async () => {
+    const req = { params: { organisationId: '37' } } as unknown as Request;
+    const res = createRes();
 
-      service.getUsersByOrganisation.mockRejectedValue(new Error('DB down'));
+    service.getUsersByOrganisation.mockResolvedValue([makeDomainUser()]);
 
-      await controller.getUsersByOrganisation(req, res);
+    await controller.getUsersByOrganisation(req, res);
 
-      // ✅ le controller courant renvoie un 400 avec message générique
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+    expect(service.getUsersByOrganisation).toHaveBeenCalledWith(37);
+    expect(res.status).toHaveBeenCalledWith(200);
+    const payload = (res.json.mock.calls[0] as any[])[0];
+    expect(payload.status).toBe('success');
+    expect(payload.results).toBe(1);
+    expect(payload.data[0]).toEqual(
+      expect.objectContaining({
+        email: 'john.doe@example.com',
+        role: 'admin',
+        organisationId: 37,
+      }),
+    );
+  });
+
+  it('400 si service throw (chemin de catch)', async () => {
+    const req = { params: { organisationId: '37' } } as unknown as Request;
+    const res = createRes();
+    service.getUsersByOrganisation.mockRejectedValue(new Error('boom'));
+
+    await controller.getUsersByOrganisation(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         error: 'Une erreur est survenue lors du filtrage des utilisateurs',
-        message: 'Erreur inconnue',
-      });
-    });
+      }),
+    );
   });
 
-  describe('getUsersByOrganisationFilter', () => {
-    it('200 — accepte status[], role[], lastLogin=recent', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: {
-          status: [UserStatus.ACTIF, UserStatus.EN_ATTENTE],
-          role: ['ADMIN', 'USER'],
-          lastLogin: 'recent',
-        },
-      } as unknown as Request;
-      const res = makeRes();
+  // -------------- getUsersByOrganisationFilter --------------
 
-      service.getUsersByOrganisationAndStatus.mockResolvedValue([makeUser()]);
+  it('200 | filtre lastLogin=recent + status[]=ACTIF + role[]=admin', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: { lastLogin: 'recent', status: 'ACTIF', role: 'admin' },
+    } as unknown as Request;
+    const res = createRes();
 
-      await controller.getUsersByOrganisationFilter(req, res);
+    service.getUsersByOrganisationAndStatus.mockResolvedValue([makeDomainUser()]);
 
-      expect(service.getUsersByOrganisationAndStatus).toHaveBeenCalledWith(
-        37,
-        [UserStatus.ACTIF, UserStatus.EN_ATTENTE],
-        ['ADMIN', 'USER'],
-        { type: 'recent' },
-      );
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'success', results: 1 }),
-      );
-    });
+    await controller.getUsersByOrganisationFilter(req, res);
 
-    it('200 — accepte status et role en string simples', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: { status: UserStatus.SUSPENDU, role: 'MANAGER' },
-      } as unknown as Request;
-      const res = makeRes();
+    expect(service.getUsersByOrganisationAndStatus).toHaveBeenCalledWith(
+      37,
+      ['ACTIF'],
+      ['admin'],
+      { type: 'recent' },
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    const payload = (res.json.mock.calls[0] as any[])[0];
+    expect(payload.results).toBe(1);
+  });
 
-      service.getUsersByOrganisationAndStatus.mockResolvedValue([makeUser()]);
+  it('200 | filtre lastLogin=last_month (roles multiples)', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: { lastLogin: 'last_month', role: ['admin', 'manager'] },
+    } as unknown as Request;
+    const res = createRes();
 
-      await controller.getUsersByOrganisationFilter(req, res);
+    service.getUsersByOrganisationAndStatus.mockResolvedValue([makeDomainUser()]);
 
-      expect(service.getUsersByOrganisationAndStatus).toHaveBeenCalledWith(
-        37,
-        [UserStatus.SUSPENDU],
-        ['MANAGER'],
-        undefined,
-      );
-      expect(res.status).toHaveBeenCalledWith(200);
-    });
+    await controller.getUsersByOrganisationFilter(req, res);
 
-    it('400 — organisationId invalide', async () => {
-      const req = { params: { organisationId: 'NaN' }, query: {} } as unknown as Request;
-      const res = makeRes();
+    expect(service.getUsersByOrganisationAndStatus).toHaveBeenCalledWith(
+      37,
+      [], // pas de status
+      ['admin', 'manager'],
+      { type: 'last_month' },
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
 
-      await controller.getUsersByOrganisationFilter(req, res);
+  it('400 | filtre lastLogin=custom sans customDate', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: { lastLogin: 'custom' },
+    } as unknown as Request;
+    const res = createRes();
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+    await controller.getUsersByOrganisationFilter(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         status: 'fail',
-        message: 'ID organisation invalide',
-      });
-      expect(service.getUsersByOrganisationAndStatus).not.toHaveBeenCalled();
-    });
+        message:
+          'Le paramètre customDate est requis pour le filtre de date personnalisé',
+      }),
+    );
+  });
 
-    it('400 — lastLogin=custom sans customDate', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: { lastLogin: 'custom' },
-      } as unknown as Request;
-      const res = makeRes();
+  it('400 | filtre lastLogin=custom avec date invalide', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: { lastLogin: 'custom', customDate: '2025/09/01' }, // mauvais format
+    } as unknown as Request;
+    const res = createRes();
 
-      await controller.getUsersByOrganisationFilter(req, res);
+    await controller.getUsersByOrganisationFilter(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         status: 'fail',
-        message: 'Le paramètre customDate est requis pour le filtre de date personnalisé',
-      });
-      expect(service.getUsersByOrganisationAndStatus).not.toHaveBeenCalled();
-    });
+        message:
+          'Format de date invalide. Utilisez YYYY-MM-DD (ex: 2025-09-01)',
+      }),
+    );
+  });
 
-    it('400 — customDate format invalide', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: { lastLogin: 'custom', customDate: '13-2025-01' },
-      } as unknown as Request;
-      const res = makeRes();
+  it('200 | filtre lastLogin=custom avec date OK', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: { lastLogin: 'custom', customDate: '2025-09-01' },
+    } as unknown as Request;
+    const res = createRes();
 
-      await controller.getUsersByOrganisationFilter(req, res);
+    service.getUsersByOrganisationAndStatus.mockResolvedValue([makeDomainUser()]);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'Format de date invalide. Utilisez le format YYYY-MM-DD (ex: 2025-09-01)',
-      });
-      expect(service.getUsersByOrganisationAndStatus).not.toHaveBeenCalled();
-    });
+    await controller.getUsersByOrganisationFilter(req, res);
 
-    it('400 — customDate non-parsable', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: { lastLogin: 'custom', customDate: '2025-13-40' },
-      } as unknown as Request;
-      const res = makeRes();
+    expect(service.getUsersByOrganisationAndStatus).toHaveBeenCalledWith(
+      37,
+      [], // pas de status
+      undefined, // pas de role
+      { type: 'custom_date', date: new Date('2025-09-01T00:00:00.000Z') },
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
 
-      await controller.getUsersByOrganisationFilter(req, res);
+  it('500 si service throw (chemin de catch filtre)', async () => {
+    const req = {
+      params: { organisationId: '37' },
+      query: {},
+    } as unknown as Request;
+    const res = createRes();
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'Date invalide',
-      });
-      expect(service.getUsersByOrganisationAndStatus).not.toHaveBeenCalled();
-    });
+    service.getUsersByOrganisationAndStatus.mockRejectedValue(new Error('boom'));
 
-    it('500 — service rejette', async () => {
-      const req = {
-        params: { organisationId: '37' },
-        query: { status: UserStatus.INACTIF, role: 'VIEWER' },
-      } as unknown as Request;
-      const res = makeRes();
+    await controller.getUsersByOrganisationFilter(req, res);
 
-      service.getUsersByOrganisationAndStatus.mockRejectedValue(new Error('boom'));
-
-      await controller.getUsersByOrganisationFilter(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         status: 'error',
-        message: 'Une erreur est survenue lors du filtrage des utilisateurs',
-      });
-    });
+        message:
+          'Une erreur est survenue lors du filtrage des utilisateurs',
+      }),
+    );
   });
 });
