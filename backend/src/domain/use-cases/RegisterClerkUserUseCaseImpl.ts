@@ -1,7 +1,11 @@
 import { RegisterClerkUserUseCase } from '@/application/use-cases/RegisterClerkUserUseCase';
 import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User, UserRole, UserStatus } from '@/domain/entities/User';
-import { ClerkRegisterInput, ClerkRegisterSchema } from '@/application/validators/UserValidator';
+import {
+  ClerkRegisterInput,
+  ClerkRegisterSchema,
+  formatZodIssues,
+} from '@/application/validators/UserValidator';
 import { NodemailerEmailService } from '@/infrastructure/adapters/NodemailerEmailService';
 import {
   UserAlreadyExistsException,
@@ -20,7 +24,7 @@ export class RegisterClerkUserUseCaseImpl implements RegisterClerkUserUseCase {
     try {
       const result = ClerkRegisterSchema.safeParse(input);
       if (!result.success) {
-        const errorMessage = `Validation failed: ${result.error.issues.map(i => i.message).join(', ')}`;
+        const errorMessage = `Validation failed: ${formatZodIssues(result.error.issues)}`;
         console.error(errorMessage);
         throw new ValidationException(errorMessage);
       }
