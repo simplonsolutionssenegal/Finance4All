@@ -27,7 +27,7 @@ describe('User Entity and Use Cases', () => {
         now,
         now,
         now,
-        role,
+        role
       );
 
       expect(user.id).toBe(id);
@@ -41,23 +41,25 @@ describe('User Entity and Use Cases', () => {
   describe('CreateUserUseCase', () => {
     // Mock repository implementation aligned with current API
     const mockUserRepository = {
-      signUp: jest.fn((userData) => Promise.resolve({
-        id: '1',
-        email: userData.email,
-        firstName: userData.firstname || '',
-        lastName: userData.lastname || '',
-        role: userData.role,
-        status: userData.status,
-        isActive: true,
-        lastLoginAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        password: userData.password || '',
-        avatar: null,
-        organisationId: null,
-        username: null,
-        clerkId: userData.clerkId || null,
-      })),
+      signUp: jest.fn(userData =>
+        Promise.resolve({
+          id: '1',
+          email: userData.email,
+          firstName: userData.firstname || '',
+          lastName: userData.lastname || '',
+          role: userData.role,
+          status: userData.status,
+          isActive: true,
+          lastLoginAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          password: userData.password || '',
+          avatar: null,
+          organisationId: null,
+          username: null,
+          clerkId: userData.clerkId || null,
+        })
+      ),
       findById: jest.fn(),
       findByEmail: jest.fn(),
       getAll: jest.fn(),

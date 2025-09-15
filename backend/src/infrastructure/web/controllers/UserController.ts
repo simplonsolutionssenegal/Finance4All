@@ -1,11 +1,8 @@
 import { Request, Response } from 'express';
-import { CreateUserUseCase  } from '@/application/use-cases/CreateUserUseCase';
+import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 
 export class UserController {
-  constructor(
-    private readonly createUserUseCase: CreateUserUseCase,
-  ) {
-  }
+  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
 
 
   async create(req: Request, res: Response): Promise<void> {
@@ -16,7 +13,7 @@ export class UserController {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
       res.status(400).json({
-        error: 'Erreur lors de la création de l\'utilisateur',
+        error: "Erreur lors de la création de l'utilisateur",
         message,
       });
     }

@@ -3,17 +3,20 @@ import { UserRepository } from '@/domain/repositories/UserRepository';
 import { User, UserRole, UserStatus } from '@/domain/entities/User';
 import { ClerkRegisterInput, ClerkRegisterSchema } from '@/application/validators/UserValidator';
 import { NodemailerEmailService } from '@/infrastructure/adapters/NodemailerEmailService';
-import { UserAlreadyExistsException, ValidationException } from '@/domain/exceptions/DomainExceptions';
+import {
+  UserAlreadyExistsException,
+  ValidationException,
+} from '@/domain/exceptions/DomainExceptions';
 
 export class RegisterClerkUserUseCaseImpl implements RegisterClerkUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly emailService: NodemailerEmailService,
+    private readonly emailService: NodemailerEmailService
   ) {}
 
   async execute(input: ClerkRegisterInput): Promise<{ user: User; message: string }> {
     console.warn('Starting registration with input:', input);
-    
+
     try {
       const result = ClerkRegisterSchema.safeParse(input);
       if (!result.success) {

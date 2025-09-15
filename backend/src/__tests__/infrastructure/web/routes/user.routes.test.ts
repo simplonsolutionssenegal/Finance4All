@@ -101,7 +101,10 @@ describe('User Routes (Clerk)', () => {
         email: 'john@example.com',
       };
 
-      const response = await request(app).post('/users/register').send(incompletePayload).expect(400);
+      const response = await request(app)
+        .post('/users/register')
+        .send(incompletePayload)
+        .expect(400);
 
       expect(response.body.error).toBe("Erreur lors de l'inscription");
     });

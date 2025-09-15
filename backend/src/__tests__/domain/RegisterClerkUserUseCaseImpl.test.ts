@@ -13,10 +13,7 @@ const emailService = {
 };
 
 describe('RegisterClerkUserUseCaseImpl', () => {
-  const useCase = new RegisterClerkUserUseCaseImpl(
-    userRepository as any,
-    emailService as any,
-  );
+  const useCase = new RegisterClerkUserUseCaseImpl(userRepository as any, emailService as any);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -60,7 +57,10 @@ describe('RegisterClerkUserUseCaseImpl', () => {
     expect(userRepository.findByEmail).toHaveBeenCalledWith('john.doe@example.com');
     expect(userRepository.findByClerkId).toHaveBeenCalledWith('clrk_123');
     expect(userRepository.createFromClerk).toHaveBeenCalled();
-    expect(emailService.sendConfirmationEmail).toHaveBeenCalledWith('john.doe@example.com', 'clrk_123');
+    expect(emailService.sendConfirmationEmail).toHaveBeenCalledWith(
+      'john.doe@example.com',
+      'clrk_123'
+    );
     expect(result.user.email).toBe('john.doe@example.com');
   });
 
@@ -75,7 +75,7 @@ describe('RegisterClerkUserUseCaseImpl', () => {
         lastName: 'Doe',
         role: UserRole.BENEFICIAIRE,
         status: UserStatus.ACTIF,
-      } as any),
+      } as any)
     ).rejects.toThrow('already exists');
   });
 
@@ -91,7 +91,7 @@ describe('RegisterClerkUserUseCaseImpl', () => {
         lastName: 'Doe',
         role: UserRole.BENEFICIAIRE,
         status: UserStatus.ACTIF,
-      } as any),
+      } as any)
     ).rejects.toThrow('already exists');
   });
 });

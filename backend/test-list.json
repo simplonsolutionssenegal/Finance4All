@@ -1,0 +1,16 @@
+[
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\database\\PrismaUserRepository.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\web\\routes\\user.routes.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\index.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\app.integration.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\routes\\routes.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\main.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\web\\middleware\\error.middleware.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\domain\\RegisterClerkUserUseCaseImpl.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\web\\controllers\\ClerkUserController.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\utils\\logger.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\config\\config.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\database\\prismaClient.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\domain\\entities\\user.validation.test.ts",
+  "C:\\Users\\DELL 7450\\Finance4All\\backend\\src\\__tests__\\infrastructure\\web\\controllers\\UserController.test.ts"
+]
