@@ -2,11 +2,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@clerk/nextjs', () => ({
-  useSignUp: () => ({ signUp: { create: jest.fn(() => ({ prepareEmailAddressVerification: jest.fn() })) }, setActive: jest.fn() })
+  useSignUp: () => ({
+    signUp: { create: jest.fn(() => ({ prepareEmailAddressVerification: jest.fn() })) },
+    setActive: jest.fn(),
+  }),
 }));
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() })
+  useRouter: () => ({ push: jest.fn() }),
 }));
 
 describe('SignUp page', () => {
@@ -55,8 +58,12 @@ describe('SignUp page', () => {
     render(<SignUp />);
     fireEvent.change(screen.getByPlaceholderText(/prénom/i), { target: { value: 'Jean' } });
     fireEvent.change(screen.getByPlaceholderText(/nom/i), { target: { value: 'Dupont' } });
-    fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'jean.dupont@email.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/mot de passe/i), { target: { value: 'Password1!' } });
+    fireEvent.change(screen.getByPlaceholderText(/email/i), {
+      target: { value: 'jean.dupont@email.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/mot de passe/i), {
+      target: { value: 'Password1!' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire/i }));
     await waitFor(() => {
       expect(screen.queryByText(/doit contenir au moins/i)).not.toBeInTheDocument();

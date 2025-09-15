@@ -20,7 +20,14 @@ jest.mock('@clerk/nextjs', () => ({
     },
   }),
   useSession: () => ({ session: null }),
-  useUser: () => ({ user: { id: 'clrk_test_1', firstName: 'Jean', lastName: 'Dupont', primaryEmailAddress: { emailAddress: 'jean@example.com' } } }),
+  useUser: () => ({
+    user: {
+      id: 'clrk_test_1',
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      primaryEmailAddress: { emailAddress: 'jean@example.com' },
+    },
+  }),
 }));
 
 jest.mock('next/navigation', () => ({
@@ -31,7 +38,11 @@ import { registerUser } from '@/lib/api/auth';
 describe('VerifyEmailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    try { window.localStorage.clear(); } catch (e) { /* intentionally ignore in test env */ void e; }
+    try {
+      window.localStorage.clear();
+    } catch (e) {
+      /* intentionally ignore in test env */ void e;
+    }
   });
 
   it('renders and allows entering code', async () => {
@@ -53,7 +64,9 @@ describe('VerifyEmailPage', () => {
     const { default: VerifyEmailPage } = await import('@/app/sign-up/verify-email-address/page');
     render(<VerifyEmailPage />);
 
-    fireEvent.change(screen.getByPlaceholderText(/Entrez le code/i), { target: { value: '123456' } });
+    fireEvent.change(screen.getByPlaceholderText(/Entrez le code/i), {
+      target: { value: '123456' },
+    });
     fireEvent.submit(screen.getByRole('button', { name: /Vérifier mon email/i }));
 
     await waitFor(() => {
@@ -68,11 +81,14 @@ describe('VerifyEmailPage', () => {
 
   it('uses localStorage fallback when user is not hydrated', async () => {
     // Put payload in localStorage
-    window.localStorage.setItem('signup_payload', JSON.stringify({
-      email: 'fallback@example.com',
-      firstName: 'Fall',
-      lastName: 'Back',
-    }));
+    window.localStorage.setItem(
+      'signup_payload',
+      JSON.stringify({
+        email: 'fallback@example.com',
+        firstName: 'Fall',
+        lastName: 'Back',
+      })
+    );
 
     mockAttemptEmailAddressVerification.mockResolvedValueOnce({
       status: 'complete',
@@ -106,10 +122,14 @@ describe('VerifyEmailPage', () => {
         useUser: () => ({ user: { id: 'clrk_test_1', primaryEmailAddress: { emailAddress: '' } } }),
       }));
 
-      const { default: VerifyEmailPageLocal } = await import('@/app/sign-up/verify-email-address/page');
+      const { default: VerifyEmailPageLocal } = await import(
+        '@/app/sign-up/verify-email-address/page'
+      );
       render(<VerifyEmailPageLocal />);
 
-      fireEvent.change(screen.getByPlaceholderText(/Entrez le code/i), { target: { value: '123456' } });
+      fireEvent.change(screen.getByPlaceholderText(/Entrez le code/i), {
+        target: { value: '123456' },
+      });
       fireEvent.submit(screen.getByRole('button', { name: /Vérifier mon email/i }));
 
       await waitFor(() => {

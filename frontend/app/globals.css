@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: 0 0% 100%;
@@ -21,16 +21,16 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 217.2 91.2% 59.8%;
   --radius: 0.5rem;
-  
-  --primary-50: #E7F3F6;
-  --primary-100: #A7D5DD;
-  --primary-200: #6CB9C6;
-  --primary-300: #258E90;
-  --primary-400: #134B4C;
-  
-  --neutral-400: #6B6C74;
-  --neutral-500: #494A50;
-  --neutral-600: #2A2A2E;
+
+  --primary-50: #e7f3f6;
+  --primary-100: #a7d5dd;
+  --primary-200: #6cb9c6;
+  --primary-300: #258e90;
+  --primary-400: #134b4c;
+
+  --neutral-400: #6b6c74;
+  --neutral-500: #494a50;
+  --neutral-600: #2a2a2e;
   --neutral-700: #000000;
 }
 
@@ -61,13 +61,13 @@
   --color-foreground: hsl(var(--foreground));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
   --color-primary-200: var(--primary-200);
   --color-primary-300: var(--primary-300);
   --color-primary-400: var(--primary-400);
-  
+
   --color-neutral-400: var(--neutral-400);
   --color-neutral-500: var(--neutral-500);
   --color-neutral-600: var(--neutral-600);

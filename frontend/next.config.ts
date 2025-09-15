@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Déplacement de serverComponentsExternalPackages vers serverExternalPackages
   serverExternalPackages: [],
   // Configuration compatible Next 15
-  output: "standalone",
+  output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: false,
   compiler: {

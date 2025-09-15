@@ -40,37 +40,38 @@ export default function SignUpPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     if (!isLoaded || !signUp) {
-      toast.error('Service d\'inscription non disponible');
+      toast.error("Service d'inscription non disponible");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      
       const result = await signUp.create({
         emailAddress: data.email,
         password: data.password,
-        
+
         unsafeMetadata: {
           first_name: data.firstName,
           last_name: data.lastName,
         },
       });
 
-      
       if (result.status === 'complete') {
         // Sauvegarder les infos pour la page de vérification si besoin
         try {
-          window.localStorage.setItem('signup_payload', JSON.stringify({
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-          }));
+          window.localStorage.setItem(
+            'signup_payload',
+            JSON.stringify({
+              email: data.email,
+              firstName: data.firstName,
+              lastName: data.lastName,
+            })
+          );
         } catch (e) {
           console.warn('Failed to write signup_payload to localStorage', e);
         }
-        
+
         try {
           await registerUser({
             clerkId: result.createdUserId || '',
@@ -91,11 +92,14 @@ export default function SignUpPage() {
         await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         // Sauvegarder les infos avant navigation (cas non-complet)
         try {
-          window.localStorage.setItem('signup_payload', JSON.stringify({
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-          }));
+          window.localStorage.setItem(
+            'signup_payload',
+            JSON.stringify({
+              email: data.email,
+              firstName: data.firstName,
+              lastName: data.lastName,
+            })
+          );
         } catch (e) {
           console.warn('Failed to write signup_payload to localStorage', e);
         }
@@ -104,9 +108,12 @@ export default function SignUpPage() {
       }
     } catch (error) {
       console.error('Erreur inscription:', error);
-      
-      const clerkError = error as { errors?: Array<{ code?: string; message?: string }>; message?: string };
-      
+
+      const clerkError = error as {
+        errors?: Array<{ code?: string; message?: string }>;
+        message?: string;
+      };
+
       if (clerkError.errors?.[0]?.code === 'form_identifier_exists') {
         setError('email', {
           type: 'manual',
@@ -116,7 +123,8 @@ export default function SignUpPage() {
       } else if (clerkError.errors?.[0]?.code === 'form_password_pwned') {
         setError('password', {
           type: 'manual',
-          message: 'Ce mot de passe a été compromis lors d\'une fuite de données. Veuillez en choisir un autre.',
+          message:
+            "Ce mot de passe a été compromis lors d'une fuite de données. Veuillez en choisir un autre.",
         });
         toast.error('Mot de passe compromis. Veuillez en choisir un autre.');
       } else if (clerkError.errors?.[0]?.message) {
@@ -139,8 +147,8 @@ export default function SignUpPage() {
 
   if (!isLoaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className='flex min-h-screen items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin' />
       </div>
     );
   }
@@ -148,7 +156,10 @@ export default function SignUpPage() {
   return (
     <div className='min-h-screen flex'>
       {/* Section gauche*/}
-      <div className='hidden lg:flex lg:w-3/4 text-white p-12 flex-col justify-center relative overflow-hidden' style={{ background: 'var(--primary-400)' }}>
+      <div
+        className='hidden lg:flex lg:w-3/4 text-white p-12 flex-col justify-center relative overflow-hidden'
+        style={{ background: 'var(--primary-400)' }}
+      >
         <div className="absolute inset-0 bg-[url('/ImageInscription.png')] bg-cover bg-center opacity-10" />
         <div className='relative z-10'>
           <h1 className='text-4xl lg:text-4xl font-bold mb-6 leading-tight'>
@@ -258,7 +269,9 @@ export default function SignUpPage() {
                       type='button'
                       className='absolute inset-y-0 right-0 pr-3 flex items-center'
                       onClick={() => setShowPassword(prev => !prev)}
-                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-label={
+                        showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                      }
                       disabled={isLoading}
                     >
                       {showPassword ? (
@@ -282,16 +295,22 @@ export default function SignUpPage() {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin inline' />
                       Inscription en cours...
                     </>
-                  ) : "S'inscrire"}
+                  ) : (
+                    "S'inscrire"
+                  )}
                 </Button>
 
                 {/* Conditions et politique */}
                 <p className='text-sm text-gray-600 text-left'>
                   En créant un compte, vous acceptez nos{' '}
-                  <Link href='/legal/terms' style={{ color: 'var(--primary-200)' }} className='underline'>
+                  <Link
+                    href='/legal/terms'
+                    style={{ color: 'var(--primary-200)' }}
+                    className='underline'
+                  >
                     Conditions utilisation
                   </Link>{' '}
                   et notre{' '}
@@ -308,8 +327,7 @@ export default function SignUpPage() {
                 {/* Lien connexion */}
                 <div className='text-left'>
                   <p className='text-sm text-gray-600'>
-                    Déjà membre?{' '}
-                    {/* Lien mis à jour: anciennement '/auth/login' */}
+                    Déjà membre? {/* Lien mis à jour: anciennement '/auth/login' */}
                     <Link
                       href='/sign-in'
                       className='text-teal-500 hover:text-teal-600 font-medium'
