@@ -19,7 +19,7 @@ const userService = new UserService(getUsersByOrganisation, getUsersByOrgAndFilt
 const userController = new UserController(userService);
 const router = Router();
 
-router.get('/organisations/:organisationId/users', (req, res) => userController.getUsersByOrganisation(req, res));
+router.get('/organisations/:organisationId/users', (req, res) => userController.listUsersByOrganisation(req, res));
 router.get('/organisations/:organisationId/users/filter', (req, res) => userController.getUsersByOrganisationFilter(req, res));
 
 export { router as userRoutes };

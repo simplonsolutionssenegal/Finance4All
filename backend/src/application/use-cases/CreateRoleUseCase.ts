@@ -1,6 +1,5 @@
 import { UserStatus } from '@prisma/client';
 import { User } from '../../domain/entities/User';
-
 export interface CreateRoleDTO {
     /**
    * Exécute la création d'un utilisateur
@@ -24,4 +23,3 @@ export interface CreateRoleDTO {
 export interface CreateUserUseCase {
   execute(dto: CreateRoleDTO): Promise<User>;
 }
-

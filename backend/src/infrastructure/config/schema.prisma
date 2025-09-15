@@ -34,6 +34,7 @@ model User {
   password  String
   status   UserStatus    @default(ACTIF)
   isActive  Boolean  @default(true)
+  clerkUserId     String?     @unique @db.VarChar(128)
   lastLoginAt  DateTime  @default(now())
   roleId    Int
   organisationId Int?
