@@ -35,12 +35,12 @@
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
-      "cd frontend && npm run lint:fix",
-      "cd frontend && npm run format"
+      "npm run -w frontend lint:fix",
+      "npm run -w frontend format"
     ],
     "backend/**/*.{js,ts}": [
-      "cd backend && npm run lint:fix",
-      "cd backend && npm run format"
+      "npm run -w backend lint:fix",
+      "npm run -w backend format"
     ],
     "**/*.{json,md}": [
       "prettier --write"

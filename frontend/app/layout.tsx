@@ -23,14 +23,12 @@ export const metadata: Metadata = {
   description: '',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-          <ThemeProvider defaultTheme="light">
+    <html lang='fr' suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ClerkProvider publishableKey={publishableKey}>
+          <ThemeProvider defaultTheme='light'>
             {children}
             <Toaster position='top-right' />
           </ThemeProvider>
