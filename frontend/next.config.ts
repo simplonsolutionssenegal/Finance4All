@@ -7,15 +7,13 @@ const nextConfig: NextConfig = {
   },
   // Déplacement de serverComponentsExternalPackages vers serverExternalPackages
   serverExternalPackages: [],
+  // Configuration compatible Next 15
   output: "standalone",
-  // Réduire les ressources utilisées
   poweredByHeader: false,
   reactStrictMode: false,
   compiler: {
-    // Désactiver les transformations React complexes
     emotion: false,
     styledComponents: false,
-    reactRemoveProperties: false,
   },
   images: {
     unoptimized: true, // Evite les erreurs d'optimisation des images
