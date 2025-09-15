@@ -9,7 +9,7 @@ export class ClerkUserController {
   async register(req: Request, res: Response): Promise<void> {
     try {
       console.warn('Received registration request:', req.body);
-      
+
       const parsed = ClerkRegisterSchema.safeParse(req.body);
       if (!parsed.success) {
         const errorMessage = `Validation error: ${parsed.error.issues.map(i => i.message).join(', ')}`;
@@ -25,11 +25,11 @@ export class ClerkUserController {
       }
 
       console.warn('Calling register use case with data:', parsed.data);
-      
+
       try {
         const result = await this.registerUseCase.execute(parsed.data);
         console.warn('Registration successful, user created:', result.user.id);
-        
+
         res.status(201).json({
           success: true,
           message: result.message,
@@ -57,10 +57,10 @@ export class ClerkUserController {
       }
       const message = err instanceof Error ? err.message : 'Unknown error';
       const stack = err instanceof Error ? err.stack : undefined;
-      console.error('Erreur inattendue lors de l\'inscription Clerk:', { message, stack, err });
+      console.error("Erreur inattendue lors de l'inscription Clerk:", { message, stack, err });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_SERVER_ERROR', message: 'Une erreur inattendue s\'est produite' },
+        error: { code: 'INTERNAL_SERVER_ERROR', message: "Une erreur inattendue s'est produite" },
       });
     }
   }

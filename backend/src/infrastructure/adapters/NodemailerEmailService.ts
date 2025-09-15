@@ -109,7 +109,11 @@ export class NodemailerEmailService implements EmailService {
       const stack = err instanceof Error ? err.stack : undefined;
       // En développement, ne pas bloquer le flux d'inscription si l'email échoue
       if (process.env.NODE_ENV === 'development') {
-        logger.error('Failed to send confirmation email (dev mode, ignored)', { message, stack, err });
+        logger.error('Failed to send confirmation email (dev mode, ignored)', {
+          message,
+          stack,
+          err,
+        });
         return;
       }
       // En production, relancer l'erreur pour un traitement approprié

@@ -1,197 +1,193 @@
 import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
-import { prisma } from '@/infrastructure/database/prisma';
+import { User, UserRole, UserStatus } from '@/domain/entities/User';
 
-// Mock Prisma User type (aligned with current schema expectations)
-type PrismaUser = {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  isActive: boolean;
-  lastLoginAt: string;
-  createdAt: string;
-  updatedAt: string;
-  role: string;
-  avatar: string | null;
-  organisationId: number | null;
-  username: string | null;
-  clerkId: string | null;
-};
-
-// Mock Prisma client
-jest.mock('@/infrastructure/database/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-  },
-}));
-
-const mockPrisma = prisma as unknown as {
-  user: {
-    findUnique: jest.Mock;
-    create: jest.Mock;
+// Mock the entire Prisma client
+jest.mock('@prisma/client', () => {
+  const mockUser = {
+    findUnique: jest.fn(),
+    create: jest.fn(),
   };
-};
+
+  return {
+    PrismaClient: jest.fn(() => ({
+      user: mockUser,
+      $disconnect: jest.fn(),
+    })),
+  };
+});
+
+// Import Prisma after setting up the mock
+import { PrismaClient } from '@prisma/client';
+const mockPrisma = new PrismaClient();
+const mockFindUnique = mockPrisma.user.findUnique as jest.Mock;
+const mockCreate = mockPrisma.user.create as jest.Mock;
 
 describe('PrismaUserRepository', () => {
   let repository: PrismaUserRepository;
+  const now = new Date();
+
+  // Mock user data
+  const mockUser: User = {
+    id: 1,
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+    status: UserStatus.ACTIF,
+    isActive: true,
+    lastLoginAt: now,
+    createdAt: now,
+    updatedAt: now,
+    role: UserRole.BENEFICIAIRE,
+    avatar: null,
+    organisationId: null,
+    username: null,
+    clerkId: 'clerk_123',
+    password: null,
+  } as User;
 
   beforeEach(() => {
-    repository = new PrismaUserRepository();
     jest.clearAllMocks();
+    repository = new PrismaUserRepository();
   });
 
-  describe('findByEmail/findByClerkId', () => {
+  afterAll(async () => {
+    await mockPrisma.$disconnect();
+  });
+
+  describe('findByEmail', () => {
     it('should find a user by email successfully', async () => {
-      const mockPrismaUser: PrismaUser = {
-        id: 1,
-        email: 'john@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        status: 'ACTIF',
-        isActive: true,
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        role: 'BENEFICIAIRE',
-        avatar: null,
-        organisationId: null,
-        username: null,
-        clerkId: 'clrk_1',
-      };
+      // Mock the Prisma client to return our mock user
+      mockFindUnique.mockResolvedValue(mockUser);
 
-      mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
+      const result = await repository.findByEmail('test@example.com');
 
-      const result = await repository.findByEmail('john@example.com');
-
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'john@example.com' } });
-      expect(result?.email).toBe('john@example.com');
-      expect(result?.firstName).toBe('John');
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+      });
+      expect(result).toEqual(mockUser);
     });
 
     it('should return null when user is not found by email', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      // Mock the Prisma client to return null (user not found)
+      mockFindUnique.mockResolvedValue(null);
 
-      const result = await repository.findByEmail('missing@example.com');
+      const result = await repository.findByEmail('nonexistent@example.com');
 
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'missing@example.com' } });
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'nonexistent@example.com' },
+      });
       expect(result).toBeNull();
     });
+  });
 
+  describe('findByClerkId', () => {
     it('should find a user by clerkId successfully', async () => {
-      const mockPrismaUser: PrismaUser = {
-        id: 2,
-        email: 'jane@example.com',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        status: 'ACTIF',
-        isActive: true,
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        role: 'BENEFICIAIRE',
-        avatar: null,
-        organisationId: null,
-        username: null,
-        clerkId: 'clrk_2',
-      };
+      // Mock the Prisma client to return our mock user
+      mockFindUnique.mockResolvedValue(mockUser);
 
-      mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
+      const result = await repository.findByClerkId('clerk_123');
 
-      const result = await repository.findByClerkId('clrk_2');
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { clerkId: 'clerk_123' } });
+      expect(result).toEqual(mockUser);
+    });
 
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { clerkId: 'clrk_2' } });
-      expect(result?.clerkId).toBe('clrk_2');
-      expect(result?.email).toBe('jane@example.com');
+    it('should return null when user is not found by clerkId', async () => {
+      // Mock the Prisma client to return null (user not found)
+      mockFindUnique.mockResolvedValue(null);
+
+      const result = await repository.findByClerkId('nonexistent_clerk_id');
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { clerkId: 'nonexistent_clerk_id' },
+      });
+      expect(result).toBeNull();
     });
   });
 
   describe('createFromClerk', () => {
-    it('should create a user from Clerk data successfully', async () => {
-      const input = {
-        email: 'john@example.com',
-        clerkId: 'clrk_123',
-        firstName: 'John',
-        lastName: 'Doe',
-        role: 'BENEFICIAIRE',
-        status: 'ACTIF',
-      } as any;
+    it('should create a new user from Clerk data', async () => {
+      const userData = {
+        email: 'new@example.com',
+        clerkId: 'clerk_new',
+        firstName: 'New',
+        lastName: 'User',
+        role: UserRole.BENEFICIAIRE,
+        status: UserStatus.ACTIF,
+      };
 
-      const mockPrismaUser: PrismaUser = {
-        id: 10,
-        email: input.email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        status: input.status,
+      const createdUser = {
+        ...userData,
+        id: 2,
         isActive: true,
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        role: input.role,
+        lastLoginAt: now,
+        createdAt: now,
+        updatedAt: now,
         avatar: null,
         organisationId: null,
         username: null,
-        clerkId: input.clerkId,
       };
 
-      mockPrisma.user.create.mockResolvedValue(mockPrismaUser);
+      // Mock the Prisma client to return the created user
+      mockCreate.mockResolvedValue(createdUser);
 
-      const result = await repository.createFromClerk(input);
+      const result = await repository.createFromClerk(userData);
 
       expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          email: input.email,
-          clerkId: input.clerkId,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          role: input.role,
-          status: input.status,
-        },
+        data: userData,
       });
-      expect(result.email).toBe('john@example.com');
-      expect(result.clerkId).toBe('clrk_123');
+      expect(result).toEqual(createdUser);
     });
 
-    it('should propagate creation errors', async () => {
-      const error = new Error('Unique constraint failed');
-      mockPrisma.user.create.mockRejectedValue(error);
+    it('should handle errors during user creation', async () => {
+      const userData = {
+        email: 'error@example.com',
+        clerkId: 'clerk_error',
+        firstName: 'Error',
+        lastName: 'User',
+        role: UserRole.BENEFICIAIRE,
+        status: UserStatus.ACTIF,
+      };
 
-      await expect(
-        repository.createFromClerk({
-          email: 'x@example.com',
-          clerkId: 'clrk_x',
-          firstName: 'X',
-          lastName: 'Y',
-          role: 'BENEFICIAIRE',
-          status: 'ACTIF',
-        } as any),
-      ).rejects.toThrow('Unique constraint failed');
+      const error = new Error('Database error');
+      // Mock the Prisma client to reject with an error
+      mockCreate.mockRejectedValue(error);
+
+      await expect(repository.createFromClerk(userData)).rejects.toThrow('Database error');
     });
   });
 
-  describe('basic read conversion', () => {
-    it('should return a plain object with expected fields from Prisma result', async () => {
-      const mockPrismaUser: PrismaUser = {
+  describe('signUp', () => {
+    it('should reject with error since password-based signup is not supported', async () => {
+      await expect(
+        repository.signUp({
+          email: 'test@example.com',
+          password: 'password',
+        } as any)
+      ).rejects.toThrow('Password-based sign up is not supported');
+    });
+  });
+
+  describe('data mapping', () => {
+    it('should map Prisma user data to domain model', async () => {
+      const mockPrismaUser = {
         id: 42,
         email: 'test@example.com',
         firstName: 'Test',
         lastName: 'User',
         status: 'ACTIF',
         isActive: true,
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        lastLoginAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
         role: 'BENEFICIAIRE',
         avatar: null,
         organisationId: null,
         username: null,
         clerkId: 'clrk_42',
+        password: null,
       };
 
-      mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
+      mockFindUnique.mockResolvedValue(mockPrismaUser);
 
       const result = await repository.findByEmail('test@example.com');
 
