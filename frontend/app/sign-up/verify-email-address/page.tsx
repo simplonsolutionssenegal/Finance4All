@@ -30,15 +30,16 @@ export default function VerifyEmailPage() {
     if (signUp && signUp.status === 'complete') {
       // Si déjà complété mais pas de session, essayer d'activer
       if (signUp.createdSessionId) {
-        setActive({ session: signUp.createdSessionId })
-          .then(() => {
+        (async () => {
+          try {
+            await setActive({ session: signUp.createdSessionId });
             toast.success('Connexion réussie !');
             router.push('/dashboard');
-          })
-          .catch(() => {
+          } catch (_e) {
             toast.error('Erreur de connexion. Veuillez vous reconnecter.');
             router.push('/sign-in');
-          });
+          }
+        })();
       }
     }
   }, [signUp, setActive, router]);
@@ -200,7 +201,11 @@ export default function VerifyEmailPage() {
           </div>
 
           {errorMessage && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+            <div
+              className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm"
+              role="alert"
+              aria-live="polite"
+            >
               {errorMessage}
             </div>
           )}

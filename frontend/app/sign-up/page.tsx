@@ -67,8 +67,8 @@ export default function SignUpPage() {
             firstName: data.firstName,
             lastName: data.lastName,
           }));
-        } catch (_e) {
-          // ignore storage errors
+        } catch (e) {
+          console.warn('Failed to write signup_payload to localStorage', e);
         }
         
         try {
@@ -96,8 +96,8 @@ export default function SignUpPage() {
             firstName: data.firstName,
             lastName: data.lastName,
           }));
-        } catch (_e) {
-          // ignore storage errors
+        } catch (e) {
+          console.warn('Failed to write signup_payload to localStorage', e);
         }
         toast.success('Un code de vérification a été envoyé à votre email');
         router.push('/sign-up/verify-email-address');
@@ -186,7 +186,7 @@ export default function SignUpPage() {
                 {/* Erreur globale */}
                 {errors.root && (
                   <div className='bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm'>
-                    {errors.root.message}
+                    {errors.root?.message}
                   </div>
                 )}
 
@@ -257,7 +257,8 @@ export default function SignUpPage() {
                     <button
                       type='button'
                       className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword(prev => !prev)}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                       disabled={isLoading}
                     >
                       {showPassword ? (
@@ -308,8 +309,9 @@ export default function SignUpPage() {
                 <div className='text-left'>
                   <p className='text-sm text-gray-600'>
                     Déjà membre?{' '}
+                    {/* Lien mis à jour: anciennement '/auth/login' */}
                     <Link
-                      href='/sign-in'  // Changé de '/auth/login' à '/sign-in'
+                      href='/sign-in'
                       className='text-teal-500 hover:text-teal-600 font-medium'
                       style={{ color: 'var(--primary-200)' }}
                     >
