@@ -23,11 +23,12 @@ enum UserRole{
   model User {
     id        Int      @id @default(autoincrement())
     email     String   @unique
+    clerkId   String   @unique
     username  String?   @unique
     firstName String
     lastName  String
     avatar    String?
-    password  String
+    password  String?
     status   UserStatus    @default(ACTIF)
     isActive  Boolean  @default(true)
     lastLoginAt  DateTime  @default(now())

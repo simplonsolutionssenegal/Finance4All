@@ -18,7 +18,7 @@ export class User {
   constructor(
   public id: number,
   public email: string,
-  public password: string,
+  public password: string | null,
   public firstName: string,
   public lastName: string,
   public status: UserStatus,
@@ -30,6 +30,7 @@ export class User {
   public avatar?: string | null,
   public organisationId?: number | null,
   public username?: string | null,
+  public clerkId?: string | null,
   
   // Relations
   public organisation?: Organisation,
@@ -43,5 +44,14 @@ export interface CreateUserData {
   firstName: string ;
   role: UserRole ;
   status : UserStatus ;
+}
+
+export interface CreateClerkUserData {
+  email: string;
+  clerkId: string;
+  lastName: string;
+  firstName: string;
+  role: UserRole;
+  status: UserStatus;
 }
 

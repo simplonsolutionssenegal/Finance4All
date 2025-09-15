@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 import { logger } from '@/utils/logger';
 import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
-import { clerkMiddleware } from '@clerk/express';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -18,7 +17,6 @@ const app = express();
 app.disable('x-powered-by');
 
 const PORT = process.env.PORT ?? 5000;
-app.use(clerkMiddleware());
 
 // Middleware globaux
 app.use(helmet()); // Sécurité
