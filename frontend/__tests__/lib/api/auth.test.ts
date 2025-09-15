@@ -66,4 +66,32 @@ describe('lib/api/auth registerUser', () => {
       registerUser({ clerkId: 'y', email: 'c@d.e', firstName: 'C', lastName: 'D' })
     ).rejects.toThrow('Invalid JSON response from server');
   });
+
+  it('retourne un objet vide quand la réponse ok=true est vide', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Map(),
+      text: () => Promise.resolve(''),
+    });
+
+    const result = await registerUser({
+      clerkId: 'user_2',
+      email: 'empty@example.com',
+      firstName: 'Empty',
+      lastName: 'Body',
+    });
+
+    expect(result).toEqual({});
+  });
+
+  it('propage les erreurs réseau quand fetch rejette', async () => {
+    const networkError = new Error('Network down');
+    global.fetch = jest.fn().mockRejectedValue(networkError);
+
+    await expect(
+      registerUser({ clerkId: 'user_3', email: 'n@e.t', firstName: 'Net', lastName: 'Error' })
+    ).rejects.toThrow('Network down');
+  });
 });
