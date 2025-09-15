@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { RegisterClerkUserUseCase } from '@/application/use-cases/RegisterClerkUserUseCase';
-import { ClerkRegisterSchema } from '@/application/validators/UserValidator';
+import { ClerkRegisterSchema, formatZodIssues } from '@/application/validators/UserValidator';
 import { DomainException } from '@/domain/exceptions/DomainExceptions';
 
 export class ClerkUserController {
@@ -12,7 +12,7 @@ export class ClerkUserController {
 
       const parsed = ClerkRegisterSchema.safeParse(req.body);
       if (!parsed.success) {
-        const errorMessage = `Validation error: ${parsed.error.issues.map(i => i.message).join(', ')}`;
+        const errorMessage = `Validation error: ${formatZodIssues(parsed.error.issues)}`;
         console.error(errorMessage);
         res.status(400).json({
           success: false,

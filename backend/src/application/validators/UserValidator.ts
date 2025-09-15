@@ -58,3 +58,7 @@ export const ClerkRegisterSchema = z.object({
 });
 
 export type ClerkRegisterInput = z.infer<typeof ClerkRegisterSchema>;
+
+export function formatZodIssues(issues: { message: string }[]): string {
+  return issues.map(i => i.message).join(', ');
+}
