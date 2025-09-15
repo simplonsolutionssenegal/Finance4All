@@ -1,17 +1,17 @@
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { UserRepository } from '../../domain/repositories/UserRepository';
-import { User, UserRole, UserStatus } from '../entities/User'; 
+import { User, UserRole, UserStatus } from '../entities/User';
 
 export class CreateUserUseCaseImpl implements CreateUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
   async execute(name: string, email: string): Promise<User> {
     if (!name || !email) {
-      throw new Error('Le nom et l\'email sont requis');
+      throw new Error("Le nom et l'email sont requis");
     }
 
     if (!this.isValidEmail(email)) {
-      throw new Error('Format d\'email invalide');
+      throw new Error("Format d'email invalide");
     }
 
     const userData = {
@@ -22,7 +22,7 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
       role: UserRole.BENEFICIAIRE,
       status: UserStatus.ACTIF,
     };
-    return await this.userRepository.create(userData);
+    return await this.userRepository.signUp(userData);
   }
 
   private isValidEmail(email: string): boolean {

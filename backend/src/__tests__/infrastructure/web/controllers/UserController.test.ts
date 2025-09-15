@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
 import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
-import { User } from '@/domain/entities/User';
+import { User, UserRole, UserStatus } from '@/domain/entities/User';
 
 describe('UserController', () => {
   let userController: UserController;
@@ -29,7 +29,19 @@ describe('UserController', () => {
   describe('create', () => {
     it('should create a user successfully', async () => {
       const userData = { name: 'John Doe', email: 'john@example.com' };
-      const createdUser = new User('1', 'John Doe', 'john@example.com');
+      const createdUser = new User(
+        1,
+        'john@example.com',
+        '',
+        'John',
+        'Doe',
+        UserStatus.ACTIF,
+        true,
+        new Date(),
+        new Date(),
+        new Date(),
+        UserRole.BENEFICIAIRE
+      );
 
       mockRequest.body = userData;
       mockCreateUserUseCase.execute.mockResolvedValue(createdUser);
@@ -76,7 +88,21 @@ describe('UserController', () => {
 
     it('should handle missing request body data', async () => {
       mockRequest.body = {};
-      mockCreateUserUseCase.execute.mockResolvedValue(new User('1', '', ''));
+      mockCreateUserUseCase.execute.mockResolvedValue(
+        new User(
+          1,
+          '',
+          '',
+          '',
+          '',
+          UserStatus.EN_ATTENTE,
+          false,
+          new Date(),
+          new Date(),
+          new Date(),
+          UserRole.BENEFICIAIRE
+        )
+      );
 
       await userController.create(mockRequest as Request, mockResponse as Response);
 

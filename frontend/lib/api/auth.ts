@@ -3,20 +3,20 @@ import type { ClerkRegisterInput } from '@/types/auth';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const registerUser = async (userData: ClerkRegisterInput) => {
-  try {  
+  try {
     const requestBody = {
       clerkId: userData.clerkId,
       email: userData.email,
       firstName: userData.firstName,
       lastName: userData.lastName,
       role: 'BENEFICIAIRE' as const,
-      status: 'ACTIF' as const
+      status: 'ACTIF' as const,
     };
-    
+
     console.warn('Sending registration request to backend:', {
       url: `${API_BASE_URL}/api/v1/users/register`,
       method: 'POST',
-      body: requestBody
+      body: requestBody,
     });
 
     const response = await fetch(`${API_BASE_URL}/api/v1/users/register`, {
@@ -40,14 +40,14 @@ export const registerUser = async (userData: ClerkRegisterInput) => {
       status: response.status,
       statusText: response.statusText,
       headers: Object.fromEntries(response.headers.entries()),
-      data
+      data,
     });
 
     if (!response.ok) {
       console.error('Backend error:', {
         status: response.status,
         message: data.error?.message || 'Unknown error',
-        data
+        data,
       });
       throw new Error(data.error?.message || `Erreur serveur: ${response.status}`);
     }
