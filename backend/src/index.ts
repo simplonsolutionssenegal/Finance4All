@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { logger } from '@/utils/logger';
 import { errorMiddleware } from '@/infrastructure/web/middleware/error.middleware';
 import { apiRoutes } from '@/routes';
-import { clerkMiddleware } from '@clerk/express';
+// import { clerkMiddleware } from '@clerk/express';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN ?? '*',
     credentials: true,
-  }),
+  })
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
