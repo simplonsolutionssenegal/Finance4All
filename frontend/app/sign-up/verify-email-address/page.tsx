@@ -8,6 +8,64 @@ import { toast } from 'sonner';
 
 import { registerUser } from '@/lib/api/auth';
 
+type MaybeString = string | null | undefined;
+
+async function registerFromContext(
+  signUp: {
+    createdUserId?: MaybeString;
+    unsafeMetadata?: Record<string, unknown>;
+  } | null,
+  user: {
+    id?: MaybeString;
+    firstName?: MaybeString;
+    lastName?: MaybeString;
+    primaryEmailAddress?: { emailAddress?: MaybeString } | null;
+  } | null
+): Promise<boolean> {
+  let payload: { email?: string; firstName?: string; lastName?: string } = {};
+  try {
+    const raw = window.localStorage.getItem('signup_payload');
+    payload = raw ? JSON.parse(raw) : {};
+  } catch (_e) {
+    void 0;
+  }
+
+  const clerkId = signUp?.createdUserId || user?.id || '';
+  const email = user?.primaryEmailAddress?.emailAddress || payload.email || '';
+  const firstName =
+    ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.first_name as
+      | string
+      | undefined) ||
+    user?.firstName ||
+    payload.firstName ||
+    '';
+  const lastName =
+    ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.last_name as
+      | string
+      | undefined) ||
+    user?.lastName ||
+    payload.lastName ||
+    '';
+
+  if (clerkId && email && firstName && lastName) {
+    await registerUser({ clerkId, email, firstName, lastName });
+    try {
+      window.localStorage.removeItem('signup_payload');
+    } catch (_e) {
+      void 0;
+    }
+    return true;
+  }
+
+  console.error('Missing data to register user in backend', {
+    clerkId,
+    email,
+    firstName,
+    lastName,
+  });
+  return false;
+}
+
 export default function VerifyEmailPage() {
   const { signUp, isLoaded, setActive } = useSignUp();
   const { session } = useSession();
@@ -66,48 +124,14 @@ export default function VerifyEmailPage() {
         // Enregistrer l'utilisateur dans notre backend si pas encore fait
         try {
           if (!hasRegistered) {
-            let payload: { email?: string; firstName?: string; lastName?: string } = {};
-            try {
-              const raw = window.localStorage.getItem('signup_payload');
-              payload = raw ? JSON.parse(raw) : {};
-            } catch (_e) {
-              // ignore storage errors
-              void 0;
-            }
-
-            const clerkId = completeSignUp.createdUserId || signUp.createdUserId || user?.id || '';
-            const email = user?.primaryEmailAddress?.emailAddress || payload.email || '';
-            const firstName =
-              ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.first_name as
-                | string
-                | undefined) ||
-              user?.firstName ||
-              payload.firstName ||
-              '';
-            const lastName =
-              ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.last_name as
-                | string
-                | undefined) ||
-              user?.lastName ||
-              payload.lastName ||
-              '';
-
-            if (clerkId && email && firstName && lastName) {
-              await registerUser({ clerkId, email, firstName, lastName });
-              setHasRegistered(true);
-              try {
-                window.localStorage.removeItem('signup_payload');
-              } catch (_e) {
-                void 0;
-              }
-            } else {
-              console.error('Missing data to register user in backend', {
-                clerkId,
-                email,
-                firstName,
-                lastName,
-              });
-            }
+            const didRegister = await registerFromContext(
+              {
+                createdUserId: completeSignUp.createdUserId,
+                unsafeMetadata: signUp?.unsafeMetadata,
+              },
+              user ?? null
+            );
+            if (didRegister) setHasRegistered(true);
           }
         } catch (regErr) {
           console.error('Error registering user in backend after verification:', regErr);
@@ -136,45 +160,11 @@ export default function VerifyEmailPage() {
             // Tentative d'enregistrement backend si pas encore fait
             try {
               if (!hasRegistered) {
-                let payload: { email?: string; firstName?: string; lastName?: string } = {};
-                try {
-                  const raw = window.localStorage.getItem('signup_payload');
-                  payload = raw ? JSON.parse(raw) : {};
-                } catch (_e) {
-                  void 0;
-                }
-
-                const clerkId = signUp.createdUserId || user?.id || '';
-                const email = user?.primaryEmailAddress?.emailAddress || payload.email || '';
-                const firstName =
-                  ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.first_name as
-                    | string
-                    | undefined) ||
-                  user?.firstName ||
-                  payload.firstName ||
-                  '';
-                const lastName =
-                  ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.last_name as
-                    | string
-                    | undefined) ||
-                  user?.lastName ||
-                  payload.lastName ||
-                  '';
-
-                if (clerkId && email && firstName && lastName) {
-                  await registerUser({ clerkId, email, firstName, lastName });
-                  setHasRegistered(true);
-                  try {
-                    window.localStorage.removeItem('signup_payload');
-                  } catch (_e) {
-                    void 0;
-                  }
-                } else {
-                  console.error(
-                    'Missing data to register user in backend (already verified path)',
-                    { clerkId, email, firstName, lastName }
-                  );
-                }
+                const didRegister = await registerFromContext(
+                  { createdUserId: signUp.createdUserId, unsafeMetadata: signUp.unsafeMetadata },
+                  user ?? null
+                );
+                if (didRegister) setHasRegistered(true);
               }
             } catch (regErr2) {
               console.error('Error registering user in backend (already verified path):', regErr2);
