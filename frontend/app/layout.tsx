@@ -8,9 +8,6 @@ import { Toaster } from '@/components/ui/sonner';
 
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-
-const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
