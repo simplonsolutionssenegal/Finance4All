@@ -15,7 +15,10 @@
     "sonar": "sonar-scanner",
     "sonar:frontend": "cd frontend && sonar-scanner",
     "sonar:backend": "cd backend && sonar-scanner",
-    "prepare": "husky || echo 'Husky not found, skipping hooks setup'"
+    "prepare": "husky || echo 'Husky not found, skipping hooks setup'",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\" --ignore-path .gitignore",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix --ignore-path .gitignore"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
