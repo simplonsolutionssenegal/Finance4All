@@ -1,0 +1,17 @@
+# Set default behavior to automatically normalize line endings
+* text=auto eol=lf
+
+# Force Windows-style line endings for specific file types
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Force Unix-style line endings for shell scripts
+*.sh text eol=lf
+
+# Binary files should not be modified
+*.{jpg,jpeg,png,gif,ico,woff,woff2,ttf,eot,otf} binary
+*.{pdf,zip,jar,war,ear,class} binary
+
+# Source code files
+*.{js,jsx,ts,tsx,json,md,html,css,scss,yml,yaml} text eol=lf
+*.{java,py,rb,go,rs,swift} text eol=lf
