@@ -21,7 +21,7 @@ function nameSchema(fieldLabel: 'Prénom' | 'Nom') {
   return z.string().min(2, minMessage).max(50, maxMessage).regex(namePattern, regexMessage);
 }
 
-const emailSchema = z.string().email("Format d'email invalide").min(1, 'Email requis');
+const emailSchema = z.string().email('Format email invalide').min(1, 'Email requis');
 
 export const CreateUserSchema = z.object({
   email: emailSchema,
