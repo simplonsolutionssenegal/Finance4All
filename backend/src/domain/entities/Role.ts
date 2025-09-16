@@ -6,6 +6,6 @@ export class Role {
     public name: string,
     public createdAt: Date = new Date(),
     public updatedAt: Date = new Date(),
-    public users?: User[]
+    public users?: User[],
   ) {}
 }

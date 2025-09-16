@@ -32,7 +32,7 @@ export class User {
     public clerkId?: string | null,
 
     // Relations
-    public organisation?: Organisation
+    public organisation?: Organisation,
   ) {}
 }
 

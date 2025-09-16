@@ -15,7 +15,7 @@ import {
 export class RegisterClerkUserUseCaseImpl implements RegisterClerkUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly emailService: NodemailerEmailService
+    private readonly emailService: NodemailerEmailService,
   ) {}
 
   async execute(input: ClerkRegisterInput): Promise<{ user: User; message: string }> {

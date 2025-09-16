@@ -162,7 +162,7 @@ describe('PrismaUserRepository', () => {
         repository.signUp({
           email: 'test@example.com',
           password: 'password',
-        } as any)
+        } as any),
       ).rejects.toThrow('Password-based sign up is not supported');
     });
   });

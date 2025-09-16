@@ -34,7 +34,7 @@ describe('ClerkUserController.register', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false, error: expect.any(Object) })
+      expect.objectContaining({ success: false, error: expect.any(Object) }),
     );
   });
 
@@ -77,7 +77,7 @@ describe('ClerkUserController.register', () => {
       expect.objectContaining({
         success: true,
         data: expect.objectContaining({ email: 'john.doe@example.com', clerkId: 'clrk_123' }),
-      })
+      }),
     );
   });
 });

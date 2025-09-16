@@ -27,7 +27,7 @@ describe('User Entity and Use Cases', () => {
         now,
         now,
         now,
-        role
+        role,
       );
 
       expect(user.id).toBe(id);
@@ -58,7 +58,7 @@ describe('User Entity and Use Cases', () => {
           organisationId: null,
           username: null,
           clerkId: userData.clerkId || null,
-        })
+        }),
       ),
       findById: jest.fn(),
       findByEmail: jest.fn(),
@@ -69,7 +69,7 @@ describe('User Entity and Use Cases', () => {
       const createUserUseCase = new CreateUserUseCaseImpl(mockUserRepository);
 
       await expect(createUserUseCase.execute('', 'test@example.com')).rejects.toThrow(
-        "Le nom et l'email sont requis"
+        "Le nom et l'email sont requis",
       );
     });
 
@@ -77,7 +77,7 @@ describe('User Entity and Use Cases', () => {
       const createUserUseCase = new CreateUserUseCaseImpl(mockUserRepository);
 
       await expect(createUserUseCase.execute('Test User', '')).rejects.toThrow(
-        "Le nom et l'email sont requis"
+        "Le nom et l'email sont requis",
       );
     });
 
@@ -85,7 +85,7 @@ describe('User Entity and Use Cases', () => {
       const createUserUseCase = new CreateUserUseCaseImpl(mockUserRepository);
 
       await expect(createUserUseCase.execute('Test User', 'invalid-email')).rejects.toThrow(
-        "Format d'email invalide"
+        "Format d'email invalide",
       );
     });
 

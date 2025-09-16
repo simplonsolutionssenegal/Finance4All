@@ -30,7 +30,7 @@ export const CreateUserSchema = z.object({
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
     .regex(
       passwordRegex,
-      'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial'
+      'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial',
     ),
   lastName: nameSchema('Nom'),
   firstName: nameSchema('Prénom'),

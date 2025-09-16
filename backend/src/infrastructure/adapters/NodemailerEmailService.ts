@@ -75,7 +75,7 @@ export class NodemailerEmailService implements EmailService {
     transporter: nodemailer.Transporter,
     host: string,
     port: number,
-    secure: boolean
+    secure: boolean,
   ) {
     try {
       await transporter.verify();

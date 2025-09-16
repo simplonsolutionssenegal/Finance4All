@@ -59,7 +59,7 @@ describe('RegisterClerkUserUseCaseImpl', () => {
     expect(userRepository.createFromClerk).toHaveBeenCalled();
     expect(emailService.sendConfirmationEmail).toHaveBeenCalledWith(
       'john.doe@example.com',
-      'clrk_123'
+      'clrk_123',
     );
     expect(result.user.email).toBe('john.doe@example.com');
   });
@@ -75,7 +75,7 @@ describe('RegisterClerkUserUseCaseImpl', () => {
         lastName: 'Doe',
         role: UserRole.BENEFICIAIRE,
         status: UserStatus.ACTIF,
-      } as any)
+      } as any),
     ).rejects.toThrow('already exists');
   });
 
@@ -91,7 +91,7 @@ describe('RegisterClerkUserUseCaseImpl', () => {
         lastName: 'Doe',
         role: UserRole.BENEFICIAIRE,
         status: UserStatus.ACTIF,
-      } as any)
+      } as any),
     ).rejects.toThrow('already exists');
   });
 });

@@ -7,11 +7,11 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
 
   async execute(name: string, email: string): Promise<User> {
     if (!name || !email) {
-      throw new Error("Le nom et l'email sont requis");
+      throw new Error('Le nom et l\'email sont requis');
     }
 
     if (!this.isValidEmail(email)) {
-      throw new Error("Format d'email invalide");
+      throw new Error('Format d\'email invalide');
     }
 
     const userData = {

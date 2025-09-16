@@ -40,7 +40,7 @@ describe('UserController', () => {
         new Date(),
         new Date(),
         new Date(),
-        UserRole.BENEFICIAIRE
+        UserRole.BENEFICIAIRE,
       );
 
       mockRequest.body = userData;
@@ -100,8 +100,8 @@ describe('UserController', () => {
           new Date(),
           new Date(),
           new Date(),
-          UserRole.BENEFICIAIRE
-        )
+          UserRole.BENEFICIAIRE,
+        ),
       );
 
       await userController.create(mockRequest as Request, mockResponse as Response);

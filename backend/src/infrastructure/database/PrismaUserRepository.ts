@@ -17,7 +17,7 @@ export class PrismaUserRepository implements UserRepository {
 
   signUp(_data: CreateUserData): Promise<User> {
     return Promise.reject(
-      new Error('Password-based sign up is not supported. Use createFromClerk.')
+      new Error('Password-based sign up is not supported. Use createFromClerk.'),
     );
   }
 
