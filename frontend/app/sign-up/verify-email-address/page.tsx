@@ -26,35 +26,41 @@ async function registerFromContext(
   try {
     const raw = window.localStorage.getItem('signup_payload');
     payload = raw ? JSON.parse(raw) : {};
-  } catch (_e) {
-    void 0;
+  } catch (error) {
+    console.error('Failed to parse signup payload from localStorage', error);
+    return false;
   }
 
   const clerkId = signUp?.createdUserId || user?.id || '';
   const email = user?.primaryEmailAddress?.emailAddress || payload.email || '';
   const firstName =
-    ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.first_name as
-      | string
-      | undefined) ||
+    (signUp?.unsafeMetadata && typeof signUp.unsafeMetadata.first_name === 'string'
+      ? signUp.unsafeMetadata.first_name
+      : null) ||
     user?.firstName ||
     payload.firstName ||
     '';
   const lastName =
-    ((signUp?.unsafeMetadata as Record<string, unknown> | undefined)?.last_name as
-      | string
-      | undefined) ||
+    (signUp?.unsafeMetadata && typeof signUp.unsafeMetadata.last_name === 'string'
+      ? signUp.unsafeMetadata.last_name
+      : null) ||
     user?.lastName ||
     payload.lastName ||
     '';
 
   if (clerkId && email && firstName && lastName) {
-    await registerUser({ clerkId, email, firstName, lastName });
     try {
-      window.localStorage.removeItem('signup_payload');
-    } catch (_e) {
-      void 0;
+      await registerUser({ clerkId, email, firstName, lastName });
+      try {
+        window.localStorage.removeItem('signup_payload');
+      } catch (error) {
+        console.error('Failed to remove signup payload from localStorage', error);
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to register user in backend', error);
+      return false;
     }
-    return true;
   }
 
   console.error('Missing data to register user in backend', {
@@ -64,6 +70,102 @@ async function registerFromContext(
     lastName,
   });
   return false;
+}
+
+async function handleSuccessfulVerification(
+  signUp: any,
+  setActive: any,
+  user: any,
+  hasRegistered: boolean,
+  setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>
+): Promise<boolean> {
+  try {
+    if (signUp.createdSessionId) {
+      await setActive({ session: signUp.createdSessionId });
+    }
+
+    if (!hasRegistered) {
+      const didRegister = await registerFromContext(
+        {
+          createdUserId: signUp.createdUserId,
+          unsafeMetadata: signUp.unsafeMetadata,
+        },
+        user ?? null
+      );
+      if (didRegister) {
+        setHasRegistered(true);
+      }
+      return didRegister;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error in post-verification process:', error);
+    throw error;
+  }
+}
+
+async function handleAlreadyVerifiedCase(
+  signUp: any,
+  setActive: any,
+  userData: {
+    user: any;
+    hasRegistered: boolean;
+    setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>;
+  },
+  router: any
+) {
+  try {
+    if (signUp.createdSessionId) {
+      await setActive({ session: signUp.createdSessionId });
+
+      if (!userData.hasRegistered) {
+        const didRegister = await registerFromContext(
+          { createdUserId: signUp.createdUserId, unsafeMetadata: signUp.unsafeMetadata },
+          userData.user ?? null
+        );
+        if (didRegister) userData.setHasRegistered(true);
+      }
+
+      toast.success('Votre email a déjà été vérifié.');
+      router.push('/dashboard');
+    } else {
+      toast.error('Vérification déjà effectuée. Veuillez vous connecter.');
+      router.push('/sign-in');
+    }
+  } catch (error) {
+    console.error('Error activating session for already verified email:', error);
+    toast.error('Erreur de connexion. Veuillez vous reconnecter.');
+    router.push('/sign-in');
+  }
+}
+
+async function handleVerificationError(
+  error: unknown,
+  signUp: any,
+  setActive: any,
+  userData: {
+    user: any;
+    hasRegistered: boolean;
+    setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>;
+  },
+  navigation: {
+    router: any;
+    setErrorMessage: React.Dispatch<React.SetStateAction<string>>;
+  }
+): Promise<void> {
+  console.error('Error verifying email:', error);
+  const clerkError = error as {
+    errors?: Array<{ code?: string; message?: string }>;
+    message?: string;
+  };
+
+  if (clerkError.message?.includes('already been verified')) {
+    await handleAlreadyVerifiedCase(signUp, setActive, userData, navigation.router);
+  } else if (clerkError.errors?.[0]?.code === 'form_code_incorrect') {
+    navigation.setErrorMessage('Code incorrect. Veuillez réessayer.');
+  } else {
+    navigation.setErrorMessage(clerkError.errors?.[0]?.message || 'Erreur lors de la vérification');
+  }
 }
 
 export default function VerifyEmailPage() {
@@ -92,7 +194,8 @@ export default function VerifyEmailPage() {
             await setActive({ session: signUp.createdSessionId });
             toast.success('Connexion réussie !');
             router.push('/dashboard');
-          } catch (_e) {
+          } catch (error) {
+            console.error('Error activating session:', error);
             toast.error('Erreur de connexion. Veuillez vous reconnecter.');
             router.push('/sign-in');
           }
@@ -116,75 +219,26 @@ export default function VerifyEmailPage() {
       console.warn('Verification result status:', completeSignUp.status);
 
       if (completeSignUp.status === 'complete') {
-        // Activer la session
-        if (completeSignUp.createdSessionId) {
-          await setActive({ session: completeSignUp.createdSessionId });
-        }
-
-        // Enregistrer l'utilisateur dans notre backend si pas encore fait
-        try {
-          if (!hasRegistered) {
-            const didRegister = await registerFromContext(
-              {
-                createdUserId: completeSignUp.createdUserId,
-                unsafeMetadata: signUp?.unsafeMetadata,
-              },
-              user ?? null
-            );
-            if (didRegister) setHasRegistered(true);
-          }
-        } catch (regErr) {
-          console.error('Error registering user in backend after verification:', regErr);
-          // On ne bloque pas la navigation, mais on notifie
-          toast.error(
-            "L'inscription a été vérifiée, mais l'enregistrement interne a échoué. Vous pourrez réessayer plus tard."
-          );
-        }
+        await handleSuccessfulVerification(
+          completeSignUp,
+          setActive,
+          user,
+          hasRegistered,
+          setHasRegistered
+        );
         toast.success('Email vérifié avec succès !');
         router.push('/dashboard');
       } else {
         setErrorMessage('Échec de la vérification. Veuillez réessayer.');
       }
     } catch (error) {
-      console.error('Error verifying email:', error);
-      const clerkError = error as {
-        errors?: Array<{ code?: string; message?: string }>;
-        message?: string;
-      };
-
-      if (clerkError.message?.includes('already been verified')) {
-        // Essayer d'activer la session si déjà vérifié
-        try {
-          if (signUp.createdSessionId) {
-            await setActive({ session: signUp.createdSessionId });
-            // Tentative d'enregistrement backend si pas encore fait
-            try {
-              if (!hasRegistered) {
-                const didRegister = await registerFromContext(
-                  { createdUserId: signUp.createdUserId, unsafeMetadata: signUp.unsafeMetadata },
-                  user ?? null
-                );
-                if (didRegister) setHasRegistered(true);
-              }
-            } catch (regErr2) {
-              console.error('Error registering user in backend (already verified path):', regErr2);
-            }
-            toast.success('Votre email a déjà été vérifié.');
-            router.push('/dashboard');
-          } else {
-            toast.error('Vérification déjà effectuée. Veuillez vous connecter.');
-            router.push('/sign-in');
-          }
-        } catch (sessionError) {
-          console.error('Error activating session:', sessionError);
-          toast.error('Erreur de connexion. Veuillez vous reconnecter.');
-          router.push('/sign-in');
-        }
-      } else if (clerkError.errors?.[0]?.code === 'form_code_incorrect') {
-        setErrorMessage('Code incorrect. Veuillez réessayer.');
-      } else {
-        setErrorMessage(clerkError.errors?.[0]?.message || 'Erreur lors de la vérification');
-      }
+      await handleVerificationError(
+        error,
+        signUp,
+        setActive,
+        { user, hasRegistered, setHasRegistered },
+        { router, setErrorMessage }
+      );
     } finally {
       setIsLoading(false);
     }
@@ -196,7 +250,8 @@ export default function VerifyEmailPage() {
     try {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       toast.success('Nouveau code envoyé !');
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error resending code:', error);
       toast.error("Impossible d'envoyer un nouveau code");
     }
   };

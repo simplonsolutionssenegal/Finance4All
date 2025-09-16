@@ -3,7 +3,7 @@ import { EmailService } from '../../domain/ports/EmailService';
 import { logger } from '@/utils/logger';
 
 export class NodemailerEmailService implements EmailService {
-  async sendConfirmationEmail(email: string, confirmationToken: string): Promise<void> {
+  private getSmtpConfig() {
     const host = process.env.SMTP_HOST;
     const port = Number(process.env.SMTP_PORT ?? '0');
     const user = process.env.SMTP_USER;
@@ -11,10 +11,14 @@ export class NodemailerEmailService implements EmailService {
     const secure = (process.env.SMTP_SECURE ?? 'false').toLowerCase() === 'true';
     const from = process.env.SMTP_FROM ?? user;
 
+    return { host, port, user, pass, secure, from };
+  }
+
+  private getEmailContent(email: string, confirmationToken: string) {
     const appName = process.env.APP_NAME ?? 'Finance4All';
     const loginUrl = process.env.LOGIN_URL ?? 'http://localhost:3000/login';
-    const primary = '#14b8a6'; // proche de var(--primary-200)
-    const primaryDark = '#0f766e'; // proche de var(--primary-400)
+    const primary = '#14b8a6';
+    const primaryDark = '#0f766e';
 
     const plainText =
       `${appName} - Confirmation de votre compte\n\n` +
@@ -64,6 +68,46 @@ export class NodemailerEmailService implements EmailService {
       </div>
     `;
 
+    return { plainText, html, appName };
+  }
+
+  private async verifyTransporter(
+    transporter: nodemailer.Transporter,
+    host: string,
+    port: number,
+    secure: boolean
+  ) {
+    try {
+      await transporter.verify();
+      logger.info('SMTP transporter verified successfully', { host, port, secure });
+    } catch (verifyErr: unknown) {
+      const message = verifyErr instanceof Error ? verifyErr.message : 'Unknown error';
+      logger.error('SMTP transporter verification failed', { message, host, port, secure });
+
+      if (process.env.NODE_ENV !== 'development') {
+        const error = verifyErr instanceof Error ? verifyErr : new Error(String(verifyErr));
+        throw error;
+      }
+    }
+  }
+
+  private handleEmailError(err: unknown, context: string) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    const stack = err instanceof Error ? err.stack : undefined;
+
+    if (process.env.NODE_ENV === 'development') {
+      logger.error(`Failed to ${context} (dev mode, ignored)`, { message, stack, err });
+      return;
+    }
+
+    const error = err instanceof Error ? err : new Error(String(err));
+    throw error;
+  }
+
+  async sendConfirmationEmail(email: string, confirmationToken: string): Promise<void> {
+    const { host, port, user, pass, secure, from } = this.getSmtpConfig();
+    const { plainText, html, appName } = this.getEmailContent(email, confirmationToken);
+
     // Si la configuration SMTP est absente en développement, on log et on n'empêche pas le signup
     if (!host || !port || !user || !pass || !from) {
       logger.warn('SMTP config missing or incomplete. Skipping email sending.', {
@@ -84,17 +128,7 @@ export class NodemailerEmailService implements EmailService {
         auth: { user, pass },
       });
 
-      // Vérifie la connexion au serveur SMTP (utile en debug)
-      try {
-        await transporter.verify();
-        logger.info('SMTP transporter verified successfully', { host, port, secure });
-      } catch (verifyErr: unknown) {
-        const message = verifyErr instanceof Error ? verifyErr.message : 'Unknown error';
-        logger.error('SMTP transporter verification failed', { message, host, port, secure });
-        if (process.env.NODE_ENV !== 'development') {
-          throw verifyErr as Error;
-        }
-      }
+      await this.verifyTransporter(transporter, host, port, secure);
 
       await transporter.sendMail({
         from,
@@ -103,21 +137,10 @@ export class NodemailerEmailService implements EmailService {
         text: plainText,
         html,
       });
+
       logger.info('Confirmation email sent (or queued) successfully', { to: email });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      const stack = err instanceof Error ? err.stack : undefined;
-      // En développement, ne pas bloquer le flux d'inscription si l'email échoue
-      if (process.env.NODE_ENV === 'development') {
-        logger.error('Failed to send confirmation email (dev mode, ignored)', {
-          message,
-          stack,
-          err,
-        });
-        return;
-      }
-      // En production, relancer l'erreur pour un traitement approprié
-      throw err as Error;
+      this.handleEmailError(err, 'send confirmation email');
     }
   }
 }

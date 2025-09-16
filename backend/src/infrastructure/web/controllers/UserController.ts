@@ -4,7 +4,6 @@ import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 export class UserController {
   constructor(private readonly createUserUseCase: CreateUserUseCase) {}
 
-
   async create(req: Request, res: Response): Promise<void> {
     try {
       const { name, email } = req.body as { name?: string; email?: string };
