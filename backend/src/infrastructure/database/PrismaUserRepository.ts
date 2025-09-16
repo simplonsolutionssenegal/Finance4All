@@ -16,9 +16,6 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   signUp(_data: CreateUserData): Promise<User> {
-    // In this project, users are created from Clerk (clerkId is required in Prisma schema).
-    // To avoid inconsistent state and Prisma type errors, we do not support password-based signUp here.
-    // If needed later, update Prisma schema to make clerkId optional OR generate a proper clerkId mapping.
     return Promise.reject(
       new Error('Password-based sign up is not supported. Use createFromClerk.')
     );
