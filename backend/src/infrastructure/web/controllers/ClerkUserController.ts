@@ -60,7 +60,7 @@ export class ClerkUserController {
       console.error("Erreur inattendue lors de l'inscription avec clerk:", { message, stack, err });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_SERVER_ERROR', message: "Une erreur inattendue s'est produite" },
+        error: { code: 'INTERNAL_SERVER_ERROR', message: 'Erreur inattendue' },
       });
     }
   }
