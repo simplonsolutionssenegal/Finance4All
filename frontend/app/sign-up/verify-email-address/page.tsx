@@ -72,10 +72,25 @@ async function registerFromContext(
   return false;
 }
 
+interface SignUpContext {
+  createdUserId?: string | null;
+  unsafeMetadata?: Record<string, unknown>;
+  createdSessionId?: string;
+}
+
+interface UserContext {
+  id?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  primaryEmailAddress?: { emailAddress?: string | null } | null;
+}
+
+type SetActiveFunction = (params: { session: string }) => Promise<void>;
+
 async function handleSuccessfulVerification(
-  signUp: any,
-  setActive: any,
-  user: any,
+  signUp: SignUpContext | null,
+  setActive: SetActiveFunction,
+  user: UserContext | null,
   hasRegistered: boolean,
   setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>
 ): Promise<boolean> {
@@ -104,16 +119,18 @@ async function handleSuccessfulVerification(
   }
 }
 
+interface UserData {
+  user: UserContext | null;
+  hasRegistered: boolean;
+  setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 async function handleAlreadyVerifiedCase(
-  signUp: any,
-  setActive: any,
-  userData: {
-    user: any;
-    hasRegistered: boolean;
-    setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>;
-  },
-  router: any
-) {
+  signUp: SignUpContext | null,
+  setActive: SetActiveFunction,
+  userData: UserData,
+  router: ReturnType<typeof useRouter>
+): Promise<void> {
   try {
     if (signUp.createdSessionId) {
       await setActive({ session: signUp.createdSessionId });
@@ -139,19 +156,17 @@ async function handleAlreadyVerifiedCase(
   }
 }
 
+interface NavigationProps {
+  router: ReturnType<typeof useRouter>;
+  setErrorMessage: React.Dispatch<React.SetStateAction<string>>;
+}
+
 async function handleVerificationError(
   error: unknown,
-  signUp: any,
-  setActive: any,
-  userData: {
-    user: any;
-    hasRegistered: boolean;
-    setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>;
-  },
-  navigation: {
-    router: any;
-    setErrorMessage: React.Dispatch<React.SetStateAction<string>>;
-  }
+  signUp: SignUpContext | null,
+  setActive: SetActiveFunction,
+  userData: UserData,
+  navigation: NavigationProps
 ): Promise<void> {
   console.error('Error verifying email:', error);
   const clerkError = error as {

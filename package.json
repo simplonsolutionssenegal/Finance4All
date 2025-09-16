@@ -20,27 +20,21 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "concurrently": "^7.6.0",
-    "cross-env": "^10.0.0",
-    "cross-env": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "jest": "^30.1.2",
-    "sonarqube-scanner": "^3.5.0",
+    "lint-staged": "^16.1.6",
+    "sonarqube-scanner": "^4.3.0",
     "ts-jest": "^29.4.1"
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^6.31.6",
-    "@hookform/resolvers": "^5.2.1",
-    "zod": "^4.1.3"
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
-      "npm run -w frontend lint:fix",
-      "npm run -w frontend format"
+      "npm run lint:fix --prefix frontend",
+      "npm run format --prefix frontend"
     ],
     "backend/**/*.{js,ts}": [
-      "npm run -w backend lint:fix",
-      "npm run -w backend format"
+      "npm run lint:fix --prefix backend",
+      "npm run format --prefix backend"
     ],
     "**/*.{json,md}": [
       "prettier --write"
