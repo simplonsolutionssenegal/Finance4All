@@ -5,7 +5,6 @@ import { UserService } from '../services/user.service';
 import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
 import { GetUsersByOrganisationUseCaseImpl } from '@/domain/use-cases/GetUsersByOrganisationUseCaseImpl';
 import { GetUsersByOrganisationAndStatusUseCaseImpl } from '@/domain/use-cases/GetUsersByOrganisationAndStatusUseCaseImpl';
-
 const userRepo = new PrismaUserRepository();
 
 

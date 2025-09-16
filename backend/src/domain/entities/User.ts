@@ -6,6 +6,7 @@ import { Organisation } from './Organisation'; // ✅ au lieu de '@prisma/client
 export class User {
   constructor(
     public readonly id: number,
+    public readonly clerkUserId : string | null,
     public readonly email: string,
     public readonly username: string,
     public readonly firstName: string ,

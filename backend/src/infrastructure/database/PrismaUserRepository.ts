@@ -17,6 +17,7 @@ type PrismaUserWithRels = Prisma.UserGetPayload<{
 export function toDomain(u: PrismaUserWithRels): DomainUser {
   return new DomainUser(
     u.id,
+    u.clerkUserId,
     u.email,
     u.username,
     u.firstName ?? '',                       // garde la ''abilité correcte

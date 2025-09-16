@@ -24,32 +24,7 @@ export class UserController {
       res.status(200).json({
         status: 'success',
         results: users.length,
-        data: users.map((u) => ({
-          id: u.id,
-          email: u.email,
-          username: u.username,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          avatar: u.avatar,
-          isActive: u.isActive,
-          lastLoginAt: u.lastLoginAt,
-          status: u.status,
-          role: u.role?.name,
-          organisationId: u.organisationId,
-          organisation: u.organisation
-            ? {
-              id: u.organisation.id,
-              name: u.organisation.name,
-              avatar: u.organisation.avatar,
-              address: u.organisation.address,
-              phone: u.organisation.phone,
-              createdAt: u.organisation.createdAt,
-              updatedAt: u.organisation.updatedAt,
-            }
-            : null,
-          createdAt: u.createdAt,
-          updatedAt: u.updatedAt,
-        })),
+        data: users.map((user) => this.UserResponse(user)),
       });
     } catch {
       res.status(400).json({
@@ -71,32 +46,33 @@ export class UserController {
     return organisationId;
   }
 
-  private mapUserResponse(u: User) {
+  private UserResponse(user: User) {
     return {
-      id: u.id,
-      email: u.email,
-      username: u.username,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      avatar: u.avatar,
-      isActive: u.isActive,
-      lastLoginAt: u.lastLoginAt,
-      status: u.status,
-      role: u.role?.name,
-      organisationId: u.organisationId,
-      organisation: u.organisation
+      id: user.id,
+      clerkUserId : user.clerkUserId,
+      email: user.email,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+      isActive: user.isActive,
+      lastLoginAt: user.lastLoginAt,
+      status: user.status,
+      role: user.role?.name,
+      organisationId: user.organisationId,
+      organisation: user.organisation
         ? {
-          id: u.organisation.id,
-          name: u.organisation.name,
-          avatar: u.organisation.avatar,
-          address: u.organisation.address,
-          phone: u.organisation.phone,
-          createdAt: u.organisation.createdAt,
-          updatedAt: u.organisation.updatedAt,
+          id: user.organisation.id,
+          name: user.organisation.name,
+          avatar: user.organisation.avatar,
+          address: user.organisation.address,
+          phone: user.organisation.phone,
+          createdAt: user.organisation.createdAt,
+          updatedAt: user.organisation.updatedAt,
         }
         : null,
-      createdAt: u.createdAt,
-      updatedAt: u.updatedAt,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 
@@ -159,7 +135,6 @@ export class UserController {
 
     return undefined;
   }
-  
 
   async getUsersByOrganisationFilter(req: Request, res: Response): Promise<void> {
     const organisationId = this.parseOrganisationId(req, res);
@@ -187,7 +162,7 @@ export class UserController {
       res.status(200).json({
         status: 'success',
         results: users.length,
-        data: users.map((u) => this.mapUserResponse(u)),
+        data: users.map((u) => this.UserResponse(u)),
       });
     } catch {
       res.status(500).json({
@@ -196,6 +171,8 @@ export class UserController {
       });
     }
   }
+
+
 
 
 

@@ -28,7 +28,8 @@
     "ts-jest": "^29.4.1"
   },
   "dependencies": {
-    "@testing-library/user-event": "^14.6.1"
+    "@testing-library/user-event": "^14.6.1",
+    "dotenv": "^17.2.2"
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
