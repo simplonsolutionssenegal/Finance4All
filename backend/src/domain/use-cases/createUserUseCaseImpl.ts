@@ -11,7 +11,7 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
     }
 
     if (!this.isValidEmail(email)) {
-      throw new Error('Format email invalide');
+      throw new Error("Format d'email invalide");
     }
 
     const userData = {
