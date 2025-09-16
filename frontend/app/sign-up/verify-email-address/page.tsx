@@ -75,7 +75,7 @@ async function registerFromContext(
 interface SignUpContext {
   createdUserId?: string | null;
   unsafeMetadata?: Record<string, unknown>;
-  createdSessionId?: string;
+  createdSessionId?: string | null;
 }
 
 interface UserContext {
@@ -95,11 +95,11 @@ async function handleSuccessfulVerification(
   setHasRegistered: React.Dispatch<React.SetStateAction<boolean>>
 ): Promise<boolean> {
   try {
-    if (signUp.createdSessionId) {
+    if (signUp?.createdSessionId) {
       await setActive({ session: signUp.createdSessionId });
     }
 
-    if (!hasRegistered) {
+    if (!hasRegistered && signUp) {
       const didRegister = await registerFromContext(
         {
           createdUserId: signUp.createdUserId,
@@ -132,10 +132,10 @@ async function handleAlreadyVerifiedCase(
   router: ReturnType<typeof useRouter>
 ): Promise<void> {
   try {
-    if (signUp.createdSessionId) {
+    if (signUp?.createdSessionId) {
       await setActive({ session: signUp.createdSessionId });
 
-      if (!userData.hasRegistered) {
+      if (!userData.hasRegistered && signUp) {
         const didRegister = await registerFromContext(
           { createdUserId: signUp.createdUserId, unsafeMetadata: signUp.unsafeMetadata },
           userData.user ?? null
@@ -235,9 +235,9 @@ export default function VerifyEmailPage() {
 
       if (completeSignUp.status === 'complete') {
         await handleSuccessfulVerification(
-          completeSignUp,
+          completeSignUp as SignUpContext,
           setActive,
-          user,
+          user ?? null,
           hasRegistered,
           setHasRegistered
         );
@@ -249,9 +249,9 @@ export default function VerifyEmailPage() {
     } catch (error) {
       await handleVerificationError(
         error,
-        signUp,
+        signUp as SignUpContext,
         setActive,
-        { user, hasRegistered, setHasRegistered },
+        { user: user ?? null, hasRegistered, setHasRegistered },
         { router, setErrorMessage }
       );
     } finally {
