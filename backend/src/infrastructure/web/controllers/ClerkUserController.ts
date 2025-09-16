@@ -57,10 +57,10 @@ export class ClerkUserController {
       }
       const message = err instanceof Error ? err.message : 'Unknown error';
       const stack = err instanceof Error ? err.stack : undefined;
-      console.error('Erreur inattendue avec clerk :', { message, stack, err });
+      console.error("Erreur inattendue lors de l'inscription avec clerk:", { message, stack, err });
       res.status(500).json({
         success: false,
-        error: { code: 'INTERNAL_SERVER_ERROR', message: 'Erreur inattendue' },
+        error: { code: 'INTERNAL_SERVER_ERROR', message: "Une erreur inattendue s'est produite" },
       });
     }
   }
