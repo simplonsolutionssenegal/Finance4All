@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import { GetPaginatedInstitutionsFinancieresUseCase } from '@/application/use-cases/GetPaginatedInstitutionsFinancieresUseCase';
 import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
