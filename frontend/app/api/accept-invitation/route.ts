@@ -1,5 +1,5 @@
 import { createClerkClient } from '@clerk/nextjs/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,24 +80,26 @@ export async function POST(request: NextRequest) {
         userId: user.id,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors de l\'acceptation de l\'invitation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
 
       return NextResponse.json(
         {
           success: false,
-          message: `Erreur lors de l'acceptation: ${error.message}`,
+          message: `Erreur lors de l'acceptation: ${errorMessage}`,
         },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
 
     return NextResponse.json(
       {
         success: false,
-        message: `Erreur serveur: ${error.message}`,
+        message: `Erreur serveur: ${errorMessage}`,
       },
       { status: 500 }
     );

@@ -26,7 +26,7 @@ export default function ConfirmDesactivationModal({
   onClose,
   onConfirm,
   user,
-}: ConfirmDesactivationModalProps) {
+}: Readonly<ConfirmDesactivationModalProps>) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className='sm:max-w-md'>

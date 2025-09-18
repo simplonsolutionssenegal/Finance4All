@@ -18,7 +18,7 @@ const AVAILABLE_ROLES = [
   { value: 'org:admin', label: 'Admin' },
 ];
 
-export default function RoleEditModal({ isOpen, onClose, user }: RoleEditModalProps) {
+export default function RoleEditModal({ isOpen, onClose, user }: Readonly<RoleEditModalProps>) {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const { updateUserRole } = useUpdateUserRole();
@@ -36,7 +36,7 @@ export default function RoleEditModal({ isOpen, onClose, user }: RoleEditModalPr
   }
 
   const handleSubmit = async () => {
-    if (selectedRole !== user.role) {
+    if (selectedRole && selectedRole !== user.role) {
       setIsUpdating(true);
       try {
         await updateUserRole(user.id, selectedRole);
@@ -52,7 +52,7 @@ export default function RoleEditModal({ isOpen, onClose, user }: RoleEditModalPr
     }
   };
 
-  const hasRoleChanged = selectedRole !== user.role;
+  const hasRoleChanged = selectedRole && selectedRole !== user.role;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -81,15 +81,16 @@ export default function RoleEditModal({ isOpen, onClose, user }: RoleEditModalPr
             </div>
 
             <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-500 block'>Nouveau rôle</label>
+              <label htmlFor="role-select" className='text-sm font-medium text-gray-500 block'>Nouveau rôle</label>
               <select
+                id="role-select"
                 value={selectedRole}
                 onChange={e => setSelectedRole(e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white'
                 disabled={isUpdating}
               >
                 <option value=''>Sélectionner un nouveau rôle</option>
-                {AVAILABLE_ROLES.filter(role => role.label !== user.role).map(role => (
+                {AVAILABLE_ROLES.filter(role => role.value !== user.role).map(role => (
                   <option key={role.value} value={role.value}>
                     {role.label}
                   </option>

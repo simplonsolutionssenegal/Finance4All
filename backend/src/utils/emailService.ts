@@ -25,11 +25,6 @@ export class EmailService {
       const gmailUser = process.env.GMAIL_USER;
       const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-      if (!gmailUser || !gmailPassword) {
-        logger.warn('Configuration Gmail manquante - utilisation du mode simulation');
-        return this.createMockTransporter();
-      }
-
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -42,24 +37,14 @@ export class EmailService {
       });
 
       logger.info('Transporteur Gmail initialisé', {
-        user: gmailUser.replace(/@.*/, '@***'),
+        user: gmailUser?.replace(/@.*/, '@***'),
       });
     }
 
     return this.transporter;
   }
 
-  /**
-   * Crée un transporteur de test pour la simulation
-   */
-  private static createMockTransporter(): nodemailer.Transporter {
-    return nodemailer.createTransport({
-      streamTransport: true,
-      newline: 'unix',
-      buffer: true,
-    });
-  }
-  /**
+    /**
    * Envoie un email d'invitation personnalisé
    */
   static async sendInvitationEmail(data: InvitationEmailData): Promise<void> {

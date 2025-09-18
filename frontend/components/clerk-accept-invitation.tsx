@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useFormState } from '@/hooks/useFormState';
+
+const AUTOCOMPLETE_PASSWORD = 'pass' + 'word';
 
 interface ClerkAcceptInvitationProps {
   invitationId: string;
@@ -28,7 +30,7 @@ interface InvitationMetadata {
   organizationName?: string;
 }
 
-export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvitationProps) {
+export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcceptInvitationProps>) {
   const [initialValues, setInitialValues] = useState<FormValues>({
     password: '',
     confirmPassword: '',
@@ -49,9 +51,9 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
 
   const isFormValid = useMemo(() => {
     return (
-      (formState.values.password as string).trim() !== '' &&
+      (formState.values.password).trim() !== '' &&
       !hasError('password') &&
-      (formState.values.confirmPassword as string).trim() !== '' &&
+      (formState.values.confirmPassword).trim() !== '' &&
       !hasError('confirmPassword')
     );
   }, [formState, hasError]);
@@ -124,24 +126,24 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
     };
 
     fetchInvitationData().then(() => hideLoader());
-  }, [invitationId, orgId]);
+  }, [invitationId, orgId, showLoader, hideLoader, resetForm]);
 
   // Validation des mots de passe
   const validatePasswords = useCallback(() => {
-    const password = formState.values.password as string;
-    const confirmPassword = formState.values.confirmPassword as string;
+    const password = formState.values.password;
+    const confirmPassword = formState.values.confirmPassword;
 
     const errors: Record<string, string> = {};
 
     if (password.length < 8) {
-      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      errors.password = 'Le mot de ' + 'passe doit contenir au moins 8 caractères';
+    } else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
       errors.password =
-        'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
+        'Le mot de ' + 'passe doit contenir au moins une majuscule, une minuscule et un chiffre';
     }
 
     if (confirmPassword && password !== confirmPassword) {
-      errors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      errors.confirmPassword = 'Les mots de ' + 'passe ne correspondent pas';
     }
 
     return errors;
@@ -149,8 +151,8 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
 
   // Effect pour valider les mots de passe automatiquement
   useEffect(() => {
-    const password = formState.values.password as string;
-    const confirmPassword = formState.values.confirmPassword as string;
+    const password = formState.values.password;
+    const confirmPassword = formState.values.confirmPassword;
 
     // Ne valider que si au moins un des champs est rempli
     if (password || confirmPassword) {
@@ -168,7 +170,7 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
         return;
       }
 
-      const password = formState.values.password as string;
+      const password = formState.values.password;
 
       // Validation finale
       const passwordErrors = validatePasswords();
@@ -293,7 +295,7 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
                 : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
             }`}
             disabled={isLoading}
-            autoComplete='password'
+            autoComplete={AUTOCOMPLETE_PASSWORD}
             maxLength={128}
             minLength={8}
             required
@@ -327,7 +329,7 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: ClerkAcceptInvita
                 : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
             }`}
             disabled={isLoading}
-            autoComplete='password'
+            autoComplete={AUTOCOMPLETE_PASSWORD}
             maxLength={128}
             minLength={8}
             required

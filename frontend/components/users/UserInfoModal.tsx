@@ -12,7 +12,7 @@ interface UserInfoModalProps {
   user: OrganizationUser;
 }
 
-export default function UserInfoModal({ isOpen, onClose, onDeactivate, user }: UserInfoModalProps) {
+export default function UserInfoModal({ isOpen, onClose, onDeactivate, user }: Readonly<UserInfoModalProps>) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-md'>

@@ -96,7 +96,7 @@ export const useRemoveUserFromOrganization = () => {
   return { removeUser };
 };
 
-export const useUpdateUserRole = () => {
+export const useUpdateUserRole = ({ reloadFn = window.location.reload }: { reloadFn?: () => void } = {}) => {
   const { organization } = useOrganization();
   const { getToken } = useAuth();
   const { showLoader, hideLoader } = useLoader();
@@ -127,7 +127,7 @@ export const useUpdateUserRole = () => {
 
       // Recharger la page après un court délai
       setTimeout(() => {
-        window.location.reload();
+        reloadFn();
       }, 1500);
 
       return { success: true };
@@ -193,7 +193,7 @@ export const useUpdateUserRole = () => {
 
       // Recharger la page après un court délai pour permettre à l'utilisateur de voir le toast
       setTimeout(() => {
-        window.location.reload();
+        reloadFn();
       }, 1500);
 
       return { success: true };

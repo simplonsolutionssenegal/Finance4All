@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`LearningLayout matches snapshot 1`] = `
+<div>
+  <div>
+    Layout de la partie formation
+  </div>
+</div>
+`;

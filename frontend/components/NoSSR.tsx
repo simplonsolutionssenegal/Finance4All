@@ -7,7 +7,7 @@ interface NoSSRProps {
   fallback?: React.ReactNode;
 }
 
-export default function NoSSR({ children, fallback = null }: NoSSRProps) {
+export default function NoSSR({ children, fallback = null }: Readonly<NoSSRProps>) {
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {

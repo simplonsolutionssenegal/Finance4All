@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -28,11 +26,20 @@ export default function AddUserModal({
   onClose,
   onCreateUser,
   isCreating = false,
-}: AddUserModalProps) {
+}: Readonly<AddUserModalProps>) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setRole('');
+    }
+  }, [isOpen]);
 
   const handleSubmit = async () => {
     onCreateUser({
@@ -44,11 +51,6 @@ export default function AddUserModal({
   };
 
   const handleClose = () => {
-    // Réinitialiser les champs
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setRole('');
     onClose();
   };
 
@@ -67,8 +69,9 @@ export default function AddUserModal({
           <div className='space-y-3'>
             <div className='grid grid-cols-2 gap-3'>
               <div className='space-y-2'>
-                <label className='text-sm font-medium text-gray-500 block'>Prénom</label>
+                <label htmlFor='firstName' className='text-sm font-medium text-gray-500 block'>Prénom</label>
                 <Input
+                  id='firstName'
                   placeholder='John'
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
@@ -77,8 +80,9 @@ export default function AddUserModal({
                 />
               </div>
               <div className='space-y-2'>
-                <label className='text-sm font-medium text-gray-500 block'>Nom</label>
+                <label htmlFor='lastName' className='text-sm font-medium text-gray-500 block'>Nom</label>
                 <Input
+                  id='lastName'
                   placeholder='DOE'
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
@@ -89,8 +93,9 @@ export default function AddUserModal({
             </div>
 
             <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-500 block'>Email</label>
+              <label htmlFor='email' className='text-sm font-medium text-gray-500 block'>Email</label>
               <Input
+                id='email'
                 type='email'
                 placeholder='john.doe@email.com'
                 value={email}
@@ -101,8 +106,9 @@ export default function AddUserModal({
             </div>
 
             <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-500 block'>Rôle</label>
+              <label htmlFor='role' className='text-sm font-medium text-gray-500 block'>Rôle</label>
               <select
+                id='role'
                 value={role}
                 onChange={e => setRole(e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white'

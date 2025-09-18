@@ -57,6 +57,13 @@ export default function UsersList() {
       return;
     }
 
+    // Si l'utilisateur n'a aucune organisation, arrêter le chargement
+    if (user && user.organizationMemberships.length === 0) {
+      setLoading(false);
+      setUsers([]);
+      return;
+    }
+
     // Si pas d'organisation ET qu'on a déjà essayé d'activer une organisation, arrêter le loading
     if (!organization && hasTriedToSetActive) {
       setLoading(false);
@@ -180,6 +187,28 @@ export default function UsersList() {
     setShowRoleEdit(true);
   };
 
+  const renderModals = () => {
+    if (!selectedUser) return null;
+
+    return (
+      <>
+        <UserInfoModal
+          isOpen={showUserInfo}
+          onClose={handleCloseModals}
+          onDeactivate={handleDesactivateClick}
+          user={selectedUser}
+        />
+        <ConfirmDesactivationModal
+          isOpen={showConfirmDeactivation}
+          onClose={handleCloseModals}
+          onConfirm={handleConfirmDesactivation}
+          user={selectedUser}
+        />
+        <RoleEditModal isOpen={showRoleEdit} onClose={handleCloseModals} user={selectedUser} />
+      </>
+    );
+  };
+
   return (
     <Card className='bg-white shadow-sm border border-gray-100 rounded-2xl'>
       <CardHeader className='pb-4'>
@@ -296,23 +325,7 @@ export default function UsersList() {
         )}
       </CardContent>
 
-      {selectedUser && (
-        <>
-          <UserInfoModal
-            isOpen={showUserInfo}
-            onClose={handleCloseModals}
-            onDeactivate={handleDesactivateClick}
-            user={selectedUser}
-          />
-          <ConfirmDesactivationModal
-            isOpen={showConfirmDeactivation}
-            onClose={handleCloseModals}
-            onConfirm={handleConfirmDesactivation}
-            user={selectedUser}
-          />
-          <RoleEditModal isOpen={showRoleEdit} onClose={handleCloseModals} user={selectedUser} />
-        </>
-      )}
+      {renderModals()}
     </Card>
   );
 }

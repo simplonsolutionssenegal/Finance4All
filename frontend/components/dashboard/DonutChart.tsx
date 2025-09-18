@@ -51,8 +51,8 @@ export default function DonutChart() {
           </div>
 
           <div className='space-y-4 w-full'>
-            {data.map(item => (
-              <div key={item.name} className='flex items-center justify-between'>
+            {data.map((item, index) => (
+              <div key={index} className='flex items-center justify-between'>
                 <div className='flex items-center space-x-3'>
                   <div className='w-3 h-3 rounded-full' style={{ backgroundColor: item.color }} />
                   <span className='text-sm text-gray-600'>{item.name}</span>

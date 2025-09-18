@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, Bell, ChevronDown } from "lucide-react";
+import Image from "next/image";
 
 import NoSSR from "@/components/NoSSR";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,9 +19,11 @@ export default function Header() {
     <header className="w-full h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between" suppressHydrationWarning>
       <div className="flex items-center space-x-8">
         <div className="flex items-center space-x-3">
-          <img
+          <Image
             src="/logo.svg"
             alt="Finance4ALL"
+            width={32}
+            height={32}
             className="h-8 w-auto"
           />
         </div>

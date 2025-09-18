@@ -1,5 +1,5 @@
 import { createClerkClient } from '@clerk/nextjs/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           message: "ID de l'organisation requis",
-          error: 'MISSING_INVITATION_ID',
+          error: 'MISSING_ORG_ID',
           success: false,
         },
         { status: 400 }
@@ -72,24 +72,26 @@ export async function POST(request: NextRequest) {
       };
 
       return NextResponse.json(responseData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors de la recherche:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
 
       return NextResponse.json(
         {
           success: false,
-          message: `Erreur lors de la recherche: ${error.message}`,
+          message: `Erreur lors de la recherche: ${errorMessage}`,
         },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
 
     return NextResponse.json(
       {
         success: false,
-        message: `Erreur serveur: ${error.message}`,
+        message: `Erreur serveur: ${errorMessage}`,
       },
       { status: 500 }
     );
