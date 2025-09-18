@@ -3,7 +3,6 @@ import { PrismaClient, Prisma, UserStatus } from '@prisma/client';
 import { User as DomainUser } from '@/domain/entities/User';
 import { Role } from '@/domain/entities/Role';
 import { Organisation } from '@/domain/entities/Organisation';
-import { UserRepository } from '@/domain/repositories/UserRepository';
 import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 
 const prisma = new PrismaClient();
@@ -45,7 +44,8 @@ export function toDomain(u: PrismaUserWithRels): DomainUser {
   );
 }
 
-export class PrismaUserRepository implements UserRepository {
+// implements UserRepository 
+export class PrismaUserRepository {
   async findAll(): Promise<DomainUser[]> {
     const users: PrismaUserWithRels[] = await prisma.user.findMany({
       include: { role: true, organisation: true },

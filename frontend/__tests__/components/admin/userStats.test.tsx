@@ -1,57 +1,90 @@
-// __tests__/components/admin/UserStats.test.tsx
-import UserStats from "@/components/admin/UserStatst";
-import { render, screen, within } from "@testing-library/react";
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import UserStatst from '@/components/admin/UserStatst';
 
-const mockUsers = [
-  { id: 1, email: "user1@test.com", username: "user1", firstName: "User", lastName: "One", role: "admin", status: "active",  avatar: "", isActive: true,  lastLoginAt: "2025-09-10",
-    organisationId: 1, organisation: { id: 1, name: "Org 1", avatar: "", address: "Address 1", phone: "12345", createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-    createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-  { id: 2, email: "user2@test.com", username: "user2", firstName: "User", lastName: "Two", role: "user",  status: "pending", avatar: "", isActive: false, lastLoginAt: "2025-09-11",
-    organisationId: 1, organisation: { id: 1, name: "Org 1", avatar: "", address: "Address 1", phone: "12345", createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-    createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-  { id: 3, email: "user3@test.com", username: "user3", firstName: "User", lastName: "Three", role: "user", status: "inactive", avatar: "", isActive: false, lastLoginAt: "2025-09-12",
-    organisationId: 1, organisation: { id: 1, name: "Org 1", avatar: "", address: "Address 1", phone: "12345", createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-    createdAt: "2025-01-01", updatedAt: "2025-01-01" },
-];
+type Status = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
 
-describe("UserStats", () => {
-  it("affiche correctement titres, totaux et pourcentages", () => {
-    // total=3, active=1 => 33%, pending=1 => 33%
-    render(<UserStats users={mockUsers} />);
+interface User {
+  id: string;
+  email: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  role?: string;
+  status?: Status;
+  avatar?: string;
+  isActive: boolean;
+  lastSignInAt: string | null;
+  organisationId: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
-    const totalCard   = screen.getByTestId("card-total");
-    const activeCard  = screen.getByTestId("card-active");
-    const pendingCard = screen.getByTestId("card-pending");
+const makeUser = (i: number, status: Status): User => ({
+  id: String(i),
+  email: `user${i}@example.com`,
+  username: `user${i}`,
+  firstName: `First${i}`,
+  lastName: `Last${i}`,
+  status,
+  isActive: status === 'ACTIF',
+  lastSignInAt: null,
+  organisationId: 37,
+  createdAt: '2025-09-01T00:00:00.000Z',
+  updatedAt: '2025-09-10T00:00:00.000Z',
+});
 
-    // Titres
-    expect(within(totalCard).getByText("Total Utilisateurs")).toBeInTheDocument();
-    expect(within(activeCard).getByText("Utilisateurs Actifs")).toBeInTheDocument();
-    expect(within(pendingCard).getByText("Utilisateurs Attente")).toBeInTheDocument();
+describe('UserStatst', () => {
+  test('affiche 0 partout quand la liste est vide', () => {
+    render(<UserStatst users={[]} />);
 
-    // Compteurs
-    expect(within(totalCard).getByTestId("card-total-count")).toHaveTextContent("3");
-    expect(within(activeCard).getByTestId("card-active-count")).toHaveTextContent("1");
-    expect(within(pendingCard).getByTestId("card-pending-count")).toHaveTextContent("1");
+    expect(screen.getByTestId('card-total-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('card-total-percentage')).toHaveTextContent('0% Actifs');
 
-    // Pourcentages (💡 attention: ta carte "total" affiche "33 Actifs" SANS le symbole %)
-    expect(within(totalCard).getByTestId("card-total-percentage")).toHaveTextContent("33 Actifs");
-    expect(within(pendingCard).getByTestId("card-pending-percentage")).toHaveTextContent("33%");
+    expect(screen.getByTestId('card-active-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('card-active-percentage')).toHaveTextContent('0%');
+
+    expect(screen.getByTestId('card-pending-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('card-pending-percentage')).toHaveTextContent('0%');
   });
 
-  it("affiche 0 partout quand aucun utilisateur n'est passé", () => {
-    render(<UserStats users={[]} />);
+  test('calcule correctement les comptes et pourcentages (arrondis) sur un jeu équilibré', () => {
+    // 10 users : 5 ACTIF, 3 EN_ATTENTE, 2 INACTIF
+    const users: User[] = [
+      ...Array.from({ length: 5 }, (_, i) => makeUser(i + 1, 'ACTIF')),
+      ...Array.from({ length: 3 }, (_, i) => makeUser(100 + i, 'EN_ATTENTE')),
+      ...Array.from({ length: 2 }, (_, i) => makeUser(200 + i, 'INACTIF')),
+    ];
 
-    const totalCard   = screen.getByTestId("card-total");
-    const activeCard  = screen.getByTestId("card-active");
-    const pendingCard = screen.getByTestId("card-pending");
+    render(<UserStatst users={users} />);
 
-    expect(within(totalCard).getByTestId("card-total-count")).toHaveTextContent("0");
-    expect(within(activeCard).getByTestId("card-active-count")).toHaveTextContent("0");
-    expect(within(pendingCard).getByTestId("card-pending-count")).toHaveTextContent("0");
+    // Totaux
+    expect(screen.getByTestId('card-total-count')).toHaveTextContent('10');
+    expect(screen.getByTestId('card-active-count')).toHaveTextContent('5');
+    expect(screen.getByTestId('card-pending-count')).toHaveTextContent('3');
 
-    // 0 Actifs (toujours sans % dans ta carte "total")
-    expect(within(totalCard).getByTestId("card-total-percentage")).toHaveTextContent("0 Actifs");
- 
-    expect(within(pendingCard).getByTestId("card-pending-percentage")).toHaveTextContent("0%");
+    // % arrondis: actifs 50%, en attente 30%
+    expect(screen.getByTestId('card-total-percentage')).toHaveTextContent('50% Actifs');
+    expect(screen.getByTestId('card-active-percentage')).toHaveTextContent('50%');
+    expect(screen.getByTestId('card-pending-percentage')).toHaveTextContent('30%');
+  });
+
+  test('arrondit correctement avec des ratios non entiers', () => {
+    // 3 users : 2 ACTIF (≈ 66.67% => 67%), 1 EN_ATTENTE (≈ 33.33% => 33%)
+    const users: User[] = [
+      makeUser(1, 'ACTIF'),
+      makeUser(2, 'ACTIF'),
+      makeUser(3, 'EN_ATTENTE'),
+    ];
+
+    render(<UserStatst users={users} />);
+
+    expect(screen.getByTestId('card-total-count')).toHaveTextContent('3');
+    expect(screen.getByTestId('card-active-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('card-pending-count')).toHaveTextContent('1');
+
+    expect(screen.getByTestId('card-total-percentage')).toHaveTextContent('67% Actifs');
+    expect(screen.getByTestId('card-active-percentage')).toHaveTextContent('67%');
+    expect(screen.getByTestId('card-pending-percentage')).toHaveTextContent('33%');
   });
 });

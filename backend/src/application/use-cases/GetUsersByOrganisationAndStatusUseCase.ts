@@ -1,5 +1,5 @@
-import { User } from '@/domain/entities/User';
-import { UserStatus } from '@prisma/client';
+// backend/src/application/use-cases/GetUsersByOrganisationAndStatusUseCase.ts
+import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 
 export type LastLoginFilter =
   | { type: 'recent' }
@@ -9,8 +9,8 @@ export type LastLoginFilter =
 export interface GetUsersByOrganisationAndStatusUseCase {
   execute(
     organisationId: number,
-    statuses: UserStatus[],
+    statuses: ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter
-  ): Promise<User[]>;
+  ): Promise<ClerkUser[]>;
 }

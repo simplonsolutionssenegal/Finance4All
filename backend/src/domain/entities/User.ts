@@ -14,7 +14,7 @@ export class User {
     public readonly avatar: string | null,
     public readonly password: string,
     public readonly isActive: boolean,
-    public readonly role: Role, 
+    public readonly role: Role | null, 
     public readonly status: UserStatus,                
     public readonly lastLoginAt: Date | null,
     public readonly organisationId: number | null,

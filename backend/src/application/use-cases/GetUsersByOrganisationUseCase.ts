@@ -1,5 +1,5 @@
-import { User } from '@/domain/entities/User';
+import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 
 export interface GetUsersByOrganisationUseCase {
-  execute(organisationId: number): Promise<User[]>;
+  execute(organisationId: number): Promise<ClerkUser[]>;
 }

@@ -1,22 +1,21 @@
-import { UserStatus } from '@prisma/client';
-import { User } from '../entities/User';
 import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 
 export interface UserRepository {
-  findAll(): Promise<User[]>;
+  findAll(): Promise<ClerkUser[]>;
 
-  findByOrganisationId(organisationId: number): Promise<User[]>;
+  findByOrganisationId(organisationId: number): Promise<ClerkUser[]>;
 
 
 
-  findUsersByOrganisationAndStatus(
+    findUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: UserStatus[],
+    statuses: ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter
-  ): Promise<User[]>;
+  ): Promise<ClerkUser[]>;
 
-  findById(id: number): Promise<User | null>;
+  findById(id: string): Promise<ClerkUser | null>;
   
   
 }

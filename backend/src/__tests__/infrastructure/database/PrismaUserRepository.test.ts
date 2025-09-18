@@ -65,7 +65,7 @@ describe('PrismaUserRepository', () => {
       });
       expect(res).toHaveLength(2);
       expect(res[0].id).toBe(1);
-      expect(res[0].role.name).toBe('ADMIN');
+      expect(res[0].role!.name).toBe('ADMIN');
     });
 
     it('retourne [] si aucun utilisateur', async () => {

@@ -1,31 +1,50 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 
-import { NEXT_PUBLIC_API_UR } from "@/app/_constantes/api_constants";
-import type { FilterOptions } from "@/components/admin/FilterPopup";
-import SearchBar from "@/components/admin/SearchBar";
-import UserStatst from "@/components/admin/UserStatst";
-import UserTable from "@/components/admin/UserTable";
+import { NEXT_PUBLIC_API_UR } from '@/app/_constantes/api_constants';
+import type { FilterOptions } from '@/components/admin/FilterPopup';
+import SearchBar from '@/components/admin/SearchBar';
+import UserStatst from '@/components/admin/UserStatst';
+import UserTable from '@/components/admin/UserTable';
 
 interface User {
-  id: number;
+  id: string;
   email: string;
   username: string;
-  firstName: string;
-  lastName: string;
-  role: string;     // ex: 'admin'
-  status: string;   // ex: 'ACTIF'
-  avatar: string;
+  firstName: string | null;
+  lastName: string | null;
+  role?: string; // 👈 reste optionnel, pas de null ici
+  status: 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
+  avatar?: string;
   isActive: boolean;
-  lastLoginAt: string; // ISO
+  lastSignInAt: string | null;
   organisationId: number;
-  organisation: { id: number; name: string; avatar: string; address: string; phone: string; createdAt: string; updatedAt: string; };
   createdAt: string;
   updatedAt: string;
 }
 
-type ApiResponse = { status: string; results: number; data: User[]; };
+// DTO tel que renvoyé par TON backend
+interface BackendUserDto {
+  id: string | number;
+  email: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  status: 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
+  avatar?: string | null;
+  isActive: boolean;
+  lastSignInAt: string | null;
+  organisationId: number;
+  createdAt: string;
+  updatedAt: string;
+  role?: string | null;
+  publicMetadata?: {
+    role?: string;
+  };
+}
+
+type ApiResponse<T> = { status: 'success' | 'error'; results: number; data: T[] };
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -37,42 +56,34 @@ const UsersPage = () => {
     customDate: '',
   });
 
-  // Fonction de recherche locale
-  const filterUsersBySearchTerm = (users: User[], term: string) => {
-    if (!term.trim()) return users;
-
-    const searchLower = term.toLowerCase();
-    return users.filter(user =>
-      user.email.toLowerCase().includes(searchLower) ||
-      user.username.toLowerCase().includes(searchLower) ||
-      user.firstName.toLowerCase().includes(searchLower) ||
-      user.lastName.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower)
+  const filterUsersBySearchTerm = (list: User[], term: string) => {
+    if (!term.trim()) return list;
+    const q = term.toLowerCase();
+    return list.filter((u) =>
+      u.email.toLowerCase().includes(q) ||
+      u.username.toLowerCase().includes(q) ||
+      (u.firstName ?? '').toLowerCase().includes(q) ||
+      (u.lastName ?? '').toLowerCase().includes(q) ||
+      (u.role ?? '').toLowerCase().includes(q),
     );
   };
 
-  // Filtrer les utilisateurs en fonction du terme de recherche et des filtres
   const filteredUsers = useMemo(() => {
     let result = [...users];
 
-    // Appliquer la recherche textuelle
+    // recherche textuelle
     result = filterUsersBySearchTerm(result, searchTerm);
 
-    // Appliquer les filtres
+    // filtre rôle
     if (filters.role.length > 0) {
-      result = result.filter(user =>
-        filters.role.map(r => r.toLowerCase()).includes(user.role.toLowerCase())
-      );
+      const rolesLower = filters.role.map((r) => r.toLowerCase());
+      result = result.filter((u) => rolesLower.includes((u.role ?? '').toLowerCase()));
     }
 
+    // filtre statut
     if (filters.status.length > 0) {
-      result = result.filter(user =>
-        filters.status.includes(user.status)
-      );
+      result = result.filter((u) => filters.status.includes(u.status));
     }
-
-    // Gérer le filtre de dernière connexion si nécessaire
-    // ... (le code existant pour les filtres de date peut rester inchangé)
 
     return result;
   }, [users, searchTerm, filters]);
@@ -80,93 +91,52 @@ const UsersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fonction pour construire l'URL de filtrage
-  const buildFilterUrl = useCallback((searchTerm: string, filters: FilterOptions) => {
-    const baseUrl = `${NEXT_PUBLIC_API_UR}users/organisations/37/users`;
-    // Si pas de filtres actifs et pas de recherche, utiliser l'endpoint classique
-    const hasActiveFilters = filters.role.length > 0 || filters.status.length > 0 || filters.lastConnection;
-
-    if (!hasActiveFilters && !searchTerm.trim()) {
-      return baseUrl;
-    }
-
-    // Sinon utiliser l'endpoint de filtrage
-    const filterUrl = `${baseUrl}/filter`;
-    const params = new URLSearchParams();
-
-    // Ajouter les statuts
-    filters.status.forEach(status => {
-      // Mapper les valeurs frontend vers backend
-      let backendStatus = status;
-      if (status === 'ACTIF') backendStatus = 'ACTIF';
-      else if (status === 'INACTIF') backendStatus = 'INACTIF';
-      else if (status === 'PENDING') backendStatus = 'EN_ATTENTE';
-
-      params.append('status', backendStatus);
-    });
-
-    // Ajouter les rôles
-    filters.role.forEach(role => {
-      params.append('role', role.toLowerCase());
-    });
-
-    // Ajouter la dernière connexion
-    if (filters.lastConnection) {
-      params.append('lastLogin', filters.lastConnection);
-
-      if (filters.lastConnection === 'custom' && filters.customDate) {
-        params.append('customDate', filters.customDate);
-      }
-    }
-
-    // Ajouter la recherche si présente
-    if (searchTerm.trim()) {
-      params.append('search', searchTerm.trim());
-    }
-
-    return `${filterUrl}?${params.toString()}`;
-  }, []);
-
-  // fonction  pour charger les utilisateurs avec filtres
   const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const url = buildFilterUrl('', filters); // On ne passe plus le searchTerm ici
+      const url = `${NEXT_PUBLIC_API_UR}users/organisations/37/users`; // ⚠️ vérifie l’orthographe de ta constante (URL vs UR)
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
 
-      const api: ApiResponse = await res.json();
+      const api = (await res.json()) as ApiResponse<BackendUserDto>;
       if (api.status !== 'success' || !Array.isArray(api.data)) {
         throw new Error('Format de réponse API inattendu');
       }
 
-      setUsers(api.data);
+      const mapped: User[] = api.data.map((u) => ({
+        id: String(u.id),
+        email: u.email,
+        username: u.username,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        organisationId: u.organisationId,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        lastSignInAt: u.lastSignInAt,
+        isActive: u.isActive,
+        status: u.status,
+        // on ne met PAS null pour coller au type `role?: string`
+        role: u.role ?? u.publicMetadata?.role ?? undefined,
+      }));
+
+      setUsers(mapped);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur inconnue');
       setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  }, [buildFilterUrl, filters]);
+  }, []);
 
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
-  
-  useEffect(() => {
-    if (searchTerm) return; 
-    loadUsers();
-  }, [filters.role, filters.status, filters.lastConnection, filters.customDate, loadUsers, searchTerm]);
-
-  
-
   const handleApplyFilters = (newFilters: FilterOptions) => {
     setFilters(newFilters);
-    
   };
 
   if (error) {
@@ -194,11 +164,7 @@ const UsersPage = () => {
         resultsCount={filteredUsers.length}
         onApplyFilters={handleApplyFilters}
       />
-      <UserTable
-        users={filteredUsers}
-        isLoading={isLoading}
-      />
-
+      <UserTable users={filteredUsers} isLoading={isLoading} />
     </div>
   );
 };

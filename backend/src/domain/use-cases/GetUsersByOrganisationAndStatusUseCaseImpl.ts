@@ -1,26 +1,24 @@
-// backend/src/domain/use-cases/GetUsersByOrganisationAndStatusUseCaseImpl.ts
-import { GetUsersByOrganisationAndStatusUseCase, LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
-import { User } from '@/domain/entities/User';
+// backend/src/infrastructure/use-cases/GetUsersByOrganisationAndStatusUseCaseImpl.ts
+import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 import { UserRepository } from '@/domain/repositories/UserRepository';
-import { UserStatus } from '@prisma/client'; // 👈 IMPORTANT
+import { GetUsersByOrganisationAndStatusUseCase, LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 
 export class GetUsersByOrganisationAndStatusUseCaseImpl implements GetUsersByOrganisationAndStatusUseCase {
-
   constructor(private readonly userRepo: UserRepository) { }
 
   async execute(
     organisationId: number,
-    statuses: UserStatus[] | undefined,
+    statuses: ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter,
-  ): Promise<User[]> {
+  ): Promise<ClerkUser[]> {
     if (!Number.isFinite(organisationId) || organisationId <= 0) {
       throw new Error('organisationId invalide');
     }
 
-    // défaut : tous les statuts si non fourni OU tableau vide
-    const effectiveStatuses: UserStatus[] =
-      statuses && statuses.length > 0 ? statuses : (Object.values(UserStatus) as UserStatus[]);
+    // Par défaut, tous les statuts
+    const ALL_STATUSES: ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[] = ['ACTIF', 'INACTIF', 'EN_ATTENTE'];
+    const effectiveStatuses = statuses.length > 0 ? statuses : ALL_STATUSES;
 
     return this.userRepo.findUsersByOrganisationAndStatus(
       organisationId,

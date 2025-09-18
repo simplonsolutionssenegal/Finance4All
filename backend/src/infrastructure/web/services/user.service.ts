@@ -1,8 +1,7 @@
 // backend/src/services/user.service.ts
-import { UserStatus } from '@prisma/client';
-import { User } from '@/domain/entities/User'; // ✅ domaine
 import { GetUsersByOrganisationUseCase } from '@/application/use-cases/GetUsersByOrganisationUseCase';
 import { GetUsersByOrganisationAndStatusUseCase, LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 
 export class UserService {
   constructor(
@@ -12,21 +11,36 @@ export class UserService {
   ) { }
 
 
-  getUsersByOrganisation(organisationId: number): Promise<User[]> {
+  getUsersByOrganisation(organisationId: number): Promise<ClerkUser[]> {
     return this.getUsersByOrganisationUC.execute(organisationId);
   }
-  
+
   getUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: UserStatus[],
+    statuses: string[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter,
-  ): Promise<User[]> {
+  ): Promise<ClerkUser[]> {
+    const mappedStatuses = this.mapStatuses(statuses);
     return this.getUsersByOrgAndStatusUC.execute(
       organisationId,
-      statuses,
+      mappedStatuses,
       roles,
       lastLoginFilter,
     );
   }
+
+  private mapStatuses(statuses: string[]): ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[] {
+    return statuses.map((s) => {
+      switch (s) {
+        case 'ACTIF':
+          return 'ACTIF';
+        case 'INACTIF':
+          return 'INACTIF';
+        default:
+          return 'EN_ATTENTE'; // Tout autre statut devient EN_ATTENTE
+      }
+    });
+  }
+
 }

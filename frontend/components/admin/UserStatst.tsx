@@ -1,26 +1,18 @@
-// frontend/components/admin/UserStats.tsx
+// frontend/components/admin/UserStatst.tsx
+"use client";
 
 interface User {
-  id: number;
+  id: string;
   email: string;
   username: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  status: string;
-  avatar: string;
+  firstName: string | null;
+  lastName: string | null;
+  role?: string;
+  status?: string; // "ACTIF" | "INACTIF" | "EN_ATTENTE"
+  avatar?: string;
   isActive: boolean;
-  lastLoginAt: string;
+  lastSignInAt: string | null;
   organisationId: number;
-  organisation: {
-    id: number;
-    name: string;
-    avatar: string;
-    address: string;
-    phone: string;
-    createdAt: string;
-    updatedAt: string;
-  };
   createdAt: string;
   updatedAt: string;
 }
@@ -29,12 +21,12 @@ interface UserStatsProps {
   users: User[];
 }
 
-const UserStats: React.FC<UserStatsProps> = ({ users }) => {
- const stats = {
+const UserStatst: React.FC<UserStatsProps> = ({ users }) => {
+  const stats = {
     total: users.length,
-    active: users.filter((user) => user.status === "active").length,
-    pending: users.filter((user) => user.status === "pending").length,
-    inactive: users.filter((user) => user.status === "inactive").length,
+    active: users.filter((user) => user.status === "ACTIF").length,
+    pending: users.filter((user) => user.status === "EN_ATTENTE").length,
+    inactive: users.filter((user) => user.status === "INACTIF").length,
   };
 
   const activePercentage =
@@ -64,7 +56,7 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
           style={{ color: "#6CB9C6" }}
           data-testid="card-total-percentage"
         >
-          {activePercentage} Actifs
+          {activePercentage}% Actifs
         </span>
       </div>
 
@@ -88,7 +80,7 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
           style={{ color: "#6CB9C6" }}
           data-testid="card-active-percentage"
         >
-          %
+          {activePercentage}%
         </span>
       </div>
 
@@ -98,7 +90,7 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
         data-testid="card-pending"
       >
         <h3 className="text-lg font-semibold" style={{ color: "#6CB9C6" }}>
-          Utilisateurs Attente
+          Utilisateurs En Attente
         </h3>
         <span
           className="text-3xl font-bold"
@@ -119,4 +111,4 @@ const UserStats: React.FC<UserStatsProps> = ({ users }) => {
   );
 };
 
-export default UserStats;
+export default UserStatst;

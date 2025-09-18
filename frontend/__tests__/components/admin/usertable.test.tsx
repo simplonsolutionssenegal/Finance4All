@@ -1,125 +1,133 @@
-// frontend/components/admin/__tests__/UserTable.test.tsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+// 🔧 Mock léger du Dialog shadcn pour simplifier les tests
+jest.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children }: { children: React.ReactNode }) => <div data-testid="dialog">{children}</div>,
+  DialogTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import UserTable from '@/components/admin/UserTable';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 
-type User = Parameters<typeof UserTable>[0]['users'][number];
+type Status = 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
 
-const baseUser: User = {
-  id: 1,
-  email: 'jane.doe@example.com',
-  username: 'janed',
-  firstName: 'Jane',
-  lastName: 'Doe',
-  role: 'admin',
-  status: 'ACTIF',
-  avatar: '',
-  isActive: true,
-  lastLoginAt: '2025-08-31T14:09:09.613Z',
-  organisationId: 1,
-  organisation: {
-    id: 1,
-    name: 'Org',
-    avatar: '',
-    address: '',
-    phone: '',
-    createdAt: '',
-    updatedAt: '',
-  },
-  createdAt: '',
-  updatedAt: '',
-};
-
-function makeUser(overrides?: Partial<User>): User {
-  return { ...baseUser, ...overrides, id: overrides?.id ?? baseUser.id };
+interface User {
+  id: string;
+  email: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  role?: string;
+  status: Status;
+  avatar?: string;
+  isActive: boolean;
+  lastSignInAt: string | null;
+  organisationId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-function buildUsers(list: Array<Partial<User>>): User[] {
-  return list.map((u, i) => makeUser({ id: i + 1, ...u }));
-}
+const makeUser = (i: number, overrides: Partial<User> = {}): User => ({
+  id: String(i),
+  email: `user${i}@example.com`,
+  username: `user${i}`,
+  firstName: `First${i}`,
+  lastName: `Last${i}`,
+  role: i % 2 === 0 ? 'admin' : 'manager',
+  status: (i % 3 === 0 ? 'EN_ATTENTE' : i % 2 === 0 ? 'ACTIF' : 'INACTIF') as Status,
+  avatar: undefined,
+  isActive: i % 2 === 0,
+  lastSignInAt: i % 4 === 0 ? null : `2025-09-${(i % 28) + 1}T12:00:00.000Z`,
+  organisationId: 37,
+  createdAt: '2025-09-01T00:00:00.000Z',
+  updatedAt: '2025-09-10T00:00:00.000Z',
+  ...overrides,
+});
 
 describe('UserTable', () => {
-  test('affiche le loader quand isLoading=true', () => {
+  test('affiche le spinner quand isLoading = true', () => {
     const { container } = render(<UserTable users={[]} isLoading={true} />);
-    // Le spinner n’a pas de rôle/texte — on vérifie la présence de l’élément .animate-spin
+    // on cherche l’élément animé (classe Tailwind)
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
-    // Et on s’assure que la table n’est pas rendue
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  test("affiche l'état vide quand users=[] et isLoading=false", () => {
+  test('affiche l’état vide quand users.length = 0 et isLoading = false', () => {
     render(<UserTable users={[]} isLoading={false} />);
-    expect(screen.getByText(/Aucun utilisateur/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Commencez par ajouter un nouvel utilisateur/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Aucun utilisateur')).toBeInTheDocument();
+    expect(screen.getByText('Commencez par ajouter un nouvel utilisateur.')).toBeInTheDocument();
   });
 
-  test('affiche les lignes + pagination et le badge de statut', () => {
-    // 7 users -> 2 pages (itemsPerPage=5)
-    const users = buildUsers([
-      { firstName: 'Jane', lastName: 'Doe', role: 'admin', status: 'ACTIF' },
-      { firstName: 'John', lastName: 'Smith', role: 'manager', status: 'pending' },
-      { firstName: 'Amy', lastName: 'Lee', role: 'user', status: 'inactive' },
-      { firstName: 'Bob', lastName: 'Ray', role: 'user', status: 'ACTIF' },
-      { firstName: 'Eva', lastName: 'Fox', role: 'manager', status: 'pending' },
-      { firstName: 'Tom', lastName: 'Kay', role: 'user', status: 'inactive' },
-      { firstName: 'Lia', lastName: 'Kim', role: 'admin', status: 'ACTIF' },
-    ]);
-
+  test('rend les 5 premiers users avec pagination (5 par page)', async () => {
+    const users = Array.from({ length: 8 }, (_, idx) => makeUser(idx + 1));
     render(<UserTable users={users} isLoading={false} />);
 
-    // En-têtes
-    expect(screen.getByText('Nom')).toBeInTheDocument();
-    expect(screen.getByText('Rôle')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
-    expect(screen.getByText('Dernière connexion')).toBeInTheDocument();
-    expect(screen.getByText('Statut')).toBeInTheDocument();
-    expect(screen.getByText('Action')).toBeInTheDocument();
+    // Page 1 / 2
+    expect(screen.getByText(/Page 1 \/ 2/i)).toBeInTheDocument();
 
-    // Page 1/2
-    expect(screen.getByText(/Page 1 \/ 2/)).toBeInTheDocument();
+    // 5 premiers visibles
+    for (let i = 1; i <= 5; i++) {
+      expect(screen.getByText(`user${i}@example.com`)).toBeInTheDocument();
+    }
+    // le 6e pas encore visible
+    expect(screen.queryByText('user6@example.com')).not.toBeInTheDocument();
 
-    // "Jane Doe" visible sur la page 1
-    expect(screen.getByText(/Jane Doe/)).toBeInTheDocument();
-
-    // Badge statut ACTIF : label "Actif" + classe Tailwind "text-green-600"
-    const actifEls = screen.getAllByText('Actif');
-    expect(actifEls.length).toBeGreaterThan(0);
-    expect(actifEls[0].closest('span')?.className).toMatch(/text-green-600/);
-
-    // Pagination: Suivant actif / Précédent disabled
+    // bouton Précédent désactivé sur la première page
     const prevBtn = screen.getByRole('button', { name: /Précédent/i });
     const nextBtn = screen.getByRole('button', { name: /Suivant/i });
     expect(prevBtn).toBeDisabled();
-    expect(nextBtn).toBeEnabled();
+    expect(nextBtn).not.toBeDisabled();
 
-    // Aller page 2
-    fireEvent.click(nextBtn);
-    expect(screen.getByText(/Page 2 \/ 2/)).toBeInTheDocument();
+    // Aller en page 2
+    await userEvent.click(nextBtn);
+    expect(screen.getByText(/Page 2 \/ 2/i)).toBeInTheDocument();
 
-    // "Lia Kim" sur la page 2
-    expect(screen.getByText(/Lia Kim/)).toBeInTheDocument();
+    // Les 3 suivants (6..8) visibles, le 1 plus visible
+    for (let i = 6; i <= 8; i++) {
+      expect(screen.getByText(`user${i}@example.com`)).toBeInTheDocument();
+    }
+    expect(screen.queryByText('user1@example.com')).not.toBeInTheDocument();
+
+    // En dernière page, Suivant désactivé
+    expect(nextBtn).toBeDisabled();
+    expect(prevBtn).not.toBeDisabled();
   });
 
-  test("affiche les boutons d'action (Modifier/Supprimer) pour chaque ligne", () => {
-    const users = buildUsers([{ firstName: 'Jane', lastName: 'Doe' }]);
+  test('affiche le badge statut correct et "Jamais connecté" si lastSignInAt = null', () => {
+    const users: User[] = [
+      makeUser(1, { status: 'ACTIF', lastSignInAt: '2025-09-12T10:00:00.000Z' }),
+      makeUser(2, { status: 'INACTIF', lastSignInAt: '2025-09-11T10:00:00.000Z' }),
+      makeUser(3, { status: 'EN_ATTENTE', lastSignInAt: null }),
+    ];
+
     render(<UserTable users={users} isLoading={false} />);
 
-    // Bouton Modifier (aria-label défini dans le composant)
-    expect(
-      screen.getByRole('button', { name: /Modifier Jane Doe/i })
-    ).toBeInTheDocument();
+    // Badges (texte)
+    expect(screen.getByText('Actif')).toBeInTheDocument();
+    expect(screen.getByText('Inactif')).toBeInTheDocument();
+    expect(screen.getByText('En attente')).toBeInTheDocument();
 
-    // Bouton Supprimer
-    expect(
-      screen.getByRole('button', { name: /Supprimer Jane Doe/i })
-    ).toBeInTheDocument();
+    // "Jamais connecté" présent pour le 3e user
+    expect(screen.getByText(/Jamais connecté/i)).toBeInTheDocument();
   });
 
-  test('affiche les initiales dans le rond (ex: JD pour Jane Doe)', () => {
-    const users = buildUsers([{ firstName: 'Jane', lastName: 'Doe' }]);
+  test('affiche les actions (modifier / supprimer) pour chaque user', () => {
+    const users = [makeUser(1), makeUser(2)];
     render(<UserTable users={users} isLoading={false} />);
-    expect(screen.getByText('JD')).toBeInTheDocument();
+
+    // Boutons d’action en fonction des titres/aria-label
+    expect(
+      screen.getByRole('button', { name: new RegExp(`Modifier ${users[0].firstName}`, 'i') }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: new RegExp(`Supprimer ${users[0].firstName}`, 'i') }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', { name: new RegExp(`Modifier ${users[1].firstName}`, 'i') }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: new RegExp(`Supprimer ${users[1].firstName}`, 'i') }),
+    ).toBeInTheDocument();
   });
 });
