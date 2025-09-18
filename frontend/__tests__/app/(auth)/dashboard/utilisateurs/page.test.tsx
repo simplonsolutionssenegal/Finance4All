@@ -1,5 +1,11 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
 import UsersPage from '@/app/(auth)/dashboard/utilisateurs/page';
 
 // 💡 URL de base mockée (aligne avec ton code: ...API_UR sans L)
@@ -62,10 +68,13 @@ afterEach(() => {
 });
 
 describe('UsersPage', () => {
-  test('affiche un spinner pendant le chargement', () => {
+  test('affiche un spinner pendant le chargement', async () => {
     const { container } = render(<UsersPage />);
-    // Le composant UserTable (isLoading=true) rend un spinner avec la classe animate-spin
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    // Spinner présent immédiatement
+    const spinner = container.querySelector('.animate-spin');
+    expect(spinner).toBeInTheDocument();
+    // Attendre que le spinner disparaisse pour éviter le warning act(...)
+    await waitForElementToBeRemoved(() => container.querySelector('.animate-spin'));
   });
 
   test('affiche les utilisateurs après chargement', async () => {
@@ -78,7 +87,7 @@ describe('UsersPage', () => {
       ),
     );
 
-    // On s’appuie sur les emails (stables) plutôt que le nom formaté
+    // On s’appuie sur les emails (stables)
     expect(await screen.findByText('john@example.com')).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
 
@@ -97,7 +106,7 @@ describe('UsersPage', () => {
     render(<UsersPage />);
 
     expect(await screen.findByText(/Erreur de chargement/i)).toBeInTheDocument();
-    // Le message reprend `statusText` via l’Error construite
+    // Le message reprend `statusText` via l’Error construite par le composant
     expect(screen.getByText(/HTTP 500 - Internal Server Error/i)).toBeInTheDocument();
   });
 
@@ -107,7 +116,7 @@ describe('UsersPage', () => {
     // Attendre que la liste soit rendue
     await screen.findByText('john@example.com');
 
-    // Trouver l’input de la SearchBar (placeholder réel de ton composant)
+    // Trouver l’input de la SearchBar (placeholder réel)
     const input = screen.getByPlaceholderText('Rechercher un utilisateur...');
     fireEvent.change(input, { target: { value: 'jane' } });
 

@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 // 🔧 Mock léger du Dialog shadcn pour simplifier les tests
 jest.mock('@/components/ui/dialog', () => ({
@@ -48,7 +47,6 @@ const makeUser = (i: number, overrides: Partial<User> = {}): User => ({
 describe('UserTable', () => {
   test('affiche le spinner quand isLoading = true', () => {
     const { container } = render(<UserTable users={[]} isLoading={true} />);
-    // on cherche l’élément animé (classe Tailwind)
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
@@ -58,7 +56,7 @@ describe('UserTable', () => {
     expect(screen.getByText('Commencez par ajouter un nouvel utilisateur.')).toBeInTheDocument();
   });
 
-  test('rend les 5 premiers users avec pagination (5 par page)', async () => {
+  test('rend les 5 premiers users avec pagination (5 par page)', () => {
     const users = Array.from({ length: 8 }, (_, idx) => makeUser(idx + 1));
     render(<UserTable users={users} isLoading={false} />);
 
@@ -69,26 +67,22 @@ describe('UserTable', () => {
     for (let i = 1; i <= 5; i++) {
       expect(screen.getByText(`user${i}@example.com`)).toBeInTheDocument();
     }
-    // le 6e pas encore visible
     expect(screen.queryByText('user6@example.com')).not.toBeInTheDocument();
 
-    // bouton Précédent désactivé sur la première page
     const prevBtn = screen.getByRole('button', { name: /Précédent/i });
     const nextBtn = screen.getByRole('button', { name: /Suivant/i });
     expect(prevBtn).toBeDisabled();
     expect(nextBtn).not.toBeDisabled();
 
     // Aller en page 2
-    await userEvent.click(nextBtn);
+    fireEvent.click(nextBtn);
     expect(screen.getByText(/Page 2 \/ 2/i)).toBeInTheDocument();
 
-    // Les 3 suivants (6..8) visibles, le 1 plus visible
     for (let i = 6; i <= 8; i++) {
       expect(screen.getByText(`user${i}@example.com`)).toBeInTheDocument();
     }
     expect(screen.queryByText('user1@example.com')).not.toBeInTheDocument();
 
-    // En dernière page, Suivant désactivé
     expect(nextBtn).toBeDisabled();
     expect(prevBtn).not.toBeDisabled();
   });
@@ -102,12 +96,9 @@ describe('UserTable', () => {
 
     render(<UserTable users={users} isLoading={false} />);
 
-    // Badges (texte)
     expect(screen.getByText('Actif')).toBeInTheDocument();
     expect(screen.getByText('Inactif')).toBeInTheDocument();
     expect(screen.getByText('En attente')).toBeInTheDocument();
-
-    // "Jamais connecté" présent pour le 3e user
     expect(screen.getByText(/Jamais connecté/i)).toBeInTheDocument();
   });
 
@@ -115,7 +106,6 @@ describe('UserTable', () => {
     const users = [makeUser(1), makeUser(2)];
     render(<UserTable users={users} isLoading={false} />);
 
-    // Boutons d’action en fonction des titres/aria-label
     expect(
       screen.getByRole('button', { name: new RegExp(`Modifier ${users[0].firstName}`, 'i') }),
     ).toBeInTheDocument();
