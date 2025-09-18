@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 
+
 // Mock de matchMedia (nécessaire pour les composants Radix UI)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

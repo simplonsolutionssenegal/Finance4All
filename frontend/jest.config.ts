@@ -53,6 +53,10 @@ const config: Config = {
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
 
+    // Mock Clerk pour éviter l'import ESM
+  '^@clerk/nextjs$': '<rootDir>/__mocks__/clerkMock.js',
+  '^@clerk/backend$': '<rootDir>/__mocks__/clerkMock.js',
+
     // Mock des fichiers CSS et assets
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
@@ -70,15 +74,36 @@ const config: Config = {
 
   // Ignore problematic source maps from Next.js builds
   coveragePathIgnorePatterns: [
-    '/node_modules/',
-    '/.next/',
-    '/coverage/',
-    '\\.map$', // Ignore all .map files
+   '/node_modules/',
+  '/.next/',
+  '/coverage/',
+  // fichiers ou répertoires globaux Next à ignorer
+  'app/layout\\.tsx$',
+  'app/page\\.tsx$',
+  'app/\\(auth\\)/admin/dashboard/page\\.tsx$',
+  'app/\\(auth\\)/admin/institution-financiere/page\\.tsx$',
+  'app/\\(auth\\)/layout\\.tsx$',
+  'app/\\(auth\\)/admin/layout\\.tsx$',
+  'app/\\(auth\\)/dashboard/',
+  'app/\\(public\\)/',
+  'app/login/',
+  'app/forgot-password/',
+  'components/public/layout/',
+  "frontend/hooks",
+  "frontend/components/public/layout/",
+  "frontend/components/forgot-password-form.tsx",
+  "frontend/components/password-input.tsx",
+  "frontend/components/theme-provider.tsx",
+  "frontend/components/admin/AdminSidebar.tsx",
+  "frontend/app/sign-up/page.tsx",
+  "frontend/app/(auth)/admin/dashboard/page.tsx",
+  "frontend/middleware.ts",
+  '\\.map$',
   ],
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   transformIgnorePatterns: [
-    '/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform))', // Permet la transformation des modules ES6
+    "/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform|@clerk|@clerk/nextjs|@clerk/backend))", // Ajout explicite de Clerk ESM
   ],
 
   // Options that will be passed to the testEnvironment

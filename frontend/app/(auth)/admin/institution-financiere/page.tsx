@@ -1,37 +1,41 @@
 "use client";
 
 import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { AddInstitutionDialog } from "@/components/admin/institution-financiere/add-institution-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { fetchInstitutions } from "@/lib/api/institutions";
+
+interface Institution { id: number | string; nom: string; type: string; statut: string; }
+interface Stats { completed: number; pending: number }
 
 export default function InstitutionFinancierePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [stats, setStats] = useState<Stats>({ completed: 0, pending: 0 });
 
-  // Données de démo pour les institutions financières
-  const institutions = [
-    { 
-      id: 1, 
-      nom: "Société générale", 
-      type: "Banque",
-      statut: "Actif"
-    },
-    { 
-      id: 2, 
-      nom: "Société générale", 
-      type: "Banque", 
-      statut: "Actif" 
-    },
-    { 
-      id: 3, 
-      nom: "Société générale", 
-      type: "Banque", 
-      statut: "Actif" 
-    },
-  ];
+  // Récupération des données via l'API mockée
+  useEffect(() => {
+    const loadInstitutions = async () => {
+      try {
+        // loading start (placeholder variable removed)
+        const { institutions: list } = await fetchInstitutions();
+        setInstitutions(list as Institution[]);
+        const actifs = list.filter(i => i.statut === 'Actif').length;
+        const inactifs = list.length - actifs;
+        setStats({ completed: actifs, pending: inactifs });
+      } catch (error) {
+        console.error('Erreur lors du chargement des institutions:', error);
+      } finally {
+        // loading end
+      }
+    };
+
+    loadInstitutions();
+  }, []);
 
   return (
     <div className="w-full">
@@ -43,8 +47,8 @@ export default function InstitutionFinancierePage() {
           </div>
           <div className="ml-16">
             <h3 className="text-sm text-gray-500">Terminés</h3>
-            <p className="text-3xl font-bold">12,350</p>
-            <p className="text-sm text-green-500">7,332 Lorem ipsum</p>
+            <p className="text-3xl font-bold">{stats.completed}</p>
+            <p className="text-sm text-green-500">Actifs</p>
           </div>
         </Card>
         
@@ -54,8 +58,8 @@ export default function InstitutionFinancierePage() {
           </div>
           <div className="ml-16">
             <h3 className="text-sm text-gray-500">En attente</h3>
-            <p className="text-3xl font-bold">134,640.00</p>
-            <p className="text-sm text-green-500">13% Lorem ipsum</p>
+            <p className="text-3xl font-bold">{stats.pending}</p>
+            <p className="text-sm text-green-500">Inactifs</p>
           </div>
         </Card>
       </div>
@@ -116,6 +120,18 @@ export default function InstitutionFinancierePage() {
       <AddInstitutionDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+        onCreated={(institution) => {
+          setInstitutions(prev => [{
+            id: institution.id,
+            nom: institution.nom,
+            type: institution.type,
+            statut: institution.statut || 'Actif'
+          } as Institution, ...prev]);
+          setStats(prev => ({
+            completed: (institution.statut === 'Actif' ? prev.completed + 1 : prev.completed),
+            pending: (institution.statut !== 'Actif' ? prev.pending + 1 : prev.pending)
+          }));
+        }}
       />
     </div>
   );
