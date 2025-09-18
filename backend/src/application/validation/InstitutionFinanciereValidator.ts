@@ -6,14 +6,18 @@ import { isValidEmail } from '@/utils/isValidEmail';
 export type InstitutionFinanciereInput = CreateInstitutionFinanciereData;
 
 export class InstitutionFinanciereValidator {
-  validate(input: InstitutionFinanciereInput): InstitutionFinanciereInput {
+    validate(input: InstitutionFinanciereInput): InstitutionFinanciereInput {
+    if (!input) {
+      throw new Error('Les données de l\'institution financière sont requises');
+    }
+
     this.validateNom(input.nom);
     this.validateType(input.type);
     this.validateDescription(input.description);
     this.validateSiteWeb(input.siteWeb);
     this.validateRegions(input.regionsDesservies);
-    const contact = this.validateContact(input.contact || null);
-    this.validateLogo(input.logo || null);
+    const contact = this.validateContact(input.contact ?? null);
+    this.validateLogo(input.logo ?? null);
 
     return {
       nom: input.nom.trim(),
@@ -26,15 +30,16 @@ export class InstitutionFinanciereValidator {
     };
   }
 
+
   private validateNom(nom: string | undefined) {
     if (!nom || nom.length < 2 || nom.length > 100) {
-      throw new Error("Le nom de l'institution doit contenir entre 2 et 100 caractères");
+      throw new Error('Le nom de l\'institution doit contenir entre 2 et 100 caractères');
     }
   }
 
   private validateType(type: string | undefined) {
     if (!type || type.length > 50) {
-      throw new Error("Le type d'institution est requis et doit faire moins de 50 caractères");
+      throw new Error('Le type d\'institution est requis et doit faire moins de 50 caractères');
     }
   }
 
@@ -44,8 +49,8 @@ export class InstitutionFinanciereValidator {
     }
   }
 
-  private validateSiteWeb(siteWeb: string | undefined) {
-    if (!isValidUrl(siteWeb || '')) {
+    private validateSiteWeb(siteWeb: string | undefined) {
+    if (!isValidUrl(siteWeb ?? '')) {
       throw new Error('Une URL valide est requise pour le site web');
     }
   }
@@ -65,7 +70,7 @@ export class InstitutionFinanciereValidator {
     if (!contact) return null;
     const { email, telephone, nom } = contact;
     if (email && !isValidEmail(email)) {
-      throw new Error("L'adresse email du contact n'est pas valide");
+      throw new Error('L\'adresse email du contact n\'est pas valide');
     }
     if (telephone && (telephone.length < 8 || telephone.length > 20)) {
       throw new Error('Le numéro de téléphone doit contenir entre 8 et 20 caractères');
@@ -78,14 +83,37 @@ export class InstitutionFinanciereValidator {
     }
     return {
       nom: nom?.trim() || '',
-      email: email?.trim() || null,
-      telephone: telephone?.trim() || null,
+      email: email?.trim() ?? null,
+      telephone: telephone?.trim() ?? null,
     };
   }
 
   private validateLogo(logo: string | null) {
-    if (logo && logo.length > 500) {
-      throw new Error("L'URL du logo doit faire moins de 500 caractères");
+    if (logo == null || logo === '') return;
+
+    const value = logo.trim();
+
+    // 1) Cas URL http/https
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      // (optionnel mais cohérent avec le reste de la classe)
+      if (!isValidUrl(value)) {
+        throw new Error('L\'URL du logo n\'est pas valide');
+      }
+      if (value.length > 500) {
+        throw new Error('L\'URL du logo doit faire moins de 500 caractères');
+      }
+      return; // OK pour une URL courte et valide
+    }
+
+    // 2) Cas data URL base64
+    if (!value.startsWith('data:image/')) {
+      throw new Error('Le logo doit être une image en format base64 valide');
+    }
+
+    // ~5MB : borne simple sur la longueur de la data URL
+    if (value.length > 7_000_000) {
+      throw new Error('Le logo est trop volumineux (max 5MB)');
     }
   }
+
 }

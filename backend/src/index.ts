@@ -8,6 +8,7 @@ import { errorMiddleware } from '@/infrastructure/web/middleware/error.middlewar
 import { apiRoutes } from '@/routes';
 import { clerkMiddleware } from '@clerk/express';
 import { setupSwagger } from '@/infrastructure/config/swagger';
+import { config } from '@/infrastructure/config';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -15,7 +16,10 @@ dotenv.config();
 // Créer l'application Express
 const app = express();
 const PORT = process.env.PORT ?? 5000;
-app.use(clerkMiddleware());
+app.use(clerkMiddleware({
+  publishableKey: config.clerk.publishableKey,
+  secretKey: config.clerk.secretKey,
+}));
 
 // Middleware globaux
 app.use(helmet()); // Sécurité

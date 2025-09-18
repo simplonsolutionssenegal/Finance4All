@@ -1,11 +1,20 @@
 import { NextFunction, Request, Response } from 'express';
 import Joi from 'joi';
+import { CreateInstitutionFinanciereDTO } from '@/application/dto/CreateInstitutionFinanciereDTO';
+
+interface ExtendedCreateInstitutionFinanciereDTO extends CreateInstitutionFinanciereDTO {
+  contactNom?: string;
+  contactEmail?: string;
+  contactTelephone?: string;
+}
 
 export const validateCreateInstitutionFinanciere = (
   req: Request,
   res: Response,
   next: NextFunction,
 ): void => {
+  console.warn('[DEBUG] Validation middleware triggered');
+
   const schema = Joi.object({
     nom: Joi.string().min(2).required().messages({
       'string.empty': 'Le nom est requis',
@@ -22,7 +31,9 @@ export const validateCreateInstitutionFinanciere = (
       'string.empty': 'L\'URL du site web est requise',
       'string.uri': 'L\'URL du site web n\'est pas valide',
     }),
-    logo: Joi.string().allow(null, ''),
+    logo: Joi.string().allow(null, '').messages({
+      'string.base': 'Le logo doit être une chaîne de caractères (base64)',
+    }),
     contactNom: Joi.string().min(2).allow(null, '').messages({
       'string.min': 'Le nom du contact doit contenir au moins 2 caractères',
     }),
@@ -48,6 +59,20 @@ export const validateCreateInstitutionFinanciere = (
     });
     return;
   }
+
+  // Transformer les données du format plat vers le format attendu par le domaine
+  const body: Partial<ExtendedCreateInstitutionFinanciereDTO> = req.body as Partial<ExtendedCreateInstitutionFinanciereDTO> ?? {}; // Explicitly cast to Partial DTO
+  const { contactNom, contactEmail, contactTelephone, ...restData } = body;
+
+  req.body = {
+    ...restData,
+    contact: (contactNom ?? contactEmail ?? contactTelephone) ? {
+      nom: contactNom ?? null,
+      email: contactEmail ?? null,
+      telephone: contactTelephone ?? null,
+    } : null,
+    logo: restData.logo ?? null, // Ensure logo is properly typed
+  };
 
   next();
 };

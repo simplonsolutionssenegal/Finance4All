@@ -236,7 +236,7 @@ describe('InstitutionFinanciereController', () => {
       await controller.delete(mockRequest as any, mockResponse as any);
 
       expect(mockDeleteUseCase.execute).toHaveBeenCalledWith('123');
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.status).toHaveBeenCalledWith(204);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
         message: 'Institution financière supprimée avec succès',

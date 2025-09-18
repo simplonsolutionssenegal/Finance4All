@@ -1,5 +1,4 @@
 import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
-import { ContactPerson } from '@/domain/entities/ContactPerson';
 import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { PrismaClient } from '@prisma/client';
 import { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';

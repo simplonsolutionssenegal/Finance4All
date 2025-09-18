@@ -20,16 +20,25 @@ export interface PaginatedInstitutionsResult {
   meta: PaginationMeta;
 }
 
+// On étend le repo avec la méthode réellement utilisée, sans `any`.
+type PaginatedRepo = InstitutionFinanciereRepository & {
+  findPaginated(
+    skip: number,
+    limit: number
+  ): Promise<{ data: InstitutionFinanciere[]; total: number }>;
+};
+
 export class GetPaginatedInstitutionsFinancieresUseCase {
-  constructor(private readonly institutionFinanciereRepository: InstitutionFinanciereRepository) {}
+  constructor(
+    private readonly institutionFinanciereRepository: PaginatedRepo,
+  ) {}
 
   async execute(input: PaginationInput): Promise<PaginatedInstitutionsResult> {
     const page = !input.page || input.page < 1 ? 1 : input.page;
     const limit = !input.limit || input.limit < 1 || input.limit > 100 ? 10 : input.limit;
     const skip = (page - 1) * limit;
 
-    // @ts-ignore add method to interface in future refinement
-    const { data, total } = await (this.institutionFinanciereRepository as any).findPaginated(skip, limit);
+    const { data, total } = await this.institutionFinanciereRepository.findPaginated(skip, limit);
 
     const totalPages = Math.max(1, Math.ceil(total / limit));
     return {
