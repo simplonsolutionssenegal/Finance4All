@@ -18,7 +18,6 @@ class MyFileList {
   }
 }
 // expose comme FileList globale
-// @ts-expect-error: on définit le FileList global pour Jest
 global.FileList = MyFileList as unknown as typeof FileList;
 
 const baseValues = {
@@ -40,7 +39,6 @@ function makeFileOfSize(bytes: number, name = 'logo.jpg', type = 'image/jpeg') {
 
 // Construit un "FileList" qui passe instanceof FileList
 function makeFileList(file: File): FileList {
-  // @ts-expect-error: on instancie notre polyfill
   return new MyFileList([file]) as unknown as FileList;
 }
 

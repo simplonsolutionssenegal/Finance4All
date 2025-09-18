@@ -17,7 +17,7 @@ jest.mock('@/components/admin/institution-financiere/steps/StepInstitutionInfo',
 
   return {
     StepInstitutionInfo: ({ handleLogoChange }: any) => {
-      const form = useFormContext<InstitutionFormValues>();
+      const form = useFormContext();
       return (
         <div>
           <h3>StepInstitutionInfo</h3>

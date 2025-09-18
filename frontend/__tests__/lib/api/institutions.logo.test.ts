@@ -1,22 +1,6 @@
 import '@testing-library/jest-dom';
 import { createInstitution } from '@/lib/api/institutions';
 
-declare global {
-  // pour TS
-  // eslint-disable-next-line no-var
-  var FileReader: {
-    new (): {
-      result: string | ArrayBuffer | null;
-      onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null;
-      readAsDataURL(file: File): void;
-    };
-  };
-  // eslint-disable-next-line no-var
-  var FileList: {
-    new (files?: File[]): FileList;
-  };
-}
-
 // ------- Polyfills -------
 
 // Polyfill minimal de FileList (vrai instanceof)
@@ -33,7 +17,6 @@ class MyFileList {
   }
 }
 const OLD_FILE_LIST = global.FileList;
-// @ts-expect-error: on remplace FileList dans l'env Jest
 global.FileList = MyFileList as unknown as typeof FileList;
 
 const OLD_FILE_READER = global.FileReader;
@@ -71,7 +54,6 @@ describe('createInstitution - conversion logo en base64 via FileReader', () => {
       }),
     } as any);
     // mock FileReader
-    // @ts-expect-error: on substitue FileReader dans l'env Jest
     global.FileReader = MockFileReader as any;
   });
 
