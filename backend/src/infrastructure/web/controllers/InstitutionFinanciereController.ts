@@ -7,6 +7,7 @@ import { DeleteInstitutionFinanciereUseCase } from '@/application/use-cases/Dele
 import { CreateInstitutionFinanciereDTO } from '@/application/dto/CreateInstitutionFinanciereDTO';
 import { InstitutionFinancierePresenter } from '@/infrastructure/web/presenters/InstitutionFinancierePresenter';
 import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
+import { handlePaginationRequest } from '@/utils/controller-pagination';
 
 export class InstitutionFinanciereController {
   constructor(
@@ -14,19 +15,22 @@ export class InstitutionFinanciereController {
     private readonly getAllInstitutionsFinancieresUseCase: GetAllInstitutionsFinancieresUseCase,
     private readonly getPaginatedInstitutionsFinancieresUseCase?: GetPaginatedInstitutionsFinancieresUseCase,
     private readonly getInstitutionFinanciereByIdUseCase?: GetInstitutionFinanciereByIdUseCase,
-    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase,
+    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {
     try {
-  
       const dto: CreateInstitutionFinanciereDTO = req.body as CreateInstitutionFinanciereDTO;
       const newInstitution = await this.createInstitutionFinanciereUseCase.execute(dto);
       const response = InstitutionFinancierePresenter.toResponse(newInstitution);
 
       res
         .status(201)
-        .json({ success: true, data: response, message: 'Institution financière créée avec succès' });
+        .json({
+          success: true,
+          data: response,
+          message: 'Institution financière créée avec succès',
+        });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({
@@ -44,14 +48,13 @@ export class InstitutionFinanciereController {
 
   async getAll(req: Request, res: Response): Promise<void> {
     try {
-      const pageParam = req.query?.page as string | undefined;
-      const limitParam = req.query?.limit as string | undefined;
-      const page = pageParam ? parseInt(pageParam, 10) : undefined;
-      const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+      const pagination = handlePaginationRequest(req);
 
-      // optional chaining + condition claire sur la présence de paramètres de pagination
-      if ((pageParam !== undefined || limitParam !== undefined) && this.getPaginatedInstitutionsFinancieresUseCase?.execute) {
-        const result = await this.getPaginatedInstitutionsFinancieresUseCase.execute({ page, limit });
+      // Utiliser la pagination si des paramètres sont fournis et que le use case est disponible
+      if (pagination.hasPagination && this.getPaginatedInstitutionsFinancieresUseCase?.execute) {
+        const result = await this.getPaginatedInstitutionsFinancieresUseCase.execute(
+          pagination.input
+        );
         res.status(200).json({
           success: true,
           ...result,
@@ -60,6 +63,7 @@ export class InstitutionFinanciereController {
         return;
       }
 
+      // Sinon, récupérer toutes les institutions
       const institutions = await this.getAllInstitutionsFinancieresUseCase.execute();
       res.status(200).json({
         success: true,
@@ -100,13 +104,13 @@ export class InstitutionFinanciereController {
       } else if (error instanceof Error) {
         res.status(500).json({
           success: false,
-          message: 'Erreur lors de la récupération de l\'institution financière',
+          message: "Erreur lors de la récupération de l'institution financière",
           error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          message: 'Erreur lors de la récupération de l\'institution financière',
+          message: "Erreur lors de la récupération de l'institution financière",
           error: 'Erreur inconnue',
         });
       }
@@ -114,40 +118,39 @@ export class InstitutionFinanciereController {
   }
 
   async delete(req: Request, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
 
-    if (!this.deleteInstitutionFinanciereUseCase) {
+      if (!this.deleteInstitutionFinanciereUseCase) {
+        res.status(500).json({
+          success: false,
+          message: "Erreur lors de la suppression de l'institution financière",
+          error: 'Use case not initialized',
+        });
+        return;
+      }
+
+      await this.deleteInstitutionFinanciereUseCase.execute(id);
+
+      // Le test attend: status 204 + body JSON
+      res.status(204).json({
+        success: true,
+        message: 'Institution financière supprimée avec succès',
+      });
+    } catch (error) {
+      if (error instanceof InstitutionNotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: 'Institution financière non trouvée',
+        });
+        return;
+      }
+
       res.status(500).json({
         success: false,
-        message: 'Erreur lors de la suppression de l\'institution financière',
-        error: 'Use case not initialized',
+        message: "Erreur lors de la suppression de l'institution financière",
+        error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
-      return;
     }
-
-    await this.deleteInstitutionFinanciereUseCase.execute(id);
-
-    // Le test attend: status 204 + body JSON
-    res.status(204).json({
-      success: true,
-      message: 'Institution financière supprimée avec succès',
-    });
-  } catch (error) {
-    if (error instanceof InstitutionNotFoundError) {
-      res.status(404).json({
-        success: false,
-        message: 'Institution financière non trouvée',
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la suppression de l\'institution financière',
-      error: error instanceof Error ? error.message : 'Erreur inconnue',
-    });
   }
-}
-
 }

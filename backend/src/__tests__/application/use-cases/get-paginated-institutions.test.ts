@@ -56,12 +56,12 @@ describe('GetPaginatedInstitutionsFinancieresUseCase', () => {
       limit: 10,
       totalItems: 25,
       totalPages: 3,
-      hasNextPage: true,  // 2 < 3
-      hasPrevPage: true,  // 2 > 1
+      hasNextPage: true, // 2 < 3
+      hasPrevPage: true, // 2 > 1
     });
   });
 
-  it('limit > 100 ⇒ retombe à 10 (cap), total=101 ⇒ totalPages=11, hasNext=true, hasPrev=false en page=1', async () => {
+  it('limit > 100 ⇒ retombe à 100 (cap), total=101 ⇒ totalPages=2, hasNext=true, hasPrev=false en page=1', async () => {
     const repo = makeRepo();
     const data = [] as unknown as InstitutionFinanciere[];
     (repo.findPaginated as jest.Mock).mockResolvedValueOnce({ data, total: 101 });
@@ -71,16 +71,16 @@ describe('GetPaginatedInstitutionsFinancieresUseCase', () => {
 
     const result = await uc.execute({ page: 1, limit: 500 }); // limit invalide
 
-    // limit capée à 10, skip=0
-    expect(repo.findPaginated).toHaveBeenCalledWith(0, 10);
+    // limit capée à 100, skip=0
+    expect(repo.findPaginated).toHaveBeenCalledWith(0, 100);
 
     expect(result.meta).toEqual({
       page: 1,
-      limit: 10,         // cap appliqué
+      limit: 100, // cap appliqué au maximum
       totalItems: 101,
-      totalPages: 11,    // ceil(101/10)
-      hasNextPage: true, // 1 < 11
-      hasPrevPage: false // 1 > 1 → false
+      totalPages: 2, // ceil(101/100)
+      hasNextPage: true, // 1 < 2
+      hasPrevPage: false, // 1 > 1 → false
     });
   });
 });
