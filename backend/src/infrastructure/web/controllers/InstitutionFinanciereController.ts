@@ -47,7 +47,7 @@ export class InstitutionFinanciereController {
       const page = pageParam ? parseInt(pageParam, 10) : undefined;
       const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-      if (this.getPaginatedInstitutionsFinancieresUseCase && (pageParam !== undefined || limitParam !== undefined)) {
+      if (this.getPaginatedInstitutionsFinancieresUseCase && (page || limit)) {
         const result = await this.getPaginatedInstitutionsFinancieresUseCase.execute({ page, limit });
         res.status(200).json({
           success: true,
@@ -114,7 +114,8 @@ export class InstitutionFinanciereController {
     try {
       const { id } = req.params;
 
-      if (!id || !id.trim()) {
+      const trimmedId = id?.trim();
+      if (!trimmedId || trimmedId === '') {
         res.status(400).json({
           success: false,
           message: 'Identifiant manquant',
@@ -123,12 +124,17 @@ export class InstitutionFinanciereController {
       }
 
       if (!this.deleteInstitutionFinanciereUseCase) {
-        throw new Error('Use case not initialized');
+        res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la suppression de l\'institution financière',
+          error: 'Use case not initialized',
+        });
+        return;
       }
 
-      await this.deleteInstitutionFinanciereUseCase.execute(id.trim());
+      await this.deleteInstitutionFinanciereUseCase.execute(trimmedId);
 
-     res.status(204).json({ success: true, message: 'Institution financière supprimée avec succès', });
+      res.status(204).json({ success: true, message: 'Institution financière supprimée avec succès' });
     } catch (error) {
       // 404 attendu par le test quand l’institution n’existe pas
       if (error instanceof InstitutionNotFoundError) {
@@ -142,7 +148,7 @@ export class InstitutionFinanciereController {
       // Autres erreurs => 500
       res.status(500).json({
         success: false,
-        message: "Erreur lors de la suppression de l'institution financière",
+        message: 'Erreur lors de la suppression de l\'institution financière',
         error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }
