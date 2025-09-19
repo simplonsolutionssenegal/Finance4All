@@ -155,4 +155,95 @@ describe('UserController', () => {
         });
       });
   });
+
+  describe('remove', () => {
+    beforeEach(() => {
+      mockRequest = {
+        params: { userId: 'user_123' },
+        body: { organizationId: 'org_123' },
+      };
+
+      mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+    });
+
+    it('should remove user successfully', async () => {
+      const expectedResult = { success: true, message: 'User removed successfully' };
+      mockRemoveUserUseCase.execute.mockResolvedValue(expectedResult);
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockRemoveUserUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123');
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+    });
+
+    it('should return 400 when userId is missing', async () => {
+      mockRequest.params = {};
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId et organizationId sont requis',
+      });
+      expect(mockRemoveUserUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when organizationId is missing', async () => {
+      mockRequest.body = {};
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId et organizationId sont requis',
+      });
+      expect(mockRemoveUserUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when use case returns failure', async () => {
+      const expectedResult = { success: false, message: 'Removal failed' };
+      mockRemoveUserUseCase.execute.mockResolvedValue(expectedResult);
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockRemoveUserUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123');
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+    });
+
+    it('should handle error when use case throws an error', async () => {
+      const error = new Error('Use case error');
+      mockRemoveUserUseCase.execute.mockRejectedValue(error);
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockRemoveUserUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123');
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Erreur serveur lors de la suppression de l\'utilisateur',
+        error: 'Use case error',
+      });
+    });
+
+    it('should handle unknown error types', async () => {
+      mockRemoveUserUseCase.execute.mockRejectedValue('String error');
+
+      await userController.remove(mockRequest as Request, mockResponse as Response);
+
+      expect(mockRemoveUserUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123');
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Erreur serveur lors de la suppression de l\'utilisateur',
+        error: 'Erreur inconnue',
+      });
+    });
+  });
 });
