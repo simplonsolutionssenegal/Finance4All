@@ -84,7 +84,7 @@ export function validatePaginationInput(input: PaginationInput): {
 export function createPaginationMeta(
   page: number,
   limit: number,
-  totalItems: number
+  totalItems: number,
 ): PaginationMeta {
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
@@ -105,7 +105,7 @@ export function createPaginatedResult<T>(
   data: T[],
   page: number,
   limit: number,
-  totalItems: number
+  totalItems: number,
 ): PaginatedResult<T> {
   return {
     data,

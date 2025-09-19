@@ -15,7 +15,7 @@ export class InstitutionFinanciereController {
     private readonly getAllInstitutionsFinancieresUseCase: GetAllInstitutionsFinancieresUseCase,
     private readonly getPaginatedInstitutionsFinancieresUseCase?: GetPaginatedInstitutionsFinancieresUseCase,
     private readonly getInstitutionFinanciereByIdUseCase?: GetInstitutionFinanciereByIdUseCase,
-    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase
+    private readonly deleteInstitutionFinanciereUseCase?: DeleteInstitutionFinanciereUseCase,
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {
@@ -51,7 +51,7 @@ export class InstitutionFinanciereController {
       // Utiliser la pagination si des paramètres sont fournis et que le use case est disponible
       if (pagination.hasPagination && this.getPaginatedInstitutionsFinancieresUseCase?.execute) {
         const result = await this.getPaginatedInstitutionsFinancieresUseCase.execute(
-          pagination.input
+          pagination.input,
         );
         res.status(200).json({
           success: true,
@@ -102,13 +102,13 @@ export class InstitutionFinanciereController {
       } else if (error instanceof Error) {
         res.status(500).json({
           success: false,
-          message: "Erreur lors de la récupération de l'institution financière",
+          message: 'Erreur lors de la récupération de l\'institution financière',
           error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          message: "Erreur lors de la récupération de l'institution financière",
+          message: 'Erreur lors de la récupération de l\'institution financière',
           error: 'Erreur inconnue',
         });
       }
@@ -122,7 +122,7 @@ export class InstitutionFinanciereController {
       if (!this.deleteInstitutionFinanciereUseCase) {
         res.status(500).json({
           success: false,
-          message: "Erreur lors de la suppression de l'institution financière",
+          message: 'Erreur lors de la suppression de l\'institution financière',
           error: 'Use case not initialized',
         });
         return;
@@ -146,7 +146,7 @@ export class InstitutionFinanciereController {
 
       res.status(500).json({
         success: false,
-        message: "Erreur lors de la suppression de l'institution financière",
+        message: 'Erreur lors de la suppression de l\'institution financière',
         error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }
