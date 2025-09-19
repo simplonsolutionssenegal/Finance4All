@@ -24,13 +24,11 @@ export class InstitutionFinanciereController {
       const newInstitution = await this.createInstitutionFinanciereUseCase.execute(dto);
       const response = InstitutionFinancierePresenter.toResponse(newInstitution);
 
-      res
-        .status(201)
-        .json({
-          success: true,
-          data: response,
-          message: 'Institution financière créée avec succès',
-        });
+      res.status(201).json({
+        success: true,
+        data: response,
+        message: 'Institution financière créée avec succès',
+      });
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({
