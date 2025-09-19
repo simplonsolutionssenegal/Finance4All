@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { UserController } from '@/infrastructure/web/controllers/UserController';
-import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
-import { User } from '@/domain/entities/User';
+import { UserController } from 'backend/src/infrastructure/web/controllers/UserController';
+import { CreateUserUseCase } from 'backend/src/application/use-cases/CreateUserUseCase';
+import { User } from 'backend/src/domain/entities/User';
 
 describe('UserController', () => {
   let userController: UserController;
