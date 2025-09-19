@@ -1,8 +1,8 @@
 // src/__tests__/ClerkUserRepository.test.ts
 import { clerkClient } from '@clerk/express';
-import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
 import { ClerkUserRepository } from '@/infrastructure/database/ClerkUserRepository';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
 
 jest.mock('@clerk/express', () => ({
   clerkClient: {

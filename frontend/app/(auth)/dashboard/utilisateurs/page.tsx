@@ -7,44 +7,8 @@ import type { FilterOptions } from '@/components/admin/FilterPopup';
 import SearchBar from '@/components/admin/SearchBar';
 import UserStatst from '@/components/admin/UserStatst';
 import UserTable from '@/components/admin/UserTable';
+import type { ApiResponse, BackendUserDto, User } from '@/models/user';
 
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  role?: string; // 👈 reste optionnel, pas de null ici
-  status: 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
-  avatar?: string;
-  isActive: boolean;
-  lastSignInAt: string | null;
-  organisationId: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// DTO tel que renvoyé par TON backend
-interface BackendUserDto {
-  id: string | number;
-  email: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  status: 'ACTIF' | 'INACTIF' | 'EN_ATTENTE';
-  avatar?: string | null;
-  isActive: boolean;
-  lastSignInAt: string | null;
-  organisationId: number;
-  createdAt: string;
-  updatedAt: string;
-  role?: string | null;
-  publicMetadata?: {
-    role?: string;
-  };
-}
-
-type ApiResponse<T> = { status: 'success' | 'error'; results: number; data: T[] };
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);

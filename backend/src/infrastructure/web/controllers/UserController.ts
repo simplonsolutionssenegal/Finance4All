@@ -1,7 +1,7 @@
 // backend/src/infrastructure/web/controllers/UserController.ts
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
-import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
 
 
 export class UserController {

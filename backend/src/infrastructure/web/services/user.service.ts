@@ -1,7 +1,8 @@
 // backend/src/services/user.service.ts
 import { GetUsersByOrganisationUseCase } from '@/application/use-cases/GetUsersByOrganisationUseCase';
-import { GetUsersByOrganisationAndStatusUseCase, LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+import { GetUsersByOrganisationAndStatusUseCase } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
 
 export class UserService {
   constructor(

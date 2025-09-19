@@ -1,4 +1,4 @@
 import { Role } from '@prisma/client';
 export interface ListRolesUseCase {
-  execute(): Promise<Role[]>;
+  execute(page: number, limit: number): Promise<Role[]>;
 }

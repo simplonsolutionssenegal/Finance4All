@@ -1,5 +1,7 @@
-import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+
 import { ClerkUser } from '@/infrastructure/database/model/clerkUserModel';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
+import { UserStatus } from '../constants/userStatus';
 
 export interface UserRepository {
   findAll(): Promise<ClerkUser[]>;
@@ -10,7 +12,7 @@ export interface UserRepository {
 
     findUsersByOrganisationAndStatus(
     organisationId: number,
-    statuses: ('ACTIF' | 'INACTIF' | 'EN_ATTENTE')[],
+    statuses:  readonly UserStatus[],
     roles?: string[],
     lastLoginFilter?: LastLoginFilter
   ): Promise<ClerkUser[]>;

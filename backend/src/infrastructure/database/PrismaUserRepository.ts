@@ -3,7 +3,7 @@ import { PrismaClient, Prisma, UserStatus } from '@prisma/client';
 import { User as DomainUser } from '@/domain/entities/User';
 import { Role } from '@/domain/entities/Role';
 import { Organisation } from '@/domain/entities/Organisation';
-import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
 
 const prisma = new PrismaClient();
 

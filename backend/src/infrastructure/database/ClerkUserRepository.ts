@@ -2,8 +2,8 @@
 import { clerkClient } from '@clerk/express';
 import { ClerkUser as DomainUser } from './model/clerkUserModel';
 import { UserRepository } from '@/domain/repositories/UserRepository';
-import { LastLoginFilter } from '@/application/use-cases/GetUsersByOrganisationAndStatusUseCase';
 import type { User as  User } from '@clerk/backend';
+import { LastLoginFilter } from '@/types/lastLoginFilter';
 
 export class ClerkUserRepository implements UserRepository {
 
