@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { createInstitution, type InstitutionCreatedResponse } from '@/lib/api/institutions';
+import { createInstitution } from '@/lib/api/institutions';
+import type { InstitutionCreatedResponse } from '@/types/institutions';
 
 import { StepProgressIndicator } from './step-progress-indicator';
 import { StepContactInfo } from './steps/StepContactInfo';

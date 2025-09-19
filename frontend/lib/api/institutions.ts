@@ -1,41 +1,19 @@
 import type { InstitutionFormValues } from '@/components/admin/institution-financiere/validation-schema';
+import type {
+  InstitutionCreatedResponse,
+  InstitutionListItem,
+  FetchInstitutionsResult,
+} from '@/types/institutions';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-export interface CreateInstitutionPayload {
-  nom: string;
-  type: string;
-  description: string;
-  siteWeb: string;
-  contactNom?: string;
-  contactEmail?: string;
-  contactTelephone?: string;
-  regionsDesservies: string[];
-  logo?: File | null;
-}
-
-export interface InstitutionCreatedResponse {
-  id: string;
-  nom: string;
-  type: string;
-  description: string;
-  siteWeb: string;
-  statut: string;
-  createdAt: string;
-}
-
-export interface InstitutionListItem {
-  id: string | number;
-  nom: string;
-  type: string;
-  statut: string;
-  siteWeb?: string;
-}
-
-export interface FetchInstitutionsResult {
-  institutions: InstitutionListItem[];
-  total: number;
-}
+/**
+ * Service API pour les institutions financières
+ * 
+ * Ce module se concentre uniquement sur les appels API,
+ * les types étant séparés dans /types/institutions.ts
+ * conforme au principe de responsabilité unique (SRP).
+ */
 
 export async function createInstitution(values: InstitutionFormValues): Promise<InstitutionCreatedResponse> {
   // Convertir le logo en base64 si présent
