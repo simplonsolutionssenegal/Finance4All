@@ -18,7 +18,7 @@ jest.mock('express', () => {
 
 describe('Main', () => {
   it('should listen on the configured port', () => {
-    require('@/main');
+    require('backend/src/main');
     const express = require('express');
     expect(express().listen).toHaveBeenCalled();
   });

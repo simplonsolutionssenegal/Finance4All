@@ -1,4 +1,4 @@
-import { logger, logRequest, logError, loggerStream } from '@/utils/logger';
+import { logger, logRequest, logError, loggerStream } from 'backend/src/utils/logger';
 import { Request, Response } from 'express';
 
 describe('Logger', () => {

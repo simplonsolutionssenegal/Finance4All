@@ -4,7 +4,7 @@ import {
   errorMiddleware,
   asyncHandler,
   notFoundHandler,
-} from '@/infrastructure/web/middleware/error.middleware';
+} from 'backend/src/infrastructure/web/middleware/error.middleware';
 import { ZodError, z } from 'zod';
 
 describe('Error Middleware', () => {
