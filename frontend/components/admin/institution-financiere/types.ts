@@ -1,9 +1,11 @@
+import type { RegionValue, InstitutionTypeValue } from './constants';
+
 export interface Region {
-  value: string;
+  value: RegionValue;
   label: string;
 }
 
 export interface InstitutionType {
-  value: string;
+  value: InstitutionTypeValue;
   label: string;
 }
