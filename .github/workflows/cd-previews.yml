@@ -76,11 +76,11 @@ jobs:
       FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
       FROM_NAME: ${{ secrets.FROM_NAME }}
 
-  build-and-deploy:
-    name: Build Images & Deploy Preview
+  build-frontend:
+    name: Build Frontend Image
     runs-on: self-hosted
     needs: [ check-preview-request, run-ci ]
-    if: needs.run-ci.outputs.build-success == 'true'
+    if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.frontend-changed == 'true'
 
     steps:
       - name: Checkout PR code
@@ -96,19 +96,11 @@ jobs:
               http = true
               insecure = true
 
-      - name: Debug buildx config
-        run: |
-          docker buildx inspect default
-
       - name: Login to Nexus Registry
         run: |
-          echo  "${{ secrets.NEXUS_PASSWORD }}"
-          echo  "${{ secrets.NEXUS_PREVIEW }}"
-          echo  "${{ secrets.NEXUS_USER }}"
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
-        if: needs.run-ci.outputs.frontend-changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -125,8 +117,31 @@ jobs:
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
+  build-backend:
+    name: Build Backend Image
+    runs-on: self-hosted
+    needs: [ check-preview-request, run-ci ]
+    if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ secrets.NEXUS_PREVIEW }}"]
+              http = true
+              insecure = true
+
+      - name: Login to Nexus Registry
+        run: |
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
+
       - name: Build and push backend preview image
-        if: needs.run-ci.outputs.backend-changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -153,7 +168,27 @@ jobs:
             FROM_NAME=${{ secrets.FROM_NAME }}
           tags: |
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}        
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: self-hosted
+    needs: [ check-preview-request, run-ci, build-frontend, build-backend ]
+    if: |
+      always() &&
+      needs.run-ci.outputs.build-success == 'true' &&
+      (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped') &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped')
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+
+      - name: Login to Nexus Registry
+        run: |
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Setup KIND (optimized)
         run: |

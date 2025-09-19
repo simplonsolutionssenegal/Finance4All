@@ -40,7 +40,7 @@ COPY package*.json ./
 FROM base AS deps
 
 # Installer toutes les dépendances (dev + prod)
-RUN npm ci
+RUN npm install
 
 # Étape de construction de l'application
 FROM base AS builder
