@@ -27,9 +27,12 @@ export const useRemoveUserFromOrganization = () => {
     }
 
     try {
-      // organization is guaranteed by the check in removeUser
       if (!organization) {
-        throw new Error('Organization is null');
+        hideLoader();
+        toast.error('Échec de la suppression', {
+          description: "Impossible de supprimer l'utilisateur. Veuillez réessayer.",
+        });
+        throw new Error('Impossible de supprimer l\'utilisateur après plusieurs tentatives.');
       }
       await organization.removeMember(userId);
       hideLoader();
@@ -114,7 +117,11 @@ export const useUpdateUserRole = ({
 
     try {
       if (!organization) {
-        throw new Error('Organization is null');
+        hideLoader();
+        toast.error('Échec de la mise à jour', {
+          description: "Impossible de mettre à jour le rôle de l'utilisateur. Veuillez réessayer.",
+        });
+        throw new Error('Impossible de mettre à jour le rôle après plusieurs tentatives.');
       }
 
       await organization.updateMember({
@@ -208,10 +215,11 @@ export const useUpdateUserRole = ({
   return { updateUserRole };
 };
 
-export const useCreateUser = () => {
+export const useCreateUser = (options?: { reloadFn?: () => void }) => {
   const { organization } = useOrganization();
   const { getToken } = useAuth();
   const { showLoader, hideLoader } = useLoader();
+  const reloadFn = options?.reloadFn || (() => window.location.reload());
 
   const createUser = async (userData: {
     firstName: string;
@@ -228,11 +236,9 @@ export const useCreateUser = () => {
 
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/users`;
-      console.error('URL de l\'API:', apiUrl);
 
       // Obtenir le token d'authentification Clerk
       const token = await getToken();
-      console.error('Token obtenu:', !!token);
 
       const body = {
         email: userData.email,
@@ -250,8 +256,6 @@ export const useCreateUser = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.error('Headers:', headers);
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers,
@@ -259,7 +263,7 @@ export const useCreateUser = () => {
       });
 
       if (!response.ok) {
-        let errorData: BackendErrorResponse = {};
+        let errorData: BackendErrorResponse;
         try {
           errorData = await response.json();
         } catch (_parseError) {
@@ -292,24 +296,20 @@ export const useCreateUser = () => {
 
       // Recharger la page après un court délai
       setTimeout(() => {
-        window.location.reload();
+        reloadFn();
       }, 1500);
 
       return { success: true };
     } catch (error: unknown) {
-      console.error('🔥 Exception dans createUser:', error);
       hideLoader();
 
-      // Éviter de montrer le toast si c'est une erreur déjà gérée
-      if (error instanceof Error && error.message.includes('HTTP')) {
-        // L'erreur a déjà été gérée au-dessus
-        throw error;
+      if (error instanceof Error) {
+        toast.error('Échec de la création', {
+          description: error.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
+        });
       }
 
-      toast.error('Échec de la création', {
-        description: "Impossible de créer l'utilisateur. Veuillez réessayer.",
-      });
-      throw new Error("Erreur réseau ou inconnue lors de la création de l'utilisateur.");
+      throw error;
     }
   };
 

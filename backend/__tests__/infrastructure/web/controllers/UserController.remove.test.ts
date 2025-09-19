@@ -1,21 +1,16 @@
 import { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
-import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 
 describe('UserController - remove method', () => {
   let userController: UserController;
-  let mockCreateUserUseCase: jest.Mocked<CreateUserUseCase>;
   let mockRemoveUserUseCase: jest.Mocked<RemoveUserUseCase>;
   let mockUpdateUserRoleUseCase: jest.Mocked<UpdateUserRoleUseCase>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
 
   beforeEach(() => {
-    mockCreateUserUseCase = {
-      execute: jest.fn(),
-    } as jest.Mocked<CreateUserUseCase>;
 
     mockRemoveUserUseCase = {
       execute: jest.fn(),
@@ -25,7 +20,7 @@ describe('UserController - remove method', () => {
       execute: jest.fn(),
     } as jest.Mocked<UpdateUserRoleUseCase>;
 
-    userController = new UserController(mockCreateUserUseCase, mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
+    userController = new UserController(mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
 
     mockRequest = {
       params: { userId: 'user_123' },

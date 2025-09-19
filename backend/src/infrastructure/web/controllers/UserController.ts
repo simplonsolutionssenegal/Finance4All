@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
-import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { clerkClient, getAuth } from '@clerk/express';
 
 export class UserController {
   constructor(
-    private readonly createUserUseCase: CreateUserUseCase,
     private readonly removeUserUseCase: RemoveUserUseCase,
     private readonly updateUserRoleUseCase: UpdateUserRoleUseCase,
   ) {
@@ -60,7 +58,7 @@ export class UserController {
 
       // Gestion spécifique des erreurs Clerk
       if (error && typeof error === 'object' && 'errors' in error) {
-        const clerkError = error as any;
+        const clerkError = error as { message?: string; errors?: unknown[] };
         res.status(400).json({
           error: 'Erreur lors de la création de l\'invitation',
           message: clerkError.message ?? 'Erreur Clerk',

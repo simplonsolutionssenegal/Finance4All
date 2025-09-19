@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import UsersList from '@/components/users/UsersList';
-import { useRemoveUserFromOrganization } from '@/lib/clerk-utils';
+import { useRemoveUserFromOrganization, useCreateUser } from '@/lib/clerk-utils';
 
 // Mock Clerk hooks
 jest.mock('@clerk/nextjs', () => ({
@@ -15,6 +15,7 @@ jest.mock('@clerk/nextjs', () => ({
 // Mock clerk-utils
 jest.mock('@/lib/clerk-utils', () => ({
   useRemoveUserFromOrganization: jest.fn(),
+  useCreateUser: jest.fn(),
 }));
 
 // Mock child modals
@@ -58,6 +59,7 @@ const mockUseUser = useUser as jest.Mock;
 const mockUseOrganization = useOrganization as jest.Mock;
 const mockUseOrganizationList = useOrganizationList as jest.Mock;
 const mockUseRemoveUserFromOrganization = useRemoveUserFromOrganization as jest.Mock;
+const mockUseCreateUser = useCreateUser as jest.Mock;
 
 const mockMemberships = {
   data: [
@@ -80,6 +82,7 @@ describe('UsersList', () => {
     mockUseUser.mockReturnValue({ user: { id: 'user_xyz', organizationMemberships: [{ organization: { id: 'org_123' } }] }, isLoaded: true });
     mockUseOrganizationList.mockReturnValue({ setActive: jest.fn(), isLoaded: true });
     mockUseRemoveUserFromOrganization.mockReturnValue({ removeUser: jest.fn(), isLoading: false });
+    mockUseCreateUser.mockReturnValue({ createUser: jest.fn(), isCreating: false });
     alertMock.mockClear();
   });
 
@@ -138,7 +141,7 @@ describe('UsersList', () => {
     const addButton = screen.getByText('Ajouter un utilisateur');
     await user.click(addButton);
     
-    expect(alertMock).toHaveBeenCalledWith("Fonctionnalité d'invitation en cours de développement");
+    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
   });
 
   it('opens the Role Edit modal on click', async () => {
