@@ -35,27 +35,6 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
-      - name: Calculate dynamic ports
-        id: ports
-        run: |
-          # Calculer des ports uniques basés sur le numéro de PR
-          # Base: 30000 + (PR_NUMBER * 10)
-          # Frontend: base + 0, Backend: base + 1
-          PR_NUM=${{ steps.pr_details.outputs.number }}
-          BASE_PORT=$((30000 + (${PR_NUM} * 10)))
-          FRONTEND_PORT=$((${BASE_PORT} + 0))
-          BACKEND_PORT=$((${BASE_PORT} + 1))
-
-          # Vérifier que les ports sont dans la plage valide (30000-32767)
-          if [ ${FRONTEND_PORT} -gt 32767 ] || [ ${BACKEND_PORT} -gt 32767 ]; then
-            echo "Error: Calculated ports exceed NodePort range"
-            exit 1
-          fi
-
-          echo "frontend_port=${FRONTEND_PORT}" >> $GITHUB_OUTPUT
-          echo "backend_port=${BACKEND_PORT}" >> $GITHUB_OUTPUT
-          echo "Calculated ports - Frontend: ${FRONTEND_PORT}, Backend: ${BACKEND_PORT}"
-
       - name: React to comment (optimized)
         uses: actions/github-script@v7
         with:
@@ -65,9 +44,6 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
-            const frontendPort = '${{ steps.ports.outputs.frontend_port }}';
-            const backendPort = '${{ steps.ports.outputs.backend_port }}';
             
             // Opérations parallèles
             await Promise.all([
@@ -100,33 +76,10 @@ jobs:
       FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
       FROM_NAME: ${{ secrets.FROM_NAME }}
 
-  get-server-ip:
-    name: Get Server IP
-    runs-on: self-hosted
-    needs: [ check-preview-request, run-ci ]
-    if: needs.run-ci.outputs.build-success == 'true'
-    outputs:
-      ip: ${{ steps.server-ip.outputs.ip }}
-
-    steps:
-      - name: Get server public IP (cached)
-        id: server-ip
-        run: |
-          # Utiliser un cache simple pour éviter les appels répétés
-          if [ -f /tmp/public_ip.cache ] && [ $(($(date +%s) - $(stat -c %Y /tmp/public_ip.cache 2>/dev/null || echo 0))) -lt 300 ]; then
-            PUBLIC_IP=$(cat /tmp/public_ip.cache)
-            echo "Using cached IP: ${PUBLIC_IP}"
-          else
-            PUBLIC_IP=$(curl -s --max-time 10 ifconfig.me || curl -s --max-time 10 icanhazip.com || echo "localhost")
-            echo "${PUBLIC_IP}" > /tmp/public_ip.cache
-            echo "Fetched new IP: ${PUBLIC_IP}"
-          fi
-          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
-
   build-frontend:
     name: Build Frontend Image
     runs-on: self-hosted
-    needs: [ check-preview-request, run-ci, get-server-ip ]
+    needs: [ check-preview-request, run-ci ]
     if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.frontend-changed == 'true'
 
     steps:
@@ -160,7 +113,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            NEXT_PUBLIC_API_URL=http://${{ needs.get-server-ip.outputs.ip }}:${{ needs.check-preview-request.outputs.backend_port }}
+            NEXT_PUBLIC_API_URL=http://${{ steps.server-ip.outputs.ip }}:30081
           tags: |
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
@@ -168,7 +121,7 @@ jobs:
   build-backend:
     name: Build Backend Image
     runs-on: self-hosted
-    needs: [ check-preview-request, run-ci, get-server-ip ]
+    needs: [ check-preview-request, run-ci ]
     if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.backend-changed == 'true'
 
     steps:
@@ -221,7 +174,7 @@ jobs:
   deploy-preview:
     name: Deploy Preview
     runs-on: self-hosted
-    needs: [ check-preview-request, run-ci, get-server-ip, build-frontend, build-backend ]
+    needs: [ check-preview-request, run-ci, build-frontend, build-backend ]
     if: |
       always() &&
       needs.run-ci.outputs.build-success == 'true' &&
@@ -238,36 +191,22 @@ jobs:
         run: |
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
-      - name: Setup KIND with dynamic ports
+      - name: Setup KIND (optimized)
         run: |
-          CLUSTER_NAME="preview-cluster"
-          FRONTEND_PORT="${{ needs.check-preview-request.outputs.frontend_port }}"
-          BACKEND_PORT="${{ needs.check-preview-request.outputs.backend_port }}"
-
           # Vérifier si le cluster existe et est fonctionnel
-          if kind get clusters | grep -q "${CLUSTER_NAME}" && kubectl cluster-info --context=kind-${CLUSTER_NAME} >/dev/null 2>&1; then
+          if kind get clusters | grep -q "preview-cluster" && kubectl cluster-info --context=kind-preview-cluster >/dev/null 2>&1; then
             echo "✅ KIND cluster already exists and is healthy"
-            kubectl config use-context kind-${CLUSTER_NAME}
-
-            # Vérifier si les ports sont déjà mappés
-            if docker port ${CLUSTER_NAME}-control-plane | grep -q "${FRONTEND_PORT}\|${BACKEND_PORT}"; then
-              echo "Ports already mapped for this cluster"
-            else
-              echo "🔧 Cluster exists but ports need to be updated..."
-              # Pour des nouveaux ports, nous devons recréer le cluster
-              kind delete cluster --name ${CLUSTER_NAME} 2>/dev/null || true
-            fi
-          fi
-
-          # Créer ou recréer le cluster si nécessaire
-          if ! kind get clusters | grep -q "${CLUSTER_NAME}" || ! kubectl cluster-info --context=kind-${CLUSTER_NAME} >/dev/null 2>&1; then
-            echo "🔧 Creating KIND cluster with dynamic ports..."
-
-            # Configuration dynamique avec les ports calculés
+            kubectl config use-context kind-preview-cluster
+          else
+            echo "🔧 Creating/recreating KIND cluster..."
+            # Nettoyer l'ancien cluster s'il existe mais est défaillant
+            kind delete cluster --name preview-cluster 2>/dev/null || true
+          
+            # Configuration optimisée KIND
             cat <<EOF > /tmp/kind-config.yaml
           kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
-          name: ${CLUSTER_NAME}
+          name: preview-cluster
           nodes:
           - role: control-plane
             kubeadmConfigPatches:
@@ -277,8 +216,8 @@ jobs:
                 kubeletExtraArgs:
                   node-labels: "ingress-ready=true"
             extraPortMappings:
-            - containerPort: ${FRONTEND_PORT}
-              hostPort: ${FRONTEND_PORT}
+            - containerPort: 30080
+              hostPort: 30080
               protocol: TCP
             - containerPort: ${BACKEND_PORT}
               hostPort: ${BACKEND_PORT}
@@ -293,9 +232,14 @@ jobs:
 
       - name: Load images to KIND and Deploy
         run: |
-          FRONTEND_PORT="${{ needs.check-preview-request.outputs.frontend_port }}"
-          BACKEND_PORT="${{ needs.check-preview-request.outputs.backend_port }}"
           PR_NUMBER="${{ needs.check-preview-request.outputs.pr-number }}"
+
+          # Recalculer les ports localement pour cohérence
+          BASE_PORT=$((30000 + (${PR_NUMBER} * 10)))
+          FRONTEND_PORT=$((${BASE_PORT} + 0))
+          BACKEND_PORT=$((${BASE_PORT} + 1))
+
+          echo "Deploy Debug: FRONTEND_PORT=${FRONTEND_PORT}, BACKEND_PORT=${BACKEND_PORT}"
 
           # Charger l'image frontend si modifiée
           if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
@@ -514,8 +458,10 @@ jobs:
         with:
           script: |
             const publicIp = '${{ needs.get-server-ip.outputs.ip }}';
-            const frontendPort = '${{ needs.check-preview-request.outputs.frontend_port }}';
-            const backendPort = '${{ needs.check-preview-request.outputs.backend_port }}';
+            const prNumber = ${{ needs.check-preview-request.outputs.pr-number }};
+            const basePort = 30000 + (prNumber * 10);
+            const frontendPort = basePort + 0;
+            const backendPort = basePort + 1;
             const frontendUrl = `http://${publicIp}:${frontendPort}`;
             const backendUrl = `http://${publicIp}:${backendPort}`;
 
