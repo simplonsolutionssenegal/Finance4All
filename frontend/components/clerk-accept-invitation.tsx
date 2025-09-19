@@ -30,7 +30,10 @@ interface InvitationMetadata {
   organizationName?: string;
 }
 
-export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcceptInvitationProps>) {
+export function ClerkAcceptInvitation({
+  invitationId,
+  orgId,
+}: Readonly<ClerkAcceptInvitationProps>) {
   const [initialValues, setInitialValues] = useState<FormValues>({
     password: '',
     confirmPassword: '',
@@ -42,7 +45,7 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
   const [error, setError] = useState<string | null>(null);
   const [invitationData, setInvitationData] = useState<InvitationMetadata | null>(null);
 
-  const { formState, updateField, hasError, getError, setErrors, resetForm } =
+  const { formState, updateField, hasError, getError, setErrors } =
     useFormState(initialValues);
 
   const resetState = useCallback(() => {
@@ -51,21 +54,22 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
 
   const isFormValid = useMemo(() => {
     return (
-      (formState.values.password).trim() !== '' &&
+      formState.values.password.trim() !== '' &&
       !hasError('password') &&
-      (formState.values.confirmPassword).trim() !== '' &&
+      formState.values.confirmPassword.trim() !== '' &&
       !hasError('confirmPassword')
     );
   }, [formState, hasError]);
 
   // Récupérer les données de l'invitation au chargement
   useEffect(() => {
-    showLoader();
     const fetchInvitationData = async () => {
       if (!invitationId) {
         setError("ID d'invitation manquant");
         return;
       }
+
+      showLoader();
 
       try {
         const response = await fetch('/api/get-invitation', {
@@ -115,8 +119,6 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
           };
 
           setInitialValues(newInitialValues);
-
-          resetForm();
         }
       } catch (_err) {
         setError("Impossible de charger les données de l'invitation");
@@ -125,8 +127,8 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
       }
     };
 
-    fetchInvitationData().then(() => hideLoader());
-  }, [invitationId, orgId, showLoader, hideLoader, resetForm]);
+    fetchInvitationData();
+  }, [invitationId, orgId]);
 
   // Validation des mots de passe
   const validatePasswords = useCallback(() => {
@@ -170,6 +172,12 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
         return;
       }
 
+      // Vérifier que toutes les données nécessaires sont présentes
+      if (!invitationData.firstName || !invitationData.lastName || !invitationData.emailAddress) {
+        setError("Données d'invitation incomplètes. Veuillez contacter l'administrateur.");
+        return;
+      }
+
       const password = formState.values.password;
 
       // Validation finale
@@ -181,6 +189,16 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
 
       showLoader();
       setError(null);
+
+      // Log pour déboguer
+      console.log('Données envoyées:', {
+        invitationId,
+        orgId,
+        firstName: invitationData.firstName,
+        lastName: invitationData.lastName,
+        emailAddress: invitationData.emailAddress,
+        hasPassword: !!password,
+      });
 
       try {
         const response = await fetch('/api/accept-invitation', {
@@ -215,7 +233,10 @@ export function ClerkAcceptInvitation({ invitationId, orgId }: Readonly<ClerkAcc
         router.push('/dashboard');
       } catch (err: unknown) {
         console.error("Erreur lors de l'acceptation de l'invitation:", err);
-        const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de l'acceptation de l'invitation";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Une erreur est survenue lors de l'acceptation de l'invitation";
         setError(errorMessage);
         hideLoader();
       }

@@ -41,8 +41,8 @@ export default function RoleEditModal({ isOpen, onClose, user }: Readonly<RoleEd
       try {
         await updateUserRole(user.id, selectedRole);
         onClose();
+        setTimeout(() => window.location.reload(), 300);
       } catch (error) {
-        // L'erreur est déjà gérée dans updateUserRole avec les toasts
         console.error('Erreur lors de la mise à jour du rôle:', error);
       } finally {
         setIsUpdating(false);
@@ -81,9 +81,11 @@ export default function RoleEditModal({ isOpen, onClose, user }: Readonly<RoleEd
             </div>
 
             <div className='space-y-2'>
-              <label htmlFor="role-select" className='text-sm font-medium text-gray-500 block'>Nouveau rôle</label>
+              <label htmlFor='role-select' className='text-sm font-medium text-gray-500 block'>
+                Nouveau rôle
+              </label>
               <select
-                id="role-select"
+                id='role-select'
                 value={selectedRole}
                 onChange={e => setSelectedRole(e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white'

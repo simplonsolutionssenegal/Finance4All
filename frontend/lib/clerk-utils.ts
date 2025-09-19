@@ -96,7 +96,9 @@ export const useRemoveUserFromOrganization = () => {
   return { removeUser };
 };
 
-export const useUpdateUserRole = ({ reloadFn = window.location.reload }: { reloadFn?: () => void } = {}) => {
+export const useUpdateUserRole = ({
+  reloadFn = window.location.reload,
+}: { reloadFn?: () => void } = {}) => {
   const { organization } = useOrganization();
   const { getToken } = useAuth();
   const { showLoader, hideLoader } = useLoader();
@@ -204,4 +206,112 @@ export const useUpdateUserRole = ({ reloadFn = window.location.reload }: { reloa
   };
 
   return { updateUserRole };
+};
+
+export const useCreateUser = () => {
+  const { organization } = useOrganization();
+  const { getToken } = useAuth();
+  const { showLoader, hideLoader } = useLoader();
+
+  const createUser = async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  }) => {
+    if (!organization) {
+      toast.error('Aucune organisation active');
+      throw new Error('Aucune organisation active');
+    }
+
+    showLoader();
+
+    try {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/users`;
+      console.error('URL de l\'API:', apiUrl);
+
+      // Obtenir le token d'authentification Clerk
+      const token = await getToken();
+      console.error('Token obtenu:', !!token);
+
+      const body = {
+        email: userData.email,
+        organizationId: organization.id,
+        role: userData.role,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.error('Headers:', headers);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        let errorData: BackendErrorResponse = {};
+        try {
+          errorData = await response.json();
+        } catch (_parseError) {
+          errorData = { message: `Erreur HTTP ${response.status}: ${response.statusText}` };
+        }
+
+
+        hideLoader();
+
+        toast.error('Échec de la création', {
+          description: errorData.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
+        });
+        throw new Error(errorData.message || `Erreur HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result: BackendResponse = await response.json();
+
+      if (!result.success) {
+        hideLoader();
+        toast.error('Échec de la création', {
+          description: result.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
+        });
+        throw new Error(result.message || "L'API a retourné success: false");
+      }
+
+      hideLoader();
+      toast.success('Utilisateur créé avec succès', {
+        description: `${userData.firstName} ${userData.lastName} a été ajouté à l'organisation.`,
+      });
+
+      // Recharger la page après un court délai
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+      return { success: true };
+    } catch (error: unknown) {
+      console.error('🔥 Exception dans createUser:', error);
+      hideLoader();
+
+      // Éviter de montrer le toast si c'est une erreur déjà gérée
+      if (error instanceof Error && error.message.includes('HTTP')) {
+        // L'erreur a déjà été gérée au-dessus
+        throw error;
+      }
+
+      toast.error('Échec de la création', {
+        description: "Impossible de créer l'utilisateur. Veuillez réessayer.",
+      });
+      throw new Error("Erreur réseau ou inconnue lors de la création de l'utilisateur.");
+    }
+  };
+
+  return { createUser };
 };

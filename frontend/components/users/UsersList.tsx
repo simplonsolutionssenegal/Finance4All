@@ -16,8 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import AddUserModal from '@/components/users/AddUserModal';
 import ConfirmDesactivationModal from '@/components/users/ConfirmDesactivationModal';
-import { useRemoveUserFromOrganization } from '@/lib/clerk-utils';
+import { useRemoveUserFromOrganization, useCreateUser } from '@/lib/clerk-utils';
 import type OrganizationUser from '@/types/OrganizationUser';
 
 import RoleEditModal from './RoleEditModal';
@@ -32,10 +33,13 @@ export default function UsersList() {
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [showConfirmDeactivation, setShowConfirmDeactivation] = useState(false);
   const [showRoleEdit, setShowRoleEdit] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const { user } = useUser();
   const { setActive } = useOrganizationList();
   const { removeUser } = useRemoveUserFromOrganization();
+  const { createUser } = useCreateUser();
   const { organization, memberships, invitations } = useOrganization({
     memberships: {
       infinite: true,
@@ -179,6 +183,7 @@ export default function UsersList() {
     setShowUserInfo(false);
     setShowConfirmDeactivation(false);
     setShowRoleEdit(false);
+    setShowAddUser(false);
     setSelectedUser(null);
   };
 
@@ -187,24 +192,50 @@ export default function UsersList() {
     setShowRoleEdit(true);
   };
 
-  const renderModals = () => {
-    if (!selectedUser) return null;
+  const handleCreateUser = async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  }) => {
+    setIsCreatingUser(true);
+    try {
+      await createUser(userData);
+      handleCloseModals();
+    } catch (error) {
+      // L'erreur est déjà gérée dans createUser avec les toasts
+      console.error("🔴 Erreur lors de la création de l'utilisateur:", error);
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
 
+  const renderModals = () => {
     return (
       <>
-        <UserInfoModal
-          isOpen={showUserInfo}
+        <AddUserModal
+          isOpen={showAddUser}
           onClose={handleCloseModals}
-          onDeactivate={handleDesactivateClick}
-          user={selectedUser}
+          onCreateUser={handleCreateUser}
+          isCreating={isCreatingUser}
         />
-        <ConfirmDesactivationModal
-          isOpen={showConfirmDeactivation}
-          onClose={handleCloseModals}
-          onConfirm={handleConfirmDesactivation}
-          user={selectedUser}
-        />
-        <RoleEditModal isOpen={showRoleEdit} onClose={handleCloseModals} user={selectedUser} />
+        {selectedUser && (
+          <>
+            <UserInfoModal
+              isOpen={showUserInfo}
+              onClose={handleCloseModals}
+              onDeactivate={handleDesactivateClick}
+              user={selectedUser}
+            />
+            <ConfirmDesactivationModal
+              isOpen={showConfirmDeactivation}
+              onClose={handleCloseModals}
+              onConfirm={handleConfirmDesactivation}
+              user={selectedUser}
+            />
+            <RoleEditModal isOpen={showRoleEdit} onClose={handleCloseModals} user={selectedUser} />
+          </>
+        )}
       </>
     );
   };
@@ -217,10 +248,9 @@ export default function UsersList() {
             Liste des utilisateurs
           </CardTitle>
           <Button
-            className='bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2'
+            className='bg-teal-500 cursor-pointer hover:bg-teal-600 text-white rounded-lg px-4 py-2'
             onClick={() => {
-              // Fonctionnalité d'invitation à implémenter
-              alert("Fonctionnalité d'invitation en cours de développement");
+              setShowAddUser(true);
             }}
           >
             <Plus className='w-4 h-4 mr-2' />

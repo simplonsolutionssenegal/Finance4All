@@ -69,7 +69,9 @@ export default function AddUserModal({
           <div className='space-y-3'>
             <div className='grid grid-cols-2 gap-3'>
               <div className='space-y-2'>
-                <label htmlFor='firstName' className='text-sm font-medium text-gray-500 block'>Prénom</label>
+                <label htmlFor='firstName' className='text-sm font-medium text-gray-500 block'>
+                  Prénom
+                </label>
                 <Input
                   id='firstName'
                   placeholder='John'
@@ -80,7 +82,9 @@ export default function AddUserModal({
                 />
               </div>
               <div className='space-y-2'>
-                <label htmlFor='lastName' className='text-sm font-medium text-gray-500 block'>Nom</label>
+                <label htmlFor='lastName' className='text-sm font-medium text-gray-500 block'>
+                  Nom
+                </label>
                 <Input
                   id='lastName'
                   placeholder='DOE'
@@ -93,7 +97,9 @@ export default function AddUserModal({
             </div>
 
             <div className='space-y-2'>
-              <label htmlFor='email' className='text-sm font-medium text-gray-500 block'>Email</label>
+              <label htmlFor='email' className='text-sm font-medium text-gray-500 block'>
+                Email
+              </label>
               <Input
                 id='email'
                 type='email'
@@ -106,7 +112,9 @@ export default function AddUserModal({
             </div>
 
             <div className='space-y-2'>
-              <label htmlFor='role' className='text-sm font-medium text-gray-500 block'>Rôle</label>
+              <label htmlFor='role' className='text-sm font-medium text-gray-500 block'>
+                Rôle
+              </label>
               <select
                 id='role'
                 value={role}
@@ -135,7 +143,7 @@ export default function AddUserModal({
             </Button>
             <Button
               onClick={handleSubmit}
-              className='flex-1 bg-teal-500 hover:bg-teal-600 text-white'
+              className='flex-1 bg-teal-500 cursor-pointer hover:bg-teal-600 text-white'
               disabled={isCreating || !isFormValid}
             >
               {isCreating ? 'Création...' : 'Enregistrer'}
