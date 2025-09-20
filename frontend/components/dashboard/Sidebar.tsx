@@ -64,7 +64,7 @@ export default function Sidebar() {
     <aside className="w-64 h-full bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6">
         <div className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold text-center">
-          + Dasbord
+          + Dashboard
         </div>
       </div>
 

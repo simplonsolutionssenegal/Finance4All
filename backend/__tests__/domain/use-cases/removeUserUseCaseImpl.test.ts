@@ -14,7 +14,7 @@ jest.mock('@clerk/express', () => ({
   },
 }));
 
-jest.mock('../../../utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),

@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index';
+import app from '@/index';
 import { logger } from '@/utils/logger';
 
 // Mock du logger pour éviter les logs pendant les tests
