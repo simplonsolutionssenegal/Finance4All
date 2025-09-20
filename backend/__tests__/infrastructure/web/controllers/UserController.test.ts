@@ -246,4 +246,156 @@ describe('UserController', () => {
       });
     });
   });
+
+  describe('updateRole', () => {
+    beforeEach(() => {
+      mockRequest = {
+        params: { userId: 'user_123' },
+        body: { organizationId: 'org_123', role: 'admin' },
+      };
+
+      mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+    });
+
+    it('should update user role successfully', async () => {
+      const expectedResult = { success: true, message: 'Rôle de l\'utilisateur modifié avec succès vers admin' };
+      mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+    });
+
+    it('should return 400 when userId is missing', async () => {
+      mockRequest.params = {};
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUpdateUserRoleUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when organizationId is missing', async () => {
+      mockRequest.body = { role: 'admin' };
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUpdateUserRoleUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when role is missing', async () => {
+      mockRequest.body = { organizationId: 'org_123' };
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUpdateUserRoleUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when all required parameters are missing', async () => {
+      mockRequest = {
+        params: {},
+        body: {},
+      };
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUpdateUserRoleUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when use case returns failure', async () => {
+      const expectedResult = { success: false, message: 'Role update failed' };
+      mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+    });
+
+    it('should handle error when use case throws an error', async () => {
+      const error = new Error('Use case error');
+      mockUpdateUserRoleUseCase.execute.mockRejectedValue(error);
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Erreur serveur lors de la modification du rôle de l\'utilisateur',
+        error: 'Use case error',
+      });
+    });
+
+    it('should handle unknown error types', async () => {
+      mockUpdateUserRoleUseCase.execute.mockRejectedValue('String error');
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Erreur serveur lors de la modification du rôle de l\'utilisateur',
+        error: 'Erreur inconnue',
+      });
+    });
+
+    it('should test different role values', async () => {
+      const roles = ['member', 'viewer', 'editor', 'manager'];
+
+      for (const role of roles) {
+        mockRequest.body = { organizationId: 'org_123', role };
+        const expectedResult = { success: true, message: `Rôle de l'utilisateur modifié avec succès vers ${role}` };
+        mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
+
+        await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+        expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', role);
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+      }
+    });
+
+    it('should handle empty string parameters', async () => {
+      mockRequest = {
+        params: { userId: '' },
+        body: { organizationId: '', role: '' },
+      };
+
+      await userController.updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUpdateUserRoleUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
 });

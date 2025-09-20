@@ -15,6 +15,8 @@ jest.mock('backend/src/domain/use-cases/createUserUseCaseImpl');
 
 const mockUserController = {
   create: jest.fn(),
+  remove: jest.fn(),
+  updateRole: jest.fn(),
 };
 
 jest.doMock('backend/src/infrastructure/web/controllers/UserController', () => {
@@ -153,6 +155,241 @@ describe('User Routes', () => {
 
     it('should handle DELETE requests as unsupported', async () => {
       await request(app).delete('/users').expect(404);
+    });
+  });
+
+  describe('DELETE /users/:userId', () => {
+    it('should call userController.remove method', async () => {
+      mockUserController.remove.mockImplementation(async (req, res) => {
+        res.status(200).json({ success: true, message: 'User removed successfully' });
+      });
+
+      const response = await request(app)
+        .delete('/users/user_123')
+        .send({ organizationId: 'org_123' })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        success: true,
+        message: 'User removed successfully',
+      });
+      expect(mockUserController.remove).toHaveBeenCalled();
+    });
+
+    it('should handle missing userId parameter', async () => {
+      mockUserController.remove.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          error: 'Paramètres manquants',
+          message: 'userId et organizationId sont requis',
+        });
+      });
+
+      await request(app).delete('/users/').send({ organizationId: 'org_123' }).expect(404); // Route not found for empty userId
+
+      expect(mockUserController.remove).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing organizationId in body', async () => {
+      mockUserController.remove.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          error: 'Paramètres manquants',
+          message: 'userId et organizationId sont requis',
+        });
+      });
+
+      const response = await request(app).delete('/users/user_123').send({}).expect(400);
+
+      expect(response.body).toEqual({
+        error: 'Paramètres manquants',
+        message: 'userId et organizationId sont requis',
+      });
+      expect(mockUserController.remove).toHaveBeenCalled();
+    });
+
+    it('should handle removal failure', async () => {
+      mockUserController.remove.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          success: false,
+          message: 'Failed to remove user from organization',
+        });
+      });
+
+      const response = await request(app)
+        .delete('/users/user_123')
+        .send({ organizationId: 'org_123' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Failed to remove user from organization',
+      });
+      expect(mockUserController.remove).toHaveBeenCalled();
+    });
+
+    it('should handle server errors during removal', async () => {
+      mockUserController.remove.mockImplementation(async (req, res) => {
+        res.status(500).json({
+          success: false,
+          message: "Erreur serveur lors de la suppression de l'utilisateur",
+          error: 'Internal server error',
+        });
+      });
+
+      const response = await request(app)
+        .delete('/users/user_123')
+        .send({ organizationId: 'org_123' })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        success: false,
+        message: "Erreur serveur lors de la suppression de l'utilisateur",
+        error: 'Internal server error',
+      });
+      expect(mockUserController.remove).toHaveBeenCalled();
+    });
+  });
+
+  describe('PATCH /users/:userId', () => {
+    it('should call userController.updateRole method', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          message: "Rôle de l'utilisateur modifié avec succès vers admin",
+        });
+      });
+
+      const response = await request(app)
+        .patch('/users/user_123')
+        .send({ organizationId: 'org_123', role: 'admin' })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        success: true,
+        message: "Rôle de l'utilisateur modifié avec succès vers admin",
+      });
+      expect(mockUserController.updateRole).toHaveBeenCalled();
+    });
+
+    it('should handle missing userId parameter', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          error: 'Paramètres manquants',
+          message: 'userId, organizationId et role sont requis',
+        });
+      });
+
+      await request(app)
+        .patch('/users/')
+        .send({ organizationId: 'org_123', role: 'admin' })
+        .expect(404); // Route not found for empty userId
+
+      expect(mockUserController.updateRole).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing organizationId in body', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          error: 'Paramètres manquants',
+          message: 'userId, organizationId et role sont requis',
+        });
+      });
+
+      const response = await request(app)
+        .patch('/users/user_123')
+        .send({ role: 'admin' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUserController.updateRole).toHaveBeenCalled();
+    });
+
+    it('should handle missing role in body', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          error: 'Paramètres manquants',
+          message: 'userId, organizationId et role sont requis',
+        });
+      });
+
+      const response = await request(app)
+        .patch('/users/user_123')
+        .send({ organizationId: 'org_123' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        error: 'Paramètres manquants',
+        message: 'userId, organizationId et role sont requis',
+      });
+      expect(mockUserController.updateRole).toHaveBeenCalled();
+    });
+
+    it('should handle role update failure', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(400).json({
+          success: false,
+          message: 'Failed to update user role',
+        });
+      });
+
+      const response = await request(app)
+        .patch('/users/user_123')
+        .send({ organizationId: 'org_123', role: 'admin' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        success: false,
+        message: 'Failed to update user role',
+      });
+      expect(mockUserController.updateRole).toHaveBeenCalled();
+    });
+
+    it('should handle server errors during role update', async () => {
+      mockUserController.updateRole.mockImplementation(async (req, res) => {
+        res.status(500).json({
+          success: false,
+          message: "Erreur serveur lors de la modification du rôle de l'utilisateur",
+          error: 'Internal server error',
+        });
+      });
+
+      const response = await request(app)
+        .patch('/users/user_123')
+        .send({ organizationId: 'org_123', role: 'admin' })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        success: false,
+        message: "Erreur serveur lors de la modification du rôle de l'utilisateur",
+        error: 'Internal server error',
+      });
+      expect(mockUserController.updateRole).toHaveBeenCalled();
+    });
+
+    it('should handle different role values', async () => {
+      const roles = ['member', 'viewer', 'editor', 'manager'];
+
+      for (const role of roles) {
+        mockUserController.updateRole.mockImplementation(async (req, res) => {
+          res.status(200).json({
+            success: true,
+            message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
+          });
+        });
+
+        const response = await request(app)
+          .patch('/users/user_123')
+          .send({ organizationId: 'org_123', role })
+          .expect(200);
+
+        expect(response.body).toEqual({
+          success: true,
+          message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
+        });
+        expect(mockUserController.updateRole).toHaveBeenCalled();
+      }
     });
   });
 });

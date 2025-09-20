@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { usePathname } from 'next/navigation';
+
 import Sidebar from '@/components/dashboard/Sidebar';
 
 // Mock next/navigation
@@ -28,7 +29,7 @@ describe('Sidebar', () => {
   it('renders the dashboard header', () => {
     render(<Sidebar />);
 
-    expect(screen.getByText('+ Dasbord')).toBeInTheDocument();
+    expect(screen.getByText('+ Dashboard')).toBeInTheDocument();
   });
 
   it('renders the menu section', () => {
@@ -141,7 +142,7 @@ describe('Sidebar', () => {
   it('changes active state based on pathname', () => {
     // Test with users page active
     mockUsePathname.mockReturnValue('/users');
-    const { rerender } = render(<Sidebar />);
+    render(<Sidebar />);
 
     const usersButton = screen.getByRole('button', { name: /utilisateurs/i });
     expect(usersButton).toHaveClass('bg-blue-50', 'text-blue-700');
