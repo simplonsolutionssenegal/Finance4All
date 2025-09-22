@@ -2,7 +2,7 @@ name: Preview
 
 on:
   issue_comment:
-    types: [ created ]
+    types: [created]
 
 permissions:
   issues: write
@@ -19,7 +19,7 @@ jobs:
       pr-ref: ${{ steps.pr-details.outputs.ref }}
       pr-sha: ${{ steps.pr-details.outputs.sha }}
       pr-number: ${{ steps.pr-details.outputs.number }}
-    
+
     steps:
       - name: Get PR details
         uses: actions/github-script@v7
@@ -44,7 +44,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
+
             // Opérations parallèles
             await Promise.all([
               github.rest.reactions.createForIssueComment({
@@ -76,11 +76,11 @@ jobs:
       FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
       FROM_NAME: ${{ secrets.FROM_NAME }}
 
-  build-frontend:
-    name: Build Frontend Image
+  build-and-deploy:
+    name: Build Images & Deploy Preview
     runs-on: self-hosted
-    needs: [ check-preview-request, run-ci ]
-    if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.frontend-changed == 'true'
+    needs: [check-preview-request, run-ci]
+    if: needs.run-ci.outputs.build-success == 'true'
 
     steps:
       - name: Checkout PR code
@@ -101,6 +101,7 @@ jobs:
           echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
 
       - name: Build and push frontend preview image
+        if: needs.run-ci.outputs.frontend-changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -118,31 +119,8 @@ jobs:
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-  build-backend:
-    name: Build Backend Image
-    runs-on: self-hosted
-    needs: [ check-preview-request, run-ci ]
-    if: needs.run-ci.outputs.build-success == 'true' && needs.run-ci.outputs.backend-changed == 'true'
-
-    steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          config-inline: |
-            [registry."${{ secrets.NEXUS_PREVIEW }}"]
-              http = true
-              insecure = true
-
-      - name: Login to Nexus Registry
-        run: |
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
-
       - name: Build and push backend preview image
+        if: needs.run-ci.outputs.backend-changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -171,27 +149,14 @@ jobs:
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-number }}
             ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
 
-  deploy-preview:
-    name: Deploy Preview
-    runs-on: self-hosted
-    needs: [ check-preview-request, run-ci, build-frontend, build-backend ]
-    if: |
-      always() &&
-      needs.run-ci.outputs.build-success == 'true' &&
-      (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped') &&
-      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped')
-
-    steps:
-      - name: Checkout PR code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
-
-      - name: Login to Nexus Registry
+      - name: Get server public IP
+        id: server-ip
         run: |
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
+          PUBLIC_IP=$(curl -s --max-time 10 ifconfig.me || curl -s --max-time 10 icanhazip.com || echo "localhost")
+          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
+          echo "Server IP: ${PUBLIC_IP}"
 
-      - name: Setup KIND (optimized)
+      - name: Setup KIND
         run: |
           # Vérifier si le cluster existe et est fonctionnel
           if kind get clusters | grep -q "preview-cluster" && kubectl cluster-info --context=kind-preview-cluster >/dev/null 2>&1; then
@@ -201,8 +166,8 @@ jobs:
             echo "🔧 Creating/recreating KIND cluster..."
             # Nettoyer l'ancien cluster s'il existe mais est défaillant
             kind delete cluster --name preview-cluster 2>/dev/null || true
-          
-            # Configuration optimisée KIND
+
+            # Configuration KIND avec ports fixes
             cat <<EOF > /tmp/kind-config.yaml
           kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
@@ -219,73 +184,44 @@ jobs:
             - containerPort: 30080
               hostPort: 30080
               protocol: TCP
-            - containerPort: ${BACKEND_PORT}
-              hostPort: ${BACKEND_PORT}
+            - containerPort: 30081
+              hostPort: 30081
               protocol: TCP
           EOF
 
             kind create cluster --config /tmp/kind-config.yaml --wait=120s
-            kubectl config use-context kind-${CLUSTER_NAME}
+            kubectl config use-context kind-preview-cluster
           fi
 
-          echo "✅ KIND cluster ready with ports: Frontend=${FRONTEND_PORT}, Backend=${BACKEND_PORT}"
+          echo "✅ KIND cluster ready"
 
       - name: Load images to KIND and Deploy
         run: |
           PR_NUMBER="${{ needs.check-preview-request.outputs.pr-number }}"
 
-          # Recalculer les ports localement pour cohérence
-          BASE_PORT=$((30000 + (${PR_NUMBER} * 10)))
-          FRONTEND_PORT=$((${BASE_PORT} + 0))
-          BACKEND_PORT=$((${BASE_PORT} + 1))
+          # Créer le namespace
+          kubectl create namespace preview-pr-${PR_NUMBER} --dry-run=client -o yaml | kubectl apply -f -
 
-          echo "Deploy Debug: FRONTEND_PORT=${FRONTEND_PORT}, BACKEND_PORT=${BACKEND_PORT}"
-
-          # Charger l'image frontend si modifiée
-          if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
-            IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${PR_NUMBER}"
-            IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
-
-            if docker image inspect "${IMAGE_SHA_NAME}" >/dev/null 2>&1; then
-              echo "✅ Frontend image with correct SHA already exists locally: ${IMAGE_SHA_NAME}"
-              docker tag "${IMAGE_SHA_NAME}" "${IMAGE_NAME}" || true
-            else
-              echo "🔄 Pulling new frontend image with SHA: ${IMAGE_SHA_NAME}"
-              docker pull "${IMAGE_NAME}" || echo "Warning: PR-number tag not found"
-              docker pull "${IMAGE_SHA_NAME}"
-              docker tag "${IMAGE_SHA_NAME}" "${IMAGE_NAME}" || true
-            fi
-
-            kind load docker-image "${IMAGE_NAME}" --name preview-cluster
-          else
-            echo "Frontend unchanged, skipping image operations"
-          fi
-
-          # Charger l'image backend si modifiée
+          # Charger et déployer le backend si modifié
           if [ "${{ needs.run-ci.outputs.backend-changed }}" == "true" ]; then
             BACKEND_IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${PR_NUMBER}"
             BACKEND_IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
 
+            # Gestion intelligente des images
             if docker image inspect "${BACKEND_IMAGE_SHA_NAME}" >/dev/null 2>&1; then
-              echo "✅ Backend image with correct SHA already exists locally: ${BACKEND_IMAGE_SHA_NAME}"
+              echo "✅ Backend image with correct SHA already exists locally"
               docker tag "${BACKEND_IMAGE_SHA_NAME}" "${BACKEND_IMAGE_NAME}" || true
             else
-              echo "🔄 Pulling new backend image with SHA: ${BACKEND_IMAGE_SHA_NAME}"
+              echo "🔄 Pulling backend image"
               docker pull "${BACKEND_IMAGE_NAME}" || echo "Warning: Backend PR-number tag not found"
               docker pull "${BACKEND_IMAGE_SHA_NAME}"
               docker tag "${BACKEND_IMAGE_SHA_NAME}" "${BACKEND_IMAGE_NAME}" || true
             fi
 
             kind load docker-image "${BACKEND_IMAGE_NAME}" --name preview-cluster
-          else
-            echo "Backend unchanged, skipping backend image operations"
-          fi
 
-          # Créer le namespace
-          kubectl create namespace preview-pr-${PR_NUMBER} --dry-run=client -o yaml | kubectl apply -f -
-
-          # Déployer avec les ports dynamiques
-          cat <<EOF | kubectl apply -f -
+            # Déployer PostgreSQL
+            cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
           metadata:
@@ -371,7 +307,7 @@ jobs:
                   - name: CLERK_WEBHOOK_SECRET
                     value: "${{ secrets.CLERK_WEBHOOK_SECRET }}"
                   - name: FRONTEND_URL
-                    value: "http://${{ needs.get-server-ip.outputs.ip }}:${FRONTEND_PORT}"
+                    value: "http://${{ steps.server-ip.outputs.ip }}:30080"
                   - name: GMAIL_USER
                     value: "${{ secrets.GMAIL_USER }}"
                   - name: GMAIL_APP_PASSWORD
@@ -381,7 +317,7 @@ jobs:
                   - name: FROM_NAME
                     value: "${{ secrets.FROM_NAME }}"
                   - name: CORS_ORIGIN
-                    value: "http://${{ needs.get-server-ip.outputs.ip }}:${FRONTEND_PORT}"
+                    value: "http://${{ steps.server-ip.outputs.ip }}:30080"
           ---
           apiVersion: v1
           kind: Service
@@ -394,9 +330,38 @@ jobs:
             ports:
             - port: 5000
               targetPort: 5000
-              nodePort: ${BACKEND_PORT}
+              nodePort: 30081
             type: NodePort
-          ---
+          EOF
+
+            echo "⏳ Waiting for PostgreSQL to be ready..."
+            kubectl wait --for=condition=ready pod -l app=postgres-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
+
+            echo "⏳ Waiting for Backend to be ready..."
+            kubectl wait --for=condition=ready pod -l app=backend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
+          else
+            echo "Backend unchanged, skipping backend deployment"
+          fi
+
+          # Charger et déployer le frontend si modifié
+          if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
+            FRONTEND_IMAGE_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${PR_NUMBER}"
+            FRONTEND_IMAGE_SHA_NAME="${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}"
+
+            if docker image inspect "${FRONTEND_IMAGE_SHA_NAME}" >/dev/null 2>&1; then
+              echo "✅ Frontend image with correct SHA already exists locally"
+              docker tag "${FRONTEND_IMAGE_SHA_NAME}" "${FRONTEND_IMAGE_NAME}" || true
+            else
+              echo "🔄 Pulling frontend image"
+              docker pull "${FRONTEND_IMAGE_NAME}" || echo "Warning: Frontend PR-number tag not found"
+              docker pull "${FRONTEND_IMAGE_SHA_NAME}"
+              docker tag "${FRONTEND_IMAGE_SHA_NAME}" "${FRONTEND_IMAGE_NAME}" || true
+            fi
+
+            kind load docker-image "${FRONTEND_IMAGE_NAME}" --name preview-cluster
+
+            # Déployer le frontend
+            cat <<EOF | kubectl apply -f -
           apiVersion: apps/v1
           kind: Deployment
           metadata:
@@ -426,7 +391,7 @@ jobs:
                   - name: PORT
                     value: "80"
                   - name: NEXT_PUBLIC_API_URL
-                    value: "http://${{ needs.get-server-ip.outputs.ip }}:${BACKEND_PORT}"
+                    value: "http://${{ steps.server-ip.outputs.ip }}:30081"
           ---
           apiVersion: v1
           kind: Service
@@ -439,31 +404,23 @@ jobs:
             ports:
             - port: 80
               targetPort: 80
-              nodePort: ${FRONTEND_PORT}
+              nodePort: 30080
             type: NodePort
           EOF
 
-          # Attendre que tous les déploiements soient prêts
-          echo "⏳ Waiting for PostgreSQL to be ready..."
-          kubectl wait --for=condition=ready pod -l app=postgres-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
-
-          echo "⏳ Waiting for Backend to be ready..."
-          kubectl wait --for=condition=ready pod -l app=backend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
-
-          echo "⏳ Waiting for Frontend to be ready..."
-          kubectl wait --for=condition=ready pod -l app=frontend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
+            echo "⏳ Waiting for Frontend to be ready..."
+            kubectl wait --for=condition=ready pod -l app=frontend-preview-${PR_NUMBER} -n preview-pr-${PR_NUMBER} --timeout=300s
+          else
+            echo "Frontend unchanged, skipping frontend deployment"
+          fi
 
       - name: Comment PR with preview URLs
         uses: actions/github-script@v7
         with:
           script: |
-            const publicIp = '${{ needs.get-server-ip.outputs.ip }}';
-            const prNumber = ${{ needs.check-preview-request.outputs.pr-number }};
-            const basePort = 30000 + (prNumber * 10);
-            const frontendPort = basePort + 0;
-            const backendPort = basePort + 1;
-            const frontendUrl = `http://${publicIp}:${frontendPort}`;
-            const backendUrl = `http://${publicIp}:${backendPort}`;
+            const publicIp = '${{ steps.server-ip.outputs.ip }}';
+            const frontendUrl = `http://${publicIp}:30080`;
+            const backendUrl = `http://${publicIp}:30081`;
 
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
@@ -475,10 +432,6 @@ jobs:
               - Frontend: ${frontendUrl}
               - Backend API: ${backendUrl}
               - API Health: ${backendUrl}/health
-
-              **Ports assignés:**
-              - Frontend: ${frontendPort}
-              - Backend: ${backendPort}
 
               **Images Docker:**
               - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
@@ -498,7 +451,7 @@ jobs:
   notify-failure:
     name: Notify CI Failure
     runs-on: ubuntu-latest
-    needs: [ check-preview-request, run-ci ]
+    needs: [check-preview-request, run-ci]
     if: failure() && needs.run-ci.result == 'failure'
 
     steps:

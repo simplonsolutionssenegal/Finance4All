@@ -1,4 +1,4 @@
-import { config } from 'backend/src/infrastructure/config';
+import { config } from '@/infrastructure/config';
 
 describe('Configuration', () => {
   const originalEnv = process.env;
@@ -19,7 +19,7 @@ describe('Configuration', () => {
       delete process.env.PORT;
 
       // Re-import config to get fresh instance
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       expect(freshConfig.port).toBe(3000);
     });
@@ -28,7 +28,7 @@ describe('Configuration', () => {
       process.env.PORT = '8080';
 
       // Re-import config to get fresh instance
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       expect(freshConfig.port).toBe(8080);
     });
@@ -36,7 +36,7 @@ describe('Configuration', () => {
     it('should handle string PORT environment variable', () => {
       process.env.PORT = '5000';
 
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       expect(typeof freshConfig.port).toBe('number');
       expect(freshConfig.port).toBe(5000);
@@ -45,7 +45,7 @@ describe('Configuration', () => {
     it('should handle invalid PORT environment variable', () => {
       process.env.PORT = 'invalid';
 
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       // Number('invalid') returns NaN
       expect(freshConfig.port).toBe(NaN);
@@ -54,7 +54,7 @@ describe('Configuration', () => {
     it('should handle empty PORT environment variable', () => {
       process.env.PORT = '';
 
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       // Number('') returns 0, not NaN, so it will be 0
       expect(freshConfig.port).toBe(0);
@@ -63,7 +63,7 @@ describe('Configuration', () => {
     it('should handle zero PORT environment variable', () => {
       process.env.PORT = '0';
 
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
 
       expect(freshConfig.port).toBe(0);
     });
@@ -93,7 +93,7 @@ describe('Configuration', () => {
     it('should use nullish coalescing operator correctly', () => {
       // Test that undefined PORT uses default
       process.env.PORT = undefined;
-      const { config: freshConfig } = require('backend/src/infrastructure/config');
+      const { config: freshConfig } = require('@/infrastructure/config');
       expect(freshConfig.port).toBe(3000);
     });
 
@@ -108,7 +108,7 @@ describe('Configuration', () => {
       testCases.forEach(({ input, expected }) => {
         jest.resetModules();
         process.env.PORT = input;
-        const { config: freshConfig } = require('backend/src/infrastructure/config');
+        const { config: freshConfig } = require('@/infrastructure/config');
         expect(freshConfig.port).toBe(expected);
       });
     });

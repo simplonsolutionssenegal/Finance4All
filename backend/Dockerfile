@@ -73,8 +73,8 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copier les fichiers construits
 COPY --from=builder /app/dist ./dist
 
-# Copier les fichiers Prisma
-COPY --from=builder /app/prisma ./prisma
+# Créer la structure de répertoires et copier le fichier de schéma Prisma
+RUN mkdir -p ./src/infrastructure/config
 COPY --from=builder /app/src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
 
 # Copier le package.json pour les scripts

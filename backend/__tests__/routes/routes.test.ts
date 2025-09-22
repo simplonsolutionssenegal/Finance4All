@@ -1,9 +1,9 @@
 import request from 'supertest';
 import express from 'express';
-import { apiRoutes } from 'backend/src/routes';
+import { apiRoutes } from '@/routes';
 
 // Mock user routes
-jest.mock('backend/src/infrastructure/web/routes/user.routes', () => {
+jest.mock('@/infrastructure/web/routes/user.routes', () => {
   const router = require('express').Router();
 
   router.post('/', (req: any, res: any) => {
