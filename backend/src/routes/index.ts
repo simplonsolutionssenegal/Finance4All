@@ -1,11 +1,9 @@
 import { Router } from 'express';
 import userRoutes from '../infrastructure/web/routes/user.routes';
-import webhookRoutes from '../infrastructure/web/routes/webhook.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
-router.use('/webhooks', webhookRoutes);
 
 // Route de test
 router.get('/test', (req, res) => {

@@ -4,9 +4,9 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { GlobalLoader } from '@/components/global-loader';
-import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { LoaderProvider } from '@/contexts/LoaderContext';
+import { ThemeProvider } from '@/contexts/theme-provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

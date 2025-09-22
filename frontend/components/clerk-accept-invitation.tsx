@@ -190,15 +190,6 @@ export function ClerkAcceptInvitation({
       showLoader();
       setError(null);
 
-      // Log pour déboguer
-      console.log('Données envoyées:', {
-        invitationId,
-        orgId,
-        firstName: invitationData.firstName,
-        lastName: invitationData.lastName,
-        emailAddress: invitationData.emailAddress,
-        hasPassword: !!password,
-      });
 
       try {
         const response = await fetch('/api/accept-invitation', {
@@ -308,7 +299,7 @@ export function ClerkAcceptInvitation({
           <PasswordInput
             id='password'
             placeholder='Mot de passe'
-            value={formState.values.password as string}
+            value={formState.values.password}
             onChange={handlePasswordChange}
             className={`w-full h-12 ${
               hasError('password')
@@ -342,7 +333,7 @@ export function ClerkAcceptInvitation({
           <PasswordInput
             id='confirmPassword'
             placeholder='Confirmer le mot de passe'
-            value={formState.values.confirmPassword as string}
+            value={formState.values.confirmPassword}
             onChange={handleConfirmPasswordChange}
             className={`w-full h-12 ${
               hasError('confirmPassword')

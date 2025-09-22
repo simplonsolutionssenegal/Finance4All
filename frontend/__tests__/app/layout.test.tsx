@@ -18,7 +18,7 @@ jest.mock("@clerk/nextjs", () => ({
   }),
 }));
 
-jest.mock("@/components/theme-provider", () => {
+jest.mock("@/contexts/theme-provider", () => {
   return {
     ThemeProvider: ({ children, defaultTheme }: { children: React.ReactNode; defaultTheme: string }) => (
       <div data-testid="theme-provider" data-default-theme={defaultTheme}>

@@ -37,8 +37,8 @@ export default function DonutChart() {
                   dataKey='value'
                   stroke='none'
                 >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index + 1}`} fill={entry.color} />
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
               </PieChart>
@@ -51,8 +51,8 @@ export default function DonutChart() {
           </div>
 
           <div className='space-y-4 w-full'>
-            {data.map((item, index) => (
-              <div key={index} className='flex items-center justify-between'>
+            {data.map((item) => (
+              <div key={item.name} className='flex items-center justify-between'>
                 <div className='flex items-center space-x-3'>
                   <div className='w-3 h-3 rounded-full' style={{ backgroundColor: item.color }} />
                   <span className='text-sm text-gray-600'>{item.name}</span>

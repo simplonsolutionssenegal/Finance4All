@@ -4,12 +4,30 @@ import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { getAuth, clerkClient } from '@clerk/express';
 
+// Mocking emailService
+jest.mock('@/utils/emailService', () => ({
+  sendInvitationEmail: jest.fn(),
+}));
+
+// Mocking logger
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 // Mocking Clerk
 jest.mock('@clerk/express', () => ({
   getAuth: jest.fn(),
   clerkClient: {
     organizations: {
       createOrganizationInvitation: jest.fn(),
+      getOrganization: jest.fn(),
+    },
+    users: {
+      getUser: jest.fn(),
     },
   },
 }));
@@ -23,6 +41,12 @@ describe('UserController', () => {
 
   const mockGetAuth = getAuth as jest.Mock;
   const mockCreateOrganizationInvitation = clerkClient.organizations.createOrganizationInvitation as jest.Mock;
+  const mockGetOrganization = clerkClient.organizations.getOrganization as jest.Mock;
+  const mockGetUser = clerkClient.users.getUser as jest.Mock;
+
+  // Import the mocked email service
+  const { sendInvitationEmail } = require('@/utils/emailService');
+  const mockSendInvitationEmail = sendInvitationEmail as jest.Mock;
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -82,6 +106,13 @@ describe('UserController', () => {
       };
       mockCreateOrganizationInvitation.mockResolvedValue(mockInvitation);
 
+      // Mock des données d'organisation et utilisateur
+      mockGetOrganization.mockResolvedValue({ name: 'Test Organization' });
+      mockGetUser.mockResolvedValue({
+        emailAddresses: [{ emailAddress: 'inviter@example.com' }],
+      });
+      mockSendInvitationEmail.mockResolvedValue(undefined);
+
       await userController.create(mockRequest as Request, mockResponse as Response);
 
       expect(mockCreateOrganizationInvitation).toHaveBeenCalledWith({
@@ -94,6 +125,17 @@ describe('UserController', () => {
         },
         redirectUrl: expect.any(String),
       });
+
+      // Vérifier que l'email a été envoyé
+      expect(mockSendInvitationEmail).toHaveBeenCalledWith({
+        recipientEmail: invitationData.email,
+        organizationName: 'Test Organization',
+        role: invitationData.role,
+        inviterEmail: 'inviter@example.com',
+        invitationId: mockInvitation.id,
+        organizationId: invitationData.organizationId,
+      });
+
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
@@ -145,15 +187,49 @@ describe('UserController', () => {
         mockGetAuth.mockReturnValue({ userId: 'user_abc' });
         const unknownError = 'a string error';
         mockCreateOrganizationInvitation.mockRejectedValue(unknownError);
-  
+
         await userController.create(mockRequest as Request, mockResponse as Response);
-  
+
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith({
           error: "Erreur lors de la création de l\'invitation",
           message: 'Erreur inconnue',
         });
       });
+
+    it('should create invitation successfully even if email fails', async () => {
+      mockRequest.body = invitationData;
+      mockGetAuth.mockReturnValue({ userId: 'user_abc' });
+      const mockInvitation = {
+        id: 'inv_456',
+        emailAddress: invitationData.email,
+        status: 'pending',
+      };
+      mockCreateOrganizationInvitation.mockResolvedValue(mockInvitation);
+
+      // Mock successful organization and user fetch
+      mockGetOrganization.mockResolvedValue({ name: 'Test Organization' });
+      mockGetUser.mockResolvedValue({
+        emailAddresses: [{ emailAddress: 'inviter@example.com' }],
+      });
+
+      // Mock email service to fail
+      mockSendInvitationEmail.mockRejectedValue(new Error('Email service unavailable'));
+
+      await userController.create(mockRequest as Request, mockResponse as Response);
+
+      // L'invitation doit quand même être créée avec succès
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Invitation envoyée avec succès',
+        invitation: {
+          id: mockInvitation.id,
+          emailAddress: mockInvitation.emailAddress,
+          status: mockInvitation.status,
+        },
+      });
+    });
   });
 
   describe('remove', () => {

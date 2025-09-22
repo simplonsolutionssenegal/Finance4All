@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { clerkClient, getAuth } from '@clerk/express';
+import { sendInvitationEmail } from '@/utils/emailService';
+import { logger } from '@/utils/logger';
 
 export class UserController {
   constructor(
@@ -43,6 +45,57 @@ export class UserController {
         },
         redirectUrl: process.env.CLERK_REDIRECT_URL ?? 'http://localhost:3000/dashboard',
       });
+
+      // Récupérer les informations de l'organisation pour l'email
+      let organizationName = 'Finance4All';
+      let inviterEmail: string | undefined;
+
+      try {
+        const organization = await clerkClient.organizations.getOrganization({
+          organizationId,
+        });
+        organizationName = organization.name;
+      } catch (orgError) {
+        logger.warn('Impossible de récupérer le nom de l\'organisation', {
+          organizationId,
+          error: orgError,
+        });
+      }
+
+      try {
+        const currentUser = await clerkClient.users.getUser(userId);
+        inviterEmail = currentUser.emailAddresses?.[0]?.emailAddress;
+      } catch (userError) {
+        logger.warn('Impossible de récupérer l\'email de l\'inviteur', {
+          userId,
+          error: userError,
+        });
+      }
+
+      // Envoyer l'email d'invitation directement
+      try {
+        await sendInvitationEmail({
+          recipientEmail: email,
+          organizationName,
+          role,
+          inviterEmail,
+          invitationId: invitation.id,
+          organizationId,
+        });
+
+        logger.info('Email d\'invitation envoyé avec succès', {
+          recipient: email,
+          organizationName,
+          role,
+        });
+      } catch (emailError) {
+        logger.error('Erreur lors de l\'envoi de l\'email d\'invitation', {
+          emailError,
+          recipient: email,
+          invitationId: invitation.id,
+        });
+        // Ne pas faire échouer la création de l'invitation si l'email échoue
+      }
 
       res.status(201).json({
         success: true,
