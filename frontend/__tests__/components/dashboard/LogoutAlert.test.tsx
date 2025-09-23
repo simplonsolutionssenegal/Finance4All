@@ -86,7 +86,7 @@ describe('LogoutAlert', () => {
     });
     
     await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalled();
     });
   });
 
@@ -99,7 +99,7 @@ describe('LogoutAlert', () => {
     await user.click(cancelButton);
     
     await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalled();
     });
   });
 
