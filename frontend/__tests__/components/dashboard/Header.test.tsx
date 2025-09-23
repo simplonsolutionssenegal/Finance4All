@@ -1,19 +1,20 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import Header from '@/components/dashboard/Header';
 
 // Mock NoSSR component
 jest.mock('@/components/NoSSR', () => {
-  return function NoSSR({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
+  return function NoSSR({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   };
 });
 
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
-  Search: () => <div data-testid="search-icon" />,
-  Bell: () => <div data-testid="bell-icon" />,
-  ChevronDown: () => <div data-testid="chevron-down-icon" />,
+  Search: () => <div data-testid='search-icon' />,
+  Bell: () => <div data-testid='bell-icon' />,
+  ChevronDown: () => <div data-testid='chevron-down-icon' />,
 }));
 
 describe('Header', () => {
@@ -94,7 +95,8 @@ describe('Header', () => {
 
     // Find the notification button by the badge text since it's more reliable
     const notificationBadge = screen.getByText('10');
-    const notificationButton = notificationBadge.closest('button') || screen.getByTestId('bell-icon').closest('button');
+    const notificationButton =
+      notificationBadge.closest('button') || screen.getByTestId('bell-icon').closest('button');
 
     if (notificationButton) {
       expect(notificationButton).toBeInTheDocument();
@@ -139,7 +141,7 @@ describe('Header', () => {
   });
 
   it('renders notification badge with correct styling', () => {
-    const { container } = render(<Header />);
+    render(<Header />);
 
     const badge = screen.getByText('10');
     expect(badge).toHaveClass(

@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
-import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
+import type { Request, Response } from 'express';
+import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { clerkClient, getAuth } from '@clerk/express';
 import { sendInvitationEmail } from '@/utils/emailService';
 import { logger } from '@/utils/logger';
@@ -8,7 +8,7 @@ import { logger } from '@/utils/logger';
 export class UserController {
   constructor(
     private readonly removeUserUseCase: RemoveUserUseCase,
-    private readonly updateUserRoleUseCase: UpdateUserRoleUseCase,
+    private readonly updateUserRoleUseCase: UpdateUserRoleUseCase
   ) {
     // Injection de dépendances
   }
@@ -56,7 +56,7 @@ export class UserController {
         });
         organizationName = organization.name;
       } catch (orgError) {
-        logger.warn('Impossible de récupérer le nom de l\'organisation', {
+        logger.warn("Impossible de récupérer le nom de l'organisation", {
           organizationId,
           error: orgError,
         });
@@ -66,7 +66,7 @@ export class UserController {
         const currentUser = await clerkClient.users.getUser(userId);
         inviterEmail = currentUser.emailAddresses?.[0]?.emailAddress;
       } catch (userError) {
-        logger.warn('Impossible de récupérer l\'email de l\'inviteur', {
+        logger.warn("Impossible de récupérer l'email de l'inviteur", {
           userId,
           error: userError,
         });
@@ -83,13 +83,13 @@ export class UserController {
           organizationId,
         });
 
-        logger.info('Email d\'invitation envoyé avec succès', {
+        logger.info("Email d'invitation envoyé avec succès", {
           recipient: email,
           organizationName,
           role,
         });
       } catch (emailError) {
-        logger.error('Erreur lors de l\'envoi de l\'email d\'invitation', {
+        logger.error("Erreur lors de l'envoi de l'email d'invitation", {
           emailError,
           recipient: email,
           invitationId: invitation.id,
@@ -107,19 +107,19 @@ export class UserController {
         },
       });
     } catch (error) {
-      console.error('Erreur lors de la création de l\'invitation:', error);
+      console.error("Erreur lors de la création de l'invitation:", error);
 
       // Gestion spécifique des erreurs Clerk
       if (error && typeof error === 'object' && 'errors' in error) {
         const clerkError = error as { message?: string; errors?: unknown[] };
         res.status(400).json({
-          error: 'Erreur lors de la création de l\'invitation',
+          error: "Erreur lors de la création de l'invitation",
           message: clerkError.message ?? 'Erreur Clerk',
           details: clerkError.errors ?? [],
         });
       } else {
         res.status(400).json({
-          error: 'Erreur lors de la création de l\'invitation',
+          error: "Erreur lors de la création de l'invitation",
           message: error instanceof Error ? error.message : 'Erreur inconnue',
         });
       }
@@ -149,7 +149,7 @@ export class UserController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de la suppression de l\'utilisateur',
+        message: "Erreur serveur lors de la suppression de l'utilisateur",
         error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }
@@ -178,7 +178,7 @@ export class UserController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de la modification du rôle de l\'utilisateur',
+        message: "Erreur serveur lors de la modification du rôle de l'utilisateur",
         error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }

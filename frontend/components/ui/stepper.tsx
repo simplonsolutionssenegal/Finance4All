@@ -1,7 +1,7 @@
-import { ChevronRight } from "lucide-react";
-import React from "react";
+import { ChevronRight } from 'lucide-react';
+import React from 'react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface Step {
   id: number;
@@ -17,7 +17,7 @@ interface StepperProps {
 
 export function Stepper({ currentStep, steps, className }: StepperProps) {
   return (
-    <div className={cn("flex items-center space-x-4", className)}>
+    <div className={cn('flex items-center space-x-4', className)}>
       {steps.map((step, index) => {
         const StepIcon = step.icon;
         const isActive = currentStep === step.id;
@@ -28,18 +28,16 @@ export function Stepper({ currentStep, steps, className }: StepperProps) {
             <div
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
                 isActive
-                  ? "bg-primary/10 text-primary"
+                  ? 'bg-primary/10 text-primary'
                   : isCompleted
-                    ? "bg-green-600/10 text-green-600"
-                    : "bg-muted/30 text-muted-foreground"
+                    ? 'bg-green-600/10 text-green-600'
+                    : 'bg-muted/30 text-muted-foreground'
               }`}
             >
-              <StepIcon className="w-4 h-4" />
-              <span className="text-sm font-medium">{step.title}</span>
+              <StepIcon className='w-4 h-4' />
+              <span className='text-sm font-medium'>{step.title}</span>
             </div>
-            {index < steps.length - 1 && (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            )}
+            {index < steps.length - 1 && <ChevronRight className='w-4 h-4 text-muted-foreground' />}
           </React.Fragment>
         );
       })}

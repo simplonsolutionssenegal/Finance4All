@@ -11,7 +11,23 @@
   "endOfLine": "lf",
   "quoteProps": "as-needed",
   "proseWrap": "preserve",
+  "htmlWhitespaceSensitivity": "css",
   "embeddedLanguageFormatting": "auto",
-  "insertPragma": false,
-  "requirePragma": false
+  "singleAttributePerLine": false,
+  "experimentalTernaries": false,
+  "overrides": [
+    {
+      "files": "*.json",
+      "options": {
+        "printWidth": 200
+      }
+    },
+    {
+      "files": "*.md",
+      "options": {
+        "printWidth": 80,
+        "proseWrap": "always"
+      }
+    }
+  ]
 }

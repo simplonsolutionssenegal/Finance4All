@@ -1,4 +1,4 @@
-import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
+import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { User } from '@/domain/entities/User';
 
 describe('CreateUserUseCase Interface', () => {

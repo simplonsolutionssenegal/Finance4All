@@ -1,7 +1,3 @@
-
-
-export default function Formations(){
-  return (
-    <div>Page de formations</div>
-  )
+export default function Formations() {
+  return <div>Page de formations</div>;
 }

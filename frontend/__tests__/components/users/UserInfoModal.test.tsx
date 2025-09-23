@@ -31,7 +31,7 @@ describe('UserInfoModal', () => {
   it('renders when open with user data', () => {
     render(<UserInfoModal {...defaultProps} />);
 
-    expect(screen.getByText('Informations de l\'utilisateur')).toBeInTheDocument();
+    expect(screen.getByText("Informations de l'utilisateur")).toBeInTheDocument();
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
     expect(screen.getByText('org:member')).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('UserInfoModal', () => {
   it('does not render when closed', () => {
     render(<UserInfoModal {...defaultProps} isOpen={false} />);
 
-    expect(screen.queryByText('Informations de l\'utilisateur')).not.toBeInTheDocument();
+    expect(screen.queryByText("Informations de l'utilisateur")).not.toBeInTheDocument();
   });
 
   it('shows active status badge with correct styling', () => {
@@ -105,7 +105,13 @@ describe('UserInfoModal', () => {
     render(<UserInfoModal {...defaultProps} />);
 
     const deactivateButton = screen.getByText('Désactiver le compte');
-    expect(deactivateButton).toHaveClass('w-full', 'bg-orange-500', 'hover:bg-orange-600', 'text-white', 'rounded-lg');
+    expect(deactivateButton).toHaveClass(
+      'w-full',
+      'bg-orange-500',
+      'hover:bg-orange-600',
+      'text-white',
+      'rounded-lg'
+    );
   });
 
   it('handles different user data correctly', () => {

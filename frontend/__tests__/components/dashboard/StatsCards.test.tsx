@@ -5,10 +5,10 @@ import StatsCards from '@/components/dashboard/StatsCards';
 
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
-  ShoppingCart: () => <div data-testid="shopping-cart-icon" />,
-  Shield: () => <div data-testid="shield-icon" />,
-  Clock: () => <div data-testid="clock-icon" />,
-  MoreHorizontal: () => <div data-testid="more-horizontal-icon" />,
+  ShoppingCart: () => <div data-testid='shopping-cart-icon' />,
+  Shield: () => <div data-testid='shield-icon' />,
+  Clock: () => <div data-testid='clock-icon' />,
+  MoreHorizontal: () => <div data-testid='more-horizontal-icon' />,
 }));
 
 describe('StatsCards', () => {
@@ -111,7 +111,9 @@ describe('StatsCards', () => {
   it('renders cards with correct styling', () => {
     const { container } = render(<StatsCards />);
 
-    const cards = container.querySelectorAll('[class*="bg-white shadow-sm border border-gray-100 rounded-2xl"]');
+    const cards = container.querySelectorAll(
+      '[class*="bg-white shadow-sm border border-gray-100 rounded-2xl"]'
+    );
     expect(cards.length).toBe(3);
   });
 
@@ -149,7 +151,9 @@ describe('StatsCards', () => {
   it('renders card headers with proper flex layout', () => {
     const { container } = render(<StatsCards />);
 
-    const cardHeaders = container.querySelectorAll('[class*="flex flex-row items-center justify-between"]');
+    const cardHeaders = container.querySelectorAll(
+      '[class*="flex flex-row items-center justify-between"]'
+    );
     expect(cardHeaders.length).toBe(3);
   });
 

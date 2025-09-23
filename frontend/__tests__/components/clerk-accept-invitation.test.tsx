@@ -29,7 +29,7 @@ jest.mock('@/contexts/LoaderContext', () => ({
 }));
 
 let mockFormState = {
-  values: { password: '', confirmPassword: '' }
+  values: { password: '', confirmPassword: '' },
 };
 
 jest.mock('@/hooks/useFormState', () => ({
@@ -62,26 +62,27 @@ describe('ClerkAcceptInvitation', () => {
     mockFormState = { values: { password: '', confirmPassword: '' } };
 
     // Mock successful invitation fetch
-    mockFetch.mockImplementation((url) => {
+    mockFetch.mockImplementation(url => {
       if (url === '/api/get-invitation') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            invitation: {
-              emailAddress: 'test@example.com',
-              organizationName: 'Test Organization',
-              publicMetadata: {
-                firstName: 'John',
-                lastName: 'Doe'
-              }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                organizationName: 'Test Organization',
+                publicMetadata: {
+                  firstName: 'John',
+                  lastName: 'Doe',
+                },
+              },
+            }),
         } as unknown as Response);
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ success: true })
+        json: () => Promise.resolve({ success: true }),
       } as unknown as Response);
     });
   });
@@ -104,8 +105,8 @@ describe('ClerkAcceptInvitation', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           invitationId: 'inv_test123',
-          orgId: 'org_test456'
-        })
+          orgId: 'org_test456',
+        }),
       });
     });
 
@@ -131,21 +132,23 @@ describe('ClerkAcceptInvitation', () => {
   });
 
   it('handles password validation errors', async () => {
-    mockHasError.mockImplementation((field) => field === 'password');
-    mockGetError.mockImplementation((field) =>
+    mockHasError.mockImplementation(field => field === 'password');
+    mockGetError.mockImplementation(field =>
       field === 'password' ? 'Le mot de passe doit contenir au moins 8 caractères' : null
     );
 
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Le mot de passe doit contenir au moins 8 caractères')).toBeInTheDocument();
+      expect(
+        screen.getByText('Le mot de passe doit contenir au moins 8 caractères')
+      ).toBeInTheDocument();
     });
   });
 
   it('handles confirm password validation errors', async () => {
-    mockHasError.mockImplementation((field) => field === 'confirmPassword');
-    mockGetError.mockImplementation((field) =>
+    mockHasError.mockImplementation(field => field === 'confirmPassword');
+    mockGetError.mockImplementation(field =>
       field === 'confirmPassword' ? 'Les mots de passe ne correspondent pas' : null
     );
 
@@ -186,29 +189,30 @@ describe('ClerkAcceptInvitation', () => {
     // Mock valid form state
     mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
 
-    mockFetch.mockImplementation((url) => {
+    mockFetch.mockImplementation(url => {
       if (url === '/api/get-invitation') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({
-            success: true,
-            invitation: {
-              emailAddress: 'test@example.com',
-              organizationName: 'Test Organization',
-              publicMetadata: { firstName: 'John', lastName: 'Doe' }
-            }
-          })
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                organizationName: 'Test Organization',
+                publicMetadata: { firstName: 'John', lastName: 'Doe' },
+              },
+            }),
         } as unknown as Response);
       }
       if (url === '/api/accept-invitation') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ success: true })
+          json: () => Promise.resolve({ success: true }),
         } as unknown as Response);
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ success: true })
+        json: () => Promise.resolve({ success: true }),
       } as unknown as Response);
     });
 
@@ -223,11 +227,14 @@ describe('ClerkAcceptInvitation', () => {
     fireEvent.submit(form as HTMLFormElement);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/accept-invitation', expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: expect.stringContaining('"password":"ValidPassword123!"')
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/accept-invitation',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: expect.stringContaining('"password":"ValidPassword123!"'),
+        })
+      );
     });
 
     expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
@@ -237,14 +244,16 @@ describe('ClerkAcceptInvitation', () => {
     mockFetch.mockImplementation(() =>
       Promise.resolve({
         ok: false,
-        json: () => Promise.resolve({ message: 'API Error' })
+        json: () => Promise.resolve({ message: 'API Error' }),
       } as unknown as Response)
     );
 
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Impossible de charger les données de l'invitation/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Impossible de charger les données de l'invitation/)
+      ).toBeInTheDocument();
     });
   });
 
@@ -267,7 +276,7 @@ describe('ClerkAcceptInvitation', () => {
   });
 
   it('handles missing invitation ID error', async () => {
-    render(<ClerkAcceptInvitation invitationId="" orgId="org_test456" />);
+    render(<ClerkAcceptInvitation invitationId='' orgId='org_test456' />);
 
     await waitFor(() => {
       expect(screen.getByText(/ID d'invitation manquant/)).toBeInTheDocument();

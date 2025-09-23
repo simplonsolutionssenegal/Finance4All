@@ -10,5 +10,9 @@ export interface UpdateUserRoleUseCase {
    * @param role - Le nouveau rôle à attribuer à l'utilisateur
    * @returns Une promesse contenant le résultat de la modification
    */
-  execute(userId: string, organizationId: string, role: string): Promise<{ success: boolean; message: string }>;
+  execute(
+    userId: string,
+    organizationId: string,
+    role: string
+  ): Promise<{ success: boolean; message: string }>;
 }

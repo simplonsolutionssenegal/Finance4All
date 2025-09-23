@@ -1,4 +1,4 @@
-import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
+import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 
 describe('UpdateUserRoleUseCase Interface', () => {
   it('should define the correct contract', () => {

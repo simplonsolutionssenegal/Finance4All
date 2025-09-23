@@ -1,5 +1,5 @@
 import { CreateUserUseCaseImpl } from '@/domain/use-cases/createUserUseCaseImpl';
-import { UserRepository } from '@/domain/repositories/UserRepository';
+import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '@/domain/entities/User';
 
 // Helper function for test assertions
@@ -45,7 +45,7 @@ describe('CreateUserUseCaseImpl', () => {
 
     it('should throw error when name is empty', async () => {
       await expect(createUserUseCase.execute('', 'test@example.com')).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
@@ -53,11 +53,11 @@ describe('CreateUserUseCaseImpl', () => {
 
     it('should throw error when name is null/undefined', async () => {
       await expect(createUserUseCase.execute(null as any, 'test@example.com')).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       await expect(createUserUseCase.execute(undefined as any, 'test@example.com')).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
@@ -65,7 +65,7 @@ describe('CreateUserUseCaseImpl', () => {
 
     it('should throw error when email is empty', async () => {
       await expect(createUserUseCase.execute('John Doe', '')).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
@@ -73,24 +73,18 @@ describe('CreateUserUseCaseImpl', () => {
 
     it('should throw error when email is null/undefined', async () => {
       await expect(createUserUseCase.execute('John Doe', null as any)).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       await expect(createUserUseCase.execute('John Doe', undefined as any)).rejects.toThrow(
-        'Le nom et l\'email sont requis'
+        "Le nom et l'email sont requis"
       );
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid email format', async () => {
-      const invalidEmails = [
-        'invalid-email',
-        '@example.com',
-        'test@',
-        'test@.com',
-        'test@example',
-      ];
+      const invalidEmails = ['invalid-email', '@example.com', 'test@', 'test@.com', 'test@example'];
 
       for (const invalidEmail of invalidEmails) {
         mockUserRepository.save.mockClear(); // Clear previous calls
@@ -99,7 +93,7 @@ describe('CreateUserUseCaseImpl', () => {
           fail(`Expected error for invalid email: ${invalidEmail}`);
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
-          expect((error as Error).message).toBe('Format d\'email invalide');
+          expect((error as Error).message).toBe("Format d'email invalide");
         }
       }
 
@@ -135,13 +129,15 @@ describe('CreateUserUseCaseImpl', () => {
       const email = 'john.doe@example.com';
 
       // Mock to return the saved user as-is
-      mockUserRepository.save.mockImplementation((user) => Promise.resolve(user));
+      mockUserRepository.save.mockImplementation(user => Promise.resolve(user));
 
       // Execute twice with a small delay to ensure different timestamps
       await createUserUseCase.execute(name, email);
 
       // Wait a millisecond to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 2));
+      await new Promise(resolve => {
+        setTimeout(resolve, 2);
+      });
 
       await createUserUseCase.execute(name, email);
 
@@ -205,7 +201,7 @@ describe('CreateUserUseCaseImpl', () => {
           await expect(createUserUseCase.execute('Test User', email)).resolves.toBeDefined();
         } else {
           await expect(createUserUseCase.execute('Test User', email)).rejects.toThrow(
-            'Format d\'email invalide'
+            "Format d'email invalide"
           );
         }
       }

@@ -32,7 +32,9 @@ describe('ConfirmDesactivationModal', () => {
     render(<ConfirmDesactivationModal {...defaultProps} />);
 
     expect(screen.getByText('Attention')).toBeInTheDocument();
-    expect(screen.getByText(/Vous allez désactiver le compte de l'utilisateur/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Vous allez désactiver le compte de l'utilisateur/)
+    ).toBeInTheDocument();
     expect(screen.getByText('John Doe (john.doe@example.com)')).toBeInTheDocument();
     expect(screen.getByText('Annuler')).toBeInTheDocument();
     expect(screen.getByText('Désactiver')).toBeInTheDocument();

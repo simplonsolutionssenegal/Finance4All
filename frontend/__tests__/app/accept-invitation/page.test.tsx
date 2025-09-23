@@ -5,9 +5,9 @@ import AcceptInvitationPage from '@/app/accept-invitation/page';
 // Mock the ClerkAcceptInvitation component
 jest.mock('@/components/clerk-accept-invitation', () => ({
   ClerkAcceptInvitation: ({ invitationId, orgId }: { invitationId: string; orgId: string }) => (
-    <div data-testid="clerk-accept-invitation">
-      <div data-testid="invitation-id">{invitationId}</div>
-      <div data-testid="org-id">{orgId}</div>
+    <div data-testid='clerk-accept-invitation'>
+      <div data-testid='invitation-id'>{invitationId}</div>
+      <div data-testid='org-id'>{orgId}</div>
     </div>
   ),
 }));
@@ -15,7 +15,15 @@ jest.mock('@/components/clerk-accept-invitation', () => ({
 // Mock Next.js Image component to avoid recursive import issues
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: function MockImage({ src, alt, width, height, _fill, _priority, ...props }: {
+  default: function MockImage({
+    src,
+    alt,
+    width,
+    height,
+    _fill,
+    _priority,
+    ...props
+  }: {
     src: string;
     alt: string;
     width?: number;
@@ -28,7 +36,7 @@ jest.mock('next/image', () => ({
     const { _sizes, ...imgProps } = props;
     return (
       <div
-        data-testid="mock-image"
+        data-testid='mock-image'
         data-src={src}
         data-alt={alt}
         data-width={width}
@@ -55,7 +63,9 @@ describe('AcceptInvitationPage', () => {
 
     // Check main content
     expect(screen.getByText('Rejoignez votre organisation')).toBeInTheDocument();
-    expect(screen.getByText(/Vous avez été invité à rejoindre une organisation/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Vous avez été invité à rejoindre une organisation/)
+    ).toBeInTheDocument();
 
     // Check that images are rendered
     const images = screen.getAllByTestId('mock-image');
@@ -80,7 +90,7 @@ describe('AcceptInvitationPage', () => {
 
   it('renders without crashing when searchParams are empty', async () => {
     const Page = await AcceptInvitationPage({
-      searchParams: Promise.resolve({ invitation_id: '', org_id: '' })
+      searchParams: Promise.resolve({ invitation_id: '', org_id: '' }),
     });
     render(Page);
 

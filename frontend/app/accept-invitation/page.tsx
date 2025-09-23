@@ -10,7 +10,9 @@ interface AcceptInvitationPageProps {
   }>;
 }
 
-export default async function AcceptInvitationPage({ searchParams }: Readonly<AcceptInvitationPageProps>) {
+export default async function AcceptInvitationPage({
+  searchParams,
+}: Readonly<AcceptInvitationPageProps>) {
   const params = await searchParams;
 
   return (

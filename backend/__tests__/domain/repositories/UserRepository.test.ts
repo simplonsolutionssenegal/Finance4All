@@ -1,4 +1,4 @@
-import { UserRepository } from '@/domain/repositories/UserRepository';
+import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '@/domain/entities/User';
 
 describe('UserRepository Interface', () => {

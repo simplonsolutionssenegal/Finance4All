@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
-import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
-import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
+import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { getAuth, clerkClient } from '@clerk/express';
 
 // Mocking emailService
@@ -40,7 +40,8 @@ describe('UserController', () => {
   let mockResponse: Partial<Response>;
 
   const mockGetAuth = getAuth as jest.Mock;
-  const mockCreateOrganizationInvitation = clerkClient.organizations.createOrganizationInvitation as jest.Mock;
+  const mockCreateOrganizationInvitation = clerkClient.organizations
+    .createOrganizationInvitation as jest.Mock;
   const mockGetOrganization = clerkClient.organizations.getOrganization as jest.Mock;
   const mockGetUser = clerkClient.users.getUser as jest.Mock;
 
@@ -68,10 +69,7 @@ describe('UserController', () => {
       json: jest.fn(),
     };
 
-    userController = new UserController(
-      mockRemoveUserUseCase,
-      mockUpdateUserRoleUseCase
-    );
+    userController = new UserController(mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
   });
 
   describe('create', () => {
@@ -161,7 +159,7 @@ describe('UserController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: "Erreur lors de la création de l\'invitation",
+        error: "Erreur lors de la création de l'invitation",
         message: clerkError.message,
         details: clerkError.errors,
       });
@@ -177,25 +175,25 @@ describe('UserController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: "Erreur lors de la création de l\'invitation",
+        error: "Erreur lors de la création de l'invitation",
         message: genericError.message,
       });
     });
 
     it('should handle unknown (non-Error) errors during invitation creation', async () => {
-        mockRequest.body = invitationData;
-        mockGetAuth.mockReturnValue({ userId: 'user_abc' });
-        const unknownError = 'a string error';
-        mockCreateOrganizationInvitation.mockRejectedValue(unknownError);
+      mockRequest.body = invitationData;
+      mockGetAuth.mockReturnValue({ userId: 'user_abc' });
+      const unknownError = 'a string error';
+      mockCreateOrganizationInvitation.mockRejectedValue(unknownError);
 
-        await userController.create(mockRequest as Request, mockResponse as Response);
+      await userController.create(mockRequest as Request, mockResponse as Response);
 
-        expect(mockResponse.status).toHaveBeenCalledWith(400);
-        expect(mockResponse.json).toHaveBeenCalledWith({
-          error: "Erreur lors de la création de l\'invitation",
-          message: 'Erreur inconnue',
-        });
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: "Erreur lors de la création de l'invitation",
+        message: 'Erreur inconnue',
       });
+    });
 
     it('should create invitation successfully even if email fails', async () => {
       mockRequest.body = invitationData;
@@ -303,7 +301,7 @@ describe('UserController', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Erreur serveur lors de la suppression de l\'utilisateur',
+        message: "Erreur serveur lors de la suppression de l'utilisateur",
         error: 'Use case error',
       });
     });
@@ -317,7 +315,7 @@ describe('UserController', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Erreur serveur lors de la suppression de l\'utilisateur',
+        message: "Erreur serveur lors de la suppression de l'utilisateur",
         error: 'Erreur inconnue',
       });
     });
@@ -337,12 +335,19 @@ describe('UserController', () => {
     });
 
     it('should update user role successfully', async () => {
-      const expectedResult = { success: true, message: 'Rôle de l\'utilisateur modifié avec succès vers admin' };
+      const expectedResult = {
+        success: true,
+        message: "Rôle de l'utilisateur modifié avec succès vers admin",
+      };
       mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
 
       await userController.updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith(
+        'user_123',
+        'org_123',
+        'admin'
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
     });
@@ -408,7 +413,11 @@ describe('UserController', () => {
 
       await userController.updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith(
+        'user_123',
+        'org_123',
+        'admin'
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
     });
@@ -419,11 +428,15 @@ describe('UserController', () => {
 
       await userController.updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith(
+        'user_123',
+        'org_123',
+        'admin'
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Erreur serveur lors de la modification du rôle de l\'utilisateur',
+        message: "Erreur serveur lors de la modification du rôle de l'utilisateur",
         error: 'Use case error',
       });
     });
@@ -433,11 +446,15 @@ describe('UserController', () => {
 
       await userController.updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', 'admin');
+      expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith(
+        'user_123',
+        'org_123',
+        'admin'
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Erreur serveur lors de la modification du rôle de l\'utilisateur',
+        message: "Erreur serveur lors de la modification du rôle de l'utilisateur",
         error: 'Erreur inconnue',
       });
     });
@@ -447,7 +464,10 @@ describe('UserController', () => {
 
       for (const role of roles) {
         mockRequest.body = { organizationId: 'org_123', role };
-        const expectedResult = { success: true, message: `Rôle de l'utilisateur modifié avec succès vers ${role}` };
+        const expectedResult = {
+          success: true,
+          message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
+        };
         mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
 
         await userController.updateRole(mockRequest as Request, mockResponse as Response);

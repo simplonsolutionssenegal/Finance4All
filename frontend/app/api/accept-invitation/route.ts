@@ -79,10 +79,10 @@ export async function POST(request: NextRequest) {
         message: 'Compte créé et invitation acceptée avec succès',
         userId: user.id,
       });
-
     } catch (error: unknown) {
-      console.error('Erreur lors de l\'acceptation de l\'invitation:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
+      console.error("Erreur lors de l'acceptation de l'invitation:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Une erreur inconnue s'est produite";
 
       return NextResponse.json(
         {
@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: unknown) {
     console.error('Erreur API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Une erreur inconnue s\'est produite';
+    const errorMessage =
+      error instanceof Error ? error.message : "Une erreur inconnue s'est produite";
 
     return NextResponse.json(
       {
