@@ -1,21 +1,19 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 import type { FormState, FormHook } from '@/lib/form-types';
 
 // Réexport des types pour maintenir la compatibilité
-export type { FormState, FormHook } from "../lib/form-types";
+export type { FormState, FormHook } from '../lib/form-types';
 
 /**
  * Hook personnalisé pour gérer l'état d'un formulaire avec validation
  * @param initialValues - Valeurs initiales du formulaire
  * @returns Objet contenant l'état du formulaire et les fonctions de gestion
  */
-export function useFormState<T extends Record<string, unknown>>(
-  initialValues: T
-): FormHook<T> {
+export function useFormState<T extends Record<string, unknown>>(initialValues: T): FormHook<T> {
   const [formState, setFormState] = useState<FormState<T>>({
     values: initialValues,
-    errors: {}
+    errors: {},
   });
 
   //Met à jour la valeur d'un champ et efface son erreur
@@ -24,12 +22,12 @@ export function useFormState<T extends Record<string, unknown>>(
       ...prev,
       values: {
         ...prev.values,
-        [field]: value
+        [field]: value,
       },
       errors: {
         ...prev.errors,
-        [field]: ""
-      }
+        [field]: '',
+      },
     }));
   }, []);
 
@@ -39,8 +37,8 @@ export function useFormState<T extends Record<string, unknown>>(
       ...prev,
       errors: {
         ...prev.errors,
-        [field]: error
-      }
+        [field]: error,
+      },
     }));
   }, []);
 
@@ -50,8 +48,8 @@ export function useFormState<T extends Record<string, unknown>>(
       ...prev,
       errors: {
         ...prev.errors,
-        ...errors
-      }
+        ...errors,
+      },
     }));
   }, []);
 
@@ -61,8 +59,8 @@ export function useFormState<T extends Record<string, unknown>>(
       ...prev,
       errors: {
         ...prev.errors,
-        ...errors
-      }
+        ...errors,
+      },
     }));
   }, []);
 
@@ -70,7 +68,7 @@ export function useFormState<T extends Record<string, unknown>>(
   const clearErrors = useCallback(() => {
     setFormState(prev => ({
       ...prev,
-      errors: {}
+      errors: {},
     }));
   }, []);
 
@@ -78,7 +76,7 @@ export function useFormState<T extends Record<string, unknown>>(
   const resetForm = useCallback(() => {
     setFormState({
       values: initialValues,
-      errors: {}
+      errors: {},
     });
   }, [initialValues]);
 
@@ -86,14 +84,20 @@ export function useFormState<T extends Record<string, unknown>>(
   const isValid = Object.values(formState.errors).every(error => !error);
 
   //Vérifie si un champ spécifique a une erreur
-  const hasError = useCallback((field: keyof T) => {
-    return !!formState.errors[field];
-  }, [formState.errors]);
+  const hasError = useCallback(
+    (field: keyof T) => {
+      return !!formState.errors[field];
+    },
+    [formState.errors]
+  );
 
   //Obtient l'erreur d'un champ spécifique
-  const getError = useCallback((field: keyof T) => {
-    return formState.errors[field] || "";
-  }, [formState.errors]);
+  const getError = useCallback(
+    (field: keyof T) => {
+      return formState.errors[field] || '';
+    },
+    [formState.errors]
+  );
 
   return {
     formState,
@@ -105,6 +109,6 @@ export function useFormState<T extends Record<string, unknown>>(
     resetForm,
     isValid,
     hasError,
-    getError
+    getError,
   };
 }

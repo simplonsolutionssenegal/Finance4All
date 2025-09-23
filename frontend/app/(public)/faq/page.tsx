@@ -1,7 +1,3 @@
-
-
-export default function FAQ(){
-  return (
-    <div>Page de FAQ</div>
-  )
+export default function Faq() {
+  return <div>Page de FAQ</div>;
 }

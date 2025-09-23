@@ -28,12 +28,12 @@ describe('PublicHeader', () => {
 
   it('should render navigation menu with all links', () => {
     render(<PublicHeader />);
-    
+
     const navLinks = [
       { text: 'Comparateur', href: '/comparator' },
       { text: 'Formation', href: '/formations' },
       { text: 'FAQ', href: '/faq' },
-      { text: 'À Propos', href: '/about-us' }
+      { text: 'À Propos', href: '/about-us' },
     ];
 
     navLinks.forEach(({ text, href }) => {
@@ -45,7 +45,7 @@ describe('PublicHeader', () => {
 
   it('should apply correct navigation link styles', () => {
     render(<PublicHeader />);
-    
+
     const nav = screen.getByRole('navigation');
     const navLinks = within(nav).getAllByRole('link');
     navLinks.forEach(link => {
@@ -80,16 +80,16 @@ describe('PublicHeader', () => {
 
   it('should have proper header structure', () => {
     render(<PublicHeader />);
-    
+
     // Check header has correct classes
     const header = screen.getByRole('banner');
     expect(header).toHaveClass('bg-white', 'shadow-sm');
-    
+
     // Check container structure
     const container = header.querySelector('.max-w-7xl');
     expect(container).toBeInTheDocument();
     expect(container).toHaveClass('mx-auto', 'px-4', 'sm:px-6', 'lg:px-8');
-    
+
     // Check flex layout
     const flexContainer = container?.querySelector('.flex');
     expect(flexContainer).toHaveClass('justify-between', 'items-center', 'h-16');
@@ -97,11 +97,11 @@ describe('PublicHeader', () => {
 
   it('should render all navigation links in correct order', () => {
     render(<PublicHeader />);
-    
+
     const nav = screen.getByRole('navigation');
     const links = within(nav).getAllByRole('link');
     const expectedTexts = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
-    
+
     expectedTexts.forEach((expectedText, index) => {
       expect(links[index]).toHaveTextContent(expectedText);
     });
@@ -109,24 +109,19 @@ describe('PublicHeader', () => {
 
   it('should have accessibility-friendly structure', () => {
     render(<PublicHeader />);
-    
+
     // Header should have proper landmark role
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    
+
     // Navigation should have proper role
     expect(screen.getByRole('navigation')).toBeInTheDocument();
-    
+
     // Button should be accessible
     expect(screen.getByRole('link', { name: 'Se connecter' })).toBeInTheDocument();
-    
+
     // All links should be accessible
-    const navLinks = [
-      'Comparateur',
-      'Formation', 
-      'FAQ',
-      'À Propos'
-    ];
-    
+    const navLinks = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
+
     navLinks.forEach(linkText => {
       expect(screen.getByRole('link', { name: linkText })).toBeInTheDocument();
     });

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+
 import InstitutionsList from '@/components/dashboard/InstitutionsList';
 
 describe('InstitutionsList', () => {
@@ -27,7 +28,7 @@ describe('InstitutionsList', () => {
   });
 
   it('applies correct styling for active status', () => {
-    const { container } = render(<InstitutionsList />);
+    render(<InstitutionsList />);
 
     const activeBadges = screen.getAllByText('ACTIVE');
     activeBadges.forEach(badge => {
@@ -36,7 +37,7 @@ describe('InstitutionsList', () => {
   });
 
   it('applies correct styling for inactive status', () => {
-    const { container } = render(<InstitutionsList />);
+    render(<InstitutionsList />);
 
     const inactiveBadge = screen.getByText('INACTIVE');
     expect(inactiveBadge.closest('.bg-gray-100')).toBeInTheDocument();
@@ -64,7 +65,9 @@ describe('InstitutionsList', () => {
   it('renders institutions in a list format', () => {
     const { container } = render(<InstitutionsList />);
 
-    const institutionItems = container.querySelectorAll('[class*="flex items-center justify-between"]');
+    const institutionItems = container.querySelectorAll(
+      '[class*="flex items-center justify-between"]'
+    );
     expect(institutionItems.length).toBe(3); // Should have 3 institution items
   });
 

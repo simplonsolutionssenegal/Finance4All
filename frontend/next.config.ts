@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   },
   // Déplacement de serverComponentsExternalPackages vers serverExternalPackages
   serverExternalPackages: [],
-  output: "standalone",
+  output: 'standalone',
   // Réduire les ressources utilisées
   poweredByHeader: false,
   reactStrictMode: false,

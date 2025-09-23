@@ -10,13 +10,13 @@ jest.mock('next/navigation', () => ({
 
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
-  LayoutDashboard: () => <div data-testid="layout-dashboard-icon" />,
-  Building2: () => <div data-testid="building2-icon" />,
-  BookOpen: () => <div data-testid="book-open-icon" />,
-  Users: () => <div data-testid="users-icon" />,
-  Bell: () => <div data-testid="bell-icon" />,
-  Settings: () => <div data-testid="settings-icon" />,
-  LogOut: () => <div data-testid="logout-icon" />,
+  LayoutDashboard: () => <div data-testid='layout-dashboard-icon' />,
+  Building2: () => <div data-testid='building2-icon' />,
+  BookOpen: () => <div data-testid='book-open-icon' />,
+  Users: () => <div data-testid='users-icon' />,
+  Bell: () => <div data-testid='bell-icon' />,
+  Settings: () => <div data-testid='settings-icon' />,
+  LogOut: () => <div data-testid='logout-icon' />,
 }));
 
 const mockUsePathname = usePathname as jest.MockedFunction<typeof usePathname>;
@@ -118,10 +118,19 @@ describe('Sidebar', () => {
     render(<Sidebar />);
 
     expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: /institutions partenaires/i })).toHaveAttribute('href', '/institutions');
-    expect(screen.getByRole('link', { name: /cours & formations/i })).toHaveAttribute('href', '/formations');
+    expect(screen.getByRole('link', { name: /institutions partenaires/i })).toHaveAttribute(
+      'href',
+      '/institutions'
+    );
+    expect(screen.getByRole('link', { name: /cours & formations/i })).toHaveAttribute(
+      'href',
+      '/formations'
+    );
     expect(screen.getByRole('link', { name: /utilisateurs/i })).toHaveAttribute('href', '/users');
-    expect(screen.getByRole('link', { name: /notifications/i })).toHaveAttribute('href', '/notifications');
+    expect(screen.getByRole('link', { name: /notifications/i })).toHaveAttribute(
+      'href',
+      '/notifications'
+    );
     expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', '/settings');
   });
 

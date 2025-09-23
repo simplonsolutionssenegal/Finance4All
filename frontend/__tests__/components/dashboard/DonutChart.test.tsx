@@ -1,20 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import DonutChart from '@/components/dashboard/DonutChart';
 
 // Mock recharts components
 jest.mock('recharts', () => ({
-  PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
-  Pie: () => <div data-testid="pie" />,
-  Cell: () => <div data-testid="cell" />,
+  PieChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='pie-chart'>{children}</div>
+  ),
+  Pie: () => <div data-testid='pie' />,
+  Cell: () => <div data-testid='cell' />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+    <div data-testid='responsive-container'>{children}</div>
   ),
 }));
 
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
-  MoreHorizontal: () => <div data-testid="more-horizontal-icon" />,
+  MoreHorizontal: () => <div data-testid='more-horizontal-icon' />,
 }));
 
 describe('DonutChart', () => {

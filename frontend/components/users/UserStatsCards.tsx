@@ -69,13 +69,8 @@ export default function UserStatsCards() {
   ];
 
   const getBgColor = (id: number) => {
-      return id === 1
-          ? 'bg-blue-500'
-          : id === 2
-              ? 'bg-green-500'
-              : 'bg-orange-500'
-
-  }
+    return id === 1 ? 'bg-blue-500' : id === 2 ? 'bg-green-500' : 'bg-orange-500';
+  };
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6'>
@@ -102,9 +97,7 @@ export default function UserStatsCards() {
                 {stat.subtitle !== '' && (
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center space-x-1'>
-                      <div
-                        className={`w-2 h-2 rounded-full ${getBgColor(stat.id)}`}
-                      />
+                      <div className={`w-2 h-2 rounded-full ${getBgColor(stat.id)}`} />
                       <p className='text-sm text-gray-500'>{stat.subtitle}</p>
                     </div>
                   </div>

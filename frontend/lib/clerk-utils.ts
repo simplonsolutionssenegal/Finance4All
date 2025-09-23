@@ -32,7 +32,7 @@ export const useRemoveUserFromOrganization = () => {
         toast.error('Échec de la suppression', {
           description: "Impossible de supprimer l'utilisateur. Veuillez réessayer.",
         });
-        throw new Error('Impossible de supprimer l\'utilisateur après plusieurs tentatives.');
+        throw new Error("Impossible de supprimer l'utilisateur après plusieurs tentatives.");
       }
       await organization.removeMember(userId);
       hideLoader();
@@ -270,13 +270,15 @@ export const useCreateUser = (options?: { reloadFn?: () => void }) => {
           errorData = { message: `Erreur HTTP ${response.status}: ${response.statusText}` };
         }
 
-
         hideLoader();
 
         toast.error('Échec de la création', {
-          description: errorData.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
+          description:
+            errorData.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
         });
-        throw new Error(errorData.message || `Erreur HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(
+          errorData.message || `Erreur HTTP ${response.status}: ${response.statusText}`
+        );
       }
 
       const result: BackendResponse = await response.json();

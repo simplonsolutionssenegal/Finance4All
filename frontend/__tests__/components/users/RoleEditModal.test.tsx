@@ -37,7 +37,7 @@ describe('RoleEditModal', () => {
   it('renders when open with user data', () => {
     render(<RoleEditModal {...defaultProps} />);
 
-    expect(screen.getByText('Modifier le rôle de l\'utilisateur')).toBeInTheDocument();
+    expect(screen.getByText("Modifier le rôle de l'utilisateur")).toBeInTheDocument();
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
     expect(screen.getByText('org:member')).toBeInTheDocument();
@@ -46,13 +46,13 @@ describe('RoleEditModal', () => {
   it('does not render when user is null', () => {
     render(<RoleEditModal {...defaultProps} user={null} />);
 
-    expect(screen.queryByText('Modifier le rôle de l\'utilisateur')).not.toBeInTheDocument();
+    expect(screen.queryByText("Modifier le rôle de l'utilisateur")).not.toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
     render(<RoleEditModal {...defaultProps} isOpen={false} />);
 
-    expect(screen.queryByText('Modifier le rôle de l\'utilisateur')).not.toBeInTheDocument();
+    expect(screen.queryByText("Modifier le rôle de l'utilisateur")).not.toBeInTheDocument();
   });
 
   it('shows available roles except current role', () => {
@@ -110,7 +110,10 @@ describe('RoleEditModal', () => {
     await user.click(updateButton);
 
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Erreur lors de la mise à jour du rôle:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Erreur lors de la mise à jour du rôle:',
+        expect.any(Error)
+      );
     });
 
     consoleSpy.mockRestore();
@@ -119,7 +122,7 @@ describe('RoleEditModal', () => {
   it('shows loading state during role update', async () => {
     const user = userEvent.setup();
     let resolveUpdate: (() => void) | undefined;
-    const updatePromise = new Promise<void>((resolve) => {
+    const updatePromise = new Promise<void>(resolve => {
       resolveUpdate = resolve;
     });
     mockUpdateUserRole.mockReturnValue(updatePromise);
@@ -144,7 +147,6 @@ describe('RoleEditModal', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
-
 
   it('calls onClose when cancel button is clicked', async () => {
     const user = userEvent.setup();

@@ -1,14 +1,17 @@
 import { render, screen } from '@testing-library/react';
+
 import DashboardBarChart from '@/components/dashboard/BarChart';
 
 // Mock recharts components
 jest.mock('recharts', () => ({
-  BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
-  Bar: () => <div data-testid="bar" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
+  BarChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='bar-chart'>{children}</div>
+  ),
+  Bar: () => <div data-testid='bar' />,
+  XAxis: () => <div data-testid='x-axis' />,
+  YAxis: () => <div data-testid='y-axis' />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+    <div data-testid='responsive-container'>{children}</div>
   ),
 }));
 

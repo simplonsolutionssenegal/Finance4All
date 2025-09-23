@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { GlobalLoader } from '@/components/global-loader';
 import { useLoader } from '@/contexts/LoaderContext';
 
-
 // Mock the LoaderContext
 jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: jest.fn(),

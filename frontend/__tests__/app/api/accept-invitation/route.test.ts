@@ -154,7 +154,7 @@ describe('/api/accept-invitation', () => {
 
     expect(response.status).toBe(500);
     expect(data.success).toBe(false);
-    expect(data.message).toContain('Erreur lors de l\'acceptation: Clerk API Error');
+    expect(data.message).toContain("Erreur lors de l'acceptation: Clerk API Error");
   });
 
   it('should handle JSON parsing errors', async () => {
@@ -171,11 +171,18 @@ describe('/api/accept-invitation', () => {
   });
 
   it('should validate each required field individually', async () => {
-    const requiredFields = ['invitationId', 'orgId', 'password', 'firstName', 'lastName', 'emailAddress'];
+    const requiredFields = [
+      'invitationId',
+      'orgId',
+      'password',
+      'firstName',
+      'lastName',
+      'emailAddress',
+    ];
 
     // Tester chaque champ individuellement pour éviter await-in-loop
     const testResults = await Promise.all(
-      requiredFields.map(async (field) => {
+      requiredFields.map(async field => {
         const invalidBody = { ...validRequestBody };
         delete invalidBody[field as keyof typeof validRequestBody];
 
@@ -193,7 +200,7 @@ describe('/api/accept-invitation', () => {
     );
 
     // Vérifier que tous les tests ont échoué comme attendu
-    testResults.forEach((result) => {
+    testResults.forEach(result => {
       expect(result.status).toBe(400);
       expect(result.success).toBe(false);
       expect(result.message).toBe('Tous les champs sont requis');

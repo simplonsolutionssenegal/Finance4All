@@ -45,8 +45,7 @@ export function ClerkAcceptInvitation({
   const [error, setError] = useState<string | null>(null);
   const [invitationData, setInvitationData] = useState<InvitationMetadata | null>(null);
 
-  const { formState, updateField, hasError, getError, setErrors } =
-    useFormState(initialValues);
+  const { formState, updateField, hasError, getError, setErrors } = useFormState(initialValues);
 
   const resetState = useCallback(() => {
     setError(null);
@@ -189,7 +188,6 @@ export function ClerkAcceptInvitation({
 
       showLoader();
       setError(null);
-
 
       try {
         const response = await fetch('/api/accept-invitation', {

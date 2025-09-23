@@ -1,7 +1,3 @@
-
-
-export default function Comparator(){
-  return (
-    <div>Page de Comparateur</div>
-  )
+export default function Comparator() {
+  return <div>Page de Comparateur</div>;
 }

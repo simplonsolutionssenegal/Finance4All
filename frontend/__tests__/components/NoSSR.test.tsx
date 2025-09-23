@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+
 import NoSSR from '@/components/NoSSR';
 
 describe('NoSSR', () => {
@@ -50,7 +51,7 @@ describe('NoSSR', () => {
     render(
       <NoSSR
         fallback={
-          <div className="loading">
+          <div className='loading'>
             <span>Please wait...</span>
             <div>Loading...</div>
           </div>
@@ -69,7 +70,7 @@ describe('NoSSR', () => {
   it('preserves children props and attributes after mounting', async () => {
     render(
       <NoSSR>
-        <div data-testid="main-content" className="content">
+        <div data-testid='main-content' className='content'>
           Main Content
         </div>
       </NoSSR>
@@ -84,24 +85,19 @@ describe('NoSSR', () => {
   });
 
   it('handles empty children', async () => {
-    const { container } = render(
-      <NoSSR fallback={<div>Loading...</div>}>
-        {null}
-      </NoSSR>
-    );
+    const { container } = render(<NoSSR fallback={<div>Loading...</div>}>{null}</NoSSR>);
 
-    await waitFor(() => {
-      // Should render component without errors
-      expect(container).toBeInTheDocument();
-    }, { timeout: 100 });
+    await waitFor(
+      () => {
+        // Should render component without errors
+        expect(container).toBeInTheDocument();
+      },
+      { timeout: 100 }
+    );
   });
 
   it('handles string children', async () => {
-    render(
-      <NoSSR fallback={<div>Loading...</div>}>
-        Just a string
-      </NoSSR>
-    );
+    render(<NoSSR fallback={<div>Loading...</div>}>Just a string</NoSSR>);
 
     await waitFor(() => {
       expect(screen.getByText('Just a string')).toBeInTheDocument();
@@ -109,11 +105,7 @@ describe('NoSSR', () => {
   });
 
   it('handles number children', async () => {
-    render(
-      <NoSSR fallback={<div>Loading...</div>}>
-        {42}
-      </NoSSR>
-    );
+    render(<NoSSR fallback={<div>Loading...</div>}>{42}</NoSSR>);
 
     await waitFor(() => {
       expect(screen.getByText('42')).toBeInTheDocument();

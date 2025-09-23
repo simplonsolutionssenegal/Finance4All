@@ -92,7 +92,7 @@ describe('useRemoveUserFromOrganization', () => {
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: false,
-      json: async () => (primaryError),
+      json: async () => primaryError,
     });
 
     const { result } = renderHook(() => useRemoveUserFromOrganization());
@@ -107,7 +107,10 @@ describe('useRemoveUserFromOrganization', () => {
       "Utilisateur retiré de l'organisation",
       expect.any(Object)
     );
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors de la tentative principale de suppression, passage au fallback:", primaryError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors de la tentative principale de suppression, passage au fallback:',
+      primaryError
+    );
   });
 
   it('should trigger fallback if API call succeeds but operation fails', async () => {
@@ -116,7 +119,7 @@ describe('useRemoveUserFromOrganization', () => {
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => (primaryError),
+      json: async () => primaryError,
     });
 
     const { result } = renderHook(() => useRemoveUserFromOrganization());
@@ -131,7 +134,10 @@ describe('useRemoveUserFromOrganization', () => {
       "Utilisateur retiré de l'organisation",
       expect.any(Object)
     );
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors de la tentative principale de suppression, passage au fallback:", primaryError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors de la tentative principale de suppression, passage au fallback:',
+      primaryError
+    );
   });
 
   it('should trigger fallback on network error', async () => {
@@ -148,12 +154,18 @@ describe('useRemoveUserFromOrganization', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(mockOrganization.removeMember).toHaveBeenCalledWith(userId);
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors de la tentative principale de suppression, passage au fallback:", networkError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors de la tentative principale de suppression, passage au fallback:',
+      networkError
+    );
   });
 
   it('should handle fallback failure', async () => {
     const fallbackError = new Error('Clerk API failed');
-    const mockOrganization = { id: 'org_123', removeMember: jest.fn().mockRejectedValue(fallbackError) };
+    const mockOrganization = {
+      id: 'org_123',
+      removeMember: jest.fn().mockRejectedValue(fallbackError),
+    };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: false,
@@ -163,28 +175,38 @@ describe('useRemoveUserFromOrganization', () => {
     const { result } = renderHook(() => useRemoveUserFromOrganization());
 
     await act(async () => {
-      await expect(result.current.removeUser(userId)).rejects.toThrow('Impossible de supprimer l\'utilisateur après plusieurs tentatives.');
+      await expect(result.current.removeUser(userId)).rejects.toThrow(
+        "Impossible de supprimer l'utilisateur après plusieurs tentatives."
+      );
     });
     expect(mockHideLoader).toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      'Échec de la suppression',
-      expect.any(Object)
+    expect(toastErrorMock).toHaveBeenCalledWith('Échec de la suppression', expect.any(Object));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors du fallback de suppression:',
+      fallbackError
     );
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors du fallback de suppression:", fallbackError);
   });
 
   it('should handle fallback failure when organization is gone', async () => {
     const fallbackError = new Error('Clerk API failed during fallback');
-    const mockOrganization = { id: 'org_123', removeMember: jest.fn().mockRejectedValue(fallbackError) };
+    const mockOrganization = {
+      id: 'org_123',
+      removeMember: jest.fn().mockRejectedValue(fallbackError),
+    };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
 
     const { result } = renderHook(() => useRemoveUserFromOrganization());
 
     await act(async () => {
-      await expect(result.current.removeUser(userId)).rejects.toThrow('Impossible de supprimer l\'utilisateur après plusieurs tentatives.');
+      await expect(result.current.removeUser(userId)).rejects.toThrow(
+        "Impossible de supprimer l'utilisateur après plusieurs tentatives."
+      );
     });
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors du fallback de suppression:", fallbackError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors du fallback de suppression:',
+      fallbackError
+    );
   });
 });
 
@@ -226,7 +248,9 @@ describe('useUpdateUserRole', () => {
     useOrganizationMock.mockReturnValue({ organization: null });
     const { result } = renderHook(() => useUpdateUserRole({ reloadFn: mockReload }));
 
-    await expect(result.current.updateUserRole(userId, newRole)).rejects.toThrow('Aucune organisation active');
+    await expect(result.current.updateUserRole(userId, newRole)).rejects.toThrow(
+      'Aucune organisation active'
+    );
     expect(toastErrorMock).toHaveBeenCalledWith('Aucune organisation active');
     expect(mockShowLoader).not.toHaveBeenCalled();
   });
@@ -254,7 +278,7 @@ describe('useUpdateUserRole', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock_token',
+          Authorization: 'Bearer mock_token',
         },
         body: JSON.stringify({
           organizationId: 'org_123',
@@ -266,7 +290,7 @@ describe('useUpdateUserRole', () => {
     expect(toastSuccessMock).toHaveBeenCalledWith(
       'Rôle mis à jour avec succès',
       expect.objectContaining({
-        description: 'Le rôle de l\'utilisateur a été modifié vers Admin.',
+        description: "Le rôle de l'utilisateur a été modifié vers Admin.",
       })
     );
     expect(hookResult).toEqual({ success: true });
@@ -293,7 +317,7 @@ describe('useUpdateUserRole', () => {
     expect(toastSuccessMock).toHaveBeenCalledWith(
       'Rôle mis à jour avec succès',
       expect.objectContaining({
-        description: 'Le rôle de l\'utilisateur a été modifié vers Member.',
+        description: "Le rôle de l'utilisateur a été modifié vers Member.",
       })
     );
   });
@@ -301,7 +325,7 @@ describe('useUpdateUserRole', () => {
   it('should trigger fallback if API response is not ok', async () => {
     const mockOrganization = {
       id: 'org_123',
-      updateMember: jest.fn().mockResolvedValueOnce({})
+      updateMember: jest.fn().mockResolvedValueOnce({}),
     };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
@@ -329,7 +353,7 @@ describe('useUpdateUserRole', () => {
   it('should trigger fallback if API call succeeds but operation fails', async () => {
     const mockOrganization = {
       id: 'org_123',
-      updateMember: jest.fn().mockResolvedValueOnce({})
+      updateMember: jest.fn().mockResolvedValueOnce({}),
     };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
@@ -356,7 +380,7 @@ describe('useUpdateUserRole', () => {
   it('should handle network errors by triggering fallback', async () => {
     const mockOrganization = {
       id: 'org_123',
-      updateMember: jest.fn().mockResolvedValueOnce({})
+      updateMember: jest.fn().mockResolvedValueOnce({}),
     };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     const networkError = new Error('Network failure');
@@ -383,7 +407,7 @@ describe('useUpdateUserRole', () => {
     const fallbackError = new Error('Clerk API failed');
     const mockOrganization = {
       id: 'org_123',
-      updateMember: jest.fn().mockRejectedValue(fallbackError)
+      updateMember: jest.fn().mockRejectedValue(fallbackError),
     };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
@@ -403,24 +427,35 @@ describe('useUpdateUserRole', () => {
     expect(toastErrorMock).toHaveBeenCalledWith(
       'Échec de la mise à jour',
       expect.objectContaining({
-        description: 'Impossible de mettre à jour le rôle de l\'utilisateur. Veuillez réessayer.',
+        description: "Impossible de mettre à jour le rôle de l'utilisateur. Veuillez réessayer.",
       })
     );
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Erreur lors du fallback de mise à jour:', fallbackError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors du fallback de mise à jour:',
+      fallbackError
+    );
   });
 
   it('should handle fallback failure when organization is gone', async () => {
     const fallbackError = new Error('Clerk API failed during fallback');
-    const mockOrganization = { id: 'org_123', updateMember: jest.fn().mockRejectedValue(fallbackError) };
+    const mockOrganization = {
+      id: 'org_123',
+      updateMember: jest.fn().mockRejectedValue(fallbackError),
+    };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
 
     const { result } = renderHook(() => useUpdateUserRole({ reloadFn: mockReload }));
 
     await act(async () => {
-      await expect(result.current.updateUserRole(userId, newRole)).rejects.toThrow('Impossible de mettre à jour le rôle après plusieurs tentatives.');
+      await expect(result.current.updateUserRole(userId, newRole)).rejects.toThrow(
+        'Impossible de mettre à jour le rôle après plusieurs tentatives.'
+      );
     });
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Erreur lors du fallback de mise à jour:", fallbackError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors du fallback de mise à jour:',
+      fallbackError
+    );
   });
 
   it('should work without auth token', async () => {
@@ -511,7 +546,10 @@ describe('useCreateUser', () => {
     expect(mockShowLoader).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(mockHideLoader).toHaveBeenCalledTimes(1);
-    expect(toastSuccessMock).toHaveBeenCalledWith('Utilisateur créé avec succès', expect.any(Object));
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      'Utilisateur créé avec succès',
+      expect.any(Object)
+    );
     expect(hookResult).toEqual({ success: true });
 
     jest.runAllTimers();
@@ -521,7 +559,12 @@ describe('useCreateUser', () => {
   it('should handle API failure', async () => {
     const mockOrganization = { id: 'org_123' };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 400, statusText: 'Bad Request', json: async () => ({ message: 'Invalid data' }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: async () => ({ message: 'Invalid data' }),
+    });
 
     const { result } = renderHook(() => useCreateUser({ reloadFn: mockReload }));
 
@@ -536,7 +579,10 @@ describe('useCreateUser', () => {
   it('should handle API success but operation failure', async () => {
     const mockOrganization = { id: 'org_123' };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ success: false, message: 'User already exists' }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false, message: 'User already exists' }),
+    });
 
     const { result } = renderHook(() => useCreateUser({ reloadFn: mockReload }));
 
@@ -551,12 +597,21 @@ describe('useCreateUser', () => {
   it('should handle non-json error response', async () => {
     const mockOrganization = { id: 'org_123' };
     useOrganizationMock.mockReturnValue({ organization: mockOrganization });
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error', json: async () => { throw new Error('Invalid JSON') } });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: async () => {
+        throw new Error('Invalid JSON');
+      },
+    });
 
     const { result } = renderHook(() => useCreateUser({ reloadFn: mockReload }));
 
     await act(async () => {
-      await expect(result.current.createUser(userData)).rejects.toThrow('Erreur HTTP 500: Internal Server Error');
+      await expect(result.current.createUser(userData)).rejects.toThrow(
+        'Erreur HTTP 500: Internal Server Error'
+      );
     });
 
     expect(mockHideLoader).toHaveBeenCalled();

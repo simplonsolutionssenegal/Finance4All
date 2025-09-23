@@ -82,15 +82,16 @@ export function ConnexionForm() {
           await setActive({ session: signInAttempt.createdSessionId });
           router.push('/dashboard');
         } else {
-          setError('Une erreur s\'est produite lors de la connexion. Veuillez réessayer.');
+          setError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
         }
       } catch (err: unknown) {
         console.error('Erreur de connexion:', err);
 
-        let errorMessage = 'Une erreur s\'est produite lors de la connexion.';
+        let errorMessage = "Une erreur s'est produite lors de la connexion.";
 
         if (err && typeof err === 'object' && 'errors' in err) {
-          const clerkError = (err as { errors: Array<{ code: string; message?: string }> }).errors[0];
+          const clerkError = (err as { errors: Array<{ code: string; message?: string }> })
+            .errors[0];
           if (clerkError) {
             switch (clerkError.code) {
               case 'form_identifier_not_found':
@@ -208,7 +209,7 @@ export function ConnexionForm() {
           disabled={isLoading || !isFormValid || !isLoaded}
           className='w-full h-12 bg-primary-300 hover:bg-primary-300 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
         >
-          {isLoading ? "Connexion en cours..." : "Connexion"}
+          {isLoading ? 'Connexion en cours...' : 'Connexion'}
         </Button>
       </form>
     </div>

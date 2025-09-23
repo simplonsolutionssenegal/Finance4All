@@ -1,36 +1,39 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+
 import GrowthChart from '@/components/dashboard/GrowthChart';
 
 // Mock Recharts components
 jest.mock('recharts', () => ({
-  LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
-  Line: (props: any) => <div data-testid="line" {...props} />,
-  XAxis: (props: any) => <div data-testid="x-axis" {...props} />,
-  YAxis: (props: any) => <div data-testid="y-axis" {...props} />,
-  CartesianGrid: (props: any) => <div data-testid="cartesian-grid" {...props} />,
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
+  LineChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='line-chart'>{children}</div>
   ),
-  Tooltip: (props: any) => <div data-testid="tooltip" {...props} />,
+  Line: (props: any) => <div data-testid='line' {...props} />,
+  XAxis: (props: any) => <div data-testid='x-axis' {...props} />,
+  YAxis: (props: any) => <div data-testid='y-axis' {...props} />,
+  CartesianGrid: (props: any) => <div data-testid='cartesian-grid' {...props} />,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='responsive-container'>{children}</div>
+  ),
+  Tooltip: (props: any) => <div data-testid='tooltip' {...props} />,
 }));
 
 // Mock UI components
 jest.mock('@/components/ui/card', () => ({
   Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card" className={className}>
+    <div data-testid='card' className={className}>
       {children}
     </div>
   ),
   CardContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="card-content">{children}</div>
+    <div data-testid='card-content'>{children}</div>
   ),
   CardHeader: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card-header" className={className}>
+    <div data-testid='card-header' className={className}>
       {children}
     </div>
   ),
   CardTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h3 data-testid="card-title" className={className}>
+    <h3 data-testid='card-title' className={className}>
       {children}
     </h3>
   ),
@@ -39,7 +42,7 @@ jest.mock('@/components/ui/card', () => ({
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, variant, size, className, ...props }: any) => (
     <button
-      data-testid="button"
+      data-testid='button'
       onClick={onClick}
       data-variant={variant}
       data-size={size}
@@ -53,7 +56,7 @@ jest.mock('@/components/ui/button', () => ({
 
 jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <span data-testid="badge" className={className}>
+    <span data-testid='badge' className={className}>
       {children}
     </span>
   ),
@@ -61,7 +64,7 @@ jest.mock('@/components/ui/badge', () => ({
 
 // Mock Lucide icon
 jest.mock('lucide-react', () => ({
-  MoreHorizontal: (props: any) => <div data-testid="more-horizontal-icon" {...props} />,
+  MoreHorizontal: (props: any) => <div data-testid='more-horizontal-icon' {...props} />,
 }));
 
 describe('GrowthChart', () => {
@@ -192,15 +195,22 @@ describe('GrowthChart', () => {
       render(<GrowthChart />);
 
       const card = screen.getByTestId('card');
-      expect(card).toHaveClass('col-span-2', 'bg-white', 'shadow-sm', 'border', 'border-gray-100', 'rounded-2xl');
+      expect(card).toHaveClass(
+        'col-span-2',
+        'bg-white',
+        'shadow-sm',
+        'border',
+        'border-gray-100',
+        'rounded-2xl'
+      );
     });
 
     it('applies correct styling to active filter button', () => {
       render(<GrowthChart />);
 
       const buttons = screen.getAllByTestId('button');
-      const activeButton = buttons.find(button =>
-        button.textContent === '1M' && button.getAttribute('data-variant') === 'secondary'
+      const activeButton = buttons.find(
+        button => button.textContent === '1M' && button.getAttribute('data-variant') === 'secondary'
       );
 
       expect(activeButton?.className).toContain('bg-white');
@@ -212,8 +222,8 @@ describe('GrowthChart', () => {
       render(<GrowthChart />);
 
       const buttons = screen.getAllByTestId('button');
-      const inactiveButton = buttons.find(button =>
-        button.textContent === '1D' && button.getAttribute('data-variant') === 'ghost'
+      const inactiveButton = buttons.find(
+        button => button.textContent === '1D' && button.getAttribute('data-variant') === 'ghost'
       );
 
       expect(inactiveButton?.className).toContain('text-gray-600');
@@ -224,7 +234,14 @@ describe('GrowthChart', () => {
       render(<GrowthChart />);
 
       const badge = screen.getByTestId('badge');
-      expect(badge).toHaveClass('bg-green-100', 'text-green-700', 'hover:bg-green-100', 'rounded-full', 'px-3', 'py-1');
+      expect(badge).toHaveClass(
+        'bg-green-100',
+        'text-green-700',
+        'hover:bg-green-100',
+        'rounded-full',
+        'px-3',
+        'py-1'
+      );
     });
   });
 
@@ -233,7 +250,14 @@ describe('GrowthChart', () => {
       render(<GrowthChart />);
 
       const header = screen.getByTestId('card-header');
-      expect(header).toHaveClass('flex', 'flex-row', 'items-center', 'justify-between', 'space-y-0', 'pb-6');
+      expect(header).toHaveClass(
+        'flex',
+        'flex-row',
+        'items-center',
+        'justify-between',
+        'space-y-0',
+        'pb-6'
+      );
     });
 
     it('has filter buttons container with correct styling', () => {
@@ -280,7 +304,9 @@ describe('GrowthChart', () => {
 
       fireEvent.click(oneDayButton);
       let buttons = screen.getAllByTestId('button');
-      let activeButton = buttons.find(button => button.getAttribute('data-variant') === 'secondary');
+      let activeButton = buttons.find(
+        button => button.getAttribute('data-variant') === 'secondary'
+      );
       expect(activeButton?.textContent).toBe('1D');
 
       fireEvent.click(oneWeekButton);

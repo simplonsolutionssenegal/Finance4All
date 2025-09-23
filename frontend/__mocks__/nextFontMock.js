@@ -1,5 +1,5 @@
 module.exports = () => ({
-    className: "",
-    style: {},
-    variable: "",
+  className: '',
+  style: {},
+  variable: '',
 });

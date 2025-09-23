@@ -1,4 +1,3 @@
-
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import { ConnexionForm } from '@/components/connexion-form';
@@ -26,7 +25,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, disabled, onClick, type, className }: any) => (
     <button
-      data-testid="button"
+      data-testid='button'
       disabled={disabled}
       onClick={onClick}
       type={type}
@@ -40,7 +39,7 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/components/ui/input', () => ({
   Input: ({ value, onChange, disabled, type, placeholder, className, id, ...props }: any) => (
     <input
-      data-testid="input"
+      data-testid='input'
       value={value}
       onChange={onChange}
       disabled={disabled}
@@ -55,7 +54,7 @@ jest.mock('@/components/ui/input', () => ({
 
 jest.mock('@/components/ui/label', () => ({
   Label: ({ children, htmlFor, className }: any) => (
-    <label data-testid="label" htmlFor={htmlFor} className={className}>
+    <label data-testid='label' htmlFor={htmlFor} className={className}>
       {children}
     </label>
   ),
@@ -64,14 +63,14 @@ jest.mock('@/components/ui/label', () => ({
 jest.mock('@/components/password-input', () => ({
   PasswordInput: ({ value, onChange, disabled, placeholder, className, id, ...props }: any) => (
     <input
-      data-testid="password-input"
+      data-testid='password-input'
       value={value}
       onChange={onChange}
       disabled={disabled}
       placeholder={placeholder}
       className={className}
       id={id}
-      type="password"
+      type='password'
       {...props}
     />
   ),
@@ -182,8 +181,8 @@ describe('ConnexionForm', () => {
 
   describe('Form Validation', () => {
     it('shows email error when hasError returns true', () => {
-      mockHasError.mockImplementation((field) => field === 'email');
-      mockGetError.mockImplementation((field) => field === 'email' ? 'Email invalide' : '');
+      mockHasError.mockImplementation(field => field === 'email');
+      mockGetError.mockImplementation(field => (field === 'email' ? 'Email invalide' : ''));
 
       render(<ConnexionForm />);
 
@@ -192,8 +191,10 @@ describe('ConnexionForm', () => {
     });
 
     it('shows password error when hasError returns true', () => {
-      mockHasError.mockImplementation((field) => field === 'password');
-      mockGetError.mockImplementation((field) => field === 'password' ? 'Mot de passe trop court' : '');
+      mockHasError.mockImplementation(field => field === 'password');
+      mockGetError.mockImplementation(field =>
+        field === 'password' ? 'Mot de passe trop court' : ''
+      );
 
       render(<ConnexionForm />);
 
@@ -202,7 +203,7 @@ describe('ConnexionForm', () => {
     });
 
     it('applies error styles to email input when hasError is true', () => {
-      mockHasError.mockImplementation((field) => field === 'email');
+      mockHasError.mockImplementation(field => field === 'email');
 
       render(<ConnexionForm />);
 
@@ -211,7 +212,7 @@ describe('ConnexionForm', () => {
     });
 
     it('applies error styles to password input when hasError is true', () => {
-      mockHasError.mockImplementation((field) => field === 'password');
+      mockHasError.mockImplementation(field => field === 'password');
 
       render(<ConnexionForm />);
 
@@ -337,7 +338,9 @@ describe('ConnexionForm', () => {
       fireEvent.submit(form!);
 
       await waitFor(() => {
-        expect(screen.getByText("Une erreur s'est produite lors de la connexion. Veuillez réessayer.")).toBeInTheDocument();
+        expect(
+          screen.getByText("Une erreur s'est produite lors de la connexion. Veuillez réessayer.")
+        ).toBeInTheDocument();
       });
     });
   });
@@ -369,7 +372,9 @@ describe('ConnexionForm', () => {
       fireEvent.submit(form!);
 
       await waitFor(() => {
-        expect(screen.getByText('Email non trouvé. Vérifiez votre adresse email.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Email non trouvé. Vérifiez votre adresse email.')
+        ).toBeInTheDocument();
       });
     });
 
@@ -427,7 +432,9 @@ describe('ConnexionForm', () => {
       fireEvent.submit(form!);
 
       await waitFor(() => {
-        expect(screen.getByText("Une erreur s'est produite lors de la connexion.")).toBeInTheDocument();
+        expect(
+          screen.getByText("Une erreur s'est produite lors de la connexion.")
+        ).toBeInTheDocument();
       });
     });
   });
@@ -448,7 +455,7 @@ describe('ConnexionForm', () => {
       }));
 
       let resolveSignIn: (value: any) => void;
-      const signInPromise = new Promise((resolve) => {
+      const signInPromise = new Promise(resolve => {
         resolveSignIn = resolve;
       });
       mockSignIn.create.mockReturnValue(signInPromise);
@@ -484,7 +491,7 @@ describe('ConnexionForm', () => {
       }));
 
       let resolveSignIn: (value: any) => void;
-      const signInPromise = new Promise((resolve) => {
+      const signInPromise = new Promise(resolve => {
         resolveSignIn = resolve;
       });
       mockSignIn.create.mockReturnValue(signInPromise);
@@ -510,8 +517,8 @@ describe('ConnexionForm', () => {
 
   describe('Accessibility', () => {
     it('has proper ARIA attributes for error states', () => {
-      mockHasError.mockImplementation((field) => field === 'email');
-      mockGetError.mockImplementation((field) => field === 'email' ? 'Email invalide' : '');
+      mockHasError.mockImplementation(field => field === 'email');
+      mockGetError.mockImplementation(field => (field === 'email' ? 'Email invalide' : ''));
 
       render(<ConnexionForm />);
 
