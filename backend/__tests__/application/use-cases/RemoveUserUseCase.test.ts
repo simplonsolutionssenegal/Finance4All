@@ -1,4 +1,4 @@
-import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 
 describe('RemoveUserUseCase Interface', () => {
   it('should define the correct contract', () => {

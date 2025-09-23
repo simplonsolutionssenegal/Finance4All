@@ -1,4 +1,9 @@
-import { EmailService, InvitationEmailData, sendInvitationEmail, testEmailConnection } from '@/utils/emailService';
+import {
+  EmailService,
+  sendInvitationEmail,
+  testEmailConnection,
+  type InvitationEmailData,
+} from '@/utils/emailService';
 import nodemailer from 'nodemailer';
 import { logger } from '@/utils/logger';
 
@@ -118,8 +123,12 @@ describe('EmailService', () => {
       await EmailService.sendInvitationEmail(mockEmailData);
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
-      expect(callArgs.html).toContain('https://app.finance4all.com/accept-invitation?invitation_id=inv_123&org_id=org_123');
-      expect(callArgs.text).toContain('https://app.finance4all.com/accept-invitation?invitation_id=inv_123&org_id=org_123');
+      expect(callArgs.html).toContain(
+        'https://app.finance4all.com/accept-invitation?invitation_id=inv_123&org_id=org_123'
+      );
+      expect(callArgs.text).toContain(
+        'https://app.finance4all.com/accept-invitation?invitation_id=inv_123&org_id=org_123'
+      );
     });
 
     it('should generate invitation URL without parameters when not provided', async () => {
@@ -160,11 +169,11 @@ describe('EmailService', () => {
       mockTransporter.sendMail.mockRejectedValue(error);
 
       await expect(EmailService.sendInvitationEmail(mockEmailData)).rejects.toThrow(
-        'Impossible d\'envoyer l\'email d\'invitation: Error: SMTP connection failed'
+        "Impossible d'envoyer l'email d'invitation: Error: SMTP connection failed"
       );
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Erreur lors de l\'envoi de l\'email d\'invitation',
+        "Erreur lors de l'envoi de l'email d'invitation",
         {
           error,
           recipient: 'test@example.com',
@@ -188,7 +197,8 @@ describe('EmailService', () => {
         const dataWithRole = { ...mockEmailData, role };
         await EmailService.sendInvitationEmail(dataWithRole);
 
-        const callArgs = mockTransporter.sendMail.mock.calls[mockTransporter.sendMail.mock.calls.length - 1][0];
+        const callArgs =
+          mockTransporter.sendMail.mock.calls[mockTransporter.sendMail.mock.calls.length - 1][0];
         expect(callArgs.html).toContain(`<strong>Votre rôle :</strong> ${expected}`);
         expect(callArgs.text).toContain(`Votre rôle : ${expected}`);
       }
@@ -228,7 +238,10 @@ describe('EmailService', () => {
       const result = await EmailService.testConnection();
 
       expect(mockTransporter.verify).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith('Échec de la vérification de la connexion Gmail', { error });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Échec de la vérification de la connexion Gmail',
+        { error }
+      );
       expect(result).toBe(false);
     });
 

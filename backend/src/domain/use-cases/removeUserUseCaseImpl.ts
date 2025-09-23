@@ -1,5 +1,5 @@
 import { clerkClient } from '@clerk/express';
-import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import { logger } from '@/utils/logger';
 
 /**
@@ -15,11 +15,11 @@ export class RemoveUserUseCaseImpl implements RemoveUserUseCase {
    */
   async execute(
     userId: string,
-    organizationId: string,
+    organizationId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       logger.info(
-        `Début de la suppression de l'utilisateur ${userId} de l'organisation ${organizationId}`,
+        `Début de la suppression de l'utilisateur ${userId} de l'organisation ${organizationId}`
       );
 
       // Étape 1 : Supprimer l'utilisateur de l'organisation
@@ -30,7 +30,7 @@ export class RemoveUserUseCaseImpl implements RemoveUserUseCase {
         });
         logger.info(`Utilisateur ${userId} supprimé de l'organisation ${organizationId}`);
       } catch (orgError) {
-        logger.error('Erreur lors de la suppression de l\'utilisateur de l\'organisation', {
+        logger.error("Erreur lors de la suppression de l'utilisateur de l'organisation", {
           userId,
           organizationId,
           error: orgError,
@@ -52,10 +52,10 @@ export class RemoveUserUseCaseImpl implements RemoveUserUseCase {
 
       return {
         success: true,
-        message: 'Utilisateur supprimé avec succès de l\'organisation et son compte a été supprimé',
+        message: "Utilisateur supprimé avec succès de l'organisation et son compte a été supprimé",
       };
     } catch (error) {
-      logger.error('Erreur lors de la suppression de l\'utilisateur', {
+      logger.error("Erreur lors de la suppression de l'utilisateur", {
         userId,
         organizationId,
         error,

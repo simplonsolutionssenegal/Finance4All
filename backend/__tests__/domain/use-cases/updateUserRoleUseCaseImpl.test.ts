@@ -69,7 +69,7 @@ describe('UpdateUserRoleUseCaseImpl', () => {
       `Début de la modification du rôle de l'utilisateur ${userId} dans l'organisation ${organizationId} vers le rôle ${role}`
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur lors de la modification du rôle de l\'utilisateur',
+      "Erreur lors de la modification du rôle de l'utilisateur",
       {
         userId,
         organizationId,
@@ -95,7 +95,7 @@ describe('UpdateUserRoleUseCaseImpl', () => {
       role,
     });
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur lors de la modification du rôle de l\'utilisateur',
+      "Erreur lors de la modification du rôle de l'utilisateur",
       {
         userId,
         organizationId,

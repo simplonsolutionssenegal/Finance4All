@@ -14,14 +14,14 @@ jest.mock('express', () => {
     put,
     delete: jest.fn().mockReturnThis(),
     patch: jest.fn().mockReturnThis(),
-    all
+    all,
   };
   const route = jest.fn(() => routeReturn);
   const router = { post, get, put, delete: delete_, patch, all, use, route };
   const express = () => ({
-    use: use,
-    listen: listen,
-    disable: disable,
+    use,
+    listen,
+    disable,
   });
   express.Router = () => router;
   express.json = () => {};

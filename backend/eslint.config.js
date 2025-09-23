@@ -1,34 +1,39 @@
-// eslint.config.cjs (flat config)
+// eslint.config.js (flat config)
 const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
+const js = require('@eslint/js');
 const path = require('path');
 
 module.exports = [
-  // Ignorés globaux
-  {
-    ignores: [
-      'dist/**/*',
-      'build/**/*',
-      'coverage/**/*',
-      'node_modules/**/*',
-      'src/**/*.test.ts',
-      'src/__tests__/**/*.ts'
-    ],
-  },
+  // Base config
+  js.configs.recommended,
 
-  // Règles pour TS
+  // Main TypeScript config
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.ts', '__tests__/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: 2021,
+        ecmaVersion: 'latest',
         sourceType: 'module',
-        // Assure la résolution correcte du tsconfig, surtout en CI
         tsconfigRootDir: __dirname,
         project: path.join(__dirname, 'tsconfig.json'),
       },
-      globals: { },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        global: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+      },
     },
     linterOptions: {
       reportUnusedDisableDirectives: true,
@@ -36,33 +41,106 @@ module.exports = [
     plugins: {
       '@typescript-eslint': tseslint,
     },
-
-    // Tu peux “étendre” les configs recommandées via flat config en important leurs règles :
-    // (équivalent de extends: ['plugin:@typescript-eslint/recommended-type-checked', ...])
     rules: {
-      // ----- Règles @typescript-eslint -----
-      ...tseslint.configs['recommended-type-checked']?.rules,
-      ...tseslint.configs['stylistic-type-checked']?.rules,
-
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      // TypeScript rules (same as frontend)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          disallowTypeAnnotations: false,
+        },
+      ],
 
-      // ----- Règles JS de base -----
+      // Code quality rules (same as frontend)
+      'no-unused-vars': 'off', // Using @typescript-eslint/no-unused-vars instead
       'prefer-const': 'error',
       'no-var': 'error',
-      'semi': ['error', 'always'],
-      'quotes': ['error', 'single', { allowTemplateLiterals: true }],
-
-      // 👉 Autorise la virgule finale uniquement en **multiligne** (bon pour les diffs)
-      'comma-dangle': ['error', 'always-multiline'],
-
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
+      'no-duplicate-imports': 'error',
+      'no-unused-expressions': 'error',
+      'prefer-template': 'error',
+      'object-shorthand': 'error',
+      'prefer-arrow-callback': 'error',
+
+      // Performance rules (same as frontend)
+      'no-await-in-loop': 'warn',
+      'no-constant-binary-expression': 'error',
+      'no-constructor-return': 'error',
+      'no-promise-executor-return': 'error',
+      'no-self-compare': 'error',
+      'no-template-curly-in-string': 'error',
+      'no-unmodified-loop-condition': 'error',
+      'no-unreachable-loop': 'error',
+
+      // Security rules (same as frontend)
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+      'no-script-url': 'error',
     },
-    settings: {
-      // Optionnel: si tu utilises import/resolver ts
+  },
+
+  // Test files specific config
+  {
+    files: ['**/*.test.{ts,js}', '**/*.spec.{ts,js}', '**/__tests__/**/*'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        test: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+      },
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // Config files
+  {
+    files: ['*.config.js', '*.setup.js', 'jest.config.js'],
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'script',
+      },
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+        exports: 'readonly',
+        global: 'readonly',
+      },
+    },
+    rules: {
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-console': 'off',
+    },
+  },
+
+  // Ignore patterns
+  {
+    ignores: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**', '*.min.js', '*.min.css'],
   },
 ];

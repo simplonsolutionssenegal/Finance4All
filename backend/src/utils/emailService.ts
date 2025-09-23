@@ -44,7 +44,7 @@ export class EmailService {
     return this.transporter;
   }
 
-    /**
+  /**
    * Envoie un email d'invitation personnalisé
    */
   static async sendInvitationEmail(data: InvitationEmailData): Promise<void> {
@@ -52,7 +52,7 @@ export class EmailService {
       const emailContent = this.generateInvitationEmailContent(data);
       const transporter = this.getTransporter();
 
-      logger.info('Envoi d\'email d\'invitation', {
+      logger.info("Envoi d'email d'invitation", {
         recipient: data.recipientEmail,
         organization: data.organizationName,
         role: data.role,
@@ -73,7 +73,7 @@ export class EmailService {
       };
 
       // Envoi de l'email
-      const result = await transporter.sendMail(mailOptions) as {
+      const result = (await transporter.sendMail(mailOptions)) as {
         messageId?: string;
         response?: string;
         message?: Buffer;
@@ -91,16 +91,15 @@ export class EmailService {
         logger.info('📧 EMAIL SIMULÉ (pas de configuration Gmail)', {
           recipient: data.recipientEmail,
           subject: emailContent.subject,
-          preview: emailContent.text.substring(0, 100) + '...',
+          preview: `${emailContent.text.substring(0, 100)}...`,
         });
       }
 
-      logger.info('Email d\'invitation envoyé avec succès', {
+      logger.info("Email d'invitation envoyé avec succès", {
         recipient: data.recipientEmail,
       });
-
     } catch (error) {
-      logger.error('Erreur lors de l\'envoi de l\'email d\'invitation', {
+      logger.error("Erreur lors de l'envoi de l'email d'invitation", {
         error,
         recipient: data.recipientEmail,
       });
@@ -209,11 +208,11 @@ export class EmailService {
    */
   private static getRoleDisplayName(role: string): string {
     const roleMap: Record<string, string> = {
-      'admin': 'Administrateur',
-      'member': 'Membre',
-      'viewer': 'Observateur',
-      'editor': 'Éditeur',
-      'manager': 'Gestionnaire',
+      admin: 'Administrateur',
+      member: 'Membre',
+      viewer: 'Observateur',
+      editor: 'Éditeur',
+      manager: 'Gestionnaire',
     };
 
     return roleMap[role] ?? role;

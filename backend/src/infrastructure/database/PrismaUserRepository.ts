@@ -1,6 +1,6 @@
 // src/infrastructure/database/PrismaUserRepository.ts
 import { prisma } from './prisma';
-import { UserRepository } from '@/domain/repositories/UserRepository';
+import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User as DomainUser } from '@/domain/entities/User';
 
 // Type temporaire pour les tests - sera remplacé par Prisma generate

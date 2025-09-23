@@ -56,7 +56,7 @@ describe('RemoveUserUseCaseImpl', () => {
     );
     expect(result).toEqual({
       success: true,
-      message: 'Utilisateur supprimé avec succès de l\'organisation et son compte a été supprimé',
+      message: "Utilisateur supprimé avec succès de l'organisation et son compte a été supprimé",
     });
   });
 
@@ -73,12 +73,12 @@ describe('RemoveUserUseCaseImpl', () => {
     });
     expect(mockClerkClient.users.deleteUser).toHaveBeenCalledWith(userId);
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur lors de la suppression de l\'utilisateur de l\'organisation',
+      "Erreur lors de la suppression de l'utilisateur de l'organisation",
       expect.objectContaining({ userId, organizationId, error: orgError })
     );
     expect(result).toEqual({
       success: true,
-      message: 'Utilisateur supprimé avec succès de l\'organisation et son compte a été supprimé',
+      message: "Utilisateur supprimé avec succès de l'organisation et son compte a été supprimé",
     });
   });
 
@@ -99,7 +99,7 @@ describe('RemoveUserUseCaseImpl', () => {
       expect.objectContaining({ userId, error: userError })
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur lors de la suppression de l\'utilisateur',
+      "Erreur lors de la suppression de l'utilisateur",
       expect.objectContaining({ userId, organizationId })
     );
     expect(result).toEqual({
@@ -129,7 +129,7 @@ describe('RemoveUserUseCaseImpl', () => {
     const result = await removeUserUseCase.execute(userId, organizationId);
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur lors de la suppression de l\'utilisateur de l\'organisation',
+      "Erreur lors de la suppression de l'utilisateur de l'organisation",
       expect.objectContaining({ userId, organizationId, error: orgError })
     );
     expect(mockLogger.error).toHaveBeenCalledWith(
