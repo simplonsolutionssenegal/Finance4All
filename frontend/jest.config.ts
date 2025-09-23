@@ -1,95 +1,66 @@
-/**
- * For a detailed explanation regarding each configuration property, visit:
- * https://jestjs.io/docs/configuration
- */
-
+// jest.config.ts
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
-const createJestConfig = nextJest({
-  dir: "./",
-});
+const createJestConfig = nextJest({ dir: "./" });
 
 const config: Config = {
-  // Automatically clear mock calls, instances, contexts and results before every test
-  clearMocks: true,
+    clearMocks: true,
+    collectCoverage: true,
+    collectCoverageFrom: [
+        "**/*.{js,jsx,ts,tsx}",
+        "components/**/*.{ts,tsx}",
+        "app/**/*.{ts,tsx}",
+        "!components/ui/**",
+        "!coverage/**",
+        "!**/*.d.ts",
+        "!*.config.ts",
+        "!*.setup.ts",
+        "!**/*.stories.{js,jsx,ts,tsx}",
+        "!types/**",
+        "!**/*.test.{js,jsx,ts,tsx}",
+        "!**/*.spec.{js,jsx,ts,tsx}",
+        "!**/__tests__/**",
+        "!**/tests/**",
+    ],
+    coverageDirectory: "coverage",
+    coverageProvider: "babel",
+    coverageReporters: ["text", "lcov"],
 
-  // Indicates whether the coverage information should be collected while executing the test
-  collectCoverage: true,
+    moduleNameMapper: {
+        "^@/(.*)$": "<rootDir>/$1",
+        "^@/components/(.*)$": "<rootDir>/components/$1",
+        "^@/lib/(.*)$": "<rootDir>/lib/$1",
+        "^@/utils/(.*)$": "<rootDir>/utils/$1",
+        "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
 
-  // An array of glob patterns indicating a set of files for which coverage information should be collected
-  collectCoverageFrom: [
-    "**/*.{js,jsx,ts,tsx}",
-    "components/**/*.{ts,tsx}",
-    "app/**/*.{ts,tsx}",
-    "!components/ui/**",
-    "!coverage/**",
-    "!**/*.d.ts",
-    "!*.config.ts",
-    "!*.setup.ts",
-    "!**/*.stories.{js,jsx,ts,tsx}", // Exclure les stories Storybook
-    "!types/**", // Exclure les fichiers de types
-    "!**/*.test.{js,jsx,ts,tsx}", // Exclure les fichiers de test
-    "!**/*.spec.{js,jsx,ts,tsx}", // Exclure les fichiers de spec
-    "!**/__tests__/**", // Exclure le dossier __tests__
-    "!**/tests/**", // Exclure le dossier tests
-  ],
+        // Assets & styles
+        "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
+            "<rootDir>/__mocks__/fileMock.js",
 
-  // The directory where Jest should output its coverage files
-  coverageDirectory: "coverage",
+        // Next/font & autres modules Next à mocker
+        "^next/font/(.*)$": "<rootDir>/__mocks__/nextFontMock.js",
+    },
 
-  // Indicates which provider should be used to instrument code for coverage
-  coverageProvider: "babel",
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 
-  // A list of reporter names that Jest uses when writing coverage reports
-  coverageReporters: ["text", "lcov"],
+    testEnvironment: "jest-environment-jsdom",
 
-    // A map from regular expressions to module names or to arrays of module names
-  moduleNameMapper: {
-    // Gestion des alias de chemins Next.js
-    "^@/(.*)$": "<rootDir>/$1",
-    "^@/components/(.*)$": "<rootDir>/components/$1",
-    "^@/lib/(.*)$": "<rootDir>/lib/$1",
-    "^@/utils/(.*)$": "<rootDir>/utils/$1",
-    "^@/hooks/(.*)$": "<rootDir>/hooks/$1",
-    
-    // Mock des fichiers CSS et assets
-    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": 
-      "<rootDir>/__mocks__/fileMock.js",
-  },
+    testPathIgnorePatterns: ["/node_modules/", "/.next/", "/coverage/"],
 
-  // Setup files after environment is initialized
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+    coveragePathIgnorePatterns: ["/node_modules/", "/.next/", "/coverage/", "\\.map$"],
 
-  // The test environment that will be used for testing
-  testEnvironment: 'jest-environment-jsdom',
+    // ⬇️ Transformer certains packages ESM dans node_modules (dont Clerk)
+    transformIgnorePatterns: [
+        "/node_modules/(?!(@clerk/.*|@radix-ui/.*|@hookform/.*|lucide-react|tslib)/)"
+    ],
 
-  // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-  testPathIgnorePatterns: [
-    "/node_modules/",
-    "/.next/",
-    "/coverage/",
-  ],
-
-  // Ignore problematic source maps from Next.js builds
-  coveragePathIgnorePatterns: [
-    "/node_modules/",
-    "/.next/",
-    "/coverage/",
-    "\\.map$", // Ignore all .map files
-  ],
-
-  // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-  transformIgnorePatterns: [
-    "/node_modules/(?!(.*\\.mjs$|@radix-ui|@hookform|@clerk))", // Permet la transformation des modules ES6 et Clerk
-  ],
-
-  // Options that will be passed to the testEnvironment
-  testEnvironmentOptions: {
-    url: "http://localhost:3000",
-  },
-
+    // Option utile pour certaines libs ESM
+    testEnvironmentOptions: {
+        url: "http://localhost:3000",
+        customExportConditions: ["node", "require", "default"],
+    },
 };
 
 export default createJestConfig(config);

@@ -1,6 +1,6 @@
-import { PrismaUserRepository } from 'backend/src/infrastructure/database/PrismaUserRepository';
-import { User } from 'backend/src/domain/entities/User';
-import { prisma } from 'backend/src/infrastructure/database/prisma';
+import { PrismaUserRepository } from '@/infrastructure/database/PrismaUserRepository';
+import { User } from '@/domain/entities/User';
+import { prisma } from '@/infrastructure/database/prisma';
 
 // Mock Prisma User type
 type PrismaUser = {
@@ -10,7 +10,7 @@ type PrismaUser = {
 };
 
 // Mock Prisma client
-jest.mock('backend/src/infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/database/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

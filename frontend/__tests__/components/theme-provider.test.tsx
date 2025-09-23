@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
 
-import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/contexts/theme-provider";
 
 const mockMatchMedia = (matches: boolean) => ({
   matches,

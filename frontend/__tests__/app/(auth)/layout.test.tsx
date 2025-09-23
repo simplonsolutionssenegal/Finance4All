@@ -2,6 +2,19 @@ import { render, screen } from "@testing-library/react";
 
 import AuthLayout from "@/app/(auth)/layout";
 
+
+// Mock Header and Sidebar
+jest.mock("@/components/dashboard/Header", () => {
+  return function MockHeader() {
+    return <header>Header</header>;
+  };
+});
+jest.mock("@/components/dashboard/Sidebar", () => {
+  return function MockSidebar() {
+    return <aside>Sidebar</aside>;
+  };
+});
+
 describe("AuthLayout", () => {
   const mockChildren = <div data-testid="test-children">Test Content</div>;
 
@@ -21,13 +34,13 @@ describe("AuthLayout", () => {
     const { container } = render(<AuthLayout>{mockChildren}</AuthLayout>);
     const outerDiv = container.firstChild;
     expect(outerDiv).toBeInTheDocument();
-    expect(outerDiv?.firstChild).toHaveClass("min-h-screen");
+    expect(outerDiv).toHaveClass("h-screen");
   });
 
-  it("main element has min-h-screen class", () => {
+  it("main element has flex-1 class", () => {
     render(<AuthLayout>{mockChildren}</AuthLayout>);
     const main = screen.getByRole("main");
-    expect(main).toHaveClass("min-h-screen");
+    expect(main).toHaveClass("flex-1");
   });
 
   it("should be a function that returns JSX", () => {
@@ -54,6 +67,6 @@ describe("AuthLayout", () => {
     render(<AuthLayout>{null}</AuthLayout>);
     const main = screen.getByRole("main");
     expect(main).toBeInTheDocument();
-    expect(main).toHaveClass("min-h-screen");
+    expect(main).toHaveClass("flex-1");
   });
 });
