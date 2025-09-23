@@ -2,24 +2,16 @@ import request from 'supertest';
 import express from 'express';
 
 // Mock des dépendances minimales
-jest.mock('@/infrastructure/database/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-  },
-}));
-jest.mock('@/infrastructure/database/PrismaUserRepository');
+jest.mock('@/infrastructure/services/ClerkService');
 
-const mockClerkUserController = {
+const mockAuthController = {
   register: jest.fn(),
 };
 
-jest.doMock('@/infrastructure/web/controllers/ClerkUserController', () => {
+jest.doMock('@/infrastructure/web/controllers/AuthController', () => {
   return {
-    ClerkUserController: jest.fn().mockImplementation(() => {
-      return mockClerkUserController;
+    AuthController: jest.fn().mockImplementation(() => {
+      return mockAuthController;
     }),
   };
 });
@@ -42,10 +34,10 @@ describe('User Routes (Clerk)', () => {
   });
 
   describe('POST /users/register', () => {
-    it('should call clerkUserController.register method', async () => {
+    it('should call authController.register method', async () => {
       // Mock successful response
-      mockClerkUserController.register.mockImplementation(async (req, res) => {
-        res.status(201).json({ id: '1', email: 'john@example.com', clerkId: 'clrk_123' });
+      mockAuthController.register.mockImplementation(async (req: any, res: any) => {
+        res.status(200).json({ success: true, data: { email: 'john@example.com', clerkId: 'clrk_123' } });
       });
 
       const payload = {
@@ -55,21 +47,20 @@ describe('User Routes (Clerk)', () => {
         lastName: 'Doe',
       };
 
-      const response = await request(app).post('/users/register').send(payload).expect(201);
+      const response = await request(app).post('/users/register').send(payload).expect(200);
 
       expect(response.body).toEqual({
-        id: '1',
-        email: 'john@example.com',
-        clerkId: 'clrk_123',
+        success: true,
+        data: { email: 'john@example.com', clerkId: 'clrk_123' },
       });
     });
 
     it('should handle validation errors', async () => {
       // Mock error response
-      mockClerkUserController.register.mockImplementation(async (req, res) => {
+      mockAuthController.register.mockImplementation(async (req: any, res: any) => {
         res.status(400).json({
-          error: "Erreur lors de l'inscription",
-          message: 'Invalid email format',
+          success: false,
+          error: { message: 'Format de requête invalide' },
         });
       });
 
@@ -83,17 +74,17 @@ describe('User Routes (Clerk)', () => {
       const response = await request(app).post('/users/register').send(invalidPayload).expect(400);
 
       expect(response.body).toEqual({
-        error: "Erreur lors de l'inscription",
-        message: 'Invalid email format',
+        success: false,
+        error: { message: 'Format de requête invalide' },
       });
     });
 
     it('should handle missing required fields', async () => {
       // Mock error response for missing fields
-      mockClerkUserController.register.mockImplementation(async (req, res) => {
+      mockAuthController.register.mockImplementation(async (req: any, res: any) => {
         res.status(400).json({
-          error: "Erreur lors de l'inscription",
-          message: 'Required fields are missing',
+          success: false,
+          error: { message: 'clerkUserId et email sont requis' },
         });
       });
 
@@ -106,29 +97,31 @@ describe('User Routes (Clerk)', () => {
         .send(incompletePayload)
         .expect(400);
 
-      expect(response.body.error).toBe("Erreur lors de l'inscription");
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe('clerkUserId et email sont requis');
     });
 
     it('should handle empty request body', async () => {
       // Mock error response for empty body
-      mockClerkUserController.register.mockImplementation(async (req, res) => {
+      mockAuthController.register.mockImplementation(async (req: any, res: any) => {
         res.status(400).json({
-          error: "Erreur lors de l'inscription",
-          message: 'Request body is required',
+          success: false,
+          error: { message: 'Format de requête invalide' },
         });
       });
 
       const response = await request(app).post('/users/register').send({}).expect(400);
 
-      expect(response.body.error).toBe("Erreur lors de l'inscription");
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe('Format de requête invalide');
     });
 
     it('should handle server errors', async () => {
       // Mock server error response
-      mockClerkUserController.register.mockImplementation(async (req, res) => {
-        res.status(500).json({
-          error: 'Internal server error',
-          message: 'Database connection failed',
+      mockAuthController.register.mockImplementation(async (req: any, res: any) => {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Erreur lors de la finalisation' },
         });
       });
 
@@ -139,9 +132,10 @@ describe('User Routes (Clerk)', () => {
         lastName: 'Doe',
       };
 
-      const response = await request(app).post('/users/register').send(payload).expect(500);
+      const response = await request(app).post('/users/register').send(payload).expect(400);
 
-      expect(response.body.error).toBe('Internal server error');
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe('Erreur lors de la finalisation');
     });
   });
 
