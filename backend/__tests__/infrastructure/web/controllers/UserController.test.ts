@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
+import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { getAuth, clerkClient } from '@clerk/express';
@@ -34,6 +35,7 @@ jest.mock('@clerk/express', () => ({
 
 describe('UserController', () => {
   let userController: UserController;
+  let mockCreateUserUseCase: jest.Mocked<CreateUserUseCase>;
   let mockRemoveUserUseCase: jest.Mocked<RemoveUserUseCase>;
   let mockUpdateUserRoleUseCase: jest.Mocked<UpdateUserRoleUseCase>;
   let mockRequest: Partial<Request>;
@@ -52,6 +54,11 @@ describe('UserController', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
+    // Mock for CreateUserUseCase
+    mockCreateUserUseCase = {
+      execute: jest.fn(),
+    };
+
     // Mocks for use cases, even if not all are used in 'create' tests
     mockRemoveUserUseCase = {
       execute: jest.fn(),
@@ -69,7 +76,7 @@ describe('UserController', () => {
       json: jest.fn(),
     };
 
-    userController = new UserController(mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
+    userController = new UserController(mockCreateUserUseCase, mockRemoveUserUseCase, mockUpdateUserRoleUseCase);
   });
 
   describe('create', () => {
