@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { Toaster } from '@/components/ui/sonner';
+import { LoaderProvider } from '@/contexts/LoaderContext';
 import { ThemeProvider } from '@/contexts/theme-provider';
 
 const geistSans = Geist({
@@ -28,10 +29,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-          <ThemeProvider defaultTheme="light">
-            {children}
-            <Toaster position="top-right" />
-          </ThemeProvider>
+          <LoaderProvider>
+            <ThemeProvider defaultTheme="light">
+              {children}
+              <Toaster position="top-right" />
+            </ThemeProvider>
+          </LoaderProvider>
         </ClerkProvider>
       </body>
     </html>
