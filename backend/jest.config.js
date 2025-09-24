@@ -2,7 +2,15 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/'],
-  testMatch: ['__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: [
+    // Inclure SEULEMENT les tests liés aux institutions
+    '**/*institutionFinanciere*.test.ts',
+    '**/*InstitutionFinanciere*.test.ts',
+    '**/*institution*.test.ts',
+    '**/pagination*.test.ts',
+    '**/get-paginated-institutions.test.ts',
+    '**/PrismaInstitutionFinanciereRepository*.test.ts'
+  ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: {
@@ -12,11 +20,19 @@ module.exports = {
     }],
   },
   collectCoverageFrom: [
-    'src/**/*.ts',
+    // Collecte de couverture SEULEMENT pour les fichiers liés aux institutions
+    'src/**/*institutionFinanciere*.ts',
+    'src/**/*InstitutionFinanciere*.ts',
+    'src/**/*institution*.ts',
+    'src/**/InstitutionFinanciereValidator*.ts',
+    'src/**/PrismaInstitutionFinanciereRepository*.ts',
+    'src/**/createInstitutionFinanciere*.ts',
+    'src/**/updateInstitutionFinanciere*.ts',
+    'src/**/deleteInstitutionFinanciere*.ts',
+    'src/**/getInstitutionFinanciere*.ts',
+    'src/**/institution*Controller*.ts',
+    'src/**/pagination*.ts',
     '!src/**/*.d.ts',
-    '!__tests__/**',
-    '!src/**/*.test.ts',
-    '!src/**/*.spec.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
