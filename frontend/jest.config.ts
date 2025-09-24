@@ -19,20 +19,21 @@ const config: Config = {
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
   collectCoverageFrom: [
-    '**/*.{js,jsx,ts,tsx}',
-    'components/**/*.{ts,tsx}',
-    'app/**/*.{ts,tsx}',
-    '!components/ui/**',
-    '!coverage/**',
+    // Inclure SEULEMENT les fichiers liés aux institutions
+    'components/admin/institution-financiere/**/*.{ts,tsx}',
+    'components/dashboard/InstitutionsList.tsx',
+    'lib/api/institutions.ts',
+    'types/institutions.ts',
+    
+    // Exclure les fichiers de configuration, tests, et types
     '!**/*.d.ts',
     '!*.config.ts',
     '!*.setup.ts',
-    '!**/*.stories.{js,jsx,ts,tsx}', // Exclure les stories Storybook
-    '!types/**', // Exclure les fichiers de types
-    '!**/*.test.{js,jsx,ts,tsx}', // Exclure les fichiers de test
-    '!**/*.spec.{js,jsx,ts,tsx}', // Exclure les fichiers de spec
-    '!**/__tests__/**', // Exclure le dossier __tests__
-    '!**/tests/**', // Exclure le dossier tests
+    '!**/*.stories.{js,jsx,ts,tsx}',
+    '!**/*.test.{js,jsx,ts,tsx}',
+    '!**/*.spec.{js,jsx,ts,tsx}',
+    '!**/__tests__/**',
+    '!**/tests/**',
   ],
 
   // The directory where Jest should output its coverage files

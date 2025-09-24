@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
 
+// Configuration d'environnement pour les tests
+process.env.NEXT_PUBLIC_API_URL = 'http://localhost:5000';
+
 
 // Mock de matchMedia (nécessaire pour les composants Radix UI)
 Object.defineProperty(window, 'matchMedia', {

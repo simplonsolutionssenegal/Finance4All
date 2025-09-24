@@ -7,6 +7,12 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Fonction pour construire l'URL complète en évitant la duplication de /api/v1
+const buildApiUrl = (endpoint: string) => {
+  const base = API_BASE.endsWith('/api/v1') ? API_BASE : `${API_BASE}/api/v1`;
+  return `${base}${endpoint}`;
+};
+
 /**
  * Service API pour les institutions financières
  * 
@@ -40,7 +46,7 @@ export async function createInstitution(values: InstitutionFormValues): Promise<
     logo: logoBase64, // Logo en base64
   };
 
-  const res = await fetch(`${API_BASE}/api/v1/institutions`, {
+  const res = await fetch(buildApiUrl('/institutions'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -63,7 +69,7 @@ export async function createInstitution(values: InstitutionFormValues): Promise<
 }
 
 export async function fetchInstitutions(): Promise<FetchInstitutionsResult> {
-  const res = await fetch(`${API_BASE}/api/v1/institutions`, { cache: 'no-store' });
+  const res = await fetch(buildApiUrl('/institutions'), { cache: 'no-store' });
 
   if (!res.ok) {
     throw new Error('Erreur lors de la récupération des institutions');

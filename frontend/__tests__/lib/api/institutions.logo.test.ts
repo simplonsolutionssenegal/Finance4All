@@ -40,6 +40,7 @@ function makeFileList(file: File): FileList {
 describe('createInstitution - conversion logo en base64 via FileReader', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    
     // mock fetch OK
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
