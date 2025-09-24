@@ -1,4 +1,4 @@
-import { ContactPerson } from './ContactPerson';
+import type { ContactPerson } from './ContactPerson';
 
 export interface InstitutionFinanciere {
   id: string;

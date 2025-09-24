@@ -27,7 +27,7 @@ describe('isValidUrl', () => {
 
   it('rejects empty or overly long strings', () => {
     expect(isValidUrl('')).toBe(false);
-    const long = 'https://example.com/' + 'a'.repeat(2050);
+    const long = `https://example.com/${  'a'.repeat(2050)}`;
     expect(isValidUrl(long)).toBe(false);
   });
 });
@@ -57,7 +57,7 @@ describe('isValidEmail', () => {
   it('rejects empty and overly long email', () => {
     expect(isValidEmail('')).toBe(false);
     const local = 'a'.repeat(200);
-    const domain = 'b'.repeat(60) + '.com';
+    const domain = `${'b'.repeat(60)  }.com`;
     const longEmail = `${local}@${domain}`; // length > 254
     expect(longEmail.length).toBeGreaterThan(254);
     expect(isValidEmail(longEmail)).toBe(false);

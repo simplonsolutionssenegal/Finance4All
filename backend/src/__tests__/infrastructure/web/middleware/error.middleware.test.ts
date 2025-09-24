@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import {
   AppError,
   errorMiddleware,
   asyncHandler,
   notFoundHandler,
 } from '@/infrastructure/web/middleware/error.middleware';
-import { ZodError, z } from 'zod';
+import { z, type ZodError } from 'zod';
 
 describe('Error Middleware', () => {
   const mockRequest = {} as Request;

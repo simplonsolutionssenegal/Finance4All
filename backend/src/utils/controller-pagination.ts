@@ -1,4 +1,4 @@
-import { PaginationInput, validatePaginationInput } from '@/utils/pagination';
+import { validatePaginationInput, type PaginationInput } from '@/utils/pagination';
 
 // Types simplifiés pour éviter la dépendance directe à Express
 interface RequestQuery {

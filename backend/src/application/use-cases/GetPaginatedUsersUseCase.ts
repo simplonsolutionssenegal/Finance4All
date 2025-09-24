@@ -1,7 +1,7 @@
-import { User } from '@/domain/entities/User';
-import { UserRepository } from '@/domain/repositories/UserRepository';
+import type { User } from '@/domain/entities/User';
+import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { PaginatedUseCase } from './PaginatedUseCase';
-import { PaginationInput, PaginatedResult, PaginatedRepository } from '@/utils/pagination';
+import type { PaginationInput, PaginatedResult, PaginatedRepository } from '@/utils/pagination';
 
 export type PaginatedUsersResult = PaginatedResult<User>;
 

@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import Joi from 'joi';
-import { CreateInstitutionFinanciereDTO } from '@/application/dto/CreateInstitutionFinanciereDTO';
+import type { CreateInstitutionFinanciereDTO } from '@/application/dto/CreateInstitutionFinanciereDTO';
 
 interface ExtendedCreateInstitutionFinanciereDTO extends CreateInstitutionFinanciereDTO {
   contactNom?: string;

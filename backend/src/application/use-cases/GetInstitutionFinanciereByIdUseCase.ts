@@ -1,5 +1,5 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
 export class GetInstitutionFinanciereByIdUseCase {

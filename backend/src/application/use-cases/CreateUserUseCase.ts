@@ -1,4 +1,4 @@
-import { User } from '@/domain/entities/User';
+import type { User } from '@/domain/entities/User';
 
 /**
  * Interface pour le cas d'utilisation de création d'utilisateur

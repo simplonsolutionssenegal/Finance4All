@@ -1,7 +1,7 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
-import { PrismaClient } from '@prisma/client';
-import { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import type { PrismaClient } from '@prisma/client';
+import type { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';
 import { toDomainInstitution } from '@/infrastructure/database/mappers/institutionFinanciereMapper';
 
 // NOTE: Prisma client generated types should give us strong typing. If eslint still

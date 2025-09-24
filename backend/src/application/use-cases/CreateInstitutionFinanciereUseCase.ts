@@ -1,6 +1,6 @@
-import { InstitutionFinanciere, CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
-import { InstitutionFinanciereValidator, InstitutionFinanciereInput } from '@/application/validation/InstitutionFinanciereValidator';
+import type { InstitutionFinanciere, CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import { InstitutionFinanciereValidator, type InstitutionFinanciereInput } from '@/application/validation/InstitutionFinanciereValidator';
 import { randomUUID } from 'crypto';
 
 export class CreateInstitutionFinanciereUseCase {

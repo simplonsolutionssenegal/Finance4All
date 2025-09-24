@@ -1,9 +1,9 @@
 import {
-  PaginationInput,
-  PaginatedResult,
-  PaginatedRepository,
   validatePaginationInput,
   createPaginatedResult,
+  type PaginationInput,
+  type PaginatedResult,
+  type PaginatedRepository,
 } from '@/utils/pagination';
 
 /**

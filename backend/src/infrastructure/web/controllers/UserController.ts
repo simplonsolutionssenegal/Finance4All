@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
-import { RemoveUserUseCaseImpl } from '@/domain/use-cases/removeUserUseCaseImpl';
-import { UpdateUserRoleUseCaseImpl } from '@/domain/use-cases/updateUserRoleUseCaseImpl';
+import type { Request, Response } from 'express';
+import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
+import type { RemoveUserUseCaseImpl } from '@/domain/use-cases/removeUserUseCaseImpl';
+import type { UpdateUserRoleUseCaseImpl } from '@/domain/use-cases/updateUserRoleUseCaseImpl';
 
 export class UserController {
   constructor(

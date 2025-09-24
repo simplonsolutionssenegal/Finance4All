@@ -1,4 +1,4 @@
-import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import type { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
 export class DeleteInstitutionFinanciereUseCase {

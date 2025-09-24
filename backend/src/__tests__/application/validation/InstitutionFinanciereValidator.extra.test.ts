@@ -74,7 +74,7 @@ describe('InstitutionFinanciereValidator — couvertures complémentaires', () =
   });
 
   it("L110: logo base64 > 5MB ⇒ 'Le logo est trop volumineux (max 5MB)'", () => {
-    const bigBase64 = 'data:image/png;base64,' + 'a'.repeat(7_000_001); // > 7,000,000
+    const bigBase64 = `data:image/png;base64,${  'a'.repeat(7_000_001)}`; // > 7,000,000
     const input: CreateInstitutionFinanciereData = {
       ...baseValidInput,
       logo: bigBase64,

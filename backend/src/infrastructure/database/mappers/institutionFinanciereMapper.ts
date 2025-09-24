@@ -1,6 +1,6 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
-import { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';
-import { ContactPerson } from '@/domain/entities/ContactPerson';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinancierePersistence } from '@/infrastructure/database/models/InstitutionFinancierePersistence';
+import type { ContactPerson } from '@/domain/entities/ContactPerson';
 
 export function toDomainInstitution(record: InstitutionFinancierePersistence): InstitutionFinanciere {
   const contact: ContactPerson | null = record.contactNom

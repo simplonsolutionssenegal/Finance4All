@@ -1,4 +1,4 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
 export interface InstitutionFinanciereRepository {
   create(institution: InstitutionFinanciere): Promise<InstitutionFinanciere>;

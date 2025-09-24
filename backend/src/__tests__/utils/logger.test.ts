@@ -1,5 +1,5 @@
 import { logger, logRequest, logError, loggerStream } from '@/utils/logger';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 describe('Logger', () => {
   it('should be defined', () => {

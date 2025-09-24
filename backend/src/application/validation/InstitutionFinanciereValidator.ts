@@ -1,5 +1,5 @@
-import { CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
-import { ContactPerson } from '@/domain/entities/ContactPerson';
+import type { CreateInstitutionFinanciereData } from '@/domain/entities/InstitutionFinanciere';
+import type { ContactPerson } from '@/domain/entities/ContactPerson';
 import { isValidUrl } from '@/utils/isValidUrl';
 import { isValidEmail } from '@/utils/isValidEmail';
 

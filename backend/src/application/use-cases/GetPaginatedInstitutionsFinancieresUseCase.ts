@@ -1,7 +1,7 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
-import { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciereRepository } from '@/domain/repositories/InstitutionFinanciereRepository';
 import { PaginatedUseCase } from './PaginatedUseCase';
-import { PaginationInput, PaginatedResult, PaginatedRepository } from '@/utils/pagination';
+import type { PaginationInput, PaginatedResult, PaginatedRepository } from '@/utils/pagination';
 
 export type PaginatedInstitutionsResult = PaginatedResult<InstitutionFinanciere>;
 

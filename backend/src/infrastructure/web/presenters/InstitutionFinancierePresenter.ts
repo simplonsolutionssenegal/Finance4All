@@ -1,4 +1,4 @@
-import { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
+import type { InstitutionFinanciere } from '@/domain/entities/InstitutionFinanciere';
 
 // Shape exposed by the API (can evolve independently)
 export interface InstitutionFinanciereResponse {
