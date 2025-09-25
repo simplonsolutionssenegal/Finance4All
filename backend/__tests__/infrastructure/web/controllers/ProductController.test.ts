@@ -4,7 +4,8 @@ import { ProductController } from '@/infrastructure/web/controllers/ProductContr
 import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
 import type { Product, ProductType } from '@/domain/entities/Product';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
+
 
 // Mock du logger
 jest.mock('@/utils/logger', () => ({

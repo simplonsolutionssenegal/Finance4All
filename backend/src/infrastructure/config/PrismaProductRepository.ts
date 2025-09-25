@@ -1,7 +1,7 @@
 // src/infrastructure/database/PrismaProductRepository.ts
 import type { PrismaClient, Prisma } from '@prisma/client';
 
-import { prisma } from './prisma';
+import { prisma } from '@/infrastructure/config/prismaClient';
 import { type ProductRepository } from '@/domain/repositories/ProductRepository';
 import {
   type Product,
@@ -10,14 +10,14 @@ import {
   type RemboursementInfo,
   type ConditionsEligibilite,
 } from '@/domain/entities/Product';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 export class PrismaProductRepository implements ProductRepository {
   constructor(private readonly db: PrismaClient = prisma) {}
 
   async findById(id: string): Promise<Product | null> {
     try {
-      const product = await this.db.product.findUnique({
+      const product = await this.db.service.findUnique({
         where: { id },
       });
 
@@ -59,12 +59,12 @@ export class PrismaProductRepository implements ProductRepository {
         };
       }
 
-      const products = await this.db.product.findMany({
+      const products = await this.db.service.findMany({
         where,
         orderBy: { createdAt: 'desc' },
       });
 
-      return products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p));
+      return products.map((p: Prisma.ServiceGetPayload<{}>) => this.mapToDomain(p));
     } catch (error) {
       logger.error('Erreur lors de la recherche de produits', {
         error: error as unknown,
@@ -76,12 +76,12 @@ export class PrismaProductRepository implements ProductRepository {
 
   async findByType(type: ProductType): Promise<Product[]> {
     try {
-      const products = await this.db.product.findMany({
+      const products = await this.db.service.findMany({
         where: { type: type.toLowerCase() as any },
         orderBy: { createdAt: 'desc' },
       });
 
-      return products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p));
+      return products.map((p: Prisma.ServiceGetPayload<{}>) => this.mapToDomain(p));
     } catch (error) {
       logger.error('Erreur lors de la recherche par type', {
         error: error as unknown,
@@ -91,7 +91,7 @@ export class PrismaProductRepository implements ProductRepository {
     }
   }
 
-  private mapToDomain(prismaProduct: Prisma.ProductGetPayload<{}>): Product {
+  private mapToDomain(prismaProduct: Prisma.ServiceGetPayload<{}>): Product {
     return {
       id: prismaProduct.id,
       designation: prismaProduct.designation,

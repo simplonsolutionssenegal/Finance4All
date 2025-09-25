@@ -3,7 +3,7 @@ import { type Request, type Response } from 'express';
 import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
 import { ProductType, type ProductFilter } from '@/domain/entities/Product';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 export class ProductController {
   constructor(

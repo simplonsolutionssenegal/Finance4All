@@ -3,8 +3,7 @@ import { Router } from 'express';
 import { ProductController } from '../controllers/ProductController';
 import { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import { PrismaProductRepository } from '@/infrastructure/database/PrismaProductRepository';
-// ...existing code...
+import { PrismaProductRepository } from '@/infrastructure/config/PrismaProductRepository';
 
 const router = Router();
 

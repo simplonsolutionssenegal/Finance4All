@@ -8,7 +8,7 @@ import {
   notFoundHandler,
 } from '@/infrastructure/web/middleware/error.middleware';
 
-import * as loggerModule from '@/utils/logger';
+import * as loggerModule from '@/infrastructure/utils/logger';
 
 describe('Error Middleware', () => {
   beforeAll(() => {
