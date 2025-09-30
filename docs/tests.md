@@ -5,8 +5,7 @@
 ```bash
 cd backend
 npm run test                # Tests unitaires
-npm run test:watch         # Tests en mode watch
-npm run test:coverage      # Tests avec couverture
+npm run test:watch         # Tests e     # Tests avec couverture
 ```
 
 ## Frontend
