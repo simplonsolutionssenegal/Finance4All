@@ -3,7 +3,7 @@ import { describe, it, expect } from '@jest/globals';
 import { User } from '@/domain/entities/User';
 import { CreateUserUseCaseImpl } from '@/domain/use-cases/createUserUseCaseImpl';
 
-describe.skip('User Entity and Use Cases', () => {
+describe('User Entity and Use Cases', () => {
   describe('User Entity', () => {
     it('should create a user with correct properties', () => {
       const id = '123';

@@ -1,7 +1,7 @@
 import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import { User } from '@/domain/entities/User';
 
-describe.skip('CreateUserUseCase Interface', () => {
+describe('CreateUserUseCase Interface', () => {
   it('should define the correct contract', () => {
     // This test ensures the interface structure is correct
     const mockImplementation: CreateUserUseCase = {

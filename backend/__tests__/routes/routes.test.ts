@@ -23,7 +23,7 @@ jest.mock('@/infrastructure/web/routes/user.routes', () => {
   return router;
 });
 
-describe.skip('API Routes', () => {
+describe('API Routes', () => {
   let app: express.Application;
 
   beforeEach(() => {

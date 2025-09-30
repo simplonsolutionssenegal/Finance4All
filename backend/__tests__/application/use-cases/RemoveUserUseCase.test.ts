@@ -1,6 +1,6 @@
 import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 
-describe.skip('RemoveUserUseCase Interface', () => {
+describe('RemoveUserUseCase Interface', () => {
   it('should define the correct contract', () => {
     // This test ensures the interface structure is correct
     const mockImplementation: RemoveUserUseCase = {

@@ -19,7 +19,7 @@ jest.mock('@/infrastructure/utils/logger', () => ({
 const mockNodemailer = nodemailer as jest.Mocked<typeof nodemailer>;
 const mockLogger = logger as any;
 
-describe.skip('EmailService', () => {
+describe('EmailService', () => {
   let mockTransporter: any;
 
   beforeEach(() => {

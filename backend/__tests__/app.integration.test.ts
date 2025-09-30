@@ -28,7 +28,7 @@ const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
   throw new Error('process.exit called');
 });
 
-describe.skip('App Integration Tests', () => {
+describe('App Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

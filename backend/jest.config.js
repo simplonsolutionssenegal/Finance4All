@@ -7,6 +7,20 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   collectCoverageFrom: [
+    // inclure tous les fichiers TypeScript dans le dossier components produits
+    'domain/entities/products/**/*.{ts,tsx}',
+    'domain/repositories/products/**/*.{ts,tsx}',
+    'domain/use-cases/createProductUseCaseImpl.ts',
+    'domain/use-cases/getProductByIdUseCaseImpl.ts',
+    'domain/use-cases/getProductsUseCaseImpl.ts',
+    'infrastructure/database/PrismaProductRepository/**/*.{ts,tsx}',
+    'infrastructure/web/controllers/ProductController.ts',
+    'infrastructure/web/routes/product.routes.ts',
+
+    'hooks/products/**/*.{ts,tsx}',
+    'lib/api/products/**/*.{ts,tsx}',
+
+    // exclure les fichiers de définition de types et les tests
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!__tests__/**',
