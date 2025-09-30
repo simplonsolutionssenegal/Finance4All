@@ -107,7 +107,7 @@ export class UserController {
         },
       });
     } catch (error) {
-      console.error("Erreur lors de la création de l'invitation:", error);
+      // console.error("Erreur lors de la création de l'invitation:", error);
 
       // Gestion spécifique des erreurs Clerk
       if (error && typeof error === 'object' && 'errors' in error) {

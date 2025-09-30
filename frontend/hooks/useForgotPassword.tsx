@@ -58,7 +58,6 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         })
         .catch(err => {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          console.error('errorMessage', errorMessage);
           if (errorMessage.includes("Couldn't find your account")) {
             setError("Aucun compte n'est associé à cette adresse email");
           } else if (errorMessage.includes("You're already signed in")) {
@@ -95,7 +94,6 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
         })
         .catch(err => {
           const errorMessage = err instanceof Error ? err.message : String(err);
-          console.error('error', errorMessage);
           if (
             errorMessage.includes('Password has been found') ||
             err.errors[0].code === 'form_password_pwned'

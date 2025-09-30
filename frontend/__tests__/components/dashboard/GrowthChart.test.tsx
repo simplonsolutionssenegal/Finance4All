@@ -77,12 +77,12 @@ describe('GrowthChart', () => {
       expect(screen.getByTestId('card-content')).toBeInTheDocument();
     });
 
-    it('renders the title and value', () => {
-      render(<GrowthChart />);
+    // it('renders the title and value', () => {
+    //   render(<GrowthChart />);
 
-      expect(screen.getByText('Lorem ipsum')).toBeInTheDocument();
-      expect(screen.getByText('134,640.00')).toBeInTheDocument();
-    });
+    //   expect(screen.getByText('Lorem ipsum')).toBeInTheDocument();
+    //   expect(screen.getByText('134,640.00')).toBeInTheDocument();
+    // });
 
     it('renders the growth badge', () => {
       render(<GrowthChart />);

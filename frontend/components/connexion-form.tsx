@@ -85,7 +85,7 @@ export function ConnexionForm() {
           setError("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
         }
       } catch (err: unknown) {
-        console.error('Erreur de connexion:', err);
+        // console.error('Erreur de connexion:', err);
 
         let errorMessage = "Une erreur s'est produite lors de la connexion.";
 
