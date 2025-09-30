@@ -19,7 +19,6 @@ const config: Config = {
     '**/*.{js,jsx,ts,tsx}',
     'components/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',
-    'src/**/*.{ts,tsx}',
     '!components/ui/**',
     '!coverage/**',
     '!**/*.d.ts',
