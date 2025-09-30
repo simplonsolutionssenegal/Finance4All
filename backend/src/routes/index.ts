@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import userRoutes from '../infrastructure/web/routes/user.routes';
+import { serviceRoutes } from '@/infrastructure/web/routes/service.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
+router.use('/service', serviceRoutes);
 
 // Route de test
 router.get('/test', (req, res) => {

@@ -7,8 +7,114 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id    String @id
-  name  String
-  email String @unique
+enum UserStatus {
+  ACTIF
+  EN_ATTENTE
+  INACTIF
+  SUSPENDU
 }
+
+
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  users     User[]   // Un rôle peut avoir plusieurs utilisateurs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique @default("temp_username") // <- temporaire
+  firstName String?
+  lastName  String?
+  avatar    String?
+  password  String
+  status   UserStatus    @default(ACTIF)
+  isActive  Boolean  @default(true)
+  clerkUserId     String?     @unique @db.VarChar(128)
+  lastLoginAt  DateTime  @default(now())
+  roleId    Int
+  organisationId Int?
+  role      Role     @relation(fields: [roleId], references: [id])
+  organisation   Organisation? @relation(fields: [organisationId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+
+model Organisation {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  avatar    String?
+  users     User[]
+}
+
+enum ProductType {
+  CREDIT
+  EPARGNE
+  MOBILE_MONEY
+}
+
+enum RemboursementMode {
+  AGENCE
+  USSD
+  MOBILE
+}
+
+model Institution {
+  id        Int                 @id @default(autoincrement())
+  name      String              @unique
+  // N <-> N via table de jointure
+  zones     InstitutionZone[]   // <<< liaison
+  products  Product[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+}
+
+model ZoneGeographique {
+  id           Int               @id @default(autoincrement())
+  name         String    @unique
+  institutions InstitutionZone[]
+  products     Product[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+}
+
+model InstitutionZone {
+  institutionId Int
+  zoneId        Int
+  institution   Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  zone          ZoneGeographique @relation(fields: [zoneId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([institutionId, zoneId])
+  @@index([zoneId])
+}
+
+model Product {
+  id                 Int                 @id @default(autoincrement())
+  designation        String
+  montantMin         Decimal             @db.Decimal(18, 2)
+  montantMax         Decimal             @db.Decimal(18, 2)
+  type               ProductType
+  modesRemboursement RemboursementMode
+
+  institutionId Int
+  zoneId        Int
+  institution   Institution      @relation(fields: [institutionId], references: [id])
+  zone          ZoneGeographique @relation(fields: [zoneId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([zoneId])
+}
+

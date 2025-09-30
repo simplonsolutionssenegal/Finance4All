@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot' npx next dev",
-    "dev:turbo": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot' node --trace-warnings node_modules/.bin/next dev --turbopack",
+    "dev": "set NODE_OPTIONS=--max-old-space-size=4096 --no-node-snapshot&& npx next dev",
+    "dev:turbo": "set NODE_OPTIONS=--max-old-space-size=4096 --no-node-snapshot&& npx next dev --turbopack",
     "dev:safe": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot --openssl-legacy-provider' node --trace-warnings node_modules/.bin/next dev",
     "build": "next build",
     "start": "next start",
@@ -14,7 +14,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "type-check": "tsc --noEmit",
-    "test": "NODE_OPTIONS='--max-old-space-size=4096' jest",
+    "test": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
@@ -69,7 +69,8 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

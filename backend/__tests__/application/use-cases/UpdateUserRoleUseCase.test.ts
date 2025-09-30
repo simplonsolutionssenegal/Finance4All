@@ -48,10 +48,9 @@ describe('UpdateUserRoleUseCase Interface', () => {
     expect(result.message).toBe('Failed to update user role');
   });
 
-  it('should support different role types', async () => {
-    const roles = ['admin', 'member', 'viewer', 'editor', 'manager'];
-
-    for (const role of roles) {
+  it.each(['admin', 'member', 'viewer', 'editor', 'manager'])(
+    'should support role: %s',
+    async role => {
       const mockImplementation: UpdateUserRoleUseCase = {
         execute: jest.fn().mockResolvedValue({
           success: true,
@@ -64,5 +63,5 @@ describe('UpdateUserRoleUseCase Interface', () => {
       expect(mockImplementation.execute).toHaveBeenCalledWith('user_123', 'org_123', role);
       expect(result.success).toBe(true);
     }
-  });
+  );
 });

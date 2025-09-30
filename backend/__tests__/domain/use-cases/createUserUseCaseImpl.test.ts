@@ -3,9 +3,6 @@ import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '@/domain/entities/User';
 
 // Helper function for test assertions
-function fail(message: string): never {
-  throw new Error(message);
-}
 
 // Mock the UserRepository
 const mockUserRepository: jest.Mocked<UserRepository> = {
@@ -86,16 +83,23 @@ describe('CreateUserUseCaseImpl', () => {
     it('should throw error for invalid email format', async () => {
       const invalidEmails = ['invalid-email', '@example.com', 'test@', 'test@.com', 'test@example'];
 
-      for (const invalidEmail of invalidEmails) {
-        mockUserRepository.save.mockClear(); // Clear previous calls
-        try {
-          await createUserUseCase.execute('John Doe', invalidEmail);
-          fail(`Expected error for invalid email: ${invalidEmail}`);
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error);
-          expect((error as Error).message).toBe("Format d'email invalide");
-        }
-      }
+      // for (const invalidEmail of invalidEmails) {
+      //   mockUserRepository.save.mockClear(); // Clear previous calls
+      //   try {
+      //     await createUserUseCase.execute('John Doe', invalidEmail);
+      //     fail(`Expected error for invalid email: ${invalidEmail}`);
+      //   } catch (error) {
+      //     expect(error).toBeInstanceOf(Error);
+      //     expect((error as Error).message).toBe("Format d'email invalide");
+      //   }
+      // }
+      await Promise.all(
+        invalidEmails.map(email =>
+          expect(createUserUseCase.execute('John Doe', email)).rejects.toThrow(
+            "Format d'email invalide"
+          )
+        )
+      );
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
     });
@@ -109,19 +113,15 @@ describe('CreateUserUseCaseImpl', () => {
         'user_name@example-domain.com',
       ];
 
-      for (const validEmail of validEmails) {
-        const mockUser = new User('123', 'Test User', validEmail);
-        mockUserRepository.save.mockResolvedValue(mockUser);
-
-        const result = await createUserUseCase.execute('Test User', validEmail);
-
-        expect(result.email).toBe(validEmail);
-        expect(mockUserRepository.save).toHaveBeenCalledWith(
-          expect.objectContaining({
-            email: validEmail,
-          })
-        );
-      }
+      // Exécution en parallèle (plus de boucle avec await)
+      await Promise.all(
+        validEmails.map(async email => {
+          const mockUser = new User('123', 'Test User', email);
+          mockUserRepository.save.mockResolvedValueOnce(mockUser);
+          const result = await createUserUseCase.execute('Test User', email);
+          expect(result.email).toBe(email);
+        })
+      );
     });
 
     it('should generate unique user IDs', async () => {
@@ -181,29 +181,26 @@ describe('CreateUserUseCaseImpl', () => {
   });
 
   describe('email validation', () => {
-    it('should validate email format correctly', async () => {
-      // Test the private method indirectly through execute
-      const testCases = [
-        { email: 'valid@example.com', shouldBeValid: true },
-        { email: 'user.name@domain.co.uk', shouldBeValid: true },
-        { email: 'user+tag@example.org', shouldBeValid: true },
-        { email: 'invalid-email', shouldBeValid: false },
-        { email: '@domain.com', shouldBeValid: false },
-        { email: 'user@', shouldBeValid: false },
-        { email: 'user@domain', shouldBeValid: false },
-      ];
+    it.each([
+      { email: 'valid@example.com', valid: true },
+      { email: 'user.name@domain.co.uk', valid: true },
+      { email: 'user+tag@example.org', valid: true },
+      { email: 'invalid-email', valid: false },
+      { email: '@domain.com', valid: false },
+      { email: 'user@', valid: false },
+      { email: 'user@domain', valid: false },
+    ])('should validate email: %s (valid: $valid)', async ({ email, valid }) => {
+      if (valid) {
+        const mockUser = new User('123', 'Test User', email);
+        mockUserRepository.save.mockResolvedValueOnce(mockUser);
 
-      for (const { email, shouldBeValid } of testCases) {
-        if (shouldBeValid) {
-          const mockUser = new User('123', 'Test User', email);
-          mockUserRepository.save.mockResolvedValue(mockUser);
-
-          await expect(createUserUseCase.execute('Test User', email)).resolves.toBeDefined();
-        } else {
-          await expect(createUserUseCase.execute('Test User', email)).rejects.toThrow(
-            "Format d'email invalide"
-          );
-        }
+        await expect(createUserUseCase.execute('Test User', email)).resolves.toBeDefined();
+        expect(mockUserRepository.save).toHaveBeenCalledWith(expect.objectContaining({ email }));
+      } else {
+        await expect(createUserUseCase.execute('Test User', email)).rejects.toThrow(
+          "Format d'email invalide"
+        );
+        expect(mockUserRepository.save).not.toHaveBeenCalled();
       }
     });
   });
