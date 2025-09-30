@@ -63,7 +63,6 @@ export default [
       'no-unused-vars': 'off', // Using @typescript-eslint/no-unused-vars instead
       'prefer-const': 'error',
       'no-var': 'error',
-      'quotes': ['error', 'single', { allowTemplateLiterals: true }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
