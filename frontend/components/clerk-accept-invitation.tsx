@@ -127,7 +127,7 @@ export function ClerkAcceptInvitation({
     };
 
     fetchInvitationData();
-  }, [invitationId, orgId]);
+  }, [invitationId, orgId, showLoader, hideLoader]);
 
   // Validation des mots de passe
   const validatePasswords = useCallback(() => {

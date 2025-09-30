@@ -5,9 +5,17 @@ import nextJest from 'next/jest.js';
 const createJestConfig = nextJest({ dir: './' });
 
 const config: Config = {
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+  },
   clearMocks: true,
   collectCoverage: true,
   collectCoverageFrom: [
+    // inclure tous les fichiers TypeScript dans le dossier components produits
+    'components/products/**/*.{ts,tsx}',
+    'hooks/products/**/*.{ts,tsx}',
+    'lib/api/products/**/*.{ts,tsx}',
+
     '**/*.{js,jsx,ts,tsx}',
     'components/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',
