@@ -1,5 +1,6 @@
 // src/infrastructure/database/PrismaProductRepository.ts
-import { type PrismaClient, type Product as PrismaProduct, type Prisma } from '@prisma/client';
+import type { PrismaClient, Prisma } from '@prisma/client';
+
 import { prisma } from './prisma';
 import { type ProductRepository } from '@/domain/repositories/ProductRepository';
 import {
@@ -75,7 +76,7 @@ export class PrismaProductRepository implements ProductRepository {
       });
 
       return {
-        data: products.map((p: PrismaProduct) => this.mapToDomain(p)),
+        data: products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p)),
         pagination: {
           page: pagination.page,
           limit: pagination.limit,
@@ -98,7 +99,7 @@ export class PrismaProductRepository implements ProductRepository {
       const product = await this.db.product.create({
         data: {
           designation: productData.designation,
-          type: productData.type as PrismaProduct['type'],
+          type: productData.type as ProductType,
           montantMinimum: productData.montantMinimum,
           montantMaximum: productData.montantMaximum,
           remboursement: productData.remboursement as unknown as Prisma.InputJsonValue,
@@ -194,11 +195,11 @@ export class PrismaProductRepository implements ProductRepository {
   async findByType(type: ProductType): Promise<Product[]> {
     try {
       const products = await this.db.product.findMany({
-        where: { type: type as PrismaProduct['type'] },
+        where: { type },
         orderBy: { createdAt: 'desc' },
       });
 
-      return products.map((p: PrismaProduct) => this.mapToDomain(p));
+      return products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p));
     } catch (error) {
       logger.error('Erreur lors de la recherche par type', {
         error: error as unknown,
@@ -208,7 +209,7 @@ export class PrismaProductRepository implements ProductRepository {
     }
   }
 
-  private mapToDomain(prismaProduct: PrismaProduct): Product {
+  private mapToDomain(prismaProduct: Prisma.ProductGetPayload<{}>): Product {
     return {
       id: prismaProduct.id,
       designation: prismaProduct.designation,
