@@ -14,7 +14,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "type-check": "tsc --noEmit",
-    "test": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest",
+    "test": "NODE_OPTIONS='--max-old-space-size=4096' jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },

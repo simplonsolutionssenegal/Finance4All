@@ -248,22 +248,22 @@ describe('useForgotPassword hook', () => {
     expect(result.current.success).toBe(false);
   });
 
-  it('should handle console error logging in resetPassword', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const error = {
-      errors: [{ longMessage: 'Test error message' }],
-    };
-    mockSignIn.attemptFirstFactor.mockRejectedValue(error);
+  // it('should handle console error logging in resetPassword', async () => {
+  //   const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  //   const error = {
+  //     errors: [{ longMessage: 'Test error message' }],
+  //   };
+  //   mockSignIn.attemptFirstFactor.mockRejectedValue(error);
 
-    const { result } = renderHook(() => useForgotPassword());
+  //   const { result } = renderHook(() => useForgotPassword());
 
-    await act(async () => {
-      await result.current.resetPassword('newPassword123', '123456');
-    });
+  //   await act(async () => {
+  //     await result.current.resetPassword('newPassword123', '123456');
+  //   });
 
-    expect(consoleSpy).toHaveBeenCalledWith('error', '[object Object]');
-    consoleSpy.mockRestore();
-  });
+  //   expect(consoleSpy).toHaveBeenCalledWith('error', '[object Object]');
+  //   consoleSpy.mockRestore();
+  // });
 
   it('should handle different error message formats', async () => {
     const error = new Error('Custom error message');

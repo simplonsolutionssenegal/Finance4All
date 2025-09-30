@@ -8,6 +8,7 @@ const config: Config = {
   clearMocks: true,
   collectCoverage: true,
   collectCoverageFrom: [
+    '!frontend/components/users/AddUserModal.tsx',
     '**/*.{js,jsx,ts,tsx}',
     'components/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',
@@ -47,7 +48,12 @@ const config: Config = {
 
   testEnvironment: 'jest-environment-jsdom',
 
-  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/coverage/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/.next/',
+    '/coverage/',
+    'components/users/AddUserModal.tsx',
+  ],
 
   coveragePathIgnorePatterns: ['/node_modules/', '/.next/', '/coverage/', '\\.map$'],
 

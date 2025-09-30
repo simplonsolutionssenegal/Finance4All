@@ -70,7 +70,7 @@ jest.mock('lucide-react', () => ({
 describe('GrowthChart', () => {
   describe('Rendering', () => {
     it('renders the chart component', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByTestId('card')).toBeInTheDocument();
       expect(screen.getByTestId('card-header')).toBeInTheDocument();
@@ -78,14 +78,14 @@ describe('GrowthChart', () => {
     });
 
     it('renders the title and value', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByText('Lorem ipsum')).toBeInTheDocument();
       expect(screen.getByText('134,640.00')).toBeInTheDocument();
     });
 
     it('renders the growth badge', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const badge = screen.getByTestId('badge');
       expect(badge).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe('GrowthChart', () => {
     });
 
     it('renders all time filter buttons', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByText('1D')).toBeInTheDocument();
       expect(screen.getByText('1W')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('GrowthChart', () => {
     });
 
     it('renders the more options button', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByTestId('more-horizontal-icon')).toBeInTheDocument();
     });
@@ -111,14 +111,14 @@ describe('GrowthChart', () => {
 
   describe('Chart Components', () => {
     it('renders the line chart', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
       expect(screen.getByTestId('line-chart')).toBeInTheDocument();
     });
 
     it('renders chart components', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();
       expect(screen.getByTestId('x-axis')).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('GrowthChart', () => {
 
   describe('Time Filter Functionality', () => {
     it('has 1M as default active filter', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const buttons = screen.getAllByTestId('button');
       const oneMonthButton = buttons.find(button => button.textContent === '1M');
@@ -139,7 +139,7 @@ describe('GrowthChart', () => {
     });
 
     it('changes active filter when clicking different time periods', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const oneDayButton = screen.getByText('1D');
       fireEvent.click(oneDayButton);
@@ -154,7 +154,7 @@ describe('GrowthChart', () => {
     });
 
     it('changes active filter to 1W when clicked', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const oneWeekButton = screen.getByText('1W');
       fireEvent.click(oneWeekButton);
@@ -166,7 +166,7 @@ describe('GrowthChart', () => {
     });
 
     it('changes active filter to 6M when clicked', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const sixMonthButton = screen.getByText('6M');
       fireEvent.click(sixMonthButton);
@@ -178,7 +178,7 @@ describe('GrowthChart', () => {
     });
 
     it('changes active filter to 1Y when clicked', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const oneYearButton = screen.getByText('1Y');
       fireEvent.click(oneYearButton);
@@ -192,7 +192,7 @@ describe('GrowthChart', () => {
 
   describe('CSS Classes and Styling', () => {
     it('applies correct CSS classes to the card', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const card = screen.getByTestId('card');
       expect(card).toHaveClass(
@@ -206,7 +206,7 @@ describe('GrowthChart', () => {
     });
 
     it('applies correct styling to active filter button', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const buttons = screen.getAllByTestId('button');
       const activeButton = buttons.find(
@@ -219,7 +219,7 @@ describe('GrowthChart', () => {
     });
 
     it('applies correct styling to inactive filter buttons', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const buttons = screen.getAllByTestId('button');
       const inactiveButton = buttons.find(
@@ -231,7 +231,7 @@ describe('GrowthChart', () => {
     });
 
     it('applies correct styling to the badge', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const badge = screen.getByTestId('badge');
       expect(badge).toHaveClass(
@@ -247,7 +247,7 @@ describe('GrowthChart', () => {
 
   describe('Layout Structure', () => {
     it('has correct header layout', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const header = screen.getByTestId('card-header');
       expect(header).toHaveClass(
@@ -259,18 +259,35 @@ describe('GrowthChart', () => {
         'pb-6'
       );
     });
+
+    it('has filter buttons container with correct styling', () => {
+      render(<GrowthChart />);
+
+      // Check that the filter buttons are wrapped in a container with correct classes
+      const { container } = render(<GrowthChart />);
+      const filterContainer = container.querySelector('.bg-gray-50.rounded-lg.p-1');
+      expect(filterContainer).toBeInTheDocument();
+    });
+
+    it('sets correct height for chart container', () => {
+      render(<GrowthChart />);
+
+      const { container } = render(<GrowthChart />);
+      const chartContainer = container.querySelector('.h-64');
+      expect(chartContainer).toBeInTheDocument();
+    });
   });
 
   describe('Accessibility', () => {
     it('has proper button roles for time filters', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const timeFilterButtons = screen.getAllByRole('button');
       expect(timeFilterButtons.length).toBeGreaterThan(0);
     });
 
     it('has accessible structure with proper semantic elements', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const title = screen.getByTestId('card-title');
       expect(title.tagName).toBe('H3');
@@ -279,7 +296,7 @@ describe('GrowthChart', () => {
 
   describe('Component State Management', () => {
     it('maintains independent state for active filter', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       // Click multiple filters and verify state changes
       const oneDayButton = screen.getByText('1D');
@@ -301,7 +318,7 @@ describe('GrowthChart', () => {
 
   describe('Data Display', () => {
     it('displays the correct numeric value', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const value = screen.getByText('134,640.00');
       expect(value).toBeInTheDocument();
@@ -309,7 +326,7 @@ describe('GrowthChart', () => {
     });
 
     it('displays the growth percentage', () => {
-      // render(<GrowthChart />);
+      render(<GrowthChart />);
 
       const growthText = screen.getByText('📈 13% growth');
       expect(growthText).toBeInTheDocument();
