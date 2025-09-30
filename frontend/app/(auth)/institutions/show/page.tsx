@@ -11,7 +11,6 @@ import type { FilterOptions } from '@/types/FilterOptions';
 
 const BASE_URL = `${_BASE_URL}/service/by-institution/1`;
 
-// 👉 helper pour construire la query ?type=...&type=...&zone=...&date=...
 function buildFilterQuery(f: FilterOptions) {
   const params = new URLSearchParams();
 
@@ -26,7 +25,6 @@ function buildFilterQuery(f: FilterOptions) {
   return params.toString();
 }
 
-// 👉 petit helper: y a-t-il au moins 1 filtre actif ?
 function hasAnyFilter(f: FilterOptions) {
   return f.type.length > 0 || f.zone.length > 0 || !!f.date;
 }
