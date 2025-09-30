@@ -25,6 +25,7 @@ function buildFilterQuery(f: FilterOptions) {
   return params.toString();
 }
 
+// 👉 petit helper: y a-t-il au moins 1 filtre actif ?
 function hasAnyFilter(f: FilterOptions) {
   return f.type.length > 0 || f.zone.length > 0 || !!f.date;
 }
