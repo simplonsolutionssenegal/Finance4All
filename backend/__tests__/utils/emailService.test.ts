@@ -1,8 +1,8 @@
 import {
   EmailService,
+  InvitationEmailData,
   sendInvitationEmail,
   testEmailConnection,
-  type InvitationEmailData,
 } from '@/utils/emailService';
 import nodemailer from 'nodemailer';
 import { logger } from '@/utils/logger';

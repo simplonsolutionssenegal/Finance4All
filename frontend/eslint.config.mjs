@@ -13,6 +13,7 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default [
   // Base configs
   js.configs.recommended,
@@ -62,6 +63,7 @@ export default [
       'no-unused-vars': 'off', // Using @typescript-eslint/no-unused-vars instead
       'prefer-const': 'error',
       'no-var': 'error',
+      'quotes': ['error', 'single', { allowTemplateLiterals: true }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
