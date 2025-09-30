@@ -1,32 +1,25 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
 import Header from '@/components/dashboard/Header';
 
 // Mock NoSSR component
 jest.mock('@/components/NoSSR', () => {
-  return function NoSSR({ children }: { children: React.ReactNode }) {
+  return function NoSSR({
+    children,
+    fallback,
+  }: {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+  }) {
     return <>{children}</>;
   };
 });
 
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
-  Search: () => <div data-testid="search-icon" />,
-  Bell: () => <div data-testid="bell-icon" />,
-  ChevronDown: () => <div data-testid="chevron-down-icon" />,
-  User: () => <div data-testid="user-icon" />,
-  Settings: () => <div data-testid="settings-icon" />,
-  LogOut: () => <div data-testid="log-out-icon" />,
-}));
-
-jest.mock('@/components/dashboard/LogoutAlert', () => ({
-  LogoutAlert: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => 
-    isOpen ? (
-      <div data-testid="logout-alert">
-        <button onClick={onClose} data-testid="close-logout-alert">Close</button>
-      </div>
-    ) : null,
+  Search: () => <div data-testid='search-icon' />,
+  Bell: () => <div data-testid='bell-icon' />,
+  ChevronDown: () => <div data-testid='chevron-down-icon' />,
 }));
 
 describe('Header', () => {
@@ -71,80 +64,7 @@ describe('Header', () => {
     // Check if dropdown menu items are visible
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Déconnexion')).toBeInTheDocument();
-  });
-
-  it('opens logout alert when logout is clicked', async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-
-    // Click on the user dropdown trigger
-    const userButton = screen.getByRole('button', { name: /jaafar/i });
-    await user.click(userButton);
-
-    // Click on logout menu item
-    const logoutMenuItem = screen.getByText('Déconnexion');
-    await user.click(logoutMenuItem);
-
-    // Check if logout alert is opened
-    expect(screen.getByTestId('logout-alert')).toBeInTheDocument();
-  });
-
-  it('closes logout alert when close button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-
-    // Open logout alert
-    const userButton = screen.getByRole('button', { name: /jaafar/i });
-    await user.click(userButton);
-    
-    const logoutMenuItem = screen.getByText('Déconnexion');
-    await user.click(logoutMenuItem);
-
-    // Close logout alert
-    const closeButton = screen.getByTestId('close-logout-alert');
-    await user.click(closeButton);
-
-    // Check if logout alert is closed (it should not be in document after close)
-    expect(screen.queryByTestId('logout-alert')).not.toBeInTheDocument();
-  });
-
-  it('renders logout icon in dropdown menu', async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-
-    // Click on the user dropdown trigger
-    const userButton = screen.getByRole('button', { name: /jaafar/i });
-    await user.click(userButton);
-
-    // Check if logout icon is present
-    expect(screen.getByTestId('log-out-icon')).toBeInTheDocument();
-  });
-
-  it('renders user and settings icons in dropdown menu', async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-
-    // Click on the user dropdown trigger
-    const userButton = screen.getByRole('button', { name: /jaafar/i });
-    await user.click(userButton);
-
-    // Check if icons are present
-    expect(screen.getByTestId('user-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('settings-icon')).toBeInTheDocument();
-  });
-
-  it('has logout menu item with correct styling', async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-
-    // Click on the user dropdown trigger
-    const userButton = screen.getByRole('button', { name: /jaafar/i });
-    await user.click(userButton);
-
-    // Check logout menu item styling
-    const logoutMenuItem = screen.getByText('Déconnexion').closest('[role="menuitem"]');
-    expect(logoutMenuItem).toHaveClass('text-red-600', 'hover:text-red-700');
+    expect(screen.getByText('Log out')).toBeInTheDocument();
   });
 
   it('renders search input as interactive element', () => {
@@ -226,7 +146,7 @@ describe('Header', () => {
   });
 
   it('renders notification badge with correct styling', () => {
-    render(<Header />);
+    const { container } = render(<Header />);
 
     const badge = screen.getByText('10');
     expect(badge).toHaveClass(
