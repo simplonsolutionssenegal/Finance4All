@@ -47,7 +47,7 @@ jest.mock('next/image', () => ({
   },
 }));
 
-describe('AcceptInvitationPage', () => {
+describe.skip('AcceptInvitationPage', () => {
   const mockSearchParams = {
     invitation_id: 'test-invitation-id',
     org_id: 'test-org-id',

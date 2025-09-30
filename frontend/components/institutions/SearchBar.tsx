@@ -83,15 +83,21 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
             />
 
             {/* Dropdown des 3 dernières recherches */}
+            {/* Dropdown des 3 dernières recherches */}
             {showDropdown && recentSearches.length > 0 && (
-              <ul className='absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto'>
+              <ul
+                className='absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto'
+                aria-label='Recherches récentes' // ← on peut garder ce label
+              >
                 {recentSearches.map(s => (
-                  <li
-                    key={s} // <-- au lieu de key={idx}
-                    className='px-3 py-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100'
-                    onClick={() => handleSelectSearch(s)}
-                  >
-                    {s}
+                  <li key={s}>
+                    <button
+                      type='button'
+                      onClick={() => handleSelectSearch(s)}
+                      className='w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none'
+                    >
+                      {s}
+                    </button>
                   </li>
                 ))}
               </ul>

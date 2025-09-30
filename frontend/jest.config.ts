@@ -52,7 +52,7 @@ const config: Config = {
     '/node_modules/',
     '/.next/',
     '/coverage/',
-    'components/users/AddUserModal.tsx',
+    '/components/users/AddUserModal.tsx',
   ],
 
   coveragePathIgnorePatterns: ['/node_modules/', '/.next/', '/coverage/', '\\.map$'],
