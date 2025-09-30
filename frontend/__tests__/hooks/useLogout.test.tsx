@@ -96,7 +96,10 @@ describe('useLogout', () => {
     });
 
     expect(mockSignOut).toHaveBeenCalledTimes(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Erreur lors de la déconnexion:', expect.any(Error));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Erreur lors de la déconnexion:',
+      expect.any(Error)
+    );
     expect(result.current.isLoading).toBe(false);
 
     consoleErrorSpy.mockRestore();
@@ -109,7 +112,7 @@ describe('useLogout', () => {
     });
 
     let resolveSignOut: () => void;
-    const signOutPromise = new Promise<void>((resolve) => {
+    const signOutPromise = new Promise<void>(resolve => {
       resolveSignOut = resolve;
     });
     mockSignOut.mockReturnValue(signOutPromise);
@@ -126,7 +129,7 @@ describe('useLogout', () => {
 
     // Complete logout
     await act(async () => {
-      resolveSignOut!();
+      resolveSignOut?.();
       await signOutPromise;
     });
 

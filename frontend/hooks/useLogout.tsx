@@ -1,6 +1,6 @@
-import { useClerk, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useClerk, useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export function useLogout() {
   const [isLoading, setIsLoading] = useState(false);
@@ -10,17 +10,17 @@ export function useLogout() {
 
   const logout = async () => {
     if (!user) {
-      console.warn("Aucune session active trouvée.");
-      router.push("/login");
+      console.warn('Aucune session active trouvée.');
+      router.push('/login');
       return;
     }
 
     setIsLoading(true);
     try {
       await signOut();
-      router.push("/login");
+      router.push('/login');
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
+      console.error('Erreur lors de la déconnexion:', error);
     } finally {
       setIsLoading(false);
     }

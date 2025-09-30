@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { UserController } from '@/infrastructure/web/controllers/UserController';
-import { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
-import { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
+import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
+import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { getAuth, clerkClient } from '@clerk/express';
 
 // Mocking emailService
@@ -159,7 +159,7 @@ describe('UserController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: "Erreur lors de la création de l\'invitation",
+        error: "Erreur lors de la création de l'invitation",
         message: clerkError.message,
         details: clerkError.errors,
       });
@@ -175,7 +175,7 @@ describe('UserController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: "Erreur lors de la création de l\'invitation",
+        error: "Erreur lors de la création de l'invitation",
         message: genericError.message,
       });
     });
@@ -190,7 +190,7 @@ describe('UserController', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
-        error: "Erreur lors de la création de l\'invitation",
+        error: "Erreur lors de la création de l'invitation",
         message: 'Erreur inconnue',
       });
     });
