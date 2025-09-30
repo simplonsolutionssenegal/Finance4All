@@ -13,6 +13,7 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default [
   // Base configs
   js.configs.recommended,

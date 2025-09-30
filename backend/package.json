@@ -15,12 +15,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "format": "prettier --write \"{src,__tests__}/**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"{src,__tests__}/**/*.{ts,js,json,md}\"",
     "lint:format": "npm run lint:fix && npm run format",
     "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage",
-    "lint": "eslint \"**/*.{ts,js}\"",
-    "lint:fix": "eslint \"**/*.{ts,js}\" --fix",
+    "lint": "eslint \"{src,__tests__}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,__tests__}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate"
   },
   "prisma": {
