@@ -1,5 +1,5 @@
 // src/infrastructure/database/PrismaProductRepository.ts
-import { type PrismaClient } from '@prisma/client';
+import { type PrismaClient, type Product as PrismaProduct, type Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { type ProductRepository } from '@/domain/repositories/ProductRepository';
 import {
@@ -8,6 +8,8 @@ import {
   type PaginationOptions,
   type PaginatedResult,
   type ProductType,
+  type RemboursementInfo,
+  type ConditionsEligibilite,
 } from '@/domain/entities/Product';
 import { logger } from '@/utils/logger';
 
@@ -36,7 +38,7 @@ export class PrismaProductRepository implements ProductRepository {
   ): Promise<PaginatedResult<Product>> {
     try {
       // Construction des filtres Prisma
-      const where: any = {};
+      const where: Record<string, unknown> = {};
 
       if (filters.type) {
         where.type = filters.type;
@@ -73,7 +75,7 @@ export class PrismaProductRepository implements ProductRepository {
       });
 
       return {
-        data: products.map(p => this.mapToDomain(p)),
+        data: products.map((p: PrismaProduct) => this.mapToDomain(p)),
         pagination: {
           page: pagination.page,
           limit: pagination.limit,
@@ -96,11 +98,12 @@ export class PrismaProductRepository implements ProductRepository {
       const product = await this.db.product.create({
         data: {
           designation: productData.designation,
-          type: productData.type as any, // Prisma enum
+          type: productData.type as PrismaProduct['type'],
           montantMinimum: productData.montantMinimum,
           montantMaximum: productData.montantMaximum,
-          remboursement: productData.remboursement as any,
-          conditionsEligibilite: productData.conditionsEligibilite as any,
+          remboursement: productData.remboursement as unknown as Prisma.InputJsonValue,
+          conditionsEligibilite:
+            productData.conditionsEligibilite as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -123,7 +126,7 @@ export class PrismaProductRepository implements ProductRepository {
         return null;
       }
 
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
 
       if (productData.designation !== undefined) {
         updateData.designation = productData.designation;
@@ -138,10 +141,11 @@ export class PrismaProductRepository implements ProductRepository {
         updateData.montantMaximum = productData.montantMaximum;
       }
       if (productData.remboursement !== undefined) {
-        updateData.remboursement = productData.remboursement;
+        updateData.remboursement = productData.remboursement as unknown as Prisma.InputJsonValue;
       }
       if (productData.conditionsEligibilite !== undefined) {
-        updateData.conditionsEligibilite = productData.conditionsEligibilite;
+        updateData.conditionsEligibilite =
+          productData.conditionsEligibilite as unknown as Prisma.InputJsonValue;
       }
 
       const product = await this.db.product.update({
@@ -168,8 +172,13 @@ export class PrismaProductRepository implements ProductRepository {
 
       logger.info('Produit supprimé avec succès', { productId: id });
       return true;
-    } catch (error: any) {
-      if (error.code === 'P2025') {
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2025'
+      ) {
         // Produit non trouvé
         return false;
       }
@@ -185,11 +194,11 @@ export class PrismaProductRepository implements ProductRepository {
   async findByType(type: ProductType): Promise<Product[]> {
     try {
       const products = await this.db.product.findMany({
-        where: { type: type as any },
+        where: { type: type as PrismaProduct['type'] },
         orderBy: { createdAt: 'desc' },
       });
 
-      return products.map(p => this.mapToDomain(p));
+      return products.map((p: PrismaProduct) => this.mapToDomain(p));
     } catch (error) {
       logger.error('Erreur lors de la recherche par type', {
         error: error as unknown,
@@ -199,15 +208,16 @@ export class PrismaProductRepository implements ProductRepository {
     }
   }
 
-  private mapToDomain(prismaProduct: any): Product {
+  private mapToDomain(prismaProduct: PrismaProduct): Product {
     return {
       id: prismaProduct.id,
       designation: prismaProduct.designation,
       type: prismaProduct.type as ProductType,
       montantMinimum: prismaProduct.montantMinimum,
       montantMaximum: prismaProduct.montantMaximum,
-      remboursement: prismaProduct.remboursement,
-      conditionsEligibilite: prismaProduct.conditionsEligibilite,
+      remboursement: prismaProduct.remboursement as unknown as RemboursementInfo,
+      conditionsEligibilite:
+        prismaProduct.conditionsEligibilite as unknown as ConditionsEligibilite,
       createdAt: prismaProduct.createdAt,
       updatedAt: prismaProduct.updatedAt,
     };

@@ -1,7 +1,7 @@
 import { logger, logRequest, logError, loggerStream } from '@/infrastructure/utils/logger';
 import type { Request, Response } from 'express';
 
-describe.skip('Logger', () => {
+describe('Logger', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
