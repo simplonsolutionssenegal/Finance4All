@@ -125,7 +125,7 @@ export const useRemoveProduct = () => {
 // Hook pour mettre à jour un produit
 export const useUpdateProduct = (options?: { reloadFn?: () => void }) => {
   const { showLoader, hideLoader } = useLoader();
-  const reloadFn = options?.reloadFn || (() => window.location.reload());
+  const reloadFn = options?.reloadFn || (() => globalThis.location.reload());
 
   const updateProduct = async (productId: string, productData: Partial<CreateProductData>) => {
     const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products/${productId}`;
@@ -152,7 +152,7 @@ export const useUpdateProduct = (options?: { reloadFn?: () => void }) => {
 // Hook pour créer un produit
 export const useCreateProduct = (options?: { reloadFn?: () => void }) => {
   const { showLoader, hideLoader } = useLoader();
-  const reloadFn = options?.reloadFn || (() => window.location.reload());
+  const reloadFn = options?.reloadFn || (() => globalThis.location.reload());
 
   const createProduct = async (productData: CreateProductData) => {
     const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products`;

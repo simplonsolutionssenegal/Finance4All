@@ -10,6 +10,6 @@ interface ProductEditModalProps {
   product: Product;
 }
 
-export default function ProductEditModal(props: ProductEditModalProps) {
+export default function ProductEditModal(props: Readonly<ProductEditModalProps>) {
   return <ProductModal mode='edit' {...props} />;
 }

@@ -1,7 +1,5 @@
 // frontend/components/products/ProductInfoModal.tsx
-
 'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Product } from '@/types/Product';
@@ -12,12 +10,7 @@ interface ProductInfoModalProps {
   product: Product;
 }
 
-export default function ProductInfoModal({
-  isOpen,
-  onClose,
-
-  product,
-}: ProductInfoModalProps) {
+export default function ProductInfoModal({ isOpen, onClose, product }: ProductInfoModalProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -45,7 +38,7 @@ export default function ProductInfoModal({
 
           {/* Type de produit */}
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-600'>Type de produit</label>
+            <h4 className='text-sm font-medium text-gray-600'>Type de produit</h4>
             <div>
               <Badge variant='secondary' className='capitalize text-base px-3 py-1'>
                 {product.type}
@@ -55,7 +48,7 @@ export default function ProductInfoModal({
 
           {/* Montant Min et Max */}
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-600'>Montant</label>
+            <h4 className='text-sm font-medium text-gray-600'>Montant</h4>
             <div className='flex items-center gap-4'>
               <div className='flex-1 bg-gray-50 p-3 rounded-lg'>
                 <p className='text-xs text-gray-500 mb-1'>Minimum</p>
@@ -74,7 +67,7 @@ export default function ProductInfoModal({
 
           {/* Conditions d'éligibilité */}
           {/* <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-600'>Conditions d&apos;éligibilité</label>
+            <h4 className='text-sm font-medium text-gray-600'>Conditions d&apos;éligibilité</h4>
             <div className='bg-gray-50 p-4 rounded-lg space-y-2'>
               <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Âge minimum:</span>
@@ -99,7 +92,7 @@ export default function ProductInfoModal({
 
           {/* Modalités de remboursement */}
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-600'>Modalités de remboursement</label>
+            <h4 className='text-sm font-medium text-gray-600'>Modalités de remboursement</h4>
             <div className='bg-gray-50 p-4 rounded-lg space-y-2'>
               <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Durée:</span>

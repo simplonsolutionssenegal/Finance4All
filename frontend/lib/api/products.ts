@@ -45,11 +45,11 @@ export class ProductsAPI {
     });
 
     if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(filters)) {
         if (value !== undefined && value !== null) {
           searchParams.append(key, value.toString());
         }
-      });
+      }
     }
 
     const url = `${API_BASE_URL}/api/v1/products?${searchParams}`;

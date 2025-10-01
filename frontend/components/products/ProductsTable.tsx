@@ -1,14 +1,11 @@
 // frontend/components/products/ProductsTable.tsx
-
 'use client';
-
 import { Search, Plus, Trash2, Edit, Eye } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
-import AddProductModal from '@/components/products/AddProductModal';
 import ConfirmDeleteModal from '@/components/products/ConfirmDeleteModal';
-import ProductEditModal from '@/components/products/ProductEditModal';
 import ProductInfoModal from '@/components/products/ProductInfoModal';
+import ProductModal from '@/components/products/ProductModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,12 +49,14 @@ export default function ProductsTable() {
 
   const { removeProduct } = useRemoveProduct();
   const { createProduct } = useCreateProduct({
-    reloadFn: fetchProducts,
+    reloadFn: () => {
+      void fetchProducts();
+    },
   });
 
   // Charger les produits au montage
   useEffect(() => {
-    fetchProducts();
+    void fetchProducts();
   }, [fetchProducts]);
 
   const filteredProducts = products.filter(
@@ -79,17 +78,11 @@ export default function ProductsTable() {
     setShowProductInfo(true);
   };
 
-  // const handleDeleteClick = () => {
-  //   setShowProductInfo(false);
-  //   setShowConfirmDelete(true);
-  // };
-
   const handleConfirmDelete = async () => {
     if (!selectedProduct) return;
-
     try {
       await removeProduct(selectedProduct.id);
-      await fetchProducts(); // Recharger la liste après suppression
+      await fetchProducts();
       setShowConfirmDelete(false);
       setSelectedProduct(null);
     } catch (error) {
@@ -134,10 +127,10 @@ export default function ProductsTable() {
     setIsCreatingProduct(true);
     try {
       await createProduct(productData);
-      await fetchProducts(); // Recharger la liste après création
+      await fetchProducts();
       handleCloseModals();
     } catch (error) {
-      console.error('🔴 Erreur lors de la création du produit:', error);
+      console.error(' Erreur lors de la création du produit:', error);
     } finally {
       setIsCreatingProduct(false);
     }
@@ -146,7 +139,8 @@ export default function ProductsTable() {
   const renderModals = () => {
     return (
       <>
-        <AddProductModal
+        <ProductModal
+          mode='create'
           isOpen={showAddProduct}
           onClose={handleCloseModals}
           onCreateProduct={handleCreateProduct}
@@ -157,7 +151,6 @@ export default function ProductsTable() {
             <ProductInfoModal
               isOpen={showProductInfo}
               onClose={handleCloseModals}
-              // onDelete={handleDeleteClick}
               product={selectedProduct}
             />
             <ConfirmDeleteModal
@@ -166,7 +159,8 @@ export default function ProductsTable() {
               onConfirm={handleConfirmDelete}
               product={selectedProduct}
             />
-            <ProductEditModal
+            <ProductModal
+              mode='edit'
               isOpen={showProductEdit}
               onClose={handleCloseModals}
               product={selectedProduct}
@@ -192,7 +186,6 @@ export default function ProductsTable() {
             Ajouter un produit
           </Button>
         </div>
-
         <div className='mt-4'>
           <div className='relative max-w-md'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
@@ -206,7 +199,6 @@ export default function ProductsTable() {
           </div>
         </div>
       </CardHeader>
-
       <CardContent className='pb-6'>
         {loading ? (
           <div className='flex flex-col items-center justify-center py-8 space-y-2'>
@@ -294,7 +286,6 @@ export default function ProductsTable() {
           </div>
         )}
       </CardContent>
-
       {renderModals()}
     </Card>
   );
