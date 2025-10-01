@@ -68,7 +68,7 @@ it('should call fetchProducts and handle loading, success, and error states', as
   });
   await userEvent.type(screen.getByLabelText('Durée minimum (mois) *'), '6');
   await userEvent.type(screen.getByLabelText('Durée maximum (mois) *'), '18');
-  await userEvent.type(screen.getByLabelText('Taux intérêt (%) *'), '3');
+  await userEvent.type(screen.getByLabelText("Taux d'intérêt (%) *"), '3');
   // Pour le select shadcn/ui, cibler le bouton juste après le label
   const typeRembLabel = screen.getByText('Type de remboursement *');
   const selectTrigger = typeRembLabel.parentElement?.querySelector('button');
