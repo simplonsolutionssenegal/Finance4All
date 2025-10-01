@@ -15,8 +15,6 @@ interface FilterPopupProps {
   onApplyFilters: (filters: ServiceFilterOptions) => void;
 }
 
-/* ---------- UI helpers ---------- */
-
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <fieldset className='mb-4'>
     <legend className='text-sm font-bold text-black mt-2'>{title}</legend>
@@ -114,8 +112,6 @@ function ChipRadioGroup<T extends string>(props: {
   );
 }
 
-/* ---------- Composant principal ---------- */
-
 const FilterPopup: React.FC<FilterPopupProps> = ({ isOpen, onClose, onApplyFilters }) => {
   const [filters, setFilters] = useState<ServiceFilterOptions>({
     type: [],
@@ -156,7 +152,7 @@ const FilterPopup: React.FC<FilterPopupProps> = ({ isOpen, onClose, onApplyFilte
   const handleReinit = () => {
     // Réinitialiser (ne pas fermer)
     setFilters(emptyFilters);
-    onApplyFilters(emptyFilters); // si tu veux refléter immédiatement l’état “vide”
+    onApplyFilters(emptyFilters);
   };
 
   if (!isOpen) return null;
@@ -209,8 +205,8 @@ const FilterPopup: React.FC<FilterPopupProps> = ({ isOpen, onClose, onApplyFilte
         <div className='flex items-center justify-between p-2 w-full mb-3 gap-3'>
           <button
             onClick={() => {
-              setFilters(emptyFilters); // vider
-              onApplyFilters(emptyFilters); // refléter l’état “vide”
+              setFilters(emptyFilters);
+              onApplyFilters(emptyFilters);
               onClose(); // fermer
             }}
             className='px-4 py-1 w-sm text-xs font-medium text-gray-700 bg-[#8b8e8fff] hover:bg-[#8b8e8fff] rounded-md transition-colors'

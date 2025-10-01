@@ -20,7 +20,6 @@ export default function InstituteHeader({
 
   const removeZone = (id: string | number) => {
     setLocalZones(prev => prev.filter(z => z.id !== id));
-    // Ici tu peux plus tard appeler un fetch vers ton API pour persister
   };
 
   const onReject = () => {
@@ -47,14 +46,12 @@ export default function InstituteHeader({
             />
           </div>
 
-          {/* Infos */}
           <div className='flex-1'>
             <div className='flex flex-wrap items-center gap-3'>
               <h2 className='text-xl font-semibold leading-none'>{name}</h2>
 
               <div className='flex basis-full items-center gap-3  '>
                 {' '}
-                {/* ⬅️ force à passer à la ligne */}
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-3 text-sm font-medium ${
                     isActive ? 'bg-[#E8FBF0] text-[#28A745]' : 'bg-[#FFECEC] text-[#D93025]'
@@ -128,7 +125,6 @@ export default function InstituteHeader({
           </button>
         </div>
       </div>
-      {/* La section s’arrête ici (juste après les zones) */}
     </section>
   );
 }

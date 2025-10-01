@@ -46,16 +46,12 @@ describe('FilterPopup', () => {
   it('sélection + confirmer appelle onApplyFilters avec les bons filtres et ferme', async () => {
     const { user, onApplyFilters, onClose } = setup();
 
-    // Sélectionner Type: Crédit
     await user.click(screen.getByLabelText(/Crédit/i)); // label du chip
 
-    // Zone: Zone Géo A
     await user.click(screen.getByLabelText(/Zone Géo A/i));
 
-    // Date: Récente
     await user.click(screen.getByLabelText(/Récente/i));
 
-    // Confirmer
     await user.click(screen.getByRole('button', { name: /Confirmer/i }));
 
     expect(onApplyFilters).toHaveBeenCalledTimes(1);
@@ -70,20 +66,15 @@ describe('FilterPopup', () => {
   it('Réinitialiser vide les filtres et ne ferme pas', async () => {
     const { user, onApplyFilters, onClose } = setup();
 
-    // Sélectionner quelques filtres
     await user.click(screen.getByLabelText(/Épargne|Epargne/i));
     await user.click(screen.getByLabelText(/Zone Géo B/i));
     await user.click(screen.getByLabelText(/Il y a 3 mois/i));
 
-    // Réinitialiser
     await user.click(screen.getByRole('button', { name: /Réinitialiser/i }));
 
-    // Appelé avec filtres vides
     expect(onApplyFilters).toHaveBeenCalledWith({ type: [], zone: [], date: '' });
-    // Ne doit pas fermer
-    expect(onClose).not.toHaveBeenCalled();
 
-    // (optionnel) cliquer Confirmer maintenant devrait alerter (car vide)
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('Annuler vide les filtres et ferme', async () => {

@@ -26,7 +26,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
   const recentSearches = useSearchStore(state => state.recentSearches);
   const addSearch = useSearchStore(state => state.addSearch);
 
-  // fermer dropdown si clic à l'extérieur
+  // fermer dropdown si je  clique à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -40,7 +40,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
-    onSearch(value); // déclenche la recherche "live"
+    onSearch(value);
     setShowDropdown(true);
   };
 
@@ -54,7 +54,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
   const handleSelectSearch = (value: string) => {
     setSearchValue(value);
     onSearch(value);
-    addSearch(value); // ajouter aussi si on choisit un ancien terme
+    addSearch(value);
     setShowDropdown(false);
   };
 
@@ -83,11 +83,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
             />
 
             {/* Dropdown des 3 dernières recherches */}
-            {/* Dropdown des 3 dernières recherches */}
             {showDropdown && recentSearches.length > 0 && (
               <ul
                 className='absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto'
-                aria-label='Recherches récentes' // ← on peut garder ce label
+                aria-label='Recherches récentes'
               >
                 {recentSearches.map(s => (
                   <li key={s}>

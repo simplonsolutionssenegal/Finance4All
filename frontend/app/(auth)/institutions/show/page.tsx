@@ -25,7 +25,7 @@ function buildFilterQuery(f: FilterOptions) {
   return params.toString();
 }
 
-// 👉 petit helper: y a-t-il au moins 1 filtre actif ?
+//petit aide: y a-t-il au moins 1 filtre actif ?
 function hasAnyFilter(f: FilterOptions) {
   return f.type.length > 0 || f.zone.length > 0 || !!f.date;
 }
@@ -51,10 +51,7 @@ const InstitutionPage = () => {
   const filteredServices = useMemo(() => {
     let result = [...services];
 
-    // recherche textuelle (UI)
     result = filterServicesBySearchTerm(result, searchTerm);
-
-    // NB: pas besoin de re-filtrer ici par type/zone/date : c’est déjà fait côté API
     return result;
   }, [services, searchTerm]);
 
@@ -86,18 +83,15 @@ const InstitutionPage = () => {
     }
   }, []);
 
-  // 1er chargement
-  useEffect(() => {
-    loadServices(filters);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Rechargement quand les filtres changent (depuis le popup)
+  // useEffect(() => {
+  //   loadServices(filters);
+  // }, []);
   useEffect(() => {
     loadServices(filters);
   }, [filters, loadServices]);
 
   const handleApplyFilters = (newFilters: FilterOptions) => {
-    setFilters(newFilters); // le useEffect ci-dessus rappellera loadServices()
+    setFilters(newFilters);
   };
 
   if (error) {

@@ -10,6 +10,7 @@ export const useSearchStore = create<SearchStore>(set => ({
   addSearch: (term: string) =>
     set(state => {
       const updated = [...state.recentSearches.filter(s => s !== term), term];
-      return { recentSearches: updated.slice(-3) }; // garder max 3
+      // garder max 3
+      return { recentSearches: updated.slice(-3) };
     }),
 }));

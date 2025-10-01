@@ -4,10 +4,8 @@ import React from 'react';
 
 import type { FilterOptions } from '@/types/FilterOptions';
 
-// --- Mock du store Zustand (safe vs hoisting/TDZ) ---
 jest.mock('@/hooks/useSearchStore', () => {
   const addSearch = jest.fn();
-  // On expose la fonction pour les assertions :
   (global as any).__addSearchMock = addSearch;
 
   const recentSearches = ['CREDIT', 'EPARGNE', 'MOBILE MONEY'];
@@ -17,7 +15,6 @@ jest.mock('@/hooks/useSearchStore', () => {
   };
 });
 
-// --- Mock du FilterPopup (pas de test UI détaillé ici) ---
 jest.mock('@/components/institutions/FilterPopup', () => {
   return function MockFilterPopup({
     isOpen,
@@ -44,12 +41,10 @@ jest.mock('@/components/institutions/FilterPopup', () => {
   };
 });
 
-// ⚠️ on importe APRES les mocks
 import SearchBar from '@/components/institutions/SearchBar';
 
 describe('SearchBar', () => {
   beforeEach(() => {
-    // reset du mock exposé via global
     const addSearchMock = (global as any).__addSearchMock as jest.Mock;
     addSearchMock.mockClear();
   });
@@ -65,14 +60,11 @@ describe('SearchBar', () => {
     render(<SearchBar onSearch={handleSearch} resultsCount={5} />);
 
     const input = screen.getByPlaceholderText(/Rechercher un service/i);
-
-    // focus -> dropdown visible (car le store a des recherches)
     fireEvent.focus(input);
     expect(screen.getByText('CREDIT')).toBeInTheDocument();
     expect(screen.getByText('EPARGNE')).toBeInTheDocument();
     expect(screen.getByText('MOBILE MONEY')).toBeInTheDocument();
 
-    // saisie -> onSearch('banque')
     fireEvent.change(input, { target: { value: 'banque' } });
     expect(handleSearch).toHaveBeenCalledWith('banque');
   });
@@ -89,7 +81,6 @@ describe('SearchBar', () => {
     const addSearchMock = (global as any).__addSearchMock as jest.Mock;
     expect(addSearchMock).toHaveBeenCalledWith('banque');
 
-    // Le dropdown doit se fermer après Enter
     expect(screen.queryByText('CREDIT')).not.toBeInTheDocument();
   });
 
@@ -100,7 +91,6 @@ describe('SearchBar', () => {
     const input = screen.getByPlaceholderText(/Rechercher un service/i);
     fireEvent.focus(input);
 
-    // sélectionner "EPARGNE"
     fireEvent.click(screen.getByText('EPARGNE'));
 
     const addSearchMock = (global as any).__addSearchMock as jest.Mock;

@@ -50,7 +50,6 @@ describe('InstituteHeader', () => {
   });
 
   it('déclenche les actions sur REJETER et ACTIVER', () => {
-    // espionner console.warn (utilisé dans ton composant)
     const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     render(<InstituteHeader {...baseProps} />);
