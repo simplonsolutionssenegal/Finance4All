@@ -9,6 +9,6 @@ interface AddProductModalProps {
   isCreating: boolean;
 }
 
-export default function AddProductModal(props: AddProductModalProps) {
+export default function AddProductModal(props: Readonly<AddProductModalProps>) {
   return <ProductModal mode='create' {...props} />;
 }

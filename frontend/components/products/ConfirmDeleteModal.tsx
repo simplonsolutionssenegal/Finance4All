@@ -27,7 +27,7 @@ export default function ConfirmDeleteModal({
   onClose,
   onConfirm,
   product,
-}: ConfirmDeleteModalProps) {
+}: Readonly<ConfirmDeleteModalProps>) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>

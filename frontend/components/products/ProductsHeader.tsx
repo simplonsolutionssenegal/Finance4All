@@ -31,7 +31,7 @@ export default function ProductsHeader({
   zones,
   onReject,
   onActivate,
-}: OrganizationHeaderProps) {
+}: Readonly<OrganizationHeaderProps>) {
   const [localZones, setLocalZones] = useState<Zone[]>(zones);
   const isActive = status === 'ACTIF';
 

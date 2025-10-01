@@ -62,7 +62,7 @@ export function ProductFormFields({
   setAgeMinimum,
   revenuMinimum,
   setRevenuMinimum,
-}: ProductFormFieldsProps) {
+}: Readonly<ProductFormFieldsProps>) {
   return (
     <Tabs defaultValue='general' className='w-full'>
       <TabsList className='grid w-full grid-cols-3'>

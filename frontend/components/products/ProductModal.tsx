@@ -25,7 +25,7 @@ export default function ProductModal({
   product,
   onCreateProduct,
   isCreating = false,
-}: ProductModalProps) {
+}: Readonly<ProductModalProps>) {
   const [designation, setDesignation] = useState('');
   const [type, setType] = useState('credit');
   const [montantMinimum, setMontantMinimum] = useState('');
@@ -39,7 +39,7 @@ export default function ProductModal({
   const [revenuMinimum, setRevenuMinimum] = useState('');
 
   const { updateProduct } = useUpdateProduct({
-    reloadFn: () => window.location.reload(),
+    reloadFn: () => globalThis.location.reload(),
   });
 
   // Initialiser les valeurs en mode édition
@@ -132,12 +132,15 @@ export default function ProductModal({
 
   const title = mode === 'create' ? 'Ajouter un nouveau produit' : 'Modifier le produit';
 
-  const submitText =
-    mode === 'create'
-      ? isCreating
-        ? 'Création...'
-        : 'Créer le produit'
-      : 'Enregistrer les modifications';
+  // Déterminer le texte du bouton de soumission
+  const getSubmitText = () => {
+    if (mode === 'edit') {
+      return 'Enregistrer les modifications';
+    }
+    return isCreating ? 'Création...' : 'Créer le produit';
+  };
+
+  const submitText = getSubmitText();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
