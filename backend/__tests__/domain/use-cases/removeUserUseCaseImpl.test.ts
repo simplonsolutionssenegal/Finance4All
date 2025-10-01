@@ -24,7 +24,7 @@ jest.mock('@/infrastructure/utils/logger', () => ({
 const mockClerkClient = clerkClient as any;
 const mockLogger = logger as any;
 
-describe.skip('RemoveUserUseCaseImpl', () => {
+describe('RemoveUserUseCaseImpl', () => {
   let removeUserUseCase: RemoveUserUseCaseImpl;
   const userId = 'user_123';
   const organizationId = 'org_123';

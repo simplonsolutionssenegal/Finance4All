@@ -32,7 +32,7 @@ jest.mock('@clerk/express', () => ({
   },
 }));
 
-describe.skip('UserController', () => {
+describe('UserController', () => {
   let userController: UserController;
   let mockRemoveUserUseCase: jest.Mocked<RemoveUserUseCase>;
   let mockUpdateUserRoleUseCase: jest.Mocked<UpdateUserRoleUseCase>;
