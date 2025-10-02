@@ -27,7 +27,7 @@ jest.doMock('@/infrastructure/web/controllers/UserController', () => {
   };
 });
 
-describe.skip('User Routes', () => {
+describe('User Routes', () => {
   let app: express.Application;
   let userRoutes: express.Router;
 

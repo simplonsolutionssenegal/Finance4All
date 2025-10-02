@@ -1,6 +1,6 @@
 import { prisma } from '@/infrastructure/config/prismaClient';
 
-describe.skip('PrismaClient', () => {
+describe('PrismaClient', () => {
   it('should have user property', () => {
     expect(prisma).toHaveProperty('user');
   });

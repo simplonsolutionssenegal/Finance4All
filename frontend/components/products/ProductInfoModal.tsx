@@ -64,32 +64,6 @@ export default function ProductInfoModal({ isOpen, onClose, product }: ProductIn
               </div>
             </div>
           </div>
-
-          {/* Conditions d'éligibilité */}
-          {/* <div className='space-y-2'>
-            <h4 className='text-sm font-medium text-gray-600'>Conditions d&apos;éligibilité</h4>
-            <div className='bg-gray-50 p-4 rounded-lg space-y-2'>
-              <div className='flex justify-between'>
-                <span className='text-sm text-gray-600'>Âge minimum:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {product.conditionsEligibilite.ageMinimum} ans
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-sm text-gray-600'>Revenu minimum:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {formatCurrency(product.conditionsEligibilite.revenuMinimum)}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-sm text-gray-600'>Situations acceptées:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {product.conditionsEligibilite.situationsProfessionnelles.join(', ')}
-                </span>
-              </div>
-            </div>
-          </div> */}
-
           {/* Modalités de remboursement */}
           <div className='space-y-2'>
             <h4 className='text-sm font-medium text-gray-600'>Modalités de remboursement</h4>

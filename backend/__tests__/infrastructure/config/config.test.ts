@@ -1,6 +1,6 @@
 import { config } from '@/infrastructure/config';
 
-describe.skip('Configuration', () => {
+describe('Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
