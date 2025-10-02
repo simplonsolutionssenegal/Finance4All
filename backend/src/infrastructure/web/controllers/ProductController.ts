@@ -2,15 +2,13 @@
 import { type Request, type Response } from 'express';
 import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import type { CreateProductUseCaseImpl } from '@/domain/use-cases/createProductUseCaseImpl';
 import { type ProductFilter, type ProductType } from '@/domain/entities/Product';
 import { logger } from '@/utils/logger';
 
 export class ProductController {
   constructor(
     private readonly getProductByIdUseCase: GetProductByIdUseCaseImpl,
-    private readonly getProductsUseCase: GetProductsUseCaseImpl,
-    private readonly createProductUseCase: CreateProductUseCaseImpl
+    private readonly getProductsUseCase: GetProductsUseCaseImpl
   ) {}
 
   getProductById = async (req: Request, res: Response): Promise<void> => {
@@ -100,48 +98,6 @@ export class ProductController {
       if (
         error instanceof Error &&
         (error.message.includes('page') || error.message.includes('limite'))
-      ) {
-        res.status(400).json({
-          status: 'error',
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        status: 'error',
-        message: 'Erreur interne du serveur',
-      });
-    }
-  };
-
-  createProduct = async (req: Request, res: Response): Promise<void> => {
-    try {
-      logger.info('Tentative de création de produit', { body: req.body as unknown });
-
-      const productData = req.body as unknown;
-      const product = await this.createProductUseCase.execute(productData);
-
-      logger.info('Produit créé avec succès', { productId: product.id });
-
-      res.status(201).json({
-        status: 'success',
-        message: 'Produit créé avec succès',
-        data: product,
-      });
-    } catch (error) {
-      logger.error('Erreur lors de la création du produit', {
-        error: error as unknown,
-        errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        body: req.body as unknown,
-      });
-
-      if (
-        error instanceof Error &&
-        (error.message.includes('requis') ||
-          error.message.includes('invalide') ||
-          error.message.includes('doit être'))
       ) {
         res.status(400).json({
           status: 'error',

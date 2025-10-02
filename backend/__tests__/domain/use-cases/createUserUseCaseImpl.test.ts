@@ -13,7 +13,7 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   findById: jest.fn(),
 };
 
-describe.skip('CreateUserUseCaseImpl', () => {
+describe('CreateUserUseCaseImpl', () => {
   let createUserUseCase: CreateUserUseCaseImpl;
 
   beforeEach(() => {

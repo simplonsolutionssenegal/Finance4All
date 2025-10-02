@@ -63,34 +63,6 @@ export class ProductsAPI {
     return response.data;
   }
 
-  // POST - Créer un nouveau produit
-  static async createProduct(productData: Partial<Product>): Promise<Product> {
-    const url = `${API_BASE_URL}/api/v1/products`;
-    const response = await this.fetchWithErrorHandling<{ status: string; data: Product }>(url, {
-      method: 'POST',
-      body: JSON.stringify(productData),
-    });
-    return response.data;
-  }
-
-  // PUT - Mettre à jour un produit
-  static async updateProduct(id: string, productData: Partial<Product>): Promise<Product> {
-    const url = `${API_BASE_URL}/api/v1/products/${id}`;
-    const response = await this.fetchWithErrorHandling<{ status: string; data: Product }>(url, {
-      method: 'PUT',
-      body: JSON.stringify(productData),
-    });
-    return response.data;
-  }
-
-  // DELETE - Supprimer un produit
-  static async deleteProduct(id: string): Promise<void> {
-    const url = `${API_BASE_URL}/api/v1/products/${id}`;
-    await this.fetchWithErrorHandling<{ status: string; message: string }>(url, {
-      method: 'DELETE',
-    });
-  }
-
   // GET - Récupérer les produits par type
   static async getProductsByType(type: string): Promise<Product[]> {
     const response = await this.getAllProducts(1, 100, { type });

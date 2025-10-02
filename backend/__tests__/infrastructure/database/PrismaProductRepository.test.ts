@@ -5,9 +5,6 @@ const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
   },
 } as any;
 
@@ -93,126 +90,6 @@ describe('PrismaProductRepository', () => {
       (mockPrisma.product.count as jest.Mock).mockResolvedValue(1);
       (mockPrisma.product.findMany as jest.Mock).mockRejectedValue(new Error('fail'));
       await expect(repository.findAll({}, { page: 1, limit: 1 })).rejects.toThrow('fail');
-    });
-  });
-
-  describe('create', () => {
-    it('should create product with correct data mapping', async () => {
-      const createData = {
-        designation: 'New Product',
-        type: 'credit' as const,
-        montantMinimum: 2000,
-        montantMaximum: 30000,
-        remboursement: {
-          dureeMinimum: 12,
-          dureeMaximum: 60,
-          modalites: ['mensuel'],
-          tauxInteret: 4.2,
-          typeRemboursement: 'fixe' as const,
-          remboursementAnticipe: true,
-        },
-        conditionsEligibilite: {
-          ageMinimum: 21,
-          revenuMinimum: 2000,
-          situationsProfessionnelles: ['CDI'],
-          documentsRequis: ['ID'],
-          autresConditions: [],
-        },
-      };
-
-      const createdProduct = { ...mockPrismaProduct, ...createData, id: 'new-id' };
-      (mockPrisma.product.create as jest.Mock).mockResolvedValue(createdProduct);
-
-      const result = await repository.create(createData);
-
-      expect(result.designation).toBe('New Product');
-      expect(mockPrisma.product.create).toHaveBeenCalledWith({
-        data: {
-          designation: createData.designation,
-          type: createData.type,
-          montantMinimum: createData.montantMinimum,
-          montantMaximum: createData.montantMaximum,
-          remboursement: createData.remboursement,
-          conditionsEligibilite: createData.conditionsEligibilite,
-        },
-      });
-    });
-    it('should throw if create fails', async () => {
-      (mockPrisma.product.create as jest.Mock).mockRejectedValue(new Error('fail'));
-      await expect(
-        repository.create({
-          designation: 'X',
-          type: 'credit',
-          montantMinimum: 1,
-          montantMaximum: 2,
-          remboursement: {
-            dureeMinimum: 1,
-            dureeMaximum: 2,
-            modalites: ['mensuel'],
-            tauxInteret: 1,
-            typeRemboursement: 'fixe',
-            remboursementAnticipe: false,
-          },
-          conditionsEligibilite: {
-            ageMinimum: 18,
-            revenuMinimum: 1000,
-            situationsProfessionnelles: ['CDI'],
-            documentsRequis: ['ID'],
-            autresConditions: [],
-          },
-        })
-      ).rejects.toThrow('fail');
-    });
-  });
-
-  describe('update', () => {
-    it('should update and return the product if found', async () => {
-      (mockPrisma.product.findUnique as jest.Mock).mockResolvedValue({ ...mockPrismaProduct });
-      (mockPrisma.product.update as jest.Mock).mockResolvedValue({
-        ...mockPrismaProduct,
-        designation: 'Updated',
-      });
-      const result = await repository.update('test-id', { designation: 'Updated' });
-      expect(result).not.toBeNull();
-      expect(result?.designation).toBe('Updated');
-      expect(mockPrisma.product.update).toHaveBeenCalledWith({
-        where: { id: 'test-id' },
-        data: { designation: 'Updated' },
-      });
-    });
-    it('should return null if product not found', async () => {
-      (mockPrisma.product.findUnique as jest.Mock).mockResolvedValue(null);
-      const result = await repository.update('not-found', { designation: 'X' });
-      expect(result).toBeNull();
-      expect(mockPrisma.product.update).not.toHaveBeenCalled();
-    });
-    it('should throw if update fails', async () => {
-      (mockPrisma.product.findUnique as jest.Mock).mockResolvedValue({ ...mockPrismaProduct });
-      (mockPrisma.product.update as jest.Mock).mockRejectedValue(new Error('Update failed'));
-      await expect(repository.update('test-id', { designation: 'X' })).rejects.toThrow(
-        'Update failed'
-      );
-    });
-  });
-
-  describe('delete', () => {
-    it('should return true if product deleted', async () => {
-      (mockPrisma.product.delete as jest.Mock).mockResolvedValue({});
-      const result = await repository.delete('test-id');
-      expect(result).toBe(true);
-      expect(mockPrisma.product.delete).toHaveBeenCalledWith({ where: { id: 'test-id' } });
-    });
-    it('should return false if product not found (P2025)', async () => {
-      const error = { code: 'P2025' };
-      (mockPrisma.product.delete as jest.Mock).mockRejectedValue(error);
-      const result = await repository.delete('not-found');
-      expect(result).toBe(false);
-    });
-    it('should throw for other errors', async () => {
-      const error = new Error('fail');
-      Object.assign(error, { code: 'OTHER' });
-      (mockPrisma.product.delete as jest.Mock).mockRejectedValue(error);
-      await expect(repository.delete('fail')).rejects.toThrow('fail');
     });
   });
 

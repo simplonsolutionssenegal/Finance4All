@@ -10,8 +10,5 @@ import type {
 export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
   findAll(filters: ProductFilter, pagination: PaginationOptions): Promise<PaginatedResult<Product>>;
-  create(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product>;
-  update(id: string, product: Partial<Product>): Promise<Product | null>;
-  delete(id: string): Promise<boolean>;
   findByType(type: ProductType): Promise<Product[]>;
 }

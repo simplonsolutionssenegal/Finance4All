@@ -3,24 +3,19 @@ import type { Request, Response } from 'express';
 import { ProductController } from '@/infrastructure/web/controllers/ProductController';
 import { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import { CreateProductUseCaseImpl } from '@/domain/use-cases/createProductUseCaseImpl';
 import type { ProductRepository } from '@/domain/repositories/ProductRepository';
 
 // Mock le repository au lieu des use cases
 const mockRepository: jest.Mocked<ProductRepository> = {
   findById: jest.fn(),
-  findAll: jest.fn(),
-  create: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
   findByType: jest.fn(),
+  findAll: jest.fn(),
 };
 
 describe('ProductController', () => {
   let controller: ProductController;
   let getProductByIdUseCase: GetProductByIdUseCaseImpl;
   let getProductsUseCase: GetProductsUseCaseImpl;
-  let createProductUseCase: CreateProductUseCaseImpl;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockJson: jest.Mock;
@@ -30,13 +25,8 @@ describe('ProductController', () => {
     // Créer les instances réelles des use cases avec le repository mocké
     getProductByIdUseCase = new GetProductByIdUseCaseImpl(mockRepository);
     getProductsUseCase = new GetProductsUseCaseImpl(mockRepository);
-    createProductUseCase = new CreateProductUseCaseImpl(mockRepository);
 
-    controller = new ProductController(
-      getProductByIdUseCase,
-      getProductsUseCase,
-      createProductUseCase
-    );
+    controller = new ProductController(getProductByIdUseCase, getProductsUseCase);
 
     mockJson = jest.fn().mockReturnThis();
     mockStatus = jest.fn().mockReturnThis();
@@ -314,161 +304,6 @@ describe('ProductController', () => {
       expect(mockJson).toHaveBeenCalledWith({
         status: 'error',
         message: 'Erreur interne du serveur',
-      });
-    });
-  });
-
-  describe('createProduct', () => {
-    const validProductData = {
-      designation: 'Nouveau Crédit Test',
-      type: 'credit',
-      montantMinimum: 2000,
-      montantMaximum: 40000,
-      remboursement: {
-        dureeMinimum: 12,
-        dureeMaximum: 60,
-        modalites: ['mensuel'],
-        tauxInteret: 4.2,
-        typeRemboursement: 'fixe' as const,
-        remboursementAnticipe: true,
-      },
-      conditionsEligibilite: {
-        ageMinimum: 18,
-        ageMaximum: 70,
-        revenuMinimum: 1800,
-        situationsProfessionnelles: ['CDI'],
-        documentsRequis: ["Pièce d'identité"],
-        autresConditions: [],
-      },
-    };
-
-    const mockCreatedProduct = {
-      ...validProductData,
-      id: 'new-id',
-      type: 'credit' as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      remboursement: {
-        ...validProductData.remboursement,
-        typeRemboursement: 'fixe' as const,
-      },
-    };
-
-    it('should create product successfully', async () => {
-      // Arrange
-      mockRequest.body = validProductData;
-      mockRepository.create.mockResolvedValue(mockCreatedProduct);
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockRepository.create).toHaveBeenCalledWith(validProductData);
-      expect(mockStatus).toHaveBeenCalledWith(201);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'success',
-        message: 'Produit créé avec succès',
-        data: mockCreatedProduct,
-      });
-    });
-
-    it('should handle validation errors', async () => {
-      // Arrange
-      const invalidData = { ...validProductData, designation: '' };
-      mockRequest.body = invalidData;
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'La désignation du produit est requise',
-      });
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should handle missing type validation', async () => {
-      // Arrange
-      const invalidData = { ...validProductData };
-      delete (invalidData as any).type;
-      mockRequest.body = invalidData;
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Le type de produit est requis',
-      });
-    });
-
-    it('should handle montant validation', async () => {
-      // Arrange
-      const invalidData = {
-        ...validProductData,
-        montantMinimum: 50000,
-        montantMaximum: 20000, // Max < Min
-      };
-      mockRequest.body = invalidData;
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Le montant maximum doit être supérieur au montant minimum',
-      });
-    });
-
-    it('should handle repository errors', async () => {
-      // Arrange
-      mockRequest.body = validProductData;
-      mockRepository.create.mockRejectedValue(new Error('Database constraint violation'));
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Erreur interne du serveur',
-      });
-    });
-
-    it('should handle null/undefined body', async () => {
-      // Arrange
-      mockRequest.body = null;
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Données du produit invalides',
-      });
-    });
-
-    it('should handle invalid data type', async () => {
-      // Arrange
-      mockRequest.body = 'invalid string data';
-
-      // Act
-      await controller.createProduct(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Données du produit invalides',
       });
     });
   });

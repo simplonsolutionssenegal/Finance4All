@@ -1,11 +1,9 @@
 // frontend/components/products/ProductsTable.tsx
 'use client';
-import { Search, Plus, Trash2, Edit, Eye } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
-import ConfirmDeleteModal from '@/components/products/ConfirmDeleteModal';
 import ProductInfoModal from '@/components/products/ProductInfoModal';
-import ProductModal from '@/components/products/ProductModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCreateProduct, useRemoveProduct } from '@/hooks/products/useProductOperations';
 import { ProductsAPI } from '@/lib/api/products';
 import type { Product } from '@/types/Product';
 
@@ -28,10 +25,6 @@ export default function ProductsTable() {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductInfo, setShowProductInfo] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [showProductEdit, setShowProductEdit] = useState(false);
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
 
   // Fonction pour charger les produits
   const fetchProducts = useCallback(async () => {
@@ -47,13 +40,6 @@ export default function ProductsTable() {
     }
   }, []);
 
-  const { removeProduct } = useRemoveProduct();
-  const { createProduct } = useCreateProduct({
-    reloadFn: () => {
-      void fetchProducts();
-    },
-  });
-
   // Charger les produits au montage
   useEffect(() => {
     void fetchProducts();
@@ -68,7 +54,7 @@ export default function ProductsTable() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'XOF',
       maximumFractionDigits: 0,
     }).format(amount);
   };
@@ -78,90 +64,18 @@ export default function ProductsTable() {
     setShowProductInfo(true);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedProduct) return;
-    try {
-      await removeProduct(selectedProduct.id);
-      await fetchProducts();
-      setShowConfirmDelete(false);
-      setSelectedProduct(null);
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-    }
-  };
-
   const handleCloseModals = () => {
     setShowProductInfo(false);
-    setShowConfirmDelete(false);
-    setShowProductEdit(false);
-    setShowAddProduct(false);
     setSelectedProduct(null);
-  };
-
-  const handleEditProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setShowProductEdit(true);
-  };
-
-  const handleCreateProduct = async (productData: {
-    designation: string;
-    type: string;
-    montantMinimum: number;
-    montantMaximum: number;
-    remboursement: {
-      dureeMinimum: number;
-      dureeMaximum: number;
-      modalites: string[];
-      tauxInteret: number;
-      typeRemboursement: string;
-      remboursementAnticipe: boolean;
-    };
-    conditionsEligibilite: {
-      ageMinimum: number;
-      revenuMinimum: number;
-      situationsProfessionnelles: string[];
-      documentsRequis: string[];
-      autresConditions: string[];
-    };
-  }) => {
-    setIsCreatingProduct(true);
-    try {
-      await createProduct(productData);
-      await fetchProducts();
-      handleCloseModals();
-    } catch (error) {
-      console.error(' Erreur lors de la création du produit:', error);
-    } finally {
-      setIsCreatingProduct(false);
-    }
   };
 
   const renderModals = () => {
     return (
       <>
-        <ProductModal
-          mode='create'
-          isOpen={showAddProduct}
-          onClose={handleCloseModals}
-          onCreateProduct={handleCreateProduct}
-          isCreating={isCreatingProduct}
-        />
         {selectedProduct && (
           <>
             <ProductInfoModal
               isOpen={showProductInfo}
-              onClose={handleCloseModals}
-              product={selectedProduct}
-            />
-            <ConfirmDeleteModal
-              isOpen={showConfirmDelete}
-              onClose={handleCloseModals}
-              onConfirm={handleConfirmDelete}
-              product={selectedProduct}
-            />
-            <ProductModal
-              mode='edit'
-              isOpen={showProductEdit}
               onClose={handleCloseModals}
               product={selectedProduct}
             />
@@ -176,15 +90,6 @@ export default function ProductsTable() {
       <CardHeader className='pb-4'>
         <div className='flex items-center justify-between'>
           <CardTitle className='text-xl font-semibold text-gray-900'>Produits Financier</CardTitle>
-          <Button
-            className='bg-teal-500 cursor-pointer hover:bg-teal-600 text-white rounded-lg px-4 py-2'
-            onClick={() => {
-              setShowAddProduct(true);
-            }}
-          >
-            <Plus className='w-4 h-4 mr-2' />
-            Ajouter un produit
-          </Button>
         </div>
         <div className='mt-4'>
           <div className='relative max-w-md'>
@@ -246,27 +151,6 @@ export default function ProductsTable() {
                             onClick={() => handleViewProduct(product)}
                           >
                             <Eye className='w-4 h-4' />
-                          </Button>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='h-8 w-8 p-0 text-blue-600 hover:bg-blue-50'
-                            title='Modifier'
-                            onClick={() => handleEditProduct(product)}
-                          >
-                            <Edit className='w-4 h-4' />
-                          </Button>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='h-8 w-8 p-0 text-red-600 hover:bg-red-50'
-                            title='Supprimer'
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              setShowConfirmDelete(true);
-                            }}
-                          >
-                            <Trash2 className='w-4 h-4' />
                           </Button>
                         </div>
                       </TableCell>

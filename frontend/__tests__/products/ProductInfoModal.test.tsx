@@ -40,11 +40,20 @@ describe('ProductInfoModal', () => {
     expect(screen.getByText('Produit financier - Détail')).toBeInTheDocument();
     expect(screen.getByText('Produit Test')).toBeInTheDocument();
     expect(screen.getByText(/credit/i)).toBeInTheDocument();
-    // Vérifie qu'un montant minimum formaté est affiché (ex: 1 000 € ou 5 000 €)
-    expect(screen.getAllByText(/1.?000.?€/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/5.?000.?€/i)[0]).toBeInTheDocument();
-    expect(screen.getByText('12 - 24 mois')).toBeInTheDocument();
-    expect(screen.getByText(/5 ?%/)).toBeInTheDocument();
+
+    // Vérifie la section Montant
+    expect(screen.getByText('Montant')).toBeInTheDocument();
+    expect(screen.getByText('Minimum')).toBeInTheDocument();
+    expect(screen.getByText('Maximum')).toBeInTheDocument();
+
+    // Vérifie les montants en utilisant une regex plus flexible
+    expect(screen.getByText(/1\s*000\s*F\s*CFA/i)).toBeInTheDocument();
+    expect(screen.getByText(/5\s*000\s*F\s*CFA/i)).toBeInTheDocument();
+
+    // Vérifie les modalités de remboursement
+    expect(screen.getByText('Modalités de remboursement')).toBeInTheDocument();
+    expect(screen.getByText(/12\s*-\s*24\s*mois/)).toBeInTheDocument();
+    expect(screen.getByText(/5\s*%/)).toBeInTheDocument();
     expect(screen.getByText(/fixe/i)).toBeInTheDocument();
     expect(screen.getByText(/Autorisé/i)).toBeInTheDocument();
   });

@@ -25,33 +25,6 @@ describe('ProductsAPI', () => {
     expect(res.designation).toBe('Produit');
   });
 
-  it('createProduct posts and returns a product', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: { id: '2', designation: 'Nouveau' }, status: 'success' }),
-    });
-    const res = await ProductsAPI.createProduct({ designation: 'Nouveau' });
-    expect(res.designation).toBe('Nouveau');
-  });
-
-  it('updateProduct puts and returns a product', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: { id: '1', designation: 'Modifié' }, status: 'success' }),
-    });
-    const res = await ProductsAPI.updateProduct('1', { designation: 'Modifié' });
-    expect(res.designation).toBe('Modifié');
-  });
-
-  it('deleteProduct calls fetch with DELETE', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ status: 'success', message: 'deleted' }),
-    });
-    await expect(ProductsAPI.deleteProduct('1')).resolves.toBeUndefined();
-    expect((fetch as jest.Mock).mock.calls[0][1].method).toBe('DELETE');
-  });
-
   it('getProductsByType returns filtered products', async () => {
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
