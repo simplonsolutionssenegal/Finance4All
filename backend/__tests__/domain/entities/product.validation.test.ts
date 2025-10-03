@@ -29,7 +29,7 @@ describe('Product Entity Validation', () => {
   const validProduct: Product = {
     id: 'test-product-001',
     designation: 'Crédit Personnel Test',
-    type: 'credit',
+    type: 'CREDIT',
     montantMinimum: 1000,
     montantMaximum: 50000,
     remboursement: validRemboursement,
@@ -39,7 +39,7 @@ describe('Product Entity Validation', () => {
   };
 
   describe('ProductType validation', () => {
-    const validTypes: ProductType[] = ['credit', 'epargne', 'investissement', 'assurance'];
+    const validTypes: ProductType[] = ['CREDIT', 'EPARGNE', 'INVESTISSEMENT', 'ASSURANCE'];
 
     validTypes.forEach(type => {
       it(`should accept valid type: ${type}`, () => {

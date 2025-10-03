@@ -63,11 +63,11 @@ export class ProductController {
     try {
       // Correction : gérer le cas où req.query est undefined
       const query = req.query ?? {};
-      const { type, designation, montantMinimum, montantMaximum, page = 1, limit = 10 } = query;
+      const { type, designation, montantMinimum, montantMaximum } = query;
 
       // Validation du type de produit
       const isValidProductType = (value: string): value is ProductType => {
-        return ['credit', 'epargne', 'investissement', 'assurance'].includes(value);
+        return ['CREDIT', 'EPARGNE', 'INVESTISSEMENT', 'ASSURANCE'].includes(value);
       };
 
       const filters: ProductFilter = {
@@ -77,17 +77,10 @@ export class ProductController {
         montantMaximum: montantMaximum ? parseFloat(montantMaximum as string) : undefined,
       };
 
-      const pagination = {
-        page: parseInt(page as string),
-        limit: Math.min(parseInt(limit as string), 100),
-      };
-
-      const result = await this.getProductsUseCase.execute(filters, pagination);
-
+      const result = await this.getProductsUseCase.execute(filters);
       res.json({
         status: 'success',
-        data: result.data,
-        pagination: result.pagination,
+        data: result,
       });
     } catch (error) {
       logger.error('Erreur lors de la récupération des produits', {

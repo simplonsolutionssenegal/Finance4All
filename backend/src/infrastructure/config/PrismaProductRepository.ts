@@ -6,8 +6,6 @@ import { type ProductRepository } from '@/domain/repositories/ProductRepository'
 import {
   type Product,
   type ProductFilter,
-  type PaginationOptions,
-  type PaginatedResult,
   type ProductType,
   type RemboursementInfo,
   type ConditionsEligibilite,
@@ -33,10 +31,7 @@ export class PrismaProductRepository implements ProductRepository {
     }
   }
 
-  async findAll(
-    filters: ProductFilter,
-    pagination: PaginationOptions
-  ): Promise<PaginatedResult<Product>> {
+  async findAll(filters: ProductFilter): Promise<Product[]> {
     try {
       // Construction des filtres Prisma
       const where: Record<string, unknown> = {};
@@ -64,31 +59,16 @@ export class PrismaProductRepository implements ProductRepository {
         };
       }
 
-      // Compter le total
-      const total = await this.db.product.count({ where });
-
-      // Récupérer les données paginées
       const products = await this.db.product.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
       });
 
-      return {
-        data: products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p)),
-        pagination: {
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          totalPages: Math.ceil(total / pagination.limit),
-        },
-      };
+      return products.map((p: Prisma.ProductGetPayload<{}>) => this.mapToDomain(p));
     } catch (error) {
       logger.error('Erreur lors de la recherche de produits', {
         error: error as unknown,
         filters,
-        pagination,
       });
       throw error;
     }
@@ -97,7 +77,7 @@ export class PrismaProductRepository implements ProductRepository {
   async findByType(type: ProductType): Promise<Product[]> {
     try {
       const products = await this.db.product.findMany({
-        where: { type },
+        where: { type: type.toLowerCase() as any },
         orderBy: { createdAt: 'desc' },
       });
 

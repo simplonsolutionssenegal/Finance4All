@@ -10,7 +10,7 @@ describe('GetProductByIdUseCaseImpl', () => {
   const mockProduct: Product = {
     id: 'test-id',
     designation: 'Test Product',
-    type: 'credit',
+    type: 'CREDIT',
     montantMinimum: 1000,
     montantMaximum: 50000,
     remboursement: {

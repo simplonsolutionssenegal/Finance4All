@@ -31,7 +31,8 @@ export default function ProductsTable() {
     try {
       setLoading(true);
       const response = await ProductsAPI.getAllProducts(1, 100);
-      setProducts(response.data);
+      // Sécurise : ne set que si c'est un tableau
+      setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
       setProducts([]);
@@ -45,7 +46,7 @@ export default function ProductsTable() {
     void fetchProducts();
   }, [fetchProducts]);
 
-  const filteredProducts = products.filter(
+  const filteredProducts = (products ?? []).filter(
     product =>
       product.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.type.toLowerCase().includes(searchTerm.toLowerCase())

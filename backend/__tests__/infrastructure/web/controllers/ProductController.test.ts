@@ -1,155 +1,178 @@
 // backend/__tests__/infrastructure/web/controllers/ProductController.test.ts
 import type { Request, Response } from 'express';
 import { ProductController } from '@/infrastructure/web/controllers/ProductController';
-import { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
-import { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import type { ProductRepository } from '@/domain/repositories/ProductRepository';
+import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
+import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
+import type { Product, ProductType } from '@/domain/entities/Product';
+import { logger } from '@/utils/logger';
 
-// Mock le repository au lieu des use cases
-const mockRepository: jest.Mocked<ProductRepository> = {
-  findById: jest.fn(),
-  findByType: jest.fn(),
-  findAll: jest.fn(),
-};
+// Mock du logger
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  },
+}));
 
 describe('ProductController', () => {
-  let controller: ProductController;
-  let getProductByIdUseCase: GetProductByIdUseCaseImpl;
-  let getProductsUseCase: GetProductsUseCaseImpl;
+  let productController: ProductController;
+  let mockGetProductByIdUseCase: jest.Mocked<GetProductByIdUseCaseImpl>;
+  let mockGetProductsUseCase: jest.Mocked<GetProductsUseCaseImpl>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let mockJson: jest.Mock;
-  let mockStatus: jest.Mock;
+  let jsonMock: jest.Mock;
+  let statusMock: jest.Mock;
+
+  const mockProduct: Product = {
+    id: '1',
+    designation: 'Crédit Immobilier',
+    type: 'CREDIT' as ProductType,
+    montantMinimum: 1000000,
+    montantMaximum: 50000000,
+    remboursement: {
+      dureeMinimum: 12,
+      dureeMaximum: 240,
+      modalites: ['mensuel'],
+      tauxInteret: 5.5,
+      typeRemboursement: 'fixe',
+      remboursementAnticipe: true,
+    },
+    conditionsEligibilite: {
+      ageMinimum: 18,
+      revenuMinimum: 500000,
+      situationsProfessionnelles: ['CDI'],
+      documentsRequis: ['Pièce identité', 'Bulletin de salaire'],
+      autresConditions: [],
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(() => {
-    // Créer les instances réelles des use cases avec le repository mocké
-    getProductByIdUseCase = new GetProductByIdUseCaseImpl(mockRepository);
-    getProductsUseCase = new GetProductsUseCaseImpl(mockRepository);
+    // Reset des mocks
+    jest.clearAllMocks();
 
-    controller = new ProductController(getProductByIdUseCase, getProductsUseCase);
+    // Mock des use cases
+    mockGetProductByIdUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<GetProductByIdUseCaseImpl>;
 
-    mockJson = jest.fn().mockReturnThis();
-    mockStatus = jest.fn().mockReturnThis();
+    mockGetProductsUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<GetProductsUseCaseImpl>;
 
+    // Initialisation du controller
+    productController = new ProductController(mockGetProductByIdUseCase, mockGetProductsUseCase);
+
+    // Mock de la réponse
+    jsonMock = jest.fn();
+    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+
+    mockResponse = {
+      json: jsonMock,
+      status: statusMock,
+    };
+
+    // Mock de la requête
     mockRequest = {
       params: {},
       query: {},
-      body: {},
     };
-
-    mockResponse = {
-      json: mockJson,
-      status: mockStatus,
-    };
-
-    // Reset tous les mocks
-    jest.clearAllMocks();
   });
 
   describe('getProductById', () => {
-    const mockProduct = {
-      id: 'test-id',
-      designation: 'Test Product',
-      type: 'credit' as const,
-      montantMinimum: 1000,
-      montantMaximum: 50000,
-      remboursement: {
-        dureeMinimum: 12,
-        dureeMaximum: 84,
-        modalites: ['mensuel'],
-        tauxInteret: 4.5,
-        typeRemboursement: 'fixe' as const,
-        penalitesRetard: 8.0,
-        remboursementAnticipe: true,
-      },
-      conditionsEligibilite: {
-        ageMinimum: 18,
-        ageMaximum: 75,
-        revenuMinimum: 1500,
-        situationsProfessionnelles: ['CDI', 'CDD'],
-        documentsRequis: ["Pièce d'identité"],
-        autresConditions: ['Résidence en France'],
-      },
-      createdAt: new Date('2024-01-01T10:00:00Z'),
-      updatedAt: new Date('2024-01-01T10:00:00Z'),
-    };
+    it('should return product when id is valid', async () => {
+      mockRequest.params = { id: '1' };
+      mockGetProductByIdUseCase.execute.mockResolvedValue(mockProduct);
 
-    it('should return product when found', async () => {
-      // Arrange
-      mockRequest.params = { id: 'test-id' };
-      mockRepository.findById.mockResolvedValue(mockProduct);
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
 
-      // Act
-      await controller.getProductById(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockRepository.findById).toHaveBeenCalledWith('test-id');
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(mockGetProductByIdUseCase.execute).toHaveBeenCalledWith('1');
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'success',
         data: mockProduct,
       });
-      expect(mockStatus).not.toHaveBeenCalled(); // Status 200 par défaut
+      expect(statusMock).not.toHaveBeenCalled();
     });
 
-    it('should return 404 when product not found', async () => {
-      // Arrange
-      mockRequest.params = { id: 'non-existent' };
-      mockRepository.findById.mockResolvedValue(null);
+    it('should return 404 when product is not found', async () => {
+      mockRequest.params = { id: '999' };
+      mockGetProductByIdUseCase.execute.mockResolvedValue(null);
 
-      // Act
-      await controller.getProductById(mockRequest as Request, mockResponse as Response);
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockRepository.findById).toHaveBeenCalledWith('non-existent');
-      expect(mockStatus).toHaveBeenCalledWith(404);
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(mockGetProductByIdUseCase.execute).toHaveBeenCalledWith('999');
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
         message: 'Produit non trouvé',
       });
     });
 
-    it('should return 400 for validation errors', async () => {
-      // Arrange
-      mockRequest.params = { id: '' }; // ID vide
+    it('should return 400 when id is missing', async () => {
+      mockRequest.params = {};
 
-      // Act
-      await controller.getProductById(mockRequest as Request, mockResponse as Response);
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(mockGetProductByIdUseCase.execute).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
         message: 'ID du produit requis',
       });
-      expect(mockRepository.findById).not.toHaveBeenCalled();
     });
 
-    it('should return 500 for unexpected errors', async () => {
-      // Arrange
-      mockRequest.params = { id: 'test-id' };
-      mockRepository.findById.mockRejectedValue(new Error('Database connection failed'));
+    it('should return 400 when id is empty string', async () => {
+      mockRequest.params = { id: '   ' };
 
-      // Act
-      await controller.getProductById(mockRequest as Request, mockResponse as Response);
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(mockGetProductByIdUseCase.execute).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
-        message: 'Erreur interne du serveur',
+        message: 'ID du produit requis',
       });
     });
 
-    it('should handle whitespace-only id', async () => {
-      // Arrange
-      mockRequest.params = { id: '   ' }; // ID avec espaces
+    it('should return 400 when use case throws validation error', async () => {
+      mockRequest.params = { id: '1' };
+      const error = new Error('ID requis');
+      mockGetProductByIdUseCase.execute.mockRejectedValue(error);
 
-      // Act
-      await controller.getProductById(mockRequest as Request, mockResponse as Response);
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'ID requis',
+      });
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should return 500 when unexpected error occurs', async () => {
+      mockRequest.params = { id: '1' };
+      const error = new Error('Database connection failed');
+      mockGetProductByIdUseCase.execute.mockRejectedValue(error);
+
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Erreur interne du serveur',
+      });
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should handle when req.params is undefined', async () => {
+      mockRequest.params = undefined;
+
+      await productController.getProductById(mockRequest as Request, mockResponse as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
         message: 'ID du produit requis',
       });
@@ -157,195 +180,193 @@ describe('ProductController', () => {
   });
 
   describe('getProducts', () => {
-    const mockPaginatedResult = {
-      data: [
-        {
-          id: 'test-1',
-          designation: 'Test Product 1',
-          type: 'credit' as const,
-          montantMinimum: 1000,
-          montantMaximum: 50000,
-          remboursement: {} as any,
-          conditionsEligibilite: {} as any,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
-      pagination: {
-        page: 1,
-        limit: 10,
-        total: 1,
-        totalPages: 1,
-      },
-    };
+    const mockProducts = [mockProduct];
 
-    it('should return products list with default pagination', async () => {
-      // Arrange
+    it('should return all products when no filters are provided', async () => {
       mockRequest.query = {};
-      mockRepository.findAll.mockResolvedValue(mockPaginatedResult);
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
 
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        {
-          type: undefined,
-          designation: undefined,
-          montantMinimum: undefined,
-          montantMaximum: undefined,
-        },
-        { page: 1, limit: 10 }
-      );
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: undefined,
+        montantMaximum: undefined,
+      });
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'success',
-        data: mockPaginatedResult.data,
-        pagination: mockPaginatedResult.pagination,
+        data: mockProducts,
       });
     });
 
-    it('should handle type filter correctly', async () => {
-      // Arrange
-      mockRequest.query = { type: 'credit' };
-      mockRepository.findAll.mockResolvedValue(mockPaginatedResult);
+    it('should filter products by type', async () => {
+      mockRequest.query = { type: 'CREDIT' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
 
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'credit' }),
-        expect.any(Object)
-      );
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: 'CREDIT',
+        designation: undefined,
+        montantMinimum: undefined,
+        montantMaximum: undefined,
+      });
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'success',
+        data: mockProducts,
+      });
     });
 
-    it('should ignore invalid type filter', async () => {
-      // Arrange
-      mockRequest.query = { type: 'invalid_type' };
-      mockRepository.findAll.mockResolvedValue(mockPaginatedResult);
+    it('should filter products by designation', async () => {
+      mockRequest.query = { designation: 'Immobilier' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
 
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ type: undefined }), // Type invalide ignoré
-        expect.any(Object)
-      );
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: 'Immobilier',
+        montantMinimum: undefined,
+        montantMaximum: undefined,
+      });
     });
 
-    it('should handle all query parameters', async () => {
-      // Arrange
+    it('should filter products by montant range', async () => {
+      mockRequest.query = { montantMinimum: '1000', montantMaximum: '5000' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: 1000,
+        montantMaximum: 5000,
+      });
+    });
+
+    it('should filter products with multiple filters', async () => {
       mockRequest.query = {
-        type: 'epargne',
-        designation: 'Premium',
-        montantMinimum: '1000',
-        montantMaximum: '50000',
-        page: '2',
-        limit: '5',
+        type: 'CREDIT',
+        designation: 'Immobilier',
+        montantMinimum: '1000000',
+        montantMaximum: '50000000',
       };
-      mockRepository.findAll.mockResolvedValue(mockPaginatedResult);
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
 
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        {
-          type: 'epargne',
-          designation: 'Premium',
-          montantMinimum: 1000,
-          montantMaximum: 50000,
-        },
-        { page: 2, limit: 5 }
-      );
-    });
-
-    it('should limit pagination to maximum 100', async () => {
-      // Arrange
-      mockRequest.query = { limit: '150' }; // Dépasse la limite
-      mockRepository.findAll.mockResolvedValue(mockPaginatedResult);
-
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({ limit: 100 }) // Limité à 100
-      );
-    });
-
-    it('should return 400 for invalid pagination', async () => {
-      // Arrange
-      mockRequest.query = { page: '0' }; // Page invalide
-
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(400);
-      expect(mockJson).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Le numéro de page doit être supérieur à 0',
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: 'CREDIT',
+        designation: 'Immobilier',
+        montantMinimum: 1000000,
+        montantMaximum: 50000000,
       });
     });
 
-    it('should handle repository errors', async () => {
-      // Arrange
+    it('should ignore invalid product type', async () => {
+      mockRequest.query = { type: 'INVALID_TYPE' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: undefined,
+        montantMaximum: undefined,
+      });
+    });
+
+    it('should handle when req.query is undefined', async () => {
+      mockRequest.query = undefined;
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: undefined,
+        montantMaximum: undefined,
+      });
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'success',
+        data: mockProducts,
+      });
+    });
+
+    it('should return 400 when use case throws validation error about page', async () => {
       mockRequest.query = {};
-      mockRepository.findAll.mockRejectedValue(new Error('Database error'));
+      const error = new Error('La page doit être un nombre positif');
+      mockGetProductsUseCase.execute.mockRejectedValue(error);
 
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      // Assert
-      expect(mockStatus).toHaveBeenCalledWith(500);
-      expect(mockJson).toHaveBeenCalledWith({
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'La page doit être un nombre positif',
+      });
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should return 400 when use case throws validation error about limit', async () => {
+      mockRequest.query = {};
+      const error = new Error('La limite doit être un nombre positif');
+      mockGetProductsUseCase.execute.mockRejectedValue(error);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'La limite doit être un nombre positif',
+      });
+    });
+
+    it('should return 500 when unexpected error occurs', async () => {
+      mockRequest.query = {};
+      const error = new Error('Database connection failed');
+      mockGetProductsUseCase.execute.mockRejectedValue(error);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
         message: 'Erreur interne du serveur',
       });
+      expect(logger.error).toHaveBeenCalled();
     });
-  });
 
-  describe('error handling edge cases', () => {
-    it('should handle missing params object', async () => {
-      const req = {} as any; // params est totalement absent
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      } as any;
+    it('should parse numeric strings correctly', async () => {
+      mockRequest.query = { montantMinimum: '1000.50', montantMaximum: '5000.75' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
 
-      await controller.getProductById(req, res);
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'ID du produit requis',
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: 1000.5,
+        montantMaximum: 5000.75,
       });
     });
 
-    it('should handle missing query object', async () => {
-      // Arrange
-      delete mockRequest.query;
-      mockRepository.findAll.mockResolvedValue({
-        data: [],
-        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    it('should handle NaN values for montant', async () => {
+      mockRequest.query = { montantMinimum: 'invalid', montantMaximum: 'invalid' };
+      mockGetProductsUseCase.execute.mockResolvedValue(mockProducts);
+
+      await productController.getProducts(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetProductsUseCase.execute).toHaveBeenCalledWith({
+        type: undefined,
+        designation: undefined,
+        montantMinimum: NaN,
+        montantMaximum: NaN,
       });
-
-      // Act
-      await controller.getProducts(mockRequest as Request, mockResponse as Response);
-
-      // Assert
-      expect(mockRepository.findAll).toHaveBeenCalledWith(
-        {
-          type: undefined,
-          designation: undefined,
-          montantMinimum: undefined,
-          montantMaximum: undefined,
-        },
-        { page: 1, limit: 10 }
-      );
     });
   });
 });

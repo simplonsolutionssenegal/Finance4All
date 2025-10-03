@@ -11,7 +11,7 @@ export interface Product {
   updatedAt: Date;
 }
 
-export type ProductType = 'credit' | 'epargne' | 'investissement' | 'assurance';
+export type ProductType = 'CREDIT' | 'EPARGNE' | 'INVESTISSEMENT' | 'ASSURANCE';
 
 export interface RemboursementInfo {
   dureeMinimum: number;
@@ -37,19 +37,4 @@ export interface ProductFilter {
   montantMinimum?: number;
   montantMaximum?: number;
   designation?: string;
-}
-
-export interface PaginationOptions {
-  page: number;
-  limit: number;
-}
-
-export interface PaginatedResult<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }

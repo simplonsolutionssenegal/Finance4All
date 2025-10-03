@@ -8,11 +8,9 @@ import { PrismaProductRepository } from '@/infrastructure/database/PrismaProduct
 
 const router = Router();
 
-// Dependency Injection - utilisation de PrismaProductRepository
 const productRepository = new PrismaProductRepository();
 const getProductByIdUseCase = new GetProductByIdUseCaseImpl(productRepository);
 const getProductsUseCase = new GetProductsUseCaseImpl(productRepository);
-
 const productController = new ProductController(getProductByIdUseCase, getProductsUseCase);
 
 // Routes avec le même style que vos user routes
