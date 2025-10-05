@@ -1,41 +1,34 @@
 'use client';
 
 import { Filter, Search } from 'lucide-react';
-import React, { useState, type ChangeEvent, useRef, useEffect } from 'react';
+import React, { useState, type ChangeEvent } from 'react';
 
 import { Input } from '@/components/ui/input';
 import { useSearchStore } from '@/hooks/useSearchStore';
 import type { FilterOptions } from '@/types/FilterOptions';
 
-import FilterPopup from './FilterPopup';
+import FilterPopupAdapter from './filters/FilterPopupAdapter';
 
 interface SearchBarProps {
   onSearch: (value: string) => void;
   resultsCount: number;
   onApplyFilters?: (filters: FilterOptions) => void;
+  currentFilters: FilterOptions;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFilters }) => {
+const SearchBar: React.FC<SearchBarProps> = ({
+  onSearch,
+  resultsCount,
+  onApplyFilters,
+  currentFilters,
+}) => {
   const [searchValue, setSearchValue] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-
   // store Zustand pour garder l'historique
   const recentSearches = useSearchStore(state => state.recentSearches);
   const addSearch = useSearchStore(state => state.addSearch);
-
-  // fermer dropdown si je  clique à l'extérieur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -46,7 +39,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchValue.trim() !== '') {
-      addSearch(searchValue.trim()); // ajoute une seule fois
+      addSearch(searchValue.trim());
       setShowDropdown(false);
     }
   };
@@ -69,20 +62,18 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
 
       <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
         <div className='flex-1 flex gap-3'>
-          {/* Input + dropdown */}
-          <div ref={containerRef} className='relative flex-1 max-w-64'>
+          <div className='relative flex-1 max-w-64'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
             <Input
               type='text'
               placeholder='Rechercher un service...'
               value={searchValue}
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown} // ⬅️ nouveau
+              onKeyDown={handleKeyDown}
               onFocus={() => setShowDropdown(true)}
               className='pl-10 pr-4 py-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
             />
 
-            {/* Dropdown des 3 dernières recherches */}
             {showDropdown && recentSearches.length > 0 && (
               <ul
                 className='absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto'
@@ -103,11 +94,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
             )}
           </div>
 
-          {/* Bouton Filtrer */}
           <button
             onClick={() => setFilterOpen(true)}
             type='button'
-            className='bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-md flex items-center'
+            className='h-9 bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-md flex items-center'
           >
             <Filter className='w-4 h-4 mr-2' />
             Filtrer
@@ -115,11 +105,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, resultsCount, onApplyFi
         </div>
       </div>
 
-      {/* Popup de filtres */}
-      <FilterPopup
+      <FilterPopupAdapter
         isOpen={filterOpen}
         onClose={() => setFilterOpen(false)}
         onApplyFilters={handleApplyFilters}
+        currentFilters={currentFilters}
       />
     </div>
   );

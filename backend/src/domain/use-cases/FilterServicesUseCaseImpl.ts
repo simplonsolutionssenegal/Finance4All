@@ -1,25 +1,32 @@
+// application/use-cases/FilterServicesUseCaseImpl.ts
 import type {
   FilterServicesUseCase,
   DatePreset,
 } from '@/application/use-cases/FilterServicesUseCase';
-import type { Service } from '@/domain/entities/Service';
+import type { InstitutionService } from '@/domain/entities/InstitutionService';
 import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
-import type { ServiceType } from '@/domain/entities/types/ServiceType';
-// import { ServiceType } from '@/domain/entities/Service';
+import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
+import { validate as isUuid } from 'uuid';
 
-const ALLOWED_TYPES: ServiceType[] = ['CREDIT', 'EPARGNE', 'MOBILE_MONEY'];
+const ALLOWED_TYPES: ServiceType[] = [
+  'CREDIT',
+  'EPARGNE',
+  'MOBILE_MONEY',
+  'INVESTISSEMENT',
+  'ASSURANCE',
+];
 
 function computeFromDate(preset?: DatePreset): Date | undefined {
   if (!preset) return undefined;
   const now = new Date();
   if (preset === 'recent') {
     const d = new Date(now);
-    d.setDate(d.getDate() - 7); // 7 derniers jours
+    d.setDate(d.getDate() - 7);
     return d;
   }
   if (preset === '3mois') {
     const d = new Date(now);
-    d.setMonth(d.getMonth() - 3); // 3 derniers mois
+    d.setMonth(d.getMonth() - 3);
     return d;
   }
   return undefined;
@@ -29,15 +36,15 @@ export class FilterServicesUseCaseImpl implements FilterServicesUseCase {
   constructor(private readonly repo: ServiceRepository) {}
 
   async execute(params: {
-    institutionId: number;
+    institutionId: string;
     types?: ServiceType[];
-    zoneId?: number;
+    zoneCodes?: string[];
     datePreset?: DatePreset;
-  }): Promise<Service[]> {
-    const { institutionId, types, zoneId, datePreset } = params;
+  }): Promise<InstitutionService[]> {
+    const { institutionId, types, zoneCodes, datePreset } = params;
 
-    if (!Number.isFinite(institutionId) || institutionId <= 0) {
-      throw new Error('institutionId invalide');
+    if (!isUuid(institutionId)) {
+      throw new Error('institutionId invalide (UUID attendu)');
     }
 
     let cleanTypes: ServiceType[] | undefined;
@@ -48,10 +55,13 @@ export class FilterServicesUseCaseImpl implements FilterServicesUseCase {
       if (!cleanTypes.length) cleanTypes = undefined;
     }
 
-    // const cleanZone = Number.isFinite(zoneId!) ? Number(zoneId) : undefined;
-    const cleanZone = typeof zoneId === 'number' && Number.isFinite(zoneId) ? zoneId : undefined;
+    let cleanZones: string[] | undefined;
+    if (Array.isArray(zoneCodes) && zoneCodes.length > 0) {
+      const z = zoneCodes.map(z => String(z).trim()).filter(Boolean);
+      cleanZones = z.length > 0 ? z : undefined; // ← si vide => undefined
+    }
     const fromDate = computeFromDate(datePreset);
 
-    return this.repo.findByFilters(institutionId, cleanTypes, cleanZone, fromDate);
+    return this.repo.findByFilters(institutionId, cleanTypes, cleanZones, fromDate);
   }
 }

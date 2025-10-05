@@ -1,106 +1,90 @@
-// __tests__/components/FilterPopup.test.tsx
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-
-// ⚠️ ajuste ce chemin :
 import FilterPopup from '@/components/institutions/FilterPopup';
+import {
+  EMPTY_FILTERS,
+  TYPE_OPTIONS,
+  DATE_OPTIONS,
+} from '@/components/institutions/filters/options';
+import type { FilterOptions, DateFilter } from '@/types/FilterOptions';
+import type { ServiceType } from '@/types/ServiceType';
 
 describe('FilterPopup', () => {
-  const setup = (props?: Partial<React.ComponentProps<typeof FilterPopup>>) => {
-    const onClose = jest.fn();
-    const onApplyFilters = jest.fn();
-
-    const utils = render(
-      <FilterPopup
-        isOpen={props?.isOpen ?? true}
-        onClose={props?.onClose ?? onClose}
-        onApplyFilters={props?.onApplyFilters ?? onApplyFilters}
-      />
-    );
-
-    return {
-      ...utils,
-      onClose,
-      onApplyFilters,
-      user: userEvent.setup(),
-    };
+  const baseProps = {
+    isOpen: true,
+    value: EMPTY_FILTERS,
+    onChange: jest.fn(),
+    onClose: jest.fn(),
+    onApply: jest.fn(),
+    onCancel: undefined as (() => void) | undefined,
   };
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('ne rend rien quand isOpen=false', () => {
-    const { queryByText } = setup({ isOpen: false });
-    expect(queryByText(/Type de produit/i)).toBeNull();
+  it('ne rend rien si isOpen=false', () => {
+    const { container } = render(<FilterPopup {...baseProps} isOpen={false} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('affiche le popup quand isOpen=true', () => {
-    const { getByText } = setup({ isOpen: true });
-    expect(getByText(/Type de produit/i)).toBeInTheDocument();
-    expect(getByText(/Zone géographique/i)).toBeInTheDocument();
-    expect(getByText(/Date/i)).toBeInTheDocument();
+  it('rend le dialog et les boutons quand isOpen=true', () => {
+    render(<FilterPopup {...baseProps} />);
+    expect(
+      screen.getByRole('dialog', { name: /filtres des produits financiers/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Réinitialiser')).toBeInTheDocument();
+    expect(screen.getByText('Annuler')).toBeInTheDocument();
+    expect(screen.getByText('Confirmer')).toBeInTheDocument();
   });
 
-  it('sélection + confirmer appelle onApplyFilters avec les bons filtres et ferme', async () => {
-    const { user, onApplyFilters, onClose } = setup();
-
-    await user.click(screen.getByLabelText(/Crédit/i)); // label du chip
-
-    await user.click(screen.getByLabelText(/Zone Géo A/i));
-
-    await user.click(screen.getByLabelText(/Récente/i));
-
-    await user.click(screen.getByRole('button', { name: /Confirmer/i }));
-
-    expect(onApplyFilters).toHaveBeenCalledTimes(1);
-    expect(onApplyFilters).toHaveBeenCalledWith({
-      type: ['CREDIT'],
-      zone: ['1'],
-      date: 'recent',
-    });
-    expect(onClose).toHaveBeenCalledTimes(1);
+  it('désactive "Confirmer" quand aucun filtre sélectionné', () => {
+    render(<FilterPopup {...baseProps} value={EMPTY_FILTERS} />);
+    expect(screen.getByText('Confirmer')).toHaveAttribute('disabled');
   });
 
-  it('Réinitialiser vide les filtres et ne ferme pas', async () => {
-    const { user, onApplyFilters, onClose } = setup();
+  it('active "Confirmer" quand des filtres existent', () => {
+    const withFilters: FilterOptions = {
+      // on utilise les options typées pour éviter les erreurs TS
+      type: [TYPE_OPTIONS.find(o => o.value === 'CREDIT')!.value] as ServiceType[],
+      zone: ['DAKAR'],
+      date: DATE_OPTIONS.find(o => o.value === 'recent')!.value as DateFilter,
+    };
 
-    await user.click(screen.getByLabelText(/Épargne|Epargne/i));
-    await user.click(screen.getByLabelText(/Zone Géo B/i));
-    await user.click(screen.getByLabelText(/Il y a 3 mois/i));
-
-    await user.click(screen.getByRole('button', { name: /Réinitialiser/i }));
-
-    expect(onApplyFilters).toHaveBeenCalledWith({ type: [], zone: [], date: '' });
-
-    expect(onClose).not.toHaveBeenCalled();
+    render(<FilterPopup {...baseProps} value={withFilters} />);
+    expect(screen.getByText('Confirmer')).not.toHaveAttribute('disabled');
   });
 
-  it('Annuler vide les filtres et ferme', async () => {
-    const { user, onApplyFilters, onClose } = setup();
-
-    // Sélectionner au moins un filtre
-    await user.click(screen.getByLabelText(/Crédit/i));
-
-    // Annuler
-    await user.click(screen.getByRole('button', { name: /Annuler/i }));
-
-    expect(onApplyFilters).toHaveBeenCalledWith({ type: [], zone: [], date: '' });
-    expect(onClose).toHaveBeenCalledTimes(1);
+  it('clic "Réinitialiser" appelle onChange(EMPTY_FILTERS)', () => {
+    const onChange = jest.fn();
+    render(<FilterPopup {...baseProps} onChange={onChange} />);
+    fireEvent.click(screen.getByText('Réinitialiser'));
+    expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS);
   });
 
-  it('Confirmer sans filtre déclenche alert et ne ferme pas', async () => {
-    const { user, onApplyFilters, onClose } = setup();
+  it('clic "Annuler" reset l’UI et appelle onCancel si fourni', () => {
+    const onChange = jest.fn();
+    const onCancel = jest.fn();
+    render(<FilterPopup {...baseProps} onChange={onChange} onCancel={onCancel} />);
 
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    fireEvent.click(screen.getByText('Annuler'));
+    expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS); // reset UI
+    expect(onCancel).toHaveBeenCalledTimes(1); // laisse l’adaptateur décider pour la liste
+  });
 
-    await user.click(screen.getByRole('button', { name: /Confirmer/i }));
+  it('clic "Confirmer" appelle onApply(value) puis onClose()', () => {
+    const withFilters: FilterOptions = {
+      type: ['CREDIT'] as ServiceType[],
+      zone: ['DAKAR'],
+      date: 'recent' as DateFilter,
+    };
+    const onApply = jest.fn();
+    const onClose = jest.fn();
 
-    expect(alertSpy).toHaveBeenCalled();
-    expect(onApplyFilters).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
+    render(<FilterPopup {...baseProps} value={withFilters} onApply={onApply} onClose={onClose} />);
 
-    alertSpy.mockRestore();
+    fireEvent.click(screen.getByText('Confirmer'));
+    expect(onApply).toHaveBeenCalledWith(withFilters);
+    expect(onClose).toHaveBeenCalled();
   });
 });

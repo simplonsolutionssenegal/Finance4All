@@ -53,7 +53,7 @@ const mockRouter = {
 
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 
-describe.skip('ClerkAcceptInvitation', () => {
+describe('ClerkAcceptInvitation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReturnValue(mockRouter as any);

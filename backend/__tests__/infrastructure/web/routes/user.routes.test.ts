@@ -10,8 +10,8 @@ jest.mock('backend/src/infrastructure/database/prisma', () => ({
     },
   },
 }));
-// jest.mock('backend/src/infrastructure/database/PrismaUserRepository');
-// jest.mock('backend/src/domain/use-cases/createUserUseCaseImpl');
+jest.mock('backend/src/infrastructure/database/PrismaUserRepository');
+jest.mock('backend/src/domain/use-cases/createUserUseCaseImpl');
 
 const mockUserController = {
   create: jest.fn(),
@@ -27,7 +27,7 @@ jest.doMock('backend/src/infrastructure/web/controllers/UserController', () => {
   };
 });
 
-describe.skip('User Routes', () => {
+describe('User Routes', () => {
   let app: express.Application;
   let userRoutes: express.Router;
 
@@ -368,33 +368,11 @@ describe.skip('User Routes', () => {
       expect(mockUserController.updateRole).toHaveBeenCalled();
     });
 
-    // it('should handle different role values', async () => {
-    //   const roles = ['member', 'viewer', 'editor', 'manager'];
+    it('should handle different role values', async () => {
+      const roles = ['member', 'viewer', 'editor', 'manager'];
 
-    //   for (const role of roles) {
-    //     mockUserController.updateRole.mockImplementation(async (req, res) => {
-    //       res.status(200).json({
-    //         success: true,
-    //         message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
-    //       });
-    //     });
-
-    //     const response = await request(app)
-    //       .patch('/users/user_123')
-    //       .send({ organizationId: 'org_123', role })
-    //       .expect(200);
-
-    //     expect(response.body).toEqual({
-    //       success: true,
-    //       message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
-    //     });
-    //     expect(mockUserController.updateRole).toHaveBeenCalled();
-    //   }
-    // });
-    it.each(['member', 'viewer', 'editor', 'manager'])(
-      'should handle role value: %s',
-      async role => {
-        mockUserController.updateRole.mockImplementationOnce(async (req, res) => {
+      for (const role of roles) {
+        mockUserController.updateRole.mockImplementation(async (req, res) => {
           res.status(200).json({
             success: true,
             message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
@@ -412,6 +390,6 @@ describe.skip('User Routes', () => {
         });
         expect(mockUserController.updateRole).toHaveBeenCalled();
       }
-    );
+    });
   });
 });

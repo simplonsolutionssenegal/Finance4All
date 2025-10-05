@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 import '@testing-library/jest-dom';
 import InstituteHeader from '@/components/institutions/InstituteHeaderProps';
-import type { InstituteHeaderProps } from '@/models/institute';
+import type { InstituteHeaderProps } from '@/models/InstituteService';
 
 describe('InstituteHeader', () => {
   const baseProps: InstituteHeaderProps = {

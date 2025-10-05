@@ -1,222 +1,248 @@
 import type { Request, Response } from 'express';
-import { ServiceController } from '@/infrastructure/web/controllers/ServiceController';
 import type { GetServicesByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
 import type { FilterServicesUseCase } from '@/application/use-cases/FilterServicesUseCase';
-import type { ServiceType } from '@/domain/entities/types/ServiceType';
+import { InstitutionService } from '@/domain/entities/InstitutionService';
+import { ServiceController } from '@/infrastructure/web/controllers/ServiceController';
 
-// Helpers pour mocker Response
+// --------- helpers ----------
 function makeRes() {
-  const res: Partial<Response> = {};
-  res.status = jest.fn().mockReturnValue(res);
-  res.json = jest.fn().mockReturnValue(res);
-  return res as Response & {
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  } as unknown as Response & {
     status: jest.Mock;
     json: jest.Mock;
   };
+  return res;
 }
 
-describe('ServiceController', () => {
-  let getByInstitutionUC: jest.Mocked<GetServicesByInstitutionUseCase>;
-  let filterUC: jest.Mocked<FilterServicesUseCase>;
+function makeReq(overrides: Partial<Request> = {}): Request {
+  const base: Partial<Request> = { params: {}, query: {}, body: {} };
+  return { ...base, ...overrides } as Request;
+}
+
+function makeService(overrides: Partial<InstitutionService> = {}): InstitutionService {
+  const now = new Date('2025-10-01T12:00:00Z');
+  // NOTE: on caste type/modesRemboursement en any pour éviter d'importer les enums dans ce test
+  return new InstitutionService(
+    overrides.id ?? 'svc_1',
+    overrides.designation ?? 'Produit A',
+    overrides.montantMin ?? 1000,
+    overrides.montantMax ?? 5000,
+    (overrides.type as any) ?? 'CREDIT',
+    (overrides.modesRemboursement as any) ?? 'AGENCE',
+    overrides.institutionId ?? 'inst_ABC',
+    overrides.zone ?? 'dakar',
+    overrides.createdAt ?? now,
+    overrides.updatedAt ?? now
+  );
+}
+// ----------------------------
+
+describe('ServiceController (global)', () => {
+  let getServicesByInstitution: jest.Mocked<GetServicesByInstitutionUseCase>;
+  let filterServices: jest.Mocked<FilterServicesUseCase>;
   let controller: ServiceController;
 
   beforeEach(() => {
-    getByInstitutionUC = {
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<GetServicesByInstitutionUseCase>;
-
-    filterUC = {
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<FilterServicesUseCase>;
-
-    controller = new ServiceController(getByInstitutionUC, filterUC);
     jest.clearAllMocks();
+
+    getServicesByInstitution = { execute: jest.fn() } as any;
+    filterServices = { execute: jest.fn() } as any;
+
+    controller = new ServiceController(getServicesByInstitution, filterServices);
   });
 
-  describe('byInstitution', () => {
-    it('200 | retourne les services et appelle le use-case avec le bon id', async () => {
-      const req = { params: { institutionId: '42' } } as unknown as Request;
-      const res = makeRes();
+  // ---------------------------------------------------
+  // byInstitution
+  // ---------------------------------------------------
+  it('byInstitution → 200 avec UUID valide', async () => {
+    const uuid = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
+    const services = [
+      makeService({ id: 's1', designation: 'Alpha', zone: 'dakar' }),
+      makeService({ id: 's2', designation: 'Beta', zone: 'thies' }),
+    ];
+    getServicesByInstitution.execute.mockResolvedValueOnce(services);
 
-      const services = [
-        {
-          id: 1,
-          designation: 'Crédit Agricole',
-          montantMin: 1000,
-          montantMax: 5000,
-          type: 'CREDIT',
-          modesRemboursement: 'AGENCE',
-          institutionId: 42,
-          zoneId: 10,
-          createdAt: new Date('2025-01-01T00:00:00Z'),
-          updatedAt: new Date('2025-09-01T00:00:00Z'),
-        },
-      ];
-      getByInstitutionUC.execute.mockResolvedValueOnce(services as any);
+    const req = makeReq({ params: { institutionId: uuid } });
+    const res = makeRes();
 
-      await controller.byInstitution(req, res);
+    await controller.byInstitution(req, res);
 
-      expect(getByInstitutionUC.execute).toHaveBeenCalledWith(42);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'success',
-        results: 1,
-        data: services,
-      });
-    });
-
-    it('400 | institutionId invalide', async () => {
-      const res = makeRes();
-
-      await controller.byInstitution({ params: { institutionId: '0' } } as any, res);
-      await controller.byInstitution({ params: { institutionId: 'abc' } } as any, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'institutionId invalide',
-      });
-      expect(getByInstitutionUC.execute).not.toHaveBeenCalled();
-    });
-
-    it('500 | erreur use-case', async () => {
-      const req = { params: { institutionId: '42' } } as any;
-      const res = makeRes();
-      getByInstitutionUC.execute.mockRejectedValueOnce(new Error('DB down'));
-
-      await controller.byInstitution(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Erreur lors de la récupération des produits',
-      });
+    expect(getServicesByInstitution.execute).toHaveBeenCalledWith(uuid);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'success',
+      results: services.length,
+      data: services,
     });
   });
 
-  describe('filterByInstitution', () => {
-    it('200 | parse type[]=CREDIT&EPARGNE&zone=10&date=recent → appelle use-case (objet)', async () => {
-      const req = {
-        params: { institutionId: '42' },
-        query: { type: ['CREDIT', 'EPARGNE'], zone: '10', date: 'recent' },
-      } as unknown as Request;
-      const res = makeRes();
+  it('byInstitution → 400 si institutionId non-UUID', async () => {
+    const req = makeReq({ params: { institutionId: '123' } }); // invalide
+    const res = makeRes();
 
-      const filtered = [
-        {
-          id: 2,
-          designation: 'Épargne Plus',
-          montantMin: 0,
-          montantMax: 0,
-          type: 'EPARGNE',
-          modesRemboursement: 'USSD',
-          institutionId: 42,
-          zoneId: 10,
-          createdAt: new Date('2025-02-01T00:00:00Z'),
-          updatedAt: new Date('2025-09-02T00:00:00Z'),
-        },
-      ];
-      filterUC.execute.mockResolvedValueOnce(filtered as any);
+    await controller.byInstitution(req, res);
 
-      await controller.filterByInstitution(req, res);
-
-      expect(filterUC.execute).toHaveBeenCalledTimes(1);
-      const payload = (filterUC.execute as jest.Mock).mock.calls[0][0];
-
-      expect(payload).toEqual(
-        expect.objectContaining({
-          institutionId: 42,
-          types: ['CREDIT', 'EPARGNE'] as ServiceType[],
-          zoneId: 10,
-          datePreset: 'recent',
-        })
-      );
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'success',
-        results: 1,
-        data: filtered,
-      });
+    expect(getServicesByInstitution.execute).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'fail',
+      message: 'institutionId invalide (UUID attendu)',
     });
+  });
 
-    it('200 | type unique en string (casse indifférente), zone NaN ignoré, pas de date', async () => {
-      const req = {
-        params: { institutionId: '7' },
-        query: { type: 'credit', zone: 'NaN' }, // "credit" → toUpperCase() → "CREDIT"
-      } as unknown as Request;
-      const res = makeRes();
+  it('byInstitution → 500 si use-case lève une erreur', async () => {
+    const uuid = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
+    getServicesByInstitution.execute.mockRejectedValueOnce(new Error('boom'));
 
-      filterUC.execute.mockResolvedValueOnce([] as any);
+    const req = makeReq({ params: { institutionId: uuid } });
+    const res = makeRes();
 
-      await controller.filterByInstitution(req, res);
+    await controller.byInstitution(req, res);
 
-      const payload = (filterUC.execute as jest.Mock).mock.calls[0][0];
-      expect(payload.institutionId).toBe(7);
-      expect(payload.types).toEqual(['CREDIT']);
-      expect(payload.zoneId).toBeUndefined();
-      expect(payload.datePreset).toBeUndefined();
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'success',
-        results: 0,
-        data: [],
-      });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'error',
+      message: 'Erreur lors de la récupération des services',
     });
+  });
 
-    it('200 | query vide → passe seulement institutionId', async () => {
-      const req = {
-        params: { institutionId: '9' },
-        query: {},
-      } as unknown as Request;
-      const res = makeRes();
+  // ---------------------------------------------------
+  // filterByInstitution
+  // ---------------------------------------------------
+  it('filterByInstitution → 400 si institutionId trop court (<3)', async () => {
+    const req = makeReq({ params: { institutionId: 'ab' } });
+    const res = makeRes();
 
-      filterUC.execute.mockResolvedValueOnce([] as any);
+    await controller.filterByInstitution(req, res);
 
-      await controller.filterByInstitution(req, res);
-
-      const payload = (filterUC.execute as jest.Mock).mock.calls[0][0];
-      expect(payload).toEqual(
-        expect.objectContaining({
-          institutionId: 9,
-          types: undefined,
-          zoneId: undefined,
-          datePreset: undefined,
-        })
-      );
+    expect(filterServices.execute).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'fail',
+      message: 'institutionId invalide',
     });
+  });
 
-    it('400 | institutionId invalide', async () => {
-      const res = makeRes();
-      const badReq = { params: { institutionId: 'abc' }, query: {} } as any;
+  it('filterByInstitution → 200 avec types[], zones[], date=recent', async () => {
+    const services = [makeService({ id: 's1', zone: 'dakar' })];
+    filterServices.execute.mockResolvedValueOnce(services);
 
-      await controller.filterByInstitution(badReq, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'institutionId invalide',
-      });
-      expect(filterUC.execute).not.toHaveBeenCalled();
+    const req = makeReq({
+      params: { institutionId: 'inst_ABC' },
+      query: {
+        type: ['credit', 'EPARGNE'], // casse mixte → uppercased
+        zone: ['  dakar  ', 'thies', ''], // trim + filter(Boolean)
+        date: 'recent',
+      },
     });
+    const res = makeRes();
 
-    it('500 | erreur use-case', async () => {
-      const req = {
-        params: { institutionId: '42' },
-        query: {},
-      } as unknown as Request;
-      const res = makeRes();
+    await controller.filterByInstitution(req, res);
 
-      filterUC.execute.mockRejectedValueOnce(new Error('Repo KO'));
+    expect(filterServices.execute).toHaveBeenCalledWith({
+      institutionId: 'inst_ABC',
+      types: ['CREDIT', 'EPARGNE'],
+      zoneCodes: ['dakar', 'thies'],
+      datePreset: 'recent',
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'success',
+      results: services.length,
+      data: services,
+    });
+  });
 
-      await controller.filterByInstitution(req, res);
+  it('filterByInstitution → 200 avec type string + zone string + date=3mois', async () => {
+    const services = [makeService({ id: 's2', zone: 'pikine', type: 'MOBILE_MONEY' as any })];
+    filterServices.execute.mockResolvedValueOnce(services);
 
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        status: 'error',
-        message: 'Repo KO',
-      });
+    const req = makeReq({
+      params: { institutionId: 'inst_DEF' },
+      query: { type: 'mobile_money', zone: 'pikine', date: '3mois' },
+    });
+    const res = makeRes();
+
+    await controller.filterByInstitution(req, res);
+
+    expect(filterServices.execute).toHaveBeenCalledWith({
+      institutionId: 'inst_DEF',
+      types: ['MOBILE_MONEY'],
+      zoneCodes: ['pikine'],
+      datePreset: '3mois',
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'success',
+      results: services.length,
+      data: services,
+    });
+  });
+
+  it('filterByInstitution → 200 sans aucun filtre → uniquement institutionId', async () => {
+    const services = [
+      makeService({ id: 's3', zone: 'kaolack' }),
+      makeService({ id: 's4', zone: 'mbour' }),
+    ];
+    filterServices.execute.mockResolvedValueOnce(services);
+
+    const req = makeReq({ params: { institutionId: 'inst_ONLY' }, query: {} });
+    const res = makeRes();
+
+    await controller.filterByInstitution(req, res);
+
+    expect(filterServices.execute).toHaveBeenCalledWith({
+      institutionId: 'inst_ONLY',
+      types: undefined,
+      zoneCodes: undefined,
+      datePreset: undefined,
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'success',
+      results: services.length,
+      data: services,
+    });
+  });
+
+  it('filterByInstitution → 200 ignore date invalide (≠ "recent"/"3mois")', async () => {
+    const services = [makeService({ id: 's5', zone: 'dakar', type: 'CREDIT' as any })];
+    filterServices.execute.mockResolvedValueOnce(services);
+
+    const req = makeReq({
+      params: { institutionId: 'inst_GHI' },
+      query: { type: ['CREDIT'], zone: ['dakar'], date: 'hier' }, // invalide
+    });
+    const res = makeRes();
+
+    await controller.filterByInstitution(req, res);
+
+    expect(filterServices.execute).toHaveBeenCalledWith({
+      institutionId: 'inst_GHI',
+      types: ['CREDIT'],
+      zoneCodes: ['dakar'],
+      datePreset: undefined,
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('filterByInstitution → 500 si use-case lève une erreur', async () => {
+    filterServices.execute.mockRejectedValueOnce(new Error('kaput'));
+
+    const req = makeReq({
+      params: { institutionId: 'inst_ERR' },
+      query: { type: 'credit' },
+    });
+    const res = makeRes();
+
+    await controller.filterByInstitution(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'error',
+      message: 'kaput', // ← le contrôleur renvoie e.message
     });
   });
 });

@@ -194,8 +194,8 @@ describe('EmailService', () => {
       ];
 
       for (const { role, expected } of roles) {
-        // eslint-disable-next-line no-await-in-loop
-        await EmailService.sendInvitationEmail({ ...mockEmailData, role });
+        const dataWithRole = { ...mockEmailData, role };
+        await EmailService.sendInvitationEmail(dataWithRole);
 
         const callArgs =
           mockTransporter.sendMail.mock.calls[mockTransporter.sendMail.mock.calls.length - 1][0];

@@ -1,86 +1,98 @@
-// __tests__/infrastructure/database/PrismaServiceRepository.test.ts
+// __tests__/infrastructure/PrismaServiceRepository.test.ts
+import { PrismaServiceRepository } from '@/infrastructure/database/PrismaServiceRepository';
+import { InstitutionService } from '@/domain/entities/InstitutionService';
+import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
+import type { RemboursementMode } from '@/domain/entities/types/RemboursementMode';
 
-const findMany = jest.fn();
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    product: { findMany },
-  })),
-}));
+// 👇 on mock PrismaClient global
+jest.mock('@prisma/client', () => {
+  const mPrisma = {
+    institutionService: {
+      findMany: jest.fn(),
+    },
+  };
+  return { PrismaClient: jest.fn(() => mPrisma) };
+});
 
-import { Service } from '@/domain/entities/Service';
-
-const { PrismaServiceRepository } = require('@/infrastructure/database/PrismaServiceRepository');
+import { PrismaClient } from '@prisma/client';
 
 describe('PrismaServiceRepository', () => {
-  let repo: InstanceType<typeof PrismaServiceRepository>;
+  let repo: PrismaServiceRepository;
+  let prisma: jest.Mocked<PrismaClient>;
 
   beforeEach(() => {
-    findMany.mockReset();
+    prisma = new PrismaClient() as unknown as jest.Mocked<PrismaClient>;
     repo = new PrismaServiceRepository();
   });
 
-  it('findByInstitution → where/order + mapping', async () => {
-    findMany.mockResolvedValueOnce([
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('findByInstitution renvoie les services mappés en entités domaine', async () => {
+    const mockRows = [
       {
-        id: 1,
-        designation: 'Crédit Agricole',
+        id: 'uuid1',
+        designation: 'Crédit Test',
         montantMin: 1000,
         montantMax: 5000,
-        type: 'CREDIT',
-        modesRemboursement: 'AGENCE',
-        institutionId: 42,
-        zoneId: 10,
-        createdAt: new Date('2025-01-01T00:00:00Z'),
-        updatedAt: new Date('2025-09-01T00:00:00Z'),
+        type: 'CREDIT' as ServiceType,
+        modesRemboursement: 'AGENCE' as RemboursementMode,
+        institutionId: 'inst-123',
+        zones: ['ZONE1'],
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-02'),
       },
-      {
-        id: 2,
-        designation: 'Épargne Plus',
-        montantMin: 0,
-        montantMax: 0,
-        type: 'EPARGNE',
-        modesRemboursement: 'USSD',
-        institutionId: 42,
-        zoneId: 10,
-        createdAt: new Date('2025-02-01T00:00:00Z'),
-        updatedAt: new Date('2025-09-02T00:00:00Z'),
-      },
-    ]);
+    ];
 
-    const out = await repo.findByInstitution(42);
+    (prisma.institutionService.findMany as jest.Mock).mockResolvedValue(mockRows);
 
-    expect(findMany).toHaveBeenCalledWith({
-      where: { institutionId: 42 },
+    const result = await repo.findByInstitution('inst-123');
+
+    expect(prisma.institutionService.findMany).toHaveBeenCalledWith({
+      where: { institutionId: 'inst-123' },
       orderBy: [{ designation: 'asc' }],
     });
 
-    expect(out).toHaveLength(2);
-    expect(out[0]).toBeInstanceOf(Service);
-    expect(out[0]).toEqual(
-      expect.objectContaining({
-        id: 1,
-        designation: 'Crédit Agricole',
-        type: 'CREDIT',
-        institutionId: 42,
-        zoneId: 10,
-      })
-    );
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(InstitutionService);
+    expect(result[0].designation).toBe('Crédit Test');
+    expect(result[0].zone).toBe('ZONE1');
   });
 
-  it('findByFilters → construit where dynamiquement', async () => {
-    findMany.mockResolvedValueOnce([]);
-    await repo.findByFilters(1, ['EPARGNE'], 99, new Date('2025-01-15T00:00:00Z'));
+  it('findByFilters applique correctement les filtres', async () => {
+    const mockRows = [
+      {
+        id: 'uuid2',
+        designation: 'Épargne Test',
+        montantMin: 200,
+        montantMax: 2000,
+        type: 'EPARGNE' as ServiceType,
+        modesRemboursement: 'USSD' as RemboursementMode,
+        institutionId: 'inst-123',
+        zones: ['ZONE2'],
+        createdAt: new Date('2024-02-01'),
+        updatedAt: new Date('2024-02-02'),
+      },
+    ];
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          institutionId: 1,
-          type: { in: ['EPARGNE'] },
-          zoneId: 99,
-          createdAt: { gte: new Date('2025-01-15T00:00:00Z') },
-        }),
-        orderBy: [{ designation: 'asc' }],
-      })
-    );
+    (prisma.institutionService.findMany as jest.Mock).mockResolvedValue(mockRows);
+
+    const fromDate = new Date('2024-01-01');
+
+    const result = await repo.findByFilters('inst-123', ['EPARGNE'], ['ZONE2'], fromDate);
+
+    expect(prisma.institutionService.findMany).toHaveBeenCalledWith({
+      where: {
+        institutionId: 'inst-123',
+        type: { in: ['EPARGNE'] },
+        zones: { hasSome: ['ZONE2'] },
+        createdAt: { gte: fromDate },
+      },
+      orderBy: [{ designation: 'asc' }],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].designation).toBe('Épargne Test');
   });
 });

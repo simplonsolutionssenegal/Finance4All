@@ -1,15 +1,15 @@
-// src/domain/repositories/ProductRepository.ts
-import type { Service } from '@/domain/entities/Service';
-import type { ServiceType } from '@/domain/entities/types/ServiceType';
+// src/domain/repositories/ServiceRepository.ts
+import type { InstitutionService } from '@/domain/entities/InstitutionService';
+import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
 
 export interface ServiceRepository {
   // findAll(): Promise<Service[]>;
-  findByInstitution(institutionId: number): Promise<Service[]>;
+  findByInstitution(institutionId: string): Promise<InstitutionService[]>;
   findByFilters(
-    institutionId: number,
+    institutionId: string,
     types?: ServiceType[],
-    zoneId?: number,
+    zoneCodes?: string[], // tableau de zones (strings libres)
     fromDate?: Date
-  ): Promise<Service[]>;
+  ): Promise<InstitutionService[]>;
   // (optionnel) findByInstitutionAndZone(institutionId: number, zoneId: number): Promise<Service[]>;
 }

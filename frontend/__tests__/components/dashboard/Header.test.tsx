@@ -1,16 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import Header from '@/components/dashboard/Header';
 
 // Mock NoSSR component
 jest.mock('@/components/NoSSR', () => {
-  return function NoSSR({
-    children,
-    fallback,
-  }: {
-    children: React.ReactNode;
-    fallback?: React.ReactNode;
-  }) {
+  return function NoSSR({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   };
 });
@@ -36,7 +31,7 @@ jest.mock('@/components/dashboard/LogoutAlert', () => ({
     ) : null,
 }));
 
-describe.skip('Header', () => {
+describe('Header', () => {
   it('renders the logo and dashboard title', () => {
     render(<Header />);
 
@@ -233,7 +228,7 @@ describe.skip('Header', () => {
   });
 
   it('renders notification badge with correct styling', () => {
-    const { container } = render(<Header />);
+    render(<Header />);
 
     const badge = screen.getByText('10');
     expect(badge).toHaveClass(

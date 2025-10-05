@@ -32,7 +32,7 @@ jest.mock('@clerk/express', () => ({
   },
 }));
 
-describe.skip('UserController', () => {
+describe('UserController', () => {
   let userController: UserController;
   let mockRemoveUserUseCase: jest.Mocked<RemoveUserUseCase>;
   let mockUpdateUserRoleUseCase: jest.Mocked<UpdateUserRoleUseCase>;
@@ -459,56 +459,23 @@ describe.skip('UserController', () => {
       });
     });
 
-    // it('should test different role values', async () => {
-    //   const roles = ['member', 'viewer', 'editor', 'manager'];
+    it('should test different role values', async () => {
+      const roles = ['member', 'viewer', 'editor', 'manager'];
 
-    //   for (const role of roles) {
-    //     mockRequest.body = { organizationId: 'org_123', role };
-    //     const expectedResult = {
-    //       success: true,
-    //       message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
-    //     };
-    //     mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
-
-    //     await userController.updateRole(mockRequest as Request, mockResponse as Response);
-
-    //     expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', role);
-    //     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    //     expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
-    //   }
-    // });
-    describe('updateRole', () => {
-      const roles = ['member', 'viewer', 'editor', 'manager'] as const;
-
-      const makeReq = (role: string) =>
-        ({
-          body: { organizationId: 'org_123', role },
-          auth: { userId: 'user_123' }, // adapte si ton controller lit userId ailleurs
-        }) as unknown as Request;
-
-      const makeRes = () => {
-        const res = {} as Partial<Response>;
-        (res.status as any) = jest.fn().mockReturnValue(res);
-        (res.json as any) = jest.fn().mockReturnValue(res);
-        return res as Response;
-      };
-
-      it.each(roles)('should update role to %s', async role => {
-        const req = makeReq(role);
-        const res = makeRes();
-
+      for (const role of roles) {
+        mockRequest.body = { organizationId: 'org_123', role };
         const expectedResult = {
           success: true,
           message: `Rôle de l'utilisateur modifié avec succès vers ${role}`,
         };
-        mockUpdateUserRoleUseCase.execute.mockResolvedValueOnce(expectedResult);
+        mockUpdateUserRoleUseCase.execute.mockResolvedValue(expectedResult);
 
-        await userController.updateRole(req, res);
+        await userController.updateRole(mockRequest as Request, mockResponse as Response);
 
         expect(mockUpdateUserRoleUseCase.execute).toHaveBeenCalledWith('user_123', 'org_123', role);
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(expectedResult);
-      });
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith(expectedResult);
+      }
     });
 
     it('should handle empty string parameters', async () => {

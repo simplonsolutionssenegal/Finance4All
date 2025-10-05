@@ -1,14 +1,18 @@
-import { PrismaClient, type Product as PrismaProduct, type Prisma } from '@prisma/client';
-import { Service } from '@/domain/entities/Service';
+import {
+  PrismaClient,
+  type InstitutionService as PrismaInstitutionService,
+  type Prisma,
+} from '@prisma/client';
+import { InstitutionService } from '@/domain/entities/InstitutionService';
 
 import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
-import type { ServiceType } from '@/domain/entities/types/ServiceType';
+import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
 import type { RemboursementMode } from '@/domain/entities/types/RemboursementMode';
 
 const prisma = new PrismaClient();
 
-function toDomain(p: PrismaProduct): Service {
-  return new Service(
+function toDomain(p: PrismaInstitutionService): InstitutionService {
+  return new InstitutionService(
     p.id,
     p.designation,
     Number(p.montantMin),
@@ -16,15 +20,15 @@ function toDomain(p: PrismaProduct): Service {
     p.type as ServiceType,
     p.modesRemboursement as RemboursementMode,
     p.institutionId,
-    p.zoneId,
+    p.zones?.[0] ?? '', // array → scalaire
     p.createdAt,
     p.updatedAt
   );
 }
 
 export class PrismaServiceRepository implements ServiceRepository {
-  async findByInstitution(institutionId: number): Promise<Service[]> {
-    const rows = await prisma.product.findMany({
+  async findByInstitution(institutionId: string): Promise<InstitutionService[]> {
+    const rows = await prisma.institutionService.findMany({
       where: { institutionId },
       orderBy: [{ designation: 'asc' }],
     });
@@ -32,28 +36,28 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   async findByFilters(
-    institutionId: number,
+    institutionId: string,
     types?: ServiceType[],
-    zoneId?: number,
+    zoneCodes?: string[],
     fromDate?: Date
-  ): Promise<Service[]> {
-    const where: Prisma.ProductWhereInput = { institutionId };
+  ): Promise<InstitutionService[]> {
+    const where: Prisma.InstitutionServiceWhereInput = { institutionId };
 
-    if (Array.isArray(types) && types.length > 0) {
+    if (types?.length) {
       where.type = { in: types };
     }
-    if (Number.isFinite(zoneId)) {
-      where.zoneId = zoneId;
+    if (zoneCodes?.length) {
+      where.zones = { hasSome: zoneCodes }; // au moins une des zones demandées
     }
-
-    if (fromDate instanceof Date) {
+    if (fromDate instanceof Date && !isNaN(fromDate.getTime())) {
       where.createdAt = { gte: fromDate };
     }
 
-    const rows = await prisma.product.findMany({
+    const rows = await prisma.institutionService.findMany({
       where,
       orderBy: [{ designation: 'asc' }],
     });
+
     return rows.map(toDomain);
   }
 }

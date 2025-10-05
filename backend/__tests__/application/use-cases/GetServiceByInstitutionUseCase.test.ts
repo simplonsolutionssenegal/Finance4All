@@ -1,67 +1,65 @@
-import type { GetServicesByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
-import { Service } from '@/domain/entities/Service';
-import type { ServiceType } from '@/domain/entities/types/ServiceType';
-import type { RemboursementMode } from '@/domain/entities/types/RemboursementMode';
+import { GetServiceByInstitutionUseCaseImpl } from '@/domain/use-cases/GetServiceByInstitutionUseCaseImpl';
 
-describe('Interface GetServicesByInstitutionUseCase', () => {
-  it('doit définir le contrat correct', () => {
-    // On vérifie que l’interface impose bien une méthode execute
-    const mockImplementation: GetServicesByInstitutionUseCase = {
-      execute: jest.fn().mockResolvedValue([]),
-    };
+// __tests__/application/use-cases/GetServiceByInstitutionUseCaseImpl.test.ts
+import { InstitutionService } from '@/domain/entities/InstitutionService';
+import { v4 as uuidv4 } from 'uuid';
 
-    expect(mockImplementation.execute).toBeDefined();
-    expect(typeof mockImplementation.execute).toBe('function');
+describe('GetServiceByInstitutionUseCaseImpl', () => {
+  const mockRepo = {
+    findByInstitution: jest.fn(),
+  };
+
+  let useCase: GetServiceByInstitutionUseCaseImpl;
+  let institutionId: string;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useCase = new GetServiceByInstitutionUseCaseImpl(mockRepo as any);
+    institutionId = uuidv4();
   });
 
-  it('doit avoir une méthode execute avec la bonne signature et le bon type de retour', async () => {
-    // Préparation d’un résultat conforme au domaine
-    const exemples: Service[] = [
-      new Service(
-        1,
-        'Crédit Agricole',
+  it('retourne les services liés à une institution', async () => {
+    const services = [
+      new InstitutionService(
+        '1',
+        'Crédit A',
         1000,
         5000,
-        'CREDIT' as ServiceType,
-        'MENSUEL' as RemboursementMode,
-        42,
-        10,
-        new Date('2025-01-01'),
-        new Date('2025-09-01')
+        'CREDIT',
+        'AGENCE',
+        institutionId,
+        'ZONE1',
+        new Date(),
+        new Date()
       ),
-      new Service(
-        2,
-        'Épargne Plus',
-        0,
-        0,
-        'EPARGNE' as ServiceType,
-        'AUTRE' as RemboursementMode,
-        42,
-        10,
-        new Date('2025-02-01'),
-        new Date('2025-09-02')
+      new InstitutionService(
+        '2',
+        'Épargne B',
+        200,
+        2000,
+        'EPARGNE',
+        'USSD',
+        institutionId,
+        'ZONE2',
+        new Date(),
+        new Date()
       ),
     ];
 
-    const mockImplementation: GetServicesByInstitutionUseCase = {
-      execute: jest.fn().mockResolvedValue(exemples),
-    };
+    mockRepo.findByInstitution.mockResolvedValue(services);
 
-    const resultat = await mockImplementation.execute(42);
+    const result = await useCase.execute(institutionId);
 
-    // Vérifie la signature : un seul paramètre number (institutionId)
-    expect(mockImplementation.execute).toHaveBeenCalledWith(42);
+    expect(mockRepo.findByInstitution).toHaveBeenCalledWith(institutionId);
+    expect(result).toHaveLength(2);
+    expect(result[0].designation).toBe('Crédit A');
+  });
 
-    // Vérifie le type de retour (Promise<Service[]>)
-    expect(Array.isArray(resultat)).toBe(true);
-    expect(resultat).toHaveLength(2);
-    expect(resultat[0]).toBeInstanceOf(Service);
-    expect(resultat[0]).toEqual(
-      expect.objectContaining({
-        id: expect.any(Number),
-        designation: 'Crédit Agricole',
-        institutionId: 42,
-      })
-    );
+  it('retourne un tableau vide si aucun service trouvé', async () => {
+    mockRepo.findByInstitution.mockResolvedValue([]);
+
+    const result = await useCase.execute(institutionId);
+
+    expect(result).toEqual([]);
   });
 });
