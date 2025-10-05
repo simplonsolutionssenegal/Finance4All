@@ -1,58 +1,75 @@
+// __tests__/app/(auth)/institutions/show/page.test.tsx
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-// ⚠️ Mocker les sous-composants pour inspecter les props facilement
-jest.mock('@/components/institutions/InstitutionClient', () => ({
-  __esModule: true,
-  default: (props: any) => (
-    <div data-testid='institution-client' data-props={JSON.stringify(props)} />
-  ),
-}));
-
+// Mock des composants enfants
 jest.mock('@/components/institutions/InstituteHeaderProps', () => ({
   __esModule: true,
-  default: (props: any) => (
-    <div data-testid='institute-header' data-props={JSON.stringify(props)} />
-  ),
+  default: () => <div data-testid='header' />,
 }));
 
-// IMPORTANT: importer le composant APRÈS les mocks
+const InstitutionClientMock = jest.fn(({ institutionId }: { institutionId: string }) => (
+  <div data-testid='client' data-id={institutionId} />
+));
+jest.mock('@/components/institutions/InstitutionClient', () => ({
+  __esModule: true,
+  default: (props: any) => InstitutionClientMock(props),
+}));
+
+// ⚠️ Import de la page après les mocks
 import InstitutionPage from '@/app/(auth)/institutions/show/page';
 
-describe('InstitutionPage', () => {
-  const FALLBACK_ID = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
-
-  it('utilise searchParams.id quand il est fourni', async () => {
-    const id = 'custom-id-123';
-    const element = await InstitutionPage({ searchParams: { id } });
-    render(element);
-
-    const client = screen.getByTestId('institution-client');
-    const clientProps = JSON.parse(client.getAttribute('data-props')!);
-
-    expect(clientProps).toEqual(expect.objectContaining({ institutionId: id }));
+describe('InstitutionPage (app/(auth)/institutions/show/page.tsx)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('utilise l’ID par défaut quand searchParams.id est absent', async () => {
-    const element = await InstitutionPage({ searchParams: {} });
+  it('passe l’id reçu via searchParams (Promise) à InstitutionClient', async () => {
+    const SP_ID = '11111111-2222-4333-8444-555555555555';
+
+    const element = await InstitutionPage({
+      searchParams: Promise.resolve({ id: SP_ID }),
+    });
     render(element);
 
-    const client = screen.getByTestId('institution-client');
-    const clientProps = JSON.parse(client.getAttribute('data-props')!);
+    const client = screen.getByTestId('client');
+    expect(client).toBeInTheDocument();
+    expect(client).toHaveAttribute('data-id', SP_ID);
 
-    expect(clientProps).toEqual(expect.objectContaining({ institutionId: FALLBACK_ID }));
+    // ✅ Un seul argument: les props
+    expect(InstitutionClientMock).toHaveBeenCalledTimes(1);
+    expect(InstitutionClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ institutionId: SP_ID })
+    );
   });
 
-  it('ne modifie pas searchParams (objet gelé) → aucune exception', async () => {
-    const frozen = Object.freeze({ id: 'frozen-1' as const });
-    // Si la page tentait de muter l’objet, la ligne suivante lèverait.
-    await expect(InstitutionPage({ searchParams: frozen as any })).resolves.not.toThrow;
+  it('utilise l’UUID par défaut si searchParams est undefined', async () => {
+    const DEFAULT_ID = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
 
-    const element = await InstitutionPage({ searchParams: frozen as any });
+    const element = await InstitutionPage({});
     render(element);
 
-    const client = screen.getByTestId('institution-client');
-    const clientProps = JSON.parse(client.getAttribute('data-props')!);
-    expect(clientProps).toEqual(expect.objectContaining({ institutionId: 'frozen-1' }));
+    const client = screen.getByTestId('client');
+    expect(client).toHaveAttribute('data-id', DEFAULT_ID);
+
+    expect(InstitutionClientMock).toHaveBeenCalledTimes(1);
+    expect(InstitutionClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ institutionId: DEFAULT_ID })
+    );
+  });
+
+  it('utilise l’UUID par défaut si searchParams résout vers un objet sans id', async () => {
+    const DEFAULT_ID = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
+
+    const element = await InstitutionPage({ searchParams: Promise.resolve({}) });
+    render(element);
+
+    const client = screen.getByTestId('client');
+    expect(client).toHaveAttribute('data-id', DEFAULT_ID);
+
+    expect(InstitutionClientMock).toHaveBeenCalledTimes(1);
+    expect(InstitutionClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ institutionId: DEFAULT_ID })
+    );
   });
 });
