@@ -1,13 +1,14 @@
-// frontend/app/(auth)/institutions/show/page.tsx  (Server Component)
+// frontend/app/(auth)/institutions/show/page.tsx
 import InstituteHeader from '@/components/institutions/InstituteHeaderProps';
 import InstitutionClient from '@/components/institutions/InstitutionClient';
 
 type PageProps = {
-  searchParams: { id?: string };
+  searchParams: Promise<{ id?: string }>;
 };
 
-export default function InstitutionPage({ searchParams }: PageProps) {
-  const institutionId = searchParams.id ?? '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
+export default async function InstitutionPage({ searchParams }: PageProps) {
+  const { id } = await searchParams;
+  const institutionId = id ?? '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
 
   return (
     <div className='min-h-full bg-gray-50'>
