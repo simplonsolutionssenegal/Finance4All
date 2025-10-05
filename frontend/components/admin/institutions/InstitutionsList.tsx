@@ -1,10 +1,14 @@
 'use client';
 
 import { Search, Filter, Edit, Trash2, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
+import AddInstitutionModal from './AddInstitutionModal';
+
 const InstitutionsList = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const institutions = [
     {
       id: 1,
@@ -52,19 +56,20 @@ const InstitutionsList = () => {
         <div className='flex justify-end gap-4'>
           <Button
             variant={'default'}
-            className='flex items-center bg-teal-500 text-white gap-2 px-6 py-3 rounded-xl transition-colors'
+            onClick={() => setIsModalOpen(true)}
+            className='flex items-center bg-teal-500 text-white font-bold gap-2 px-6 py-3 rounded-xl transition-colors'
           >
-            <Plus className='w-5 h-5' />
-            Ajouter une institut
+            <Plus className='w-5 h-5' color='white' />
+            Ajouter une institution
           </Button>
         </div>
       </div>
 
       <div className='overflow-x-auto'>
         <table className='w-full'>
-          <thead>
-            <tr className='border-b border-gray-200'>
-              <th className='text-left py-4 px-4 text-sm font-semibold text-gray-900'>
+          <thead className='bg-gray-300/30'>
+            <tr className=''>
+              <th className='rounded-ss-2xl text-left py-4 px-4 text-sm font-semibold text-gray-900'>
                 Nom de l&apos;institut
               </th>
               <th className='text-left py-4 px-4 text-sm font-semibold text-gray-900'>Site web</th>
@@ -72,12 +77,14 @@ const InstitutionsList = () => {
                 Description
               </th>
               <th className='text-left py-4 px-4 text-sm font-semibold text-gray-900'>Statut</th>
-              <th className='text-left py-4 px-4 text-sm font-semibold text-gray-900'>Actions</th>
+              <th className='rounded-se-2xl text-left py-4 px-4 text-sm font-semibold text-gray-900'>
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {institutions.map(institution => (
-              <tr key={institution.id} className='border-b border-gray-100 hover:bg-gray-50'>
+              <tr key={institution.id} className='hover:bg-gray-50'>
                 <td className='py-4 px-4 text-sm text-gray-900'>{institution.name}</td>
                 <td className='py-4 px-4 text-sm text-gray-600'>{institution.website}</td>
                 <td className='py-4 px-4 text-sm text-gray-600'>{institution.description}</td>
@@ -99,6 +106,8 @@ const InstitutionsList = () => {
           </tbody>
         </table>
       </div>
+
+      <AddInstitutionModal open={isModalOpen} onOpenChange={setIsModalOpen} />
     </div>
   );
 };
