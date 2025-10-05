@@ -4,11 +4,8 @@ import type { ApiResponse } from '@/types/ApiResponse';
 import type { FilterOptions } from '@/types/FilterOptions';
 
 function getApiBaseUrl(): string {
-  // `||` couvre undefined, null, '' (chaîne vide)
   const env = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').trim();
-  // enlève les / finaux pour éviter // dans l’URL
-  const base = env.replace(/\/+$/, '');
-  return `${base}/api/v1`;
+  return `${env}/api/v1`;
 }
 
 type ServicesListResponse = ApiResponse<Service>;

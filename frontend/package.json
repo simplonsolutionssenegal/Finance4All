@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot' npx next dev",
-    "dev:turbo": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot' node --trace-warnings node_modules/.bin/next dev --turbopack",
+    "dev": "set NODE_OPTIONS=--max-old-space-size=4096 --no-node-snapshot&& npx next dev",
+    "dev:turbo": "set NODE_OPTIONS=--max-old-space-size=4096 --no-node-snapshot&& npx next dev --turbopack",
     "dev:safe": "NODE_OPTIONS='--max-old-space-size=4096 --no-node-snapshot --openssl-legacy-provider' node --trace-warnings node_modules/.bin/next dev",
     "build": "next build",
     "start": "next start",

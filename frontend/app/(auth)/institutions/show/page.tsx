@@ -2,12 +2,14 @@
 import InstituteHeader from '@/components/institutions/InstituteHeaderProps';
 import InstitutionClient from '@/components/institutions/InstitutionClient';
 
-type PageProps = {
-  searchParams: Promise<{ id?: string }>;
-};
+type PageProps = Readonly<{
+  searchParams?: Readonly<{
+    id?: string;
+  }>;
+}>;
 
-export default async function InstitutionPage({ searchParams }: PageProps) {
-  const { id } = await searchParams;
+export default async function InstitutionPage({ searchParams }: Readonly<PageProps>) {
+  const id = searchParams?.id;
   const institutionId = id ?? '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
 
   return (
