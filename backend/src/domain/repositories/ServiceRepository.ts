@@ -5,6 +5,7 @@ import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType
 export interface ServiceRepository {
   // findAll(): Promise<Service[]>;
   findByInstitution(institutionId: string): Promise<InstitutionService[]>;
+  institutionExists(institutionId: string): Promise<boolean>;
   findByFilters(
     institutionId: string,
     types?: ServiceType[],

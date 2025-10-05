@@ -2,156 +2,131 @@ import type { ServiceRepository } from '@/domain/repositories/ServiceRepository'
 import type { InstitutionService } from '@/domain/entities/InstitutionService';
 import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
 import { FilterServicesUseCaseImpl } from '@/domain/use-cases/FilterServicesUseCaseImpl';
-import type { RemboursementMode } from '@/domain/entities/types/RemboursementMode';
+
+function makeRepoMock() {
+  return {
+    institutionExists: jest.fn(),
+    findByFilters: jest.fn(),
+    // présent dans l'interface globale mais non utilisé ici
+    findByInstitution: jest.fn(),
+  } as unknown as jest.Mocked<ServiceRepository>;
+}
 
 describe('FilterServicesUseCaseImpl', () => {
-  const validUuid = '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
-  let repo: jest.Mocked<ServiceRepository>;
-  let uc: FilterServicesUseCaseImpl;
+  const FIXED_NOW = new Date('2025-01-15T12:00:00.000Z'); // date fixe pour tests "recent"/"3mois"
 
-  const mkServices = (n = 2): InstitutionService[] =>
-    Array.from(
-      { length: n },
-      (_, i) =>
-        ({
-          id: `svc_${i + 1}`,
-          designation: `Service ${i + 1}`,
-          montantMin: 1000,
-          montantMax: 5000,
-          type: 'CREDIT' as ServiceType,
-          modesRemboursement: 'USSD' as RemboursementMode,
-          institutionId: validUuid,
-          zone: 'SN-DK',
-          createdAt: new Date('2025-09-01T00:00:00Z'),
-          updatedAt: new Date('2025-10-01T00:00:00Z'),
-        }) as InstitutionService
-    );
-
-  beforeEach(() => {
-    repo = {
-      findByInstitution: jest.fn(),
-      findByFilters: jest.fn(),
-    };
-    uc = new FilterServicesUseCaseImpl(repo);
+  beforeAll(() => {
     jest.useFakeTimers();
-    // Fige l’horloge à une date stable (UTC)
-    jest.setSystemTime(new Date('2025-10-04T12:00:00Z'));
+    jest.setSystemTime(FIXED_NOW);
   });
 
-  afterEach(() => {
+  afterAll(() => {
     jest.useRealTimers();
-    jest.clearAllMocks();
   });
 
-  it('jette une erreur si institutionId N’EST PAS un UUID', async () => {
-    await expect(
-      uc.execute({ institutionId: '123', types: ['CREDIT'], zoneCodes: ['Z1'] })
-    ).rejects.toThrow('institutionId invalide (UUID attendu)');
+  it('lève INSTITUTION_NOT_FOUND si institution inexistante', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(false);
+
+    const uc = new FilterServicesUseCaseImpl(repo);
+    await expect(uc.execute({ institutionId: 'inst-x' })).rejects.toThrow('INSTITUTION_NOT_FOUND');
+
+    expect(repo.institutionExists).toHaveBeenCalledWith('inst-x');
     expect(repo.findByFilters).not.toHaveBeenCalled();
   });
 
-  it('passe les filtres tels que nettoyés (types uppercased/validés, zones trimées) et datePreset=recent (J-7)', async () => {
-    const data = mkServices(1);
-    repo.findByFilters.mockResolvedValueOnce(data);
+  it('passe les filtres normalisés (types + zones) et fromDate undefined si pas de preset', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(true);
+    repo.findByFilters.mockResolvedValueOnce([] as InstitutionService[]);
 
-    const result = await uc.execute({
-      institutionId: validUuid,
-      // mélange de casse + une valeur invalide à filtrer
-      types: ['credit', 'EPARGNE', 'foo'] as unknown as ServiceType[],
-      // espaces et vides à nettoyer
-      zoneCodes: ['  DZ-01 ', '', 'SN-DK '],
+    const uc = new FilterServicesUseCaseImpl(repo);
+    await uc.execute({
+      institutionId: 'inst-1',
+      types: ['credit', 'EPARGNE', 'UNKNOWN'] as unknown as ServiceType[], // casse + type non permis
+      zoneCodes: ['  DAKAR', '', 'THIES  '], // espaces + vide
+      datePreset: undefined,
+    });
+
+    // Vérifie la normalisation passée au repo
+    const call = (repo.findByFilters as jest.Mock).mock.calls[0];
+    expect(call[0]).toBe('inst-1');
+    expect(call[1]).toEqual(['CREDIT', 'EPARGNE']); // 'UNKNOWN' filtré
+    expect(call[2]).toEqual(['DAKAR', 'THIES']); // trim + vide supprimé
+    expect(call[3]).toBeUndefined(); // pas de preset -> undefined
+  });
+
+  it('datePreset "recent" → fromDate = NOW - 7 jours', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(true);
+    repo.findByFilters.mockResolvedValueOnce([] as InstitutionService[]);
+
+    const uc = new FilterServicesUseCaseImpl(repo);
+    await uc.execute({
+      institutionId: 'inst-2',
       datePreset: 'recent',
     });
 
-    // now = 2025-10-04T12:00:00Z
-    const expectedFromDate = new Date('2025-09-27T12:00:00Z'); // J-7
+    const passedFromDate = (repo.findByFilters as jest.Mock).mock.calls[0][3] as Date;
+    expect(passedFromDate).toBeInstanceOf(Date);
 
-    expect(repo.findByFilters).toHaveBeenCalledTimes(1);
-    const [instId, cleanTypes, cleanZones, fromDate] = repo.findByFilters.mock.calls[0];
+    const expected = new Date(FIXED_NOW);
+    expected.setDate(expected.getDate() - 7);
 
-    expect(instId).toBe(validUuid);
-    expect(cleanTypes).toEqual(['CREDIT', 'EPARGNE']); // 'foo' supprimé + uppercase
-    expect(cleanZones).toEqual(['DZ-01', 'SN-DK']); // trim + vides supprimés
-    expect(fromDate?.toISOString()).toBe(expectedFromDate.toISOString());
-    expect(result).toEqual(data);
+    // comparer timestamps (tolérance zéro car date fixe)
+    expect(passedFromDate.getTime()).toBe(expected.getTime());
   });
 
-  it('datePreset=3mois calcule une date 3 mois en arrière (même jour/heure si possible)', async () => {
-    repo.findByFilters.mockResolvedValueOnce(mkServices(2));
+  it('datePreset "3mois" → fromDate = NOW - 3 mois', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(true);
+    repo.findByFilters.mockResolvedValueOnce([] as InstitutionService[]);
 
+    const uc = new FilterServicesUseCaseImpl(repo);
     await uc.execute({
-      institutionId: validUuid,
-      types: ['MOBILE_MONEY'] as ServiceType[],
-      zoneCodes: ['Z-42'],
+      institutionId: 'inst-3',
       datePreset: '3mois',
     });
 
-    // now = 2025-10-04T12:00:00Z → -3 mois = 2025-07-04T12:00:00Z
-    const expected = new Date('2025-07-04T12:00:00Z').toISOString();
-    const fromDate = repo.findByFilters.mock.calls[0][3];
-    expect(fromDate?.toISOString()).toBe(expected);
+    const passedFromDate = (repo.findByFilters as jest.Mock).mock.calls[0][3] as Date;
+    expect(passedFromDate).toBeInstanceOf(Date);
+
+    const expected = new Date(FIXED_NOW);
+    expected.setMonth(expected.getMonth() - 3);
+
+    expect(passedFromDate.getTime()).toBe(expected.getTime());
   });
 
-  it('types invalides uniquement → types undefined', async () => {
-    repo.findByFilters.mockResolvedValueOnce(mkServices(1));
+  it('types vides → undefined / zones vides → undefined', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(true);
+    repo.findByFilters.mockResolvedValueOnce([] as InstitutionService[]);
 
+    const uc = new FilterServicesUseCaseImpl(repo);
     await uc.execute({
-      institutionId: validUuid,
-      // uniquement des valeurs non autorisées
-      types: ['xxx', 'yyy'] as unknown as ServiceType[],
-      zoneCodes: ['Z1'],
+      institutionId: 'inst-4',
+      types: [], // vide -> undefined
+      zoneCodes: ['  ', ''], // vides/espaces -> undefined
     });
 
-    const [, cleanTypes] = repo.findByFilters.mock.calls[0];
-    expect(cleanTypes).toBeUndefined();
+    const call = (repo.findByFilters as jest.Mock).mock.calls[0];
+    expect(call[1]).toBeUndefined();
+    expect(call[2]).toBeUndefined();
   });
 
-  it('types tableau vide ou non fourni → undefined', async () => {
-    repo.findByFilters.mockResolvedValueOnce(mkServices(1));
+  it('retourne la valeur du repo (chemin heureux)', async () => {
+    const repo = makeRepoMock();
+    repo.institutionExists.mockResolvedValueOnce(true);
 
-    await uc.execute({
-      institutionId: validUuid,
-      types: [],
-      zoneCodes: ['Z1'],
-    });
-    expect(repo.findByFilters.mock.calls[0][1]).toBeUndefined();
+    const fake: InstitutionService[] = [
+      // on n’a pas besoin de l’objet complet pour ce test
+      { id: 's1' } as unknown as InstitutionService,
+    ];
+    repo.findByFilters.mockResolvedValueOnce(fake);
 
-    await uc.execute({
-      institutionId: validUuid,
-      zoneCodes: ['Z1'],
-    });
-    expect(repo.findByFilters.mock.calls[1][1]).toBeUndefined();
-  });
+    const uc = new FilterServicesUseCaseImpl(repo);
+    const result = await uc.execute({ institutionId: 'inst-5' });
 
-  it('zoneCodes vides/whitespace → undefined', async () => {
-    repo.findByFilters.mockResolvedValue(mkServices(1));
-
-    await uc.execute({
-      institutionId: validUuid,
-      types: ['ASSURANCE'] as ServiceType[],
-      zoneCodes: ['   ', ''],
-    });
-
-    expect(repo.findByFilters.mock.calls[0][2]).toBeUndefined();
-  });
-
-  it('aucun filtre (types/zone/date) → passe undefined partout sauf institutionId', async () => {
-    repo.findByFilters.mockResolvedValueOnce([]);
-
-    await uc.execute({ institutionId: validUuid });
-
-    expect(repo.findByFilters).toHaveBeenCalledWith(validUuid, undefined, undefined, undefined);
-  });
-
-  it('retourne tel quel le résultat du repository', async () => {
-    const data = mkServices(3);
-    repo.findByFilters.mockResolvedValueOnce(data);
-
-    const res = await uc.execute({
-      institutionId: validUuid,
-      types: ['CREDIT'] as ServiceType[],
-    });
-
-    expect(res).toBe(data);
+    expect(result).toBe(fake);
   });
 });

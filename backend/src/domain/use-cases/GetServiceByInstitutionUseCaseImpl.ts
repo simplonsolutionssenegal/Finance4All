@@ -1,14 +1,15 @@
-// src/domain/use-cases/GetProductsByInstitutionUseCaseImpl.ts
-import type { GetServicesByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
+// src/domain/use-cases/GetServiceByInstitutionUseCaseImpl.ts
+import type { GetServiceByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
 import type { InstitutionService } from '@/domain/entities/InstitutionService';
 import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
-import { validate as isUuid } from 'uuid';
-export class GetServiceByInstitutionUseCaseImpl implements GetServicesByInstitutionUseCase {
+
+export class GetServiceByInstitutionUseCaseImpl implements GetServiceByInstitutionUseCase {
   constructor(private readonly serviceRepo: ServiceRepository) {}
 
   async execute(institutionId: string): Promise<InstitutionService[]> {
-    if (!isUuid(institutionId)) {
-      throw new Error('institutionId invalide (UUID attendu)');
+    const exists = await this.serviceRepo.institutionExists(institutionId);
+    if (!exists) {
+      throw new Error('INSTITUTION_NOT_FOUND');
     }
     return this.serviceRepo.findByInstitution(institutionId);
   }

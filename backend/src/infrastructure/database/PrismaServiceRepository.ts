@@ -60,4 +60,12 @@ export class PrismaServiceRepository implements ServiceRepository {
 
     return rows.map(toDomain);
   }
+
+  async institutionExists(institutionId: string): Promise<boolean> {
+    const row = await prisma.institution.findUnique({
+      where: { id: institutionId },
+      select: { id: true },
+    });
+    return !!row;
+  }
 }

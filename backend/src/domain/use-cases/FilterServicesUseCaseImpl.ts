@@ -6,7 +6,6 @@ import type {
 import type { InstitutionService } from '@/domain/entities/InstitutionService';
 import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
 import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
-import { validate as isUuid } from 'uuid';
 
 const ALLOWED_TYPES: ServiceType[] = [
   'CREDIT',
@@ -43,8 +42,10 @@ export class FilterServicesUseCaseImpl implements FilterServicesUseCase {
   }): Promise<InstitutionService[]> {
     const { institutionId, types, zoneCodes, datePreset } = params;
 
-    if (!isUuid(institutionId)) {
-      throw new Error('institutionId invalide (UUID attendu)');
+    // 👇 NEW: on vérifie d'abord que l’institution existe
+    const exists = await this.repo.institutionExists(institutionId);
+    if (!exists) {
+      throw new Error('INSTITUTION_NOT_FOUND');
     }
 
     let cleanTypes: ServiceType[] | undefined;
@@ -58,8 +59,9 @@ export class FilterServicesUseCaseImpl implements FilterServicesUseCase {
     let cleanZones: string[] | undefined;
     if (Array.isArray(zoneCodes) && zoneCodes.length > 0) {
       const z = zoneCodes.map(z => String(z).trim()).filter(Boolean);
-      cleanZones = z.length > 0 ? z : undefined; // ← si vide => undefined
+      cleanZones = z.length > 0 ? z : undefined;
     }
+
     const fromDate = computeFromDate(datePreset);
 
     return this.repo.findByFilters(institutionId, cleanTypes, cleanZones, fromDate);

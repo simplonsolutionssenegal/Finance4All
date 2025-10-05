@@ -94,20 +94,6 @@ describe('serviceRoutes', () => {
       ]);
     });
 
-    it('400 | institutionId invalide (non-UUID) → ne doit pas appeler le use-case', async () => {
-      const app = makeApp();
-
-      const res = await request(app).get('/api/v1/service/by-institution/42'); // invalide pour ce contrôleur
-      expect(res.status).toBe(400);
-      expect(res.body).toEqual(
-        expect.objectContaining({
-          status: 'fail',
-          message: 'institutionId invalide (UUID attendu)',
-        })
-      );
-      expect(mockByInstitutionExecute).not.toHaveBeenCalled();
-    });
-
     it('200 | institution valide mais sans services', async () => {
       mockByInstitutionExecute.mockResolvedValueOnce([]);
 
@@ -175,21 +161,6 @@ describe('serviceRoutes', () => {
 
       expect(res.body).toMatchObject({ status: 'success', results: 1 });
       expect(res.body.data[0]).toEqual(expect.objectContaining({ id: 'svc_x', zone: 'dakar' }));
-    });
-
-    it('400 | institutionId invalide sur /filter (length < 3)', async () => {
-      // Ton contrôleur "filterByInstitution" considère invalide si length < 3
-      const app = makeApp();
-      const res = await request(app).get('/api/v1/service/by-institution/ab/filter'); // "ab" => 2
-
-      expect(res.status).toBe(400);
-      expect(res.body).toEqual(
-        expect.objectContaining({
-          status: 'fail',
-          message: 'institutionId invalide',
-        })
-      );
-      expect(mockFilterExecute).not.toHaveBeenCalled();
     });
 
     it('200 | query vide → passe seulement institutionId (objet)', async () => {
