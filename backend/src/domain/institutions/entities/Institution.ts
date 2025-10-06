@@ -9,7 +9,7 @@ export interface InstitutionProps {
   website: UrlValueObject;
   geographicZones: string[];
   status: InstitutionStatus;
-  logoUrl?: UrlValueObject;
+  logoUrl: UrlValueObject;
 }
 
 export enum InstitutionStatus {
@@ -24,7 +24,7 @@ export class Institution extends DomainEntity<EntityId> {
   private _website: UrlValueObject;
   private _geographicZones: Set<string>;
   private _status: InstitutionStatus;
-  private _logoUrl?: UrlValueObject;
+  private _logoUrl: UrlValueObject;
 
   constructor(props: InstitutionProps) {
     super(props.id);
@@ -71,7 +71,7 @@ export class Institution extends DomainEntity<EntityId> {
     this._updatedAt = new Date();
   }
 
-  get logoUrl(): UrlValueObject | undefined {
+  get logoUrl(): UrlValueObject {
     return this._logoUrl;
   }
 
