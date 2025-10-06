@@ -96,14 +96,14 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
 };
 
 /**
- * Formate un montant en devise française
+ * Formate un montant en Franc CFA
  * @param amount - Montant à formater
  * @returns Montant formaté
  */
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'XOF',
   }).format(amount);
 };
 

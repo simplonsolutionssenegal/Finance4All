@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, TrendingUp, Euro, Clock, Sparkles, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Building2, TrendingUp, Clock, Sparkles, Plus, Minus, RotateCcw, Hash } from 'lucide-react';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 
 import { CustomDropdown } from '@/components/custom-dropdown';
@@ -338,7 +338,7 @@ export function ProductSimulator() {
                     max={getCurrentLimits().amount.max}
                     step={calculateStep(getCurrentLimits().amount.min)}
                     label='Montant'
-                    icon={<Euro className='w-4 h-4' />}
+                    icon={<Hash className='w-4 h-4' />}
                     formatValue={formatCurrency}
                   />
 
@@ -417,7 +417,7 @@ export function ProductSimulator() {
                       <div className='text-white font-semibold'>
                         {estimation.totalInterest
                           ? formatCurrency(estimation.totalInterest)
-                          : '0 €'}
+                          : '0 F CFA'}
                       </div>
                     </div>
                   </div>
