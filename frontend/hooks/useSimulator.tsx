@@ -1,87 +1,50 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import { STORAGE_KEY } from '@/lib/simulator-constants';
-import type {
-  SimulationParams,
-  Estimation,
-  Institution,
-  InstitutionProduct,
-} from '@/lib/simulator-types';
+import {
+  useSimulatorParams,
+  useSimulatorEstimation,
+  useSimulatorIsAnimating,
+  useSimulatorInstitutions,
+  useSimulatorActions,
+} from '@/lib/simulator-store';
+import type { InstitutionProduct } from '@/lib/simulator-types';
 import { calculateEstimation, generateInstitutions } from '@/lib/simulator-utils';
 
 /**
  * Hook personnalisé pour gérer l'état et la logique du simulateur
+ * Utilise maintenant Zustand pour la gestion d'état avec persistance automatique
  * @returns Objet contenant l'état et les fonctions de gestion du simulateur
  */
 export function useSimulator() {
-  const [params, setParams] = useState<SimulationParams>({
-    institution: null,
-    product: null,
-    amount: 0,
-    duration: 0,
-  });
-  const [estimation, setEstimation] = useState<Estimation | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  // Utilisation des sélecteurs Zustand pour optimiser les re-renders
+  const params = useSimulatorParams();
+  const estimation = useSimulatorEstimation();
+  const isAnimating = useSimulatorIsAnimating();
+  const institutions = useSimulatorInstitutions();
+  const actions = useSimulatorActions();
 
   // Génération des institutions (mémorisée)
-  const institutions = useMemo(() => generateInstitutions(), []);
+  const generatedInstitutions = useMemo(() => generateInstitutions(), []);
 
-  // Charger les paramètres depuis localStorage
+  // Initialiser les institutions dans le store si elles ne sont pas encore définies
   useEffect(() => {
-    const savedParams = localStorage.getItem(STORAGE_KEY);
-    if (savedParams) {
-      try {
-        const parsed = JSON.parse(savedParams);
-        const institution = institutions.find(inst => inst.id === parsed.institutionId);
-        const product = institution?.products.find(
-          (prod: InstitutionProduct) => prod.id === parsed.productId
-        );
-        setParams({
-          institution: institution || null,
-          product: product || null,
-          amount: parsed.amount || 0,
-          duration: parsed.duration || 0,
-        });
-      } catch (error) {
-        console.error('Erreur lors du chargement des paramètres:', error);
-      }
+    if (institutions.length === 0) {
+      actions.setInstitutions(generatedInstitutions);
     }
-  }, [institutions]);
-
-  // Sauvegarder automatiquement
-  useEffect(() => {
-    if (params.institution && params.product) {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          institutionId: params.institution.id,
-          productId: params.product.id,
-          amount: params.amount,
-          duration: params.duration,
-        })
-      );
-    }
-  }, [params]);
+  }, [institutions.length, generatedInstitutions, actions]);
 
   // Calculer l'estimation en temps réel
   useEffect(() => {
     if (params.product) {
-      setIsAnimating(true);
+      actions.setIsAnimating(true);
       const timer = setTimeout(() => {
         const newEstimation = calculateEstimation(params);
-        setEstimation(newEstimation);
-        setIsAnimating(false);
+        actions.setEstimation(newEstimation);
+        actions.setIsAnimating(false);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [params]);
-
-  const updateParam = (
-    key: keyof SimulationParams,
-    value: Institution | InstitutionProduct | number | null
-  ) => {
-    setParams(prev => ({ ...prev, [key]: value }));
-  };
+  }, [params, actions]);
 
   const getAvailableProducts = (): InstitutionProduct[] => {
     return params.institution?.products || [];
@@ -93,17 +56,6 @@ export function useSimulator() {
     );
   };
 
-  const resetSimulation = () => {
-    setParams({
-      institution: null,
-      product: null,
-      amount: 0,
-      duration: 0,
-    });
-    setEstimation(null);
-    localStorage.removeItem(STORAGE_KEY);
-  };
-
   return {
     // État
     params,
@@ -112,9 +64,9 @@ export function useSimulator() {
     institutions,
 
     // Fonctions
-    updateParam,
+    updateParam: actions.updateParam,
     getAvailableProducts,
     getCurrentLimits,
-    resetSimulation,
+    resetSimulation: actions.resetSimulation,
   };
 }
