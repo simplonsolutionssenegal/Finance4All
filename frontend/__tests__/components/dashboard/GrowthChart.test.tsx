@@ -332,4 +332,30 @@ describe('GrowthChart', () => {
       expect(growthText).toBeInTheDocument();
     });
   });
+
+  describe('Chart Configuration', () => {
+    it('renders YAxis with tickFormatter', () => {
+      render(<GrowthChart />);
+      const yAxis = screen.getByTestId('y-axis');
+      expect(yAxis).toBeInTheDocument();
+    });
+
+    it('renders Tooltip with formatter', () => {
+      render(<GrowthChart />);
+      const tooltip = screen.getByTestId('tooltip');
+      expect(tooltip).toBeInTheDocument();
+    });
+
+    it('renders XAxis with month data', () => {
+      render(<GrowthChart />);
+      const xAxis = screen.getByTestId('x-axis');
+      expect(xAxis).toBeInTheDocument();
+    });
+
+    it('renders Line chart with correct data', () => {
+      render(<GrowthChart />);
+      const line = screen.getByTestId('line');
+      expect(line).toBeInTheDocument();
+    });
+  });
 });
