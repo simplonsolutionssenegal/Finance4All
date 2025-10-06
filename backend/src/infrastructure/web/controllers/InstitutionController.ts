@@ -8,7 +8,7 @@ export class InstitutionController {
     try {
       const result = await this.createInstitutionUseCase.execute(req.body);
       res.status(201).json({
-        status: 'success',
+        success: true,
         data: result,
       });
     } catch (error) {

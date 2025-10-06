@@ -41,24 +41,24 @@ container
 container
   .bind<InstitutionDomainService>(TYPES.InstitutionDomainService)
   .toDynamicValue(context => {
-    const repository = context.get<InstitutionRepository>('InstitutionRepository');
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
     return new InstitutionDomainService(repository);
   })
   .inSingletonScope();
 
 // Bind use cases
 container
-  .bind<CreateInstitutionUseCase>('CreateInstitutionUseCase')
+  .bind<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase)
   .toDynamicValue(context => {
-    const repository = context.get<InstitutionRepository>('InstitutionRepository');
-    const domainService = context.get<InstitutionDomainService>('InstitutionDomainService');
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    const domainService = context.get<InstitutionDomainService>(TYPES.InstitutionDomainService);
     return new CreateInstitutionUseCaseImpl(repository, domainService);
   })
   .inSingletonScope();
 
 // Bind controllers
 container
-  .bind<InstitutionController>('InstitutionController')
+  .bind<InstitutionController>(TYPES.InstitutionController)
   .toDynamicValue(context => {
     const createUseCase = context.get<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase);
 

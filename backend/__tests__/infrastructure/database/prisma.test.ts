@@ -12,7 +12,7 @@ jest.mock('@prisma/client', () => ({
   })),
 }));
 
-import { prisma } from '@/infrastructure/database/prisma';
+import { prisma } from '@/infrastructure/persistence/prisma';
 
 describe('Prisma Database Connection', () => {
   it('should export a prisma instance', () => {

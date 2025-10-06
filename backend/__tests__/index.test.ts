@@ -3,7 +3,7 @@ jest.mock('@clerk/express', () => ({
   clerkMiddleware: jest.fn(() => (_req: any, _res: any, next: any) => next()),
 }));
 
-import app from '@/index';
+import app from '@/infrastructure/web/app';
 import request from 'supertest';
 
 describe('Index', () => {

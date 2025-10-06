@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
@@ -60,7 +60,6 @@ const createInstitution = async (
 
 export const useCreateInstitution = (options?: { onSuccess?: () => void }) => {
   const { getToken } = useAuth();
-  const queryClient = useQueryClient();
   const { showLoader, hideLoader } = useLoader();
 
   const mutation = useMutation({
@@ -71,20 +70,18 @@ export const useCreateInstitution = (options?: { onSuccess?: () => void }) => {
     },
     onSuccess: data => {
       hideLoader();
-      if (data.success) {
-        toast.success('Institution created successfully!');
-        // Invalidate and refetch the institutions list
-        queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      if (data.success === true) {
+        toast.success('Institution créée avec succès!');
         options?.onSuccess?.();
       } else {
-        toast.error('Failed to create institution', {
+        toast.error('La création a échoué', {
           description: data.message,
         });
       }
     },
     onError: (error: Error) => {
       hideLoader();
-      toast.error('Creation failed', {
+      toast.error('La création a échoué', {
         description: error.message || 'An unexpected error occurred.',
       });
     },

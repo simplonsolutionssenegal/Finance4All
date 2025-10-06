@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/main.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
@@ -21,7 +21,13 @@
     "test:ci": "jest --coverage --coverageReporters=lcov --coverageDirectory=coverage",
     "lint": "eslint \"{src,__tests__}/**/*.ts\"",
     "lint:fix": "eslint \"{src,__tests__}/**/*.ts\" --fix",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:reset": "prisma migrate reset",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "schema": "src/infrastructure/config/schema.prisma"
@@ -38,10 +44,13 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
+    "inversify": "^7.10.2",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.1",
     "svix": "^1.76.1",
+    "uuid": "^8.3.2",
     "winston": "^3.17.0",
     "zod": "^4.1.1"
   },
