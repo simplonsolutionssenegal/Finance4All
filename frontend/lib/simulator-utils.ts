@@ -2,26 +2,48 @@ import { INSTITUTION_NAMES, PRODUCT_TYPES, INSTITUTION_LOGOS } from './simulator
 import type { Institution, SimulationParams, Estimation } from './simulator-types';
 
 /**
+ * Générateur de nombres aléatoires sécurisé pour la simulation
+ * Utilise une graine basée sur l'index pour assurer la reproductibilité
+ */
+const createSeededRandom = (seed: number) => {
+  let current = seed;
+  return () => {
+    current = (current * 9301 + 49297) % 233280;
+    return current / 233280;
+  };
+};
+
+/**
  * Génère dynamiquement des institutions
  * @returns Tableau d'institutions générées
  */
 export const generateInstitutions = (): Institution[] => {
   return INSTITUTION_NAMES.map((name, index) => {
-    const numProducts = Math.floor(Math.random() * 4) + 2; // 2-5 produits par institution
-    const selectedProducts = PRODUCT_TYPES.sort(() => 0.5 - Math.random())
-      .slice(0, numProducts)
-      .map(product => ({
+    const random = createSeededRandom(index + 1);
+    const numProducts = Math.floor(random() * 4) + 2; // 2-5 produits par institution
+
+    // Mélange déterministe basé sur l'index
+    const shuffledProducts = [...PRODUCT_TYPES].sort((a, b) => {
+      const hashA = (a.name.charCodeAt(0) + index) % 1000;
+      const hashB = (b.name.charCodeAt(0) + index) % 1000;
+      return hashA - hashB;
+    });
+
+    const selectedProducts = shuffledProducts.slice(0, numProducts).map(product => {
+      const rateVariation = (random() - 0.5) * 0.5;
+      return {
         id: `${name.toLowerCase().replace(/\s+/g, '-')}-${product.name.toLowerCase().replace(/\s+/g, '-')}`,
         name: product.name,
         description: `Produit ${product.name.toLowerCase()} de ${name}`,
         icon: product.icon,
         type: product.type,
         rates: {
-          min: product.rates.min + (Math.random() - 0.5) * 0.5,
-          max: product.rates.max + (Math.random() - 0.5) * 0.5,
+          min: product.rates.min + rateVariation,
+          max: product.rates.max + rateVariation,
         },
         limits: product.limits,
-      }));
+      };
+    });
 
     return {
       id: name.toLowerCase().replace(/\s+/g, '-'),
