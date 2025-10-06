@@ -24,15 +24,15 @@ export const generateInstitutions = (): Institution[] => {
 
     // Mélange déterministe basé sur l'index
     const shuffledProducts = [...PRODUCT_TYPES].sort((a, b) => {
-      const hashA = (a.name.charCodeAt(0) + index) % 1000;
-      const hashB = (b.name.charCodeAt(0) + index) % 1000;
+      const hashA = ((a.name.codePointAt(0) || 0) + index) % 1000;
+      const hashB = ((b.name.codePointAt(0) || 0) + index) % 1000;
       return hashA - hashB;
     });
 
     const selectedProducts = shuffledProducts.slice(0, numProducts).map(product => {
       const rateVariation = (random() - 0.5) * 0.5;
       return {
-        id: `${name.toLowerCase().replace(/\s+/g, '-')}-${product.name.toLowerCase().replace(/\s+/g, '-')}`,
+        id: `${name.toLowerCase().replaceAll(/\s+/g, '-')}-${product.name.toLowerCase().replaceAll(/\s+/g, '-')}`,
         name: product.name,
         description: `Produit ${product.name.toLowerCase()} de ${name}`,
         icon: product.icon,
@@ -46,7 +46,7 @@ export const generateInstitutions = (): Institution[] => {
     });
 
     return {
-      id: name.toLowerCase().replace(/\s+/g, '-'),
+      id: name.toLowerCase().replaceAll(/\s+/g, '-'),
       name,
       logo: INSTITUTION_LOGOS[index % INSTITUTION_LOGOS.length],
       products: selectedProducts,
@@ -83,16 +83,7 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
         annualRate: rate,
       };
     }
-    case 'INVESTISSEMENT': {
-      const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears);
-      const totalGain = finalAmount - amount;
-
-      return {
-        finalAmount: Math.round(finalAmount),
-        totalInterest: Math.round(totalGain),
-        annualRate: rate,
-      };
-    }
+    case 'INVESTISSEMENT':
     case 'EPARGNE': {
       const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears);
       const totalGain = finalAmount - amount;

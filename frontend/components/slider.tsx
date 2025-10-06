@@ -29,7 +29,7 @@ export function Slider({
   className = '',
   enableInput = false,
   inputSuffix = '',
-}: SliderProps) {
+}: Readonly<SliderProps>) {
   const [isDragging, setIsDragging] = useState(false);
   const [inputValue, setInputValue] = useState(value.toString());
   const [isEditing, setIsEditing] = useState(false);
@@ -123,17 +123,17 @@ export function Slider({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value.replace(/[^0-9]/g, '');
+    const newValue = e.target.value.replaceAll(/\D/g, '');
     setInputValue(newValue);
 
-    const numValue = parseInt(newValue) || 0;
+    const numValue = Number.parseInt(newValue, 10) || 0;
     if (numValue >= min && numValue <= max) {
       onChange(numValue);
     }
   };
 
   const handleInputBlur = () => {
-    const numValue = parseInt(inputValue) || min;
+    const numValue = Number.parseInt(inputValue, 10) || min;
     const validatedValue = Math.max(min, Math.min(max, numValue));
     setInputValue(validatedValue.toString());
     onChange(validatedValue);
@@ -198,6 +198,7 @@ export function Slider({
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
           role='slider'
+          tabIndex={0}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={value}

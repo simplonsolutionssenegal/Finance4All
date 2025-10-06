@@ -278,7 +278,7 @@ export function ProductSimulator() {
                           ? getCurrentLimits().duration.max * 12
                           : getCurrentLimits().duration.max
                       }
-                      step={params.durationUnit === 'MONTHS' ? 1 : 1}
+                      step={params.durationUnit === 'MONTHS' ? 1 : 0.5}
                       label=''
                       icon={<Calendar className='w-4 h-4' />}
                       formatValue={value => formatDuration(value, params.durationUnit)}

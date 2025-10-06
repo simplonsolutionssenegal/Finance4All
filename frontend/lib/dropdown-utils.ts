@@ -7,7 +7,7 @@ import type { DropdownOption } from './dropdown-types';
  */
 export const createStringOptions = (strings: string[]): DropdownOption<string>[] => {
   return strings.map(str => ({
-    id: str.toLowerCase().replace(/\s+/g, '-'),
+    id: str.toLowerCase().replaceAll(/\s+/g, '-'),
     name: str,
     value: str,
   }));
@@ -49,8 +49,7 @@ export const filterDropdownOptions = <T>(
   const term = searchTerm.toLowerCase();
   return options.filter(
     option =>
-      option.name.toLowerCase().includes(term) ||
-      (option.description && option.description.toLowerCase().includes(term))
+      option.name.toLowerCase().includes(term) || option.description?.toLowerCase().includes(term)
   );
 };
 
