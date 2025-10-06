@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, TrendingUp, Clock, Sparkles, RotateCcw, Euro } from 'lucide-react';
+import { Building2, TrendingUp, Clock, Sparkles, RotateCcw, Hash } from 'lucide-react';
 import React, { useMemo } from 'react';
 
 import { CustomDropdown } from '@/components/custom-dropdown';
@@ -85,7 +85,7 @@ export function ProductSimulator() {
                 title='Réinitialiser la simulation'
               >
                 <RotateCcw className='w-4 h-4' />
-                <span className='hidden sm:inline'>Reset</span>
+                <span className='hidden sm:inline'>Réinitialiser</span>
               </button>
             )}
 
@@ -178,7 +178,7 @@ export function ProductSimulator() {
                     max={getCurrentLimits().amount.max}
                     step={calculateStep(getCurrentLimits().amount.min)}
                     label='Montant'
-                    icon={<Euro className='w-4 h-4' />}
+                    icon={<Hash className='w-4 h-4' />}
                     formatValue={formatCurrency}
                   />
 
@@ -272,10 +272,6 @@ export function ProductSimulator() {
                       Nouvelle simulation
                     </button>
                   </div>
-                </div>
-
-                <div className='text-xs text-gray-400 text-center'>
-                  * Estimation basée sur des taux indicatifs. Les conditions réelles peuvent varier.
                 </div>
               </div>
             )}
