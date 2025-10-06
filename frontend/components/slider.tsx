@@ -13,6 +13,8 @@ interface SliderProps {
   icon: React.ReactNode;
   formatValue: (value: number) => string;
   className?: string;
+  enableInput?: boolean;
+  inputSuffix?: string;
 }
 
 export function Slider({
@@ -25,11 +27,22 @@ export function Slider({
   icon,
   formatValue,
   className = '',
+  enableInput = false,
+  inputSuffix = '',
 }: SliderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [inputValue, setInputValue] = useState(value.toString());
+  const [isEditing, setIsEditing] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const percentage = ((value - min) / (max - min)) * 100;
+
+  // Synchroniser l'input avec la valeur du slider
+  useEffect(() => {
+    if (!isEditing) {
+      setInputValue(value.toString());
+    }
+  }, [value, isEditing]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -109,6 +122,28 @@ export function Slider({
     onChange(newValue);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value.replace(/[^0-9]/g, '');
+    setInputValue(newValue);
+
+    const numValue = parseInt(newValue) || 0;
+    if (numValue >= min && numValue <= max) {
+      onChange(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    const numValue = parseInt(inputValue) || min;
+    const validatedValue = Math.max(min, Math.min(max, numValue));
+    setInputValue(validatedValue.toString());
+    onChange(validatedValue);
+    setIsEditing(false);
+  };
+
+  const handleInputFocus = () => {
+    setIsEditing(true);
+  };
+
   return (
     <div className={`space-y-3 ${className}`}>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4'>
@@ -126,7 +161,24 @@ export function Slider({
             <Minus className='w-4 h-4 sm:w-5 sm:h-5 text-gray-700' />
           </button>
           <div className='min-w-[80px] sm:min-w-[100px] text-center sm:text-right'>
-            <div className='text-gray-900 font-bold text-lg sm:text-xl'>{formatValue(value)}</div>
+            {enableInput ? (
+              <div className='flex items-center justify-center gap-1'>
+                <input
+                  type='text'
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onFocus={handleInputFocus}
+                  className='text-lg font-bold text-teal-600 bg-transparent border-2 rounded-lg px-4 py-1 min-w-32 w-full text-center min-w-0'
+                  style={{ width: `${Math.max(inputValue.length, 3)}ch` }}
+                />
+                {inputSuffix && (
+                  <span className='text-lg font-bold text-teal-600'>{inputSuffix}</span>
+                )}
+              </div>
+            ) : (
+              <div className='text-gray-900 font-bold text-lg sm:text-xl'>{formatValue(value)}</div>
+            )}
           </div>
           <button
             onClick={increment}
