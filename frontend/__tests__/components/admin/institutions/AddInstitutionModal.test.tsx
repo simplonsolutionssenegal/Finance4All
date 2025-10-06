@@ -1,292 +1,306 @@
-import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import AddInstitutionModal from '@/components/admin/institutions/AddInstitutionModal';
+import { useCreateInstitution } from '@/hooks/useCreateInstitution';
 
-// Mock useCreateInstitution hook
-const mockCreateInstitution = jest.fn();
-jest.mock('@/hooks/useCreateInstitution', () => ({
-  useCreateInstitution: () => ({
-    isCreating: false,
-    createInstitution: mockCreateInstitution,
-  }),
-}));
+// Mock the hook
+jest.mock('@/hooks/useCreateInstitution');
+const mockUseCreateInstitution = useCreateInstitution as jest.Mock;
 
 // Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => {
-    // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-    return <img alt='' {...props} />;
-  },
+  default: (props: any) => <img {...props} alt={props.alt || 'Aperçu du logo'} />,
 }));
 
-// Mock UI components
+// Mock Dialog to control open/close
 jest.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children, open }: any) => (open ? <div data-testid='dialog'>{children}</div> : null),
-  DialogContent: ({ children }: any) => (
-    <div data-testid='dialog-content' aria-describedby='dialog-description'>
-      {children}
+  Dialog: ({
+    children,
+    open,
+    onOpenChange,
+  }: {
+    children: React.ReactNode;
+    open: boolean;
+    onOpenChange?: (isOpen: boolean) => void;
+  }) => (
+    <div>
+      {open ? <div data-testid='dialog'>{children}</div> : null}
+      <button data-testid='dialog-close' onClick={() => onOpenChange?.(false)}>
+        close
+      </button>
+      <button data-testid='dialog-open' onClick={() => onOpenChange?.(true)}>
+        open
+      </button>
     </div>
   ),
-  DialogHeader: ({ children }: any) => <div data-testid='dialog-header'>{children}</div>,
-  DialogTitle: ({ children }: any) => <h2 data-testid='dialog-title'>{children}</h2>,
-  DialogDescription: ({ children }: any) => (
-    <p id='dialog-description' data-testid='dialog-description'>
-      {children}
-    </p>
+  DialogContent: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div {...props}>{children}</div>
+  ),
+  DialogHeader: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div {...props}>{children}</div>
+  ),
+  DialogTitle: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div {...props}>{children}</div>
   ),
 }));
 
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, type, className }: any) => (
-    <button onClick={onClick} disabled={disabled} type={type} className={className}>
-      {children}
-    </button>
-  ),
-}));
-
-jest.mock('@/components/ui/input', () => ({
-  Input: ({ ...props }: any) => <input {...props} />,
-}));
-
-jest.mock('@/components/ui/textarea', () => ({
-  Textarea: ({ ...props }: any) => <textarea {...props} />,
-}));
-
-jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, onClick, className }: any) => (
-    <div onClick={onClick} className={className}>
-      {children}
-    </div>
-  ),
-}));
-
-jest.mock('@/components/ui/form', () => ({
-  Form: ({ children }: any) => <div data-testid='form'>{children}</div>,
-  FormControl: ({ children }: any) => <div>{children}</div>,
-  FormField: ({ render }: any) => {
-    const field = { onChange: jest.fn(), value: '' };
-    return render({ field });
-  },
-  FormItem: ({ children }: any) => <div>{children}</div>,
-  FormLabel: ({ children }: any) => <label>{children}</label>,
-  FormMessage: () => <div data-testid='form-message' />,
-}));
-
-// Mock lucide-react icons
-jest.mock('lucide-react', () => ({
-  ChevronDown: () => <div data-testid='chevron-down-icon' />,
-  X: () => <div data-testid='x-icon' />,
-}));
+const queryClient = new QueryClient();
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+);
 
 describe('AddInstitutionModal', () => {
-  const mockOnOpenChange = jest.fn();
+  let mockCreateInstitution: jest.Mock;
+  let mockOnOpenChange: jest.Mock;
+  let mockSuccessCallback: () => void = () => {};
 
-  const defaultProps = {
-    open: true,
-    onOpenChange: mockOnOpenChange,
+  const setup = (open = true, isCreating = false) => {
+    mockCreateInstitution = jest.fn();
+    mockOnOpenChange = jest.fn();
+
+    mockUseCreateInstitution.mockImplementation(({ onSuccess }) => {
+      if (onSuccess) mockSuccessCallback = onSuccess;
+      return { createInstitution: mockCreateInstitution, isCreating };
+    });
+
+    const user = userEvent.setup();
+    const renderResult = render(
+      <AddInstitutionModal open={open} onOpenChange={mockOnOpenChange} />,
+      {
+        wrapper,
+      }
+    );
+    return { user, ...renderResult };
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    queryClient.clear();
   });
 
-  it('renders when open', () => {
-    render(<AddInstitutionModal {...defaultProps} />);
-    expect(screen.getByTestId('dialog')).toBeInTheDocument();
+  it('renders all form fields and disabled submit button initially', () => {
+    setup();
     expect(screen.getByText('Ajouter un institut')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nom de l'institut/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Site web/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Rechercher une zone.../i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Logo \(URL\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Enregistrer/i })).toBeDisabled();
   });
 
-  it('does not render when closed', () => {
-    render(<AddInstitutionModal {...defaultProps} open={false} />);
+  it('renders nothing when open=false', () => {
+    render(<AddInstitutionModal open={false} onOpenChange={jest.fn()} />, { wrapper });
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
   });
 
-  describe('Form Fields', () => {
-    it('renders all form fields', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
+  it('shows validation errors for invalid input', async () => {
+    const { user } = setup();
+    const submitButton = screen.getByRole('button', { name: /Enregistrer/i });
 
-      expect(screen.getByText("Nom de l'institut")).toBeInTheDocument();
-      expect(screen.getByText('Description')).toBeInTheDocument();
-      expect(screen.getByText('Site web')).toBeInTheDocument();
-      expect(screen.getByText('Zones géographiques couvertes')).toBeInTheDocument();
-      expect(screen.getByText('Logo (URL)')).toBeInTheDocument();
-    });
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'a');
+    await user.type(screen.getByLabelText(/Description/i), 'short');
+    await user.type(screen.getByLabelText(/Site web/i), 'invalid-url');
+    fireEvent.blur(screen.getByLabelText(/Site web/i));
+    fireEvent.submit(submitButton);
 
-    it('has correct placeholders', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
+    expect(
+      await screen.findByText('Le nom doit contenir au moins 2 caractères')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('La description doit contenir au moins 10 caractères')
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Doit être une URL valide')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Au moins une zone géographique est requise')
+    ).toBeInTheDocument();
+  });
 
-      expect(screen.getByPlaceholderText('Société générale')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Description de l'institution...")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('https://www.institut.sn')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Rechercher une zone...')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('https://exemple.com/logo.png')).toBeInTheDocument();
+  it('enables submit button and submits with all fields filled', async () => {
+    const { user } = setup();
+    const submitButton = screen.getByRole('button', { name: /Enregistrer/i });
+    expect(submitButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Test Bank');
+    await user.type(screen.getByLabelText(/Description/i), 'This is a test description.');
+    await user.type(screen.getByLabelText(/Site web/i), 'https://test.com');
+    await user.type(screen.getByLabelText(/Logo \(URL\)/i), 'https://test.com/logo.png');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'UEMOA' }));
+
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockCreateInstitution).toHaveBeenCalledWith({
+        name: 'Test Bank',
+        description: 'This is a test description.',
+        website: 'https://test.com',
+        logoUrl: 'https://test.com/logo.png',
+        geographicZones: ['UEMOA'],
+      });
     });
   });
 
-  describe('Form Validation', () => {
-    it('submit button is disabled initially', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const submitButton = screen.getByText('Enregistrer');
-      expect(submitButton).toHaveAttribute('disabled');
+  it('submits with only required fields filled', async () => {
+    const { user } = setup();
+    const submitButton = screen.getByRole('button', { name: /Enregistrer/i });
+
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Another Bank');
+    await user.type(screen.getByLabelText(/Description/i), 'A description long enough.');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'CEMAC' }));
+
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockCreateInstitution).toHaveBeenCalledWith({
+        name: 'Another Bank',
+        description: 'A description long enough.',
+        website: '',
+        logoUrl: '',
+        geographicZones: ['CEMAC'],
+      });
     });
   });
 
-  describe('Geographic Zones', () => {
-    it('renders geographic zone search input', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByPlaceholderText('Rechercher une zone...')).toBeInTheDocument();
-    });
+  it('handles geographic zone selection and removal', async () => {
+    const { user } = setup();
+    const zoneInput = screen.getByPlaceholderText(/Rechercher une zone.../i);
 
-    it('shows ChevronDown icon for zone dropdown', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByTestId('chevron-down-icon')).toBeInTheDocument();
-    });
-  });
+    await user.click(zoneInput);
+    const uemoaOption = await screen.findByRole('button', { name: 'UEMOA' });
+    expect(uemoaOption).toBeInTheDocument();
 
-  describe('Logo Preview', () => {
-    it('renders logo URL input', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByPlaceholderText('https://exemple.com/logo.png')).toBeInTheDocument();
+    await user.click(uemoaOption);
+    expect(await screen.findByText('UEMOA')).toBeInTheDocument();
+
+    await user.click(screen.getByText('UEMOA')); // remove via badge
+    await waitFor(() => {
+      expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
     });
   });
 
-  describe('Submit Button', () => {
-    it('renders submit button with correct text', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByText('Enregistrer')).toBeInTheDocument();
-    });
+  it('shows no dropdown options when search has no matches', async () => {
+    const { user } = setup();
+    const zoneInput = screen.getByPlaceholderText(/Rechercher une zone.../i);
 
-    it('has correct styling classes', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const submitButton = screen.getByText('Enregistrer');
-      expect(submitButton).toHaveClass(
-        'bg-cyan-400',
-        'text-white',
-        'hover:bg-cyan-500',
-        'px-8',
-        'py-3',
-        'rounded-xl'
-      );
+    await user.click(zoneInput);
+    await user.type(zoneInput, 'zzzzzz');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'UEMOA' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'CEMAC' })).not.toBeInTheDocument();
     });
   });
 
-  describe('Modal Controls', () => {
-    it('calls onOpenChange when closed', () => {
-      const { rerender } = render(<AddInstitutionModal {...defaultProps} />);
-      rerender(<AddInstitutionModal {...defaultProps} open={false} />);
-      // Modal should handle the close event internally
-    });
+  it('shows logo preview for a valid URL', async () => {
+    const { user } = setup();
+
+    // make form valid so the section can render consistently
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Valid Bank');
+    await user.type(screen.getByLabelText(/Description/i), 'A long enough description.');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'UEMOA' }));
+
+    const logoInput = screen.getByLabelText(/Logo \(URL\)/i);
+    await user.type(logoInput, 'https://valid.com/logo.png');
+    fireEvent.blur(logoInput);
+
+    // preview block shows
+    expect(await screen.findByText('Aperçu du logo :')).toBeInTheDocument();
   });
 
-  describe('Form Structure', () => {
-    it('renders form element', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByTestId('form')).toBeInTheDocument();
+  it('hides logo preview when logo URL is cleared and shows error on invalid URL', async () => {
+    const { user } = setup();
+
+    // form valid baseline
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Valid Bank');
+    await user.type(screen.getByLabelText(/Description/i), 'A long enough description.');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'UEMOA' }));
+
+    const logoInput = screen.getByLabelText(/Logo \(URL\)/i);
+
+    // first, set a valid URL to ensure preview appears
+    await user.type(logoInput, 'https://valid.com/logo.png');
+    fireEvent.blur(logoInput);
+    expect(await screen.findByText('Aperçu du logo :')).toBeInTheDocument();
+
+    // then clear -> preview must disappear (logoUrl becomes falsy)
+    await user.clear(logoInput);
+    fireEvent.blur(logoInput);
+    await waitFor(() => {
+      expect(screen.queryByText('Aperçu du logo :')).not.toBeInTheDocument();
     });
 
-    it('has correct dialog title', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const title = screen.getByText('Ajouter un institut');
-      expect(title).toBeInTheDocument();
-      expect(title).toHaveAttribute('data-testid', 'dialog-title');
-    });
+    // now check invalid URL error (independent of preview)
+    await user.type(logoInput, 'invalid-url');
+    fireEvent.blur(logoInput);
 
-    it('dialog content is rendered', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const dialogContent = screen.getByTestId('dialog-content');
-      expect(dialogContent).toBeInTheDocument();
-    });
+    // submit the <form> directly to trigger zod resolver in onSubmit mode
+    const formEl = document.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(formEl);
+
+    expect(await screen.findByText('Doit être une URL valide')).toBeInTheDocument();
   });
 
-  describe('Input Styling', () => {
-    it('text inputs have correct styling', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const nameInput = screen.getByPlaceholderText('Société générale');
-      expect(nameInput).toHaveClass(
-        'w-full',
-        'px-4',
-        'py-3',
-        'border',
-        'border-gray-200',
-        'rounded-lg',
-        'focus:outline-none',
-        'focus:ring-2',
-        'focus:ring-blue-500',
-        'focus:border-transparent'
-      );
-    });
-
-    it('textarea has correct styling', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const descriptionInput = screen.getByPlaceholderText("Description de l'institution...");
-      expect(descriptionInput).toHaveClass(
-        'w-full',
-        'px-4',
-        'py-3',
-        'border',
-        'border-gray-200',
-        'rounded-lg',
-        'focus:outline-none',
-        'focus:ring-2',
-        'focus:ring-blue-500',
-        'focus:border-transparent',
-        'resize-none'
-      );
-      expect(descriptionInput).toHaveAttribute('rows', '4');
-    });
+  it('disables form fields and shows loading state when isCreating=true', () => {
+    setup(true, true);
+    expect(screen.getByLabelText(/Nom de l'institut/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Enregistrement.../i })).toBeDisabled();
   });
 
-  describe('Component Lifecycle', () => {
-    it('maintains form state when open', () => {
-      const { rerender } = render(<AddInstitutionModal {...defaultProps} />);
-      rerender(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByTestId('dialog')).toBeInTheDocument();
+  it('resets form and calls onOpenChange(false) when modal is closed (isCreating=false)', async () => {
+    const { user } = setup(true, false);
+
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Bank A');
+    await user.type(screen.getByLabelText(/Description/i), 'Description long enough');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'UEMOA' }));
+
+    expect((screen.getByLabelText(/Nom de l'institut/i) as HTMLInputElement).value).toBe('Bank A');
+    expect(screen.getByText('UEMOA')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('dialog-close'));
+
+    await waitFor(() => {
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
+    expect((screen.getByLabelText(/Nom de l'institut/i) as HTMLInputElement).value).toBe('');
+    expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
   });
 
-  describe('Accessibility', () => {
-    it('form fields have proper labels', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByText("Nom de l'institut")).toBeInTheDocument();
-      expect(screen.getByText('Description')).toBeInTheDocument();
-      expect(screen.getByText('Site web')).toBeInTheDocument();
-      expect(screen.getByText('Zones géographiques couvertes')).toBeInTheDocument();
-      expect(screen.getByText('Logo (URL)')).toBeInTheDocument();
-    });
-
-    it('has proper semantic structure', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      expect(screen.getByTestId('dialog-header')).toBeInTheDocument();
-      expect(screen.getByTestId('dialog-content')).toBeInTheDocument();
-    });
+  it('does not call onOpenChange when closing while isCreating=true', async () => {
+    // Render directly with isCreating=true
+    const { user } = setup(true, true);
+    // Try to close
+    await user.click(screen.getByTestId('dialog-close'));
+    // Assert: no call (close blocked)
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
   });
 
-  describe('Input Types', () => {
-    it('logo URL input has correct type', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const logoInput = screen.getByPlaceholderText('https://exemple.com/logo.png');
-      expect(logoInput).toHaveAttribute('type', 'url');
+  it('calls onSuccess, resets form, and closes modal after successful submission', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText(/Nom de l'institut/i), 'Test Bank');
+    await user.type(screen.getByLabelText(/Description/i), 'This is a test description.');
+    await user.click(screen.getByPlaceholderText(/Rechercher une zone.../i));
+    await user.click(await screen.findByRole('button', { name: 'UEMOA' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Enregistrer/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /Enregistrer/i }));
+
+    await waitFor(() => expect(mockCreateInstitution).toHaveBeenCalled());
+
+    act(() => {
+      mockSuccessCallback();
     });
 
-    it('zone search input has correct type', () => {
-      render(<AddInstitutionModal {...defaultProps} />);
-      const zoneInput = screen.getByPlaceholderText('Rechercher une zone...');
-      expect(zoneInput).toHaveAttribute('type', 'text');
-    });
-  });
-
-  describe('Layout', () => {
-    it('form has correct spacing', () => {
-      const { container } = render(<AddInstitutionModal {...defaultProps} />);
-      const form = container.querySelector('form');
-      expect(form).toHaveClass('space-y-4');
-    });
-
-    it('submit section has correct layout', () => {
-      const { container } = render(<AddInstitutionModal {...defaultProps} />);
-      const submitSection = container.querySelector('.flex.justify-end.pt-4');
-      expect(submitSection).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
   });
 });

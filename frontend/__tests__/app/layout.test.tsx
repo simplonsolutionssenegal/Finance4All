@@ -1,89 +1,44 @@
-import RootLayout from '@/app/layout';
+import { render, screen } from '@testing-library/react';
 
-// Mock Clerk pour éviter les problèmes de module ES
-jest.mock('@clerk/nextjs', () => ({
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid='clerk-provider'>{children}</div>
+import RootLayout, { metadata } from '@/app/layout';
+
+// Mock AppProvider as it's a wrapper and we are testing the layout
+jest.mock('@/contexts/app-provider', () => ({
+  AppProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='app-provider'>{children}</div>
   ),
-  useClerk: () => ({
-    client: {
-      signIn: {
-        create: jest.fn(),
-      },
-    },
-    session: null,
+}));
+
+// Mock next/font/google
+jest.mock('next/font/google', () => ({
+  Geist: () => ({
+    variable: 'font-geist-sans-mock',
   }),
-  useUser: () => ({
-    user: null,
+  Geist_Mono: () => ({
+    variable: 'font-geist-mono-mock',
   }),
 }));
 
-jest.mock('@/contexts/theme-provider', () => {
-  return {
-    ThemeProvider: ({
-      children,
-      defaultTheme,
-    }: {
-      children: React.ReactNode;
-      defaultTheme: string;
-    }) => (
-      <div data-testid='theme-provider' data-default-theme={defaultTheme}>
-        {children}
-      </div>
-    ),
-  };
-});
-
-jest.mock('@/components/ui/sonner', () => {
-  return {
-    Toaster: ({ position }: { position: string }) => (
-      <div data-testid='toaster' data-position={position}>
-        Toaster
-      </div>
-    ),
-  };
-});
-
 describe('RootLayout', () => {
-  const mockChildren = <div data-testid='test-children'>Test Content</div>;
-
-  it('should be a function that returns JSX', () => {
-    expect(typeof RootLayout).toBe('function');
-    const result = RootLayout({ children: mockChildren });
-    expect(result).toBeDefined();
-    expect(result.type).toBe('html');
-  });
-
-  it('returns html element with correct attributes', () => {
-    const result = RootLayout({ children: mockChildren });
-    expect(result.type).toBe('html');
-    expect(result.props.lang).toBe('fr');
-    expect(result.props.suppressHydrationWarning).toBe(true);
-  });
-
-  it('contains body element with children', () => {
-    const result = RootLayout({ children: mockChildren });
-    const body = result.props.children;
-    expect(body.type).toBe('body');
-    expect(body.props.className).toContain('antialiased');
-  });
-
-  it('renders with empty children', () => {
-    const result = RootLayout({ children: null });
-    expect(result).toBeDefined();
-    expect(result.type).toBe('html');
-  });
-
-  it('renders multiple children correctly', () => {
-    const multipleChildren = (
-      <>
-        <div data-testid='child-1'>Child 1</div>
-        <div data-testid='child-2'>Child 2</div>
-      </>
+  it('renders children within AppProvider and has correct attributes', () => {
+    render(
+      <RootLayout>
+        <div>Test Child</div>
+      </RootLayout>
     );
 
-    const result = RootLayout({ children: multipleChildren });
-    expect(result).toBeDefined();
-    expect(result.type).toBe('html');
+    // Check if children are rendered inside the mocked AppProvider
+    const appProvider = screen.getByTestId('app-provider');
+    expect(appProvider).toBeInTheDocument();
+    expect(screen.getByText('Test Child')).toBeInTheDocument();
+
+    // Check for body classes
+    const body = document.querySelector('body');
+    expect(body).toHaveClass('font-geist-sans-mock', 'font-geist-mono-mock', 'antialiased');
+  });
+
+  it('should have correct metadata', () => {
+    expect(metadata.title).toBe('Finance4All');
+    expect(metadata.description).toBe('');
   });
 });
