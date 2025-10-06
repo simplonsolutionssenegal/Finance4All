@@ -89,11 +89,18 @@ export const useSimulatorIsAnimating = () => useSimulatorStore(state => state.is
 export const useSimulatorInstitutions = () => useSimulatorStore(state => state.institutions);
 
 // Actions exportées pour faciliter l'utilisation
-export const useSimulatorActions = () =>
-  useSimulatorStore(state => ({
-    updateParam: state.updateParam,
-    setEstimation: state.setEstimation,
-    setIsAnimating: state.setIsAnimating,
-    setInstitutions: state.setInstitutions,
-    resetSimulation: state.resetSimulation,
-  }));
+export const useSimulatorActions = () => {
+  const updateParam = useSimulatorStore(state => state.updateParam);
+  const setEstimation = useSimulatorStore(state => state.setEstimation);
+  const setIsAnimating = useSimulatorStore(state => state.setIsAnimating);
+  const setInstitutions = useSimulatorStore(state => state.setInstitutions);
+  const resetSimulation = useSimulatorStore(state => state.resetSimulation);
+
+  return {
+    updateParam,
+    setEstimation,
+    setIsAnimating,
+    setInstitutions,
+    resetSimulation,
+  };
+};
