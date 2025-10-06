@@ -18,7 +18,7 @@ export function CustomDropdown<T = unknown>({
   className = '',
   emptyMessage = 'Aucun résultat trouvé',
   maxHeight = 'max-h-80',
-}: CustomDropdownProps<T>) {
+}: Readonly<CustomDropdownProps<T>>) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
