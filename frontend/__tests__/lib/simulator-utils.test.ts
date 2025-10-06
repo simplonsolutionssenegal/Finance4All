@@ -6,6 +6,8 @@ import {
   validateValue,
   calculateStep,
   generateInstitutions,
+  convertToMonths,
+  convertToYears,
 } from '@/lib/simulator-utils';
 
 // Mock data pour les tests
@@ -24,6 +26,7 @@ const mockSimulationParams: SimulationParams = {
   product: mockProduct,
   amount: 100000,
   duration: 10,
+  durationUnit: 'YEARS',
 };
 
 describe('simulator-utils', () => {
@@ -86,6 +89,7 @@ describe('simulator-utils', () => {
         product: null,
         amount: 100000,
         duration: 10,
+        durationUnit: 'YEARS',
       };
 
       const result = calculateEstimation(params);
@@ -330,6 +334,73 @@ describe('simulator-utils', () => {
     });
   });
 
+  describe('convertToMonths', () => {
+    it('should convert years to months correctly', () => {
+      expect(convertToMonths(1, 'YEARS')).toBe(12);
+      expect(convertToMonths(2, 'YEARS')).toBe(24);
+      expect(convertToMonths(0.5, 'YEARS')).toBe(6);
+    });
+
+    it('should return months as-is when unit is MONTHS', () => {
+      expect(convertToMonths(12, 'MONTHS')).toBe(12);
+      expect(convertToMonths(24, 'MONTHS')).toBe(24);
+      expect(convertToMonths(6, 'MONTHS')).toBe(6);
+    });
+
+    it('should handle zero values', () => {
+      expect(convertToMonths(0, 'YEARS')).toBe(0);
+      expect(convertToMonths(0, 'MONTHS')).toBe(0);
+    });
+
+    it('should handle decimal years', () => {
+      expect(convertToMonths(1.5, 'YEARS')).toBe(18);
+      expect(convertToMonths(2.25, 'YEARS')).toBe(27);
+    });
+  });
+
+  describe('convertToYears', () => {
+    it('should convert months to years correctly', () => {
+      expect(convertToYears(12, 'MONTHS')).toBe(1);
+      expect(convertToYears(24, 'MONTHS')).toBe(2);
+      expect(convertToYears(6, 'MONTHS')).toBe(0.5);
+    });
+
+    it('should return years as-is when unit is YEARS', () => {
+      expect(convertToYears(1, 'YEARS')).toBe(1);
+      expect(convertToYears(2, 'YEARS')).toBe(2);
+      expect(convertToYears(0.5, 'YEARS')).toBe(0.5);
+    });
+
+    it('should handle zero values', () => {
+      expect(convertToYears(0, 'MONTHS')).toBe(0);
+      expect(convertToYears(0, 'YEARS')).toBe(0);
+    });
+
+    it('should handle decimal results', () => {
+      expect(convertToYears(18, 'MONTHS')).toBe(1.5);
+      expect(convertToYears(27, 'MONTHS')).toBe(2.25);
+    });
+  });
+
+  describe('formatDuration with unit parameter', () => {
+    it('should format duration correctly for YEARS unit', () => {
+      expect(formatDuration(1, 'YEARS')).toBe('1 an');
+      expect(formatDuration(2, 'YEARS')).toBe('2 ans');
+      expect(formatDuration(0, 'YEARS')).toBe('0 an');
+    });
+
+    it('should format duration correctly for MONTHS unit', () => {
+      expect(formatDuration(1, 'MONTHS')).toBe('1 mois');
+      expect(formatDuration(2, 'MONTHS')).toBe('2 mois');
+      expect(formatDuration(12, 'MONTHS')).toBe('12 mois');
+    });
+
+    it('should handle decimal values for both units', () => {
+      expect(formatDuration(1.5, 'YEARS')).toBe('1.5 ans');
+      expect(formatDuration(1.5, 'MONTHS')).toBe('1.5 mois');
+    });
+  });
+
   describe('Edge cases and error handling', () => {
     it('should handle extreme values in calculateEstimation', () => {
       const extremeProduct: InstitutionProduct = {
@@ -375,6 +446,79 @@ describe('simulator-utils', () => {
       expect(() => validateValue(NaN, 0, 100)).not.toThrow();
       expect(() => validateValue(Infinity, 0, 100)).not.toThrow();
       expect(() => validateValue(-Infinity, 0, 100)).not.toThrow();
+    });
+
+    it('should handle negative values in conversions', () => {
+      expect(convertToMonths(-1, 'YEARS')).toBe(-12);
+      expect(convertToYears(-12, 'MONTHS')).toBe(-1);
+    });
+
+    it('should handle very large values in conversions', () => {
+      expect(convertToMonths(100, 'YEARS')).toBe(1200);
+      expect(convertToYears(1200, 'MONTHS')).toBe(100);
+    });
+  });
+
+  describe('Integration tests', () => {
+    it('should work correctly with different duration units in calculations', () => {
+      const creditProduct: InstitutionProduct = {
+        ...mockProduct,
+        type: 'CREDIT',
+        rates: { min: 3.0, max: 4.0 },
+      };
+
+      const paramsYears: SimulationParams = {
+        ...mockSimulationParams,
+        product: creditProduct,
+        amount: 100000,
+        duration: 10,
+        durationUnit: 'YEARS',
+      };
+
+      const paramsMonths: SimulationParams = {
+        ...mockSimulationParams,
+        product: creditProduct,
+        amount: 100000,
+        duration: 120, // 10 years in months
+        durationUnit: 'MONTHS',
+      };
+
+      const resultYears = calculateEstimation(paramsYears);
+      const resultMonths = calculateEstimation(paramsMonths);
+
+      // Results should be very close (allowing for small floating point differences)
+      expect(
+        Math.abs((resultYears.monthlyPayment || 0) - (resultMonths.monthlyPayment || 0))
+      ).toBeLessThan(1);
+    });
+
+    it('should handle all product types with different duration units', () => {
+      const productTypes: Array<'CREDIT' | 'INVESTISSEMENT' | 'EPARGNE' | 'ASSURANCE'> = [
+        'CREDIT',
+        'INVESTISSEMENT',
+        'EPARGNE',
+        'ASSURANCE',
+      ];
+
+      productTypes.forEach(type => {
+        const product: InstitutionProduct = {
+          ...mockProduct,
+          type,
+          rates: { min: 2.0, max: 4.0 },
+        };
+
+        const params: SimulationParams = {
+          ...mockSimulationParams,
+          product,
+          amount: 50000,
+          duration: 5,
+          durationUnit: 'YEARS',
+        };
+
+        expect(() => calculateEstimation(params)).not.toThrow();
+        const result = calculateEstimation(params);
+        expect(result.annualRate).toBe(3.0); // (2.0 + 4.0) / 2
+      });
     });
   });
 });

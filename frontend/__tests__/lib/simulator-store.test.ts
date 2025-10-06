@@ -52,6 +52,7 @@ describe('useSimulatorStore', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -88,6 +89,7 @@ describe('useSimulatorStore', () => {
         product: mockProduct,
         amount: 50000,
         duration: 5,
+        durationUnit: 'YEARS',
       });
     });
 
@@ -155,6 +157,7 @@ describe('useSimulatorStore', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -182,6 +185,7 @@ describe('useSimulatorStore', () => {
         product: mockProduct,
         amount: 50000,
         duration: 5,
+        durationUnit: 'YEARS',
       });
     });
 
@@ -223,6 +227,7 @@ describe('Sélecteurs', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
     });
 

@@ -74,6 +74,7 @@ describe('useSimulator', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -161,6 +162,7 @@ describe('useSimulator', () => {
           product: mockProduct,
           amount: 50000,
           duration: 5,
+          durationUnit: 'YEARS',
         });
       });
 
@@ -273,6 +275,7 @@ describe('useSimulator', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
       expect(result.current.estimation).toBeNull();
     });
@@ -331,6 +334,7 @@ describe('useSimulator', () => {
         product: null,
         amount: 0,
         duration: 0,
+        durationUnit: 'YEARS',
       });
       expect(result.current.estimation).toBeNull();
     });
