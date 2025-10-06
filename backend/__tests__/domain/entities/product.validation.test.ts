@@ -1,10 +1,7 @@
 // backend/__tests__/domain/entities/product.validation.test.ts
-import type {
-  Product,
-  ProductType,
-  RemboursementInfo,
-  ConditionsEligibilite,
-} from '@/domain/entities/Product';
+import type { Product, RemboursementInfo, ConditionsEligibilite } from '@/domain/entities/Product';
+// eslint-disable-next-line no-duplicate-imports
+import { ProductType } from '@/domain/entities/Product';
 
 describe('Product Entity Validation', () => {
   const validRemboursement: RemboursementInfo = {
@@ -29,7 +26,7 @@ describe('Product Entity Validation', () => {
   const validProduct: Product = {
     id: 'test-product-001',
     designation: 'Crédit Personnel Test',
-    type: 'CREDIT',
+    type: ProductType.CREDIT,
     montantMinimum: 1000,
     montantMaximum: 50000,
     remboursement: validRemboursement,
@@ -39,7 +36,12 @@ describe('Product Entity Validation', () => {
   };
 
   describe('ProductType validation', () => {
-    const validTypes: ProductType[] = ['CREDIT', 'EPARGNE', 'INVESTISSEMENT', 'ASSURANCE'];
+    const validTypes: ProductType[] = [
+      ProductType.CREDIT,
+      ProductType.EPARGNE,
+      ProductType.INVESTISSEMENT,
+      ProductType.ASSURANCE,
+    ];
 
     validTypes.forEach(type => {
       it(`should accept valid type: ${type}`, () => {

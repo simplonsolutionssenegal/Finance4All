@@ -2,7 +2,7 @@
 import { type Request, type Response } from 'express';
 import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import { type ProductFilter, type ProductType } from '@/domain/entities/Product';
+import { ProductType, type ProductFilter } from '@/domain/entities/Product';
 import { logger } from '@/utils/logger';
 
 export class ProductController {
@@ -65,16 +65,17 @@ export class ProductController {
       const query = req.query ?? {};
       const { type, designation, montantMinimum, montantMaximum } = query;
 
-      // Validation du type de produit
+      // Validation du type de produit en utilisant l'enum
       const isValidProductType = (value: string): value is ProductType => {
-        return ['CREDIT', 'EPARGNE', 'INVESTISSEMENT', 'ASSURANCE'].includes(value);
+        return Object.values(ProductType).includes(value as ProductType);
       };
-
+      const typeParam = Array.isArray(type) ? type[0] : type;
+      const typeStr = typeof typeParam === 'string' ? typeParam : undefined;
       const filters: ProductFilter = {
-        type: type && typeof type === 'string' && isValidProductType(type) ? type : undefined,
-        designation: designation as string | undefined,
-        montantMinimum: montantMinimum ? parseFloat(montantMinimum as string) : undefined,
-        montantMaximum: montantMaximum ? parseFloat(montantMaximum as string) : undefined,
+        type: typeStr && isValidProductType(typeStr) ? typeStr : undefined,
+        designation: typeof designation === 'string' ? designation : undefined,
+        montantMinimum: typeof montantMinimum === 'string' ? parseFloat(montantMinimum) : undefined,
+        montantMaximum: typeof montantMaximum === 'string' ? parseFloat(montantMaximum) : undefined,
       };
 
       const result = await this.getProductsUseCase.execute(filters);

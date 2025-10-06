@@ -1,3 +1,4 @@
+import { ProductType } from '@/domain/entities/Product';
 import { PrismaProductRepository } from '@/infrastructure/database/PrismaProductRepository';
 
 const mockPrisma = {
@@ -67,7 +68,7 @@ describe('PrismaProductRepository', () => {
       (mockPrisma.product.count as jest.Mock).mockResolvedValue(1);
       (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([mockPrismaProduct]);
 
-      const filters = { type: 'CREDIT' as const, designation: 'Test' };
+      const filters = { type: ProductType.CREDIT, designation: 'Test' };
 
       await repository.findAll(filters);
     });
@@ -81,7 +82,7 @@ describe('PrismaProductRepository', () => {
   describe('findByType', () => {
     it('should return products of the given type', async () => {
       (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([mockPrismaProduct]);
-      const result = await repository.findByType('CREDIT');
+      const result = await repository.findByType(ProductType.CREDIT);
       expect(Array.isArray(result)).toBe(true);
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({

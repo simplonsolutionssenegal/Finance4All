@@ -1,7 +1,7 @@
 // backend/__tests__/domain/use-cases/getProductByIdUseCaseImpl.test.ts
 import { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
 import type { ProductRepository } from '@/domain/repositories/ProductRepository';
-import type { Product } from '@/domain/entities/Product';
+import { ProductType, type Product } from '@/domain/entities/Product';
 
 describe('GetProductByIdUseCaseImpl', () => {
   let useCase: GetProductByIdUseCaseImpl;
@@ -10,7 +10,7 @@ describe('GetProductByIdUseCaseImpl', () => {
   const mockProduct: Product = {
     id: 'test-id',
     designation: 'Test Product',
-    type: 'CREDIT',
+    type: ProductType.CREDIT,
     montantMinimum: 1000,
     montantMaximum: 50000,
     remboursement: {

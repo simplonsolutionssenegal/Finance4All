@@ -10,8 +10,12 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export type ProductType = 'CREDIT' | 'EPARGNE' | 'INVESTISSEMENT' | 'ASSURANCE';
+export enum ProductType {
+  CREDIT = 'CREDIT',
+  EPARGNE = 'EPARGNE',
+  INVESTISSEMENT = 'INVESTISSEMENT',
+  ASSURANCE = 'ASSURANCE',
+}
 
 export interface RemboursementInfo {
   dureeMinimum: number;
