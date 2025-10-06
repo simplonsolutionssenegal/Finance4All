@@ -4,11 +4,11 @@ import {
   validateCreateInstitution,
   handleValidationErrors,
 } from '../validators/institution.validator';
-import { container } from '@/infrastructure/config/container';
+import { container, TYPES } from '@/infrastructure/config/container';
 
-export const createInstitutionRoutes = (): Router => {
+export const InstitutionRoutes = (): Router => {
   const router = Router();
-  const controller = container.get<InstitutionController>('InstitutionController');
+  const controller = container.get<InstitutionController>(TYPES.InstitutionController);
 
   // Bind methods to preserve 'this' context
   const boundController = {

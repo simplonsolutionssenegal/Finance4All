@@ -1,10 +1,15 @@
-import type { InstitutionRepository } from '@/domain/institutions/repositories/InstitutionRepository';
 import { Institution } from '@/domain/institutions/entities/Institution';
 // eslint-disable-next-line no-duplicate-imports
 import type { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type {
+  Prisma,
+  PrismaClient,
+  Institution as PrismaInstitution,
+  InstitutionStatus as PrismaInstitutionStatus,
+} from '@prisma/client';
+import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 
 export class PrismaInstitutionRepository implements InstitutionRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -32,17 +37,17 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       where: { name },
     });
 
-    return institutions.map(i => this.toDomain(i));
+    return institutions.map((i: PrismaInstitution) => this.toDomain(i));
   }
 
-  private toDomain(prismaInstitution: any): Institution {
+  private toDomain(prismaInstitution: PrismaInstitution): Institution {
     return new Institution({
       id: EntityId.from(prismaInstitution.id),
       name: prismaInstitution.name,
       description: prismaInstitution.description,
       website: UrlValueObject.from(prismaInstitution.website),
       geographicZones: prismaInstitution.geographicZones,
-      logoUrl: prismaInstitution.logoUrl,
+      logoUrl: UrlValueObject.from(prismaInstitution.logoUrl),
       status: prismaInstitution.status as InstitutionStatus,
     });
   }
@@ -54,8 +59,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       description: institution.description,
       website: institution.website.getValue(),
       geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl,
-      status: institution.status as InstitutionStatus,
+      logoUrl: institution.logoUrl.getValue(),
+      status: institution.status as PrismaInstitutionStatus,
     };
   }
 }

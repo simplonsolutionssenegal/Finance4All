@@ -1,23 +1,22 @@
-import type { UseCase } from '@/application/shared/UseCase';
-import type { CreateInstitutionDto } from '@/application/institutions/dto/CreateInstituionDto';
-import type { InstitutionResponseDto } from '../dto/InstitutionResponseDto';
-import type { InstitutionRepository } from '@/domain/institutions/repositories/InstitutionRepository';
 import type { InstitutionDomainService } from '@/domain/institutions/services/InstitutionDomainService';
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { DuplicateError } from '@/domain/shared/errors';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
-import { InstitutionMapper } from '@/application/institutions/mappers/InstitutionMapper';
+import type {
+  CreateInstitutionCommand,
+  CreateInstitutionUseCase,
+  InstitutionDTO,
+} from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
+import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 
-export class CreateInstitutionUseCase
-  implements UseCase<CreateInstitutionDto, InstitutionResponseDto>
-{
+export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
   constructor(
     private readonly institutionRepository: InstitutionRepository,
     private readonly institutionDomainService: InstitutionDomainService
   ) {}
 
-  async execute(dto: CreateInstitutionDto): Promise<InstitutionResponseDto> {
+  async execute(dto: CreateInstitutionCommand): Promise<InstitutionDTO> {
     const name = dto.name;
 
     const isUnique = await this.institutionDomainService.isNameUnique(name);
@@ -37,6 +36,20 @@ export class CreateInstitutionUseCase
 
     const savedInstitution = await this.institutionRepository.save(institution);
 
-    return InstitutionMapper.toDTO(savedInstitution);
+    return this.toDTO(savedInstitution);
+  }
+
+  private toDTO(institution: Institution): InstitutionDTO {
+    return {
+      id: institution.id.getValue(),
+      name: institution.name,
+      description: institution.description,
+      website: institution.website.getValue(),
+      geographicZones: institution.geographicZones,
+      logoUrl: institution.logoUrl.getValue(),
+      status: institution.status,
+      createdAt: institution.createdAt,
+      updatedAt: institution.updatedAt,
+    };
   }
 }

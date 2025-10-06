@@ -1,5 +1,5 @@
-import type { CreateInstitutionUseCase } from '@/application/institutions/use-cases/CreateInsitution.usecase';
 import type { Request, Response, NextFunction } from 'express';
+import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 
 export class InstitutionController {
   constructor(private readonly createInstitutionUseCase: CreateInstitutionUseCase) {}

@@ -1,4 +1,4 @@
-import type { InstitutionRepository } from '@/domain/institutions/repositories/InstitutionRepository';
+import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 
 export class InstitutionDomainService {
   constructor(private readonly institutionRepository: InstitutionRepository) {}
