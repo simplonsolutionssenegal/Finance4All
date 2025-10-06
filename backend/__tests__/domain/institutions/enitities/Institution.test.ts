@@ -24,7 +24,7 @@ describe('Institution Entity', () => {
       expect(institution.description).toBe('A test bank for unit testing');
       expect(institution.website.getValue()).toBe('https://testbank.com');
       expect(institution.geographicZones).toEqual(['Europe', 'Asia']);
-      expect(institution.logoUrl).toBe('https://testbank.com/logo.png');
+      expect(institution.logoUrl.getValue()).toBe('https://testbank.com/logo.png');
     });
   });
 
@@ -69,7 +69,7 @@ describe('Institution Entity', () => {
 
     it('should update logo', () => {
       institution.updateLogo(UrlValueObject.from('https://newlogo.com/logo.png'));
-      expect(institution.logoUrl).toBe('https://newlogo.com/logo.png');
+      expect(institution.logoUrl.getValue()).toBe('https://newlogo.com/logo.png');
     });
   });
 });

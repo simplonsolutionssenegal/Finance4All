@@ -1,6 +1,6 @@
 import { UpdateUserRoleUseCaseImpl } from '@/domain/use-cases/updateUserRoleUseCaseImpl';
 import { clerkClient } from '@clerk/express';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 // Mock dependencies
 jest.mock('@clerk/express', () => ({
@@ -11,7 +11,7 @@ jest.mock('@clerk/express', () => ({
   },
 }));
 
-jest.mock('../../../src/utils/logger', () => ({
+jest.mock('@/infrastructure/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),

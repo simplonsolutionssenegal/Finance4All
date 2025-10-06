@@ -1,8 +1,8 @@
 import request from 'supertest';
-import app from '@/infrastructure/web/app';
+import { app } from '@/main';
 
 // Mock external dependencies
-jest.mock('backend/src/utils/logger', () => ({
+jest.mock('@/infrastructure/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -13,12 +13,13 @@ jest.mock('@clerk/express', () => ({
   clerkMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
-jest.mock('@/infrastructure/persistence/prisma', () => ({
+jest.mock('@/infrastructure/config/prismaClient', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]),
   },
 }));
 
@@ -41,10 +42,10 @@ describe('App Integration Tests', () => {
       const response = await request(app).get('/health').expect(200);
 
       expect(response.body).toMatchObject({
-        status: 'OK',
+        status: 'ok',
         timestamp: expect.any(String),
-        uptime: expect.any(Number),
-        environment: expect.any(String),
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development',
       });
     });
 

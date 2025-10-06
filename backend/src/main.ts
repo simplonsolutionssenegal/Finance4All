@@ -1,11 +1,13 @@
 import 'reflect-metadata';
 import { prisma } from '@/infrastructure/config/prismaClient';
-import { createApp } from '@/infrastructure/web/app';
 import { logger } from '@/infrastructure/utils/logger';
+import createApp from '@/infrastructure/web/app';
 
 const PORT = process.env.PORT || 5001;
 
-async function bootstrap() {
+export const app = createApp();
+
+export async function bootstrap() {
   try {
     await prisma.$connect();
     logger.info('✅ Database connection established via Prisma');
@@ -20,28 +22,6 @@ async function bootstrap() {
         logger.warn('⚠️ Database might need migration. Run: npm run prisma:migrate:dev');
       }
     }
-
-    const app = createApp();
-
-    app.get('/health', async (req, res) => {
-      try {
-        await prisma.$queryRaw`SELECT 1`;
-
-        res.json({
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          database: 'connected',
-          environment: process.env.NODE_ENV || 'development',
-        });
-      } catch (_error) {
-        res.status(503).json({
-          status: 'unhealthy',
-          timestamp: new Date().toISOString(),
-          database: 'disconnected',
-          error: 'Database connection failed',
-        });
-      }
-    });
 
     const server = app.listen(PORT, () => {
       logger.info(`
@@ -77,7 +57,9 @@ async function bootstrap() {
 
       setTimeout(() => {
         logger.info('👋 Graceful shutdown completed');
-        process.exit(0);
+        if (process.env.NODE_ENV !== 'test') {
+          process.exit(0);
+        }
       }, 5000); // 5 secondes max
     };
 
@@ -106,8 +88,12 @@ async function bootstrap() {
       logger.error('❌ Failed to disconnect Prisma:', disconnectError);
     }
 
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
   }
 }
 
-bootstrap();
+if (process.env.NODE_ENV !== 'test') {
+  bootstrap();
+}

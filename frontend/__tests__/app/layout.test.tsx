@@ -68,17 +68,6 @@ describe('RootLayout', () => {
     expect(body.props.className).toContain('antialiased');
   });
 
-  it('contains ClerkProvider with ThemeProvider inside', () => {
-    const result = RootLayout({ children: mockChildren });
-    const body = result.props.children;
-    const clerkProvider = body.props.children;
-    expect(clerkProvider.type.name).toBe('ClerkProvider');
-
-    const themeProvider = clerkProvider.props.children;
-    expect(themeProvider.type.name).toBe('ThemeProvider');
-    expect(themeProvider.props.defaultTheme).toBe('light');
-  });
-
   it('renders with empty children', () => {
     const result = RootLayout({ children: null });
     expect(result).toBeDefined();

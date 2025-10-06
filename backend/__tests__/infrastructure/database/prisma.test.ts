@@ -1,4 +1,6 @@
 // Mock PrismaClient before importing
+import { prisma } from '@/infrastructure/config/prismaClient';
+
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     $connect: jest.fn(),
@@ -11,8 +13,6 @@ jest.mock('@prisma/client', () => ({
     },
   })),
 }));
-
-import { prisma } from '@/infrastructure/persistence/prisma';
 
 describe('Prisma Database Connection', () => {
   it('should export a prisma instance', () => {
