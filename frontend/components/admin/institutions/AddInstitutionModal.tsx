@@ -1,109 +1,283 @@
 'use client';
 
-import { ImagePlus } from 'lucide-react';
-import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown, X } from 'lucide-react';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useCreateInstitution } from '@/hooks/useCreateInstitution';
 
 interface AddInstitutionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const institutionSchema = z.object({
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  description: z.string().min(10, 'La description doit contenir au moins 10 caractères'),
+  website: z.string().url('Doit être une URL valide').optional().or(z.literal('')),
+  geographicZones: z.array(z.string()).min(1, 'Au moins une zone géographique est requise'),
+  logoUrl: z.string().url('Doit être une URL valide').optional().or(z.literal('')),
+});
+
+type FormData = z.infer<typeof institutionSchema>;
+
+const availableZones = [
+  'EURO',
+  'USD',
+  'Franc Suisse',
+  'Roupie indienne',
+  'Australie',
+  'Caraïbes orientales',
+  'Sud Africain',
+  'UEMOA',
+  'CEMAC',
+  'Pacifique',
+];
+
 const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) => {
-  const [selectedZones, setSelectedZones] = useState<string[]>(['Zone 2', 'Zone 5']);
+  const form = useForm<FormData>({
+    resolver: zodResolver(institutionSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      website: '',
+      geographicZones: [],
+      logoUrl: '',
+    },
+  });
 
-  const availableZones = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Zone 6'];
+  const { isCreating, createInstitution } = useCreateInstitution({
+    onSuccess: () => {
+      form.reset();
+      onOpenChange(false);
+    },
+  });
 
-  const toggleZone = (zone: string) => {
-    if (selectedZones.includes(zone)) {
-      setSelectedZones(selectedZones.filter(z => z !== zone));
-    } else {
-      setSelectedZones([...selectedZones, zone]);
-    }
+  const [searchZone, setSearchZone] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const logoUrl = form.watch('logoUrl');
+  const selectedZones = form.watch('geographicZones');
+
+  const filteredZones = availableZones.filter(
+    zone =>
+      zone.toLowerCase().includes(searchZone.toLowerCase()) && !(selectedZones || []).includes(zone)
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const onSubmit = (data: FormData) => {
+    createInstitution(data);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={open => {
+        if (!isCreating) {
+          onOpenChange(open);
+          if (!open) form.reset();
+        }
+      }}
+    >
       <DialogContent className='max-w-md bg-white'>
         <DialogHeader>
           <DialogTitle className='text-xl font-bold text-gray-900'>Ajouter un institut</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-4'>
-          {/* Nom de l'institut */}
-          <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>
-              Nom de l&apos;institut
-            </label>
-            <input
-              type='text'
-              placeholder='Société générale'
-              className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nom de l&apos;institut</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='Société générale'
+                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>Description</label>
-            <textarea
-              rows={4}
-              placeholder='Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum'
-              className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
+            <FormField
+              control={form.control}
+              name='description'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={4}
+                      placeholder="Description de l'institution..."
+                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {/* Site web */}
-          <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>Site web</label>
-            <input
-              type='text'
-              placeholder='www.institut.sn'
-              className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            <FormField
+              control={form.control}
+              name='website'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Site web</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='https://www.institut.sn'
+                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {/* Zones géographiques couvertes */}
-          <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>
-              Zones géographiques couvertes
-            </label>
-            <div className='flex flex-wrap gap-2'>
-              {availableZones.map(zone => (
-                <button
-                  key={zone}
-                  onClick={() => toggleZone(zone)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedZones.includes(zone)
-                      ? 'bg-gray-200 text-gray-900'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {zone}
-                </button>
-              ))}
+            <FormField
+              control={form.control}
+              name='geographicZones'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Zones géographiques couvertes</FormLabel>
+                  <div ref={dropdownRef} className='relative'>
+                    <div className='relative'>
+                      <Input
+                        type='text'
+                        value={searchZone}
+                        onChange={e => {
+                          setSearchZone(e.target.value);
+                          setIsDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsDropdownOpen(true)}
+                        placeholder='Rechercher une zone...'
+                        className='w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        disabled={isCreating}
+                      />
+                      <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none' />
+                    </div>
+                    {isDropdownOpen && filteredZones.length > 0 && (
+                      <div className='absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto'>
+                        {filteredZones.map(zone => (
+                          <Button
+                            key={zone}
+                            onClick={() => {
+                              field.onChange([...(field.value || []), zone]);
+                              setSearchZone('');
+                              setIsDropdownOpen(false);
+                            }}
+                            className='w-full justify-start'
+                          >
+                            {zone}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {selectedZones.length > 0 && (
+                    <div className='flex flex-wrap gap-2 mt-3'>
+                      {selectedZones.map(zone => (
+                        <Badge
+                          key={zone}
+                          variant='default'
+                          className='bg-gray-400/30 p-2 cursor-pointer hover:bg-gray-500'
+                          onClick={() =>
+                            !isCreating &&
+                            field.onChange((field.value || []).filter(z => z !== zone))
+                          }
+                        >
+                          {zone}
+                          <X className='w-3.5 h-3.5' />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='logoUrl'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Logo (URL)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='url'
+                      placeholder='https://exemple.com/logo.png'
+                      {...field}
+                      disabled={isCreating}
+                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  {logoUrl && form.formState.errors.logoUrl?.type !== 'invalid_string' && (
+                    <div className='mt-3 p-4 border border-gray-200 rounded-lg bg-gray-50'>
+                      <p className='text-xs text-gray-500 mb-2'>Aperçu du logo :</p>
+                      <div className='flex items-center justify-center'>
+                        <Image
+                          src={logoUrl}
+                          alt='Aperçu du logo'
+                          width={500}
+                          height={500}
+                          className='max-h-24 max-w-full object-contain'
+                        />
+                      </div>
+                    </div>
+                  )}
+                </FormItem>
+              )}
+            />
+
+            <div className='flex justify-end pt-4'>
+              <Button
+                type='submit'
+                disabled={isCreating || !form.formState.isValid}
+                className='bg-cyan-400 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'
+              >
+                {isCreating ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
             </div>
-          </div>
-
-          {/* Logo */}
-          <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>Logo</label>
-            <div className='border-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors'>
-              <div className='w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center mb-2'>
-                <ImagePlus className='w-6 h-6 text-gray-400' />
-              </div>
-              <p className='text-sm text-gray-500'>Sélectionner une image</p>
-            </div>
-          </div>
-
-          {/* Bouton Enregistrer */}
-          <div className='flex justify-end pt-4'>
-            <Button className='bg-cyan-400 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'>
-              Enregistrer
-            </Button>
-          </div>
-        </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
