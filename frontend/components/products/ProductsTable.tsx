@@ -31,8 +31,7 @@ export default function ProductsTable() {
     try {
       setLoading(true);
       const response = await ProductsAPI.getAllProducts(1, 100);
-      // Sécurise : ne set que si c'est un tableau
-      setProducts(Array.isArray(response.data) ? response.data : []);
+      setProducts(response.data);
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
       setProducts([]);
