@@ -7,7 +7,6 @@ export interface CreateInstitutionCommand {
   website?: string;
   geographicZones: string[];
   logoUrl?: string;
-  status: InstitutionStatus;
 }
 
 export interface InstitutionDTO {

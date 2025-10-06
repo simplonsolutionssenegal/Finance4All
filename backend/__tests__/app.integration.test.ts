@@ -183,15 +183,11 @@ describe('App Integration Tests', () => {
   });
 
   describe('Request Logging', () => {
-    it('should not break when logging is enabled in development', async () => {
-      const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
+    it('should not break when logging is enabled', async () => {
       const response = await request(app).get('/api/v1/test').expect(200);
 
       expect(response.body.status).toBe('success');
-
-      process.env.NODE_ENV = originalNodeEnv;
+      expect(response.body.message).toBe('API is working!');
     });
   });
 });
