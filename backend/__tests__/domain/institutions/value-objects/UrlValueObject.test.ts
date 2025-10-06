@@ -30,6 +30,16 @@ describe('UrlValueObject', () => {
       });
     });
 
+    it('should throw error for invalid URL format', () => {
+      expect(() => UrlValueObject.from('not-a-url')).toThrow('Invalid website URL format');
+      expect(() => UrlValueObject.from('invalid url with spaces')).toThrow(
+        'Invalid website URL format'
+      );
+      expect(() => UrlValueObject.from('htp://wrong-protocol')).toThrow(
+        'Invalid website URL format'
+      );
+    });
+
     it('should throw error for empty string', () => {
       expect(() => UrlValueObject.from('')).toThrow('Invalid website URL format');
     });
