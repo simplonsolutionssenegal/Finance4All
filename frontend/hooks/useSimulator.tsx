@@ -12,7 +12,6 @@ import { calculateEstimation, generateInstitutions } from '@/lib/simulator-utils
 
 /**
  * Hook personnalisé pour gérer l'état et la logique du simulateur
- * Utilise maintenant Zustand pour la gestion d'état avec persistance automatique
  * @returns Objet contenant l'état et les fonctions de gestion du simulateur
  */
 export function useSimulator() {
