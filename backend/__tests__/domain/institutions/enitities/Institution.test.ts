@@ -45,6 +45,35 @@ describe('Institution Entity', () => {
     });
   });
 
+  describe('Status transitions', () => {
+    it('should activate the institution', () => {
+      // état initial défini dans le beforeEach : PENDING
+      expect(institution.status).toBe(InstitutionStatus.PENDING);
+
+      institution.activate();
+
+      expect(institution.status).toBe(InstitutionStatus.ACTIVE);
+    });
+
+    it('should deactivate the institution', () => {
+      institution.activate();
+      expect(institution.status).toBe(InstitutionStatus.ACTIVE);
+
+      institution.deactivate();
+
+      expect(institution.status).toBe(InstitutionStatus.INACTIVE);
+    });
+
+    it('should set status to pending', () => {
+      institution.activate();
+      expect(institution.status).toBe(InstitutionStatus.ACTIVE);
+
+      institution.pending();
+
+      expect(institution.status).toBe(InstitutionStatus.PENDING);
+    });
+  });
+
   describe('Updates', () => {
     it('should update name', () => {
       const newName = 'Updated Bank';
