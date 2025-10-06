@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, TrendingUp, Clock, Sparkles, RotateCcw, Hash } from 'lucide-react';
+import { Building2, TrendingUp, Clock, Sparkles, RotateCcw, Hash, Calendar } from 'lucide-react';
 import React, { useMemo } from 'react';
 
 import { CustomDropdown } from '@/components/custom-dropdown';
@@ -8,12 +8,14 @@ import { Slider } from '@/components/slider';
 import { useSimulator } from '@/hooks/useSimulator';
 import type { DropdownOption } from '@/lib/dropdown-types';
 import { createEntityOptions } from '@/lib/dropdown-utils';
-import type { Institution, InstitutionProduct } from '@/lib/simulator-types';
+import type { Institution, InstitutionProduct, DurationUnit } from '@/lib/simulator-types';
 import {
   formatCurrency,
   formatDuration,
   validateValue,
   calculateStep,
+  convertToMonths,
+  convertToYears,
 } from '@/lib/simulator-utils';
 
 // Fonctions utilitaires pour convertir les données en options de dropdown
@@ -28,6 +30,40 @@ const createProductOptions = (
   products: InstitutionProduct[]
 ): DropdownOption<InstitutionProduct>[] => {
   return createEntityOptions(products, 'icon', 'description');
+};
+
+// Composant pour le sélecteur d'unité de durée
+const DurationUnitSelector = ({
+  value,
+  onChange,
+}: {
+  value: DurationUnit;
+  onChange: (unit: DurationUnit) => void;
+}) => {
+  return (
+    <div className='flex bg-gray-100 rounded-lg p-1'>
+      <button
+        onClick={() => onChange('YEARS')}
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          value === 'YEARS'
+            ? 'bg-white text-teal-600 shadow-sm'
+            : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        Années
+      </button>
+      <button
+        onClick={() => onChange('MONTHS')}
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          value === 'MONTHS'
+            ? 'bg-white text-teal-600 shadow-sm'
+            : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        Mois
+      </button>
+    </div>
+  );
 };
 
 export function ProductSimulator() {
@@ -180,26 +216,74 @@ export function ProductSimulator() {
                     label='Montant'
                     icon={<Hash className='w-4 h-4' />}
                     formatValue={formatCurrency}
+                    enableInput={true}
+                    inputSuffix='F CFA'
                   />
 
                   {/* Durée */}
-                  <Slider
-                    value={params.duration || getCurrentLimits().duration.min}
-                    onChange={value => {
-                      const validatedValue = validateValue(
-                        value,
-                        getCurrentLimits().duration.min,
-                        getCurrentLimits().duration.max
-                      );
-                      updateParam('duration', validatedValue);
-                    }}
-                    min={getCurrentLimits().duration.min}
-                    max={getCurrentLimits().duration.max}
-                    step={1}
-                    label='Durée'
-                    icon={<Clock className='w-4 h-4' />}
-                    formatValue={formatDuration}
-                  />
+                  <div className='space-y-4'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-3'>
+                        <Clock className='w-5 h-5 text-teal-600' />
+                        <h4 className='text-lg font-semibold text-gray-900'>Durée</h4>
+                      </div>
+                      <DurationUnitSelector
+                        value={params.durationUnit}
+                        onChange={unit => {
+                          updateParam('durationUnit', unit);
+                          // Convertir la durée actuelle si nécessaire
+                          const currentDuration =
+                            params.duration || getCurrentLimits().duration.min;
+                          let newDuration = currentDuration;
+
+                          if (unit === 'MONTHS' && params.durationUnit === 'YEARS') {
+                            newDuration = convertToMonths(currentDuration, 'YEARS');
+                          } else if (unit === 'YEARS' && params.durationUnit === 'MONTHS') {
+                            newDuration = convertToYears(currentDuration, 'MONTHS');
+                          }
+
+                          const limits = getCurrentLimits();
+                          // Minimum de 3 mois pour les mois, 1 an pour les années
+                          const minDuration = unit === 'MONTHS' ? 3 : 1;
+                          const maxDuration =
+                            unit === 'MONTHS' ? limits.duration.max * 12 : limits.duration.max;
+
+                          // S'assurer que la durée est au minimum
+                          const validatedDuration = Math.max(
+                            minDuration,
+                            validateValue(newDuration, minDuration, maxDuration)
+                          );
+                          updateParam('duration', validatedDuration);
+                        }}
+                      />
+                    </div>
+
+                    <Slider
+                      value={params.duration || (params.durationUnit === 'MONTHS' ? 3 : 1)}
+                      onChange={value => {
+                        const limits = getCurrentLimits();
+                        // Minimum de 3 mois pour les mois, 1 an pour les années
+                        const minDuration = params.durationUnit === 'MONTHS' ? 3 : 1;
+                        const maxDuration =
+                          params.durationUnit === 'MONTHS'
+                            ? limits.duration.max * 12
+                            : limits.duration.max;
+
+                        const validatedValue = validateValue(value, minDuration, maxDuration);
+                        updateParam('duration', validatedValue);
+                      }}
+                      min={params.durationUnit === 'MONTHS' ? 3 : 1}
+                      max={
+                        params.durationUnit === 'MONTHS'
+                          ? getCurrentLimits().duration.max * 12
+                          : getCurrentLimits().duration.max
+                      }
+                      step={params.durationUnit === 'MONTHS' ? 1 : 1}
+                      label=''
+                      icon={<Calendar className='w-4 h-4' />}
+                      formatValue={value => formatDuration(value, params.durationUnit)}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -260,17 +344,6 @@ export function ProductSimulator() {
                           : '0 F CFA'}
                       </div>
                     </div>
-                  </div>
-
-                  <div className='mt-6 flex justify-center'>
-                    <button
-                      onClick={resetSimulation}
-                      className='px-6 py-3 bg-gray-100 text-gray-700 border border-gray-300 rounded-xl font-semibold hover:bg-gray-200 hover:text-gray-900 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2'
-                      title='Recommencer une nouvelle simulation'
-                    >
-                      <RotateCcw className='w-4 h-4' />
-                      Nouvelle simulation
-                    </button>
                   </div>
                 </div>
               </div>

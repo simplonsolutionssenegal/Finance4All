@@ -2,11 +2,14 @@
 
 import type { Institution, InstitutionProduct } from '@/types/Institution';
 
+export type DurationUnit = 'YEARS' | 'MONTHS';
+
 export interface SimulationParams {
   institution: Institution | null;
   product: InstitutionProduct | null;
   amount: number;
   duration: number;
+  durationUnit: DurationUnit;
 }
 
 export interface Estimation {

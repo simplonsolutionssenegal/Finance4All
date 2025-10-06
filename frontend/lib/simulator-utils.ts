@@ -62,16 +62,18 @@ export const generateInstitutions = (): Institution[] => {
 export const calculateEstimation = (params: SimulationParams): Estimation => {
   if (!params.product) return { annualRate: 0 };
 
-  const { amount, duration, product } = params;
+  const { amount, duration, durationUnit, product } = params;
   const rate = (product.rates.min + product.rates.max) / 2;
+  const durationInMonths = convertToMonths(duration, durationUnit);
+  const durationInYears = convertToYears(duration, durationUnit);
 
   switch (product.type) {
     case 'CREDIT': {
       const monthlyRate = rate / 100 / 12;
       const monthlyPayment =
-        (amount * (monthlyRate * Math.pow(1 + monthlyRate, duration * 12))) /
-        (Math.pow(1 + monthlyRate, duration * 12) - 1);
-      const totalCost = monthlyPayment * duration * 12;
+        (amount * (monthlyRate * Math.pow(1 + monthlyRate, durationInMonths))) /
+        (Math.pow(1 + monthlyRate, durationInMonths) - 1);
+      const totalCost = monthlyPayment * durationInMonths;
       const totalInterest = totalCost - amount;
 
       return {
@@ -82,7 +84,7 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
       };
     }
     case 'INVESTISSEMENT': {
-      const finalAmount = amount * Math.pow(1 + rate / 100, duration);
+      const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears);
       const totalGain = finalAmount - amount;
 
       return {
@@ -92,7 +94,7 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
       };
     }
     case 'EPARGNE': {
-      const finalAmount = amount * Math.pow(1 + rate / 100, duration);
+      const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears);
       const totalGain = finalAmount - amount;
 
       return {
@@ -104,7 +106,7 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
     case 'ASSURANCE': {
       // Pour l'assurance, on calcule généralement une prime annuelle
       const annualPremium = amount * (rate / 100);
-      const totalPremium = annualPremium * duration;
+      const totalPremium = annualPremium * durationInYears;
 
       return {
         monthlyPayment: Math.round(annualPremium / 12),
@@ -130,12 +132,36 @@ export const formatCurrency = (amount: number): string => {
 };
 
 /**
- * Formate une durée en années
- * @param value - Valeur en années
+ * Formate une durée selon l'unité
+ * @param value - Valeur de la durée
+ * @param unit - Unité (YEARS ou MONTHS)
  * @returns Durée formatée
  */
-export const formatDuration = (value: number): string => {
+export const formatDuration = (value: number, unit: 'YEARS' | 'MONTHS' = 'YEARS'): string => {
+  if (unit === 'MONTHS') {
+    return `${value} mois`;
+  }
   return `${value} an${value > 1 ? 's' : ''}`;
+};
+
+/**
+ * Convertit une durée en mois
+ * @param value - Valeur de la durée
+ * @param unit - Unité (YEARS ou MONTHS)
+ * @returns Durée en mois
+ */
+export const convertToMonths = (value: number, unit: 'YEARS' | 'MONTHS'): number => {
+  return unit === 'YEARS' ? value * 12 : value;
+};
+
+/**
+ * Convertit une durée en années
+ * @param value - Valeur de la durée
+ * @param unit - Unité (YEARS ou MONTHS)
+ * @returns Durée en années
+ */
+export const convertToYears = (value: number, unit: 'YEARS' | 'MONTHS'): number => {
+  return unit === 'MONTHS' ? value / 12 : value;
 };
 
 /**

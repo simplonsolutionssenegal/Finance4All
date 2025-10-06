@@ -6,6 +6,7 @@ import type {
   Estimation,
   Institution,
   InstitutionProduct,
+  DurationUnit,
 } from './simulator-types';
 
 // Interface pour l'état du store
@@ -19,7 +20,7 @@ interface SimulatorState {
   // Actions
   updateParam: (
     key: keyof SimulationParams,
-    value: Institution | InstitutionProduct | number | null
+    value: Institution | InstitutionProduct | number | DurationUnit | null
   ) => void;
   setEstimation: (estimation: Estimation | null) => void;
   setIsAnimating: (isAnimating: boolean) => void;
@@ -33,6 +34,7 @@ const initialState = {
   product: null,
   amount: 0,
   duration: 0,
+  durationUnit: 'YEARS' as DurationUnit,
 };
 
 // Création du store Zustand avec middleware persist
