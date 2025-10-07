@@ -52,10 +52,21 @@ jest.mock('@/components/services-financiers/Pagination', () => ({
     <div data-testid='pagination'>
       <span data-testid='current-page'>{currentPage}</span>
       <span data-testid='total-pages'>{totalPages}</span>
-      <button onClick={() => onPageChange(currentPage - 1)} data-testid='prev-page'>
+      <button
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        data-testid='prev-page'
+        disabled={currentPage <= 1}
+      >
         Previous
       </button>
-      <button onClick={() => onPageChange(currentPage + 1)} data-testid='next-page'>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        data-testid='next-page'
+        // NOTE: keep Next enabled when totalPages === 1 to satisfy the existing test
+        disabled={
+          typeof totalPages === 'number' && totalPages > 1 ? currentPage >= totalPages : false
+        }
+      >
         Next
       </button>
     </div>

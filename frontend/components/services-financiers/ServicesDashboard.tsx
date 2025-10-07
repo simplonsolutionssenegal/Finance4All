@@ -11,17 +11,17 @@ import {
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
-import { financialServices, institutions } from '../../data/MockData';
+import { ServicesChart } from '@/components/charts/ServicesCharts';
+import { ServiceComparison } from '@/components/comparaison/ServiceComparaison';
+import { PDFExport } from '@/components/export/PDFExport';
+import { PaymentSchedule } from '@/components/schedule/PaymentSchedule';
+import { Button } from '@/components/ui/button';
+import { financialServices, institutions } from '@/data/MockData';
 import type {
   FilterOptions,
   FinancialService,
   SearchAndFilterState,
-} from '../../types/FinancialServices';
-import { ServicesChart } from '../charts/ServicesCharts';
-import { ServiceComparison } from '../comparaison/ServiceComparaison';
-import { PDFExport } from '../export/PDFExport';
-import { PaymentSchedule } from '../schedule/PaymentSchedule';
-import { Button } from '../ui/button';
+} from '@/types/FinancialServices';
 
 import { InstitutionCard } from './InstitutionCard';
 import { Pagination } from './Pagination';
@@ -206,12 +206,14 @@ export const ServicesDashboard: React.FC = () => {
           <div className='flex border border-gray-300 rounded-lg overflow-hidden'>
             <button
               onClick={() => handleViewModeChange('table')}
+              aria-label='List'
               className={`p-2 ${searchAndFilter.viewMode === 'table' ? 'bg-teal-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
             >
               <List className='w-4 h-4' />
             </button>
             <button
               onClick={() => handleViewModeChange('grid')}
+              aria-label='Grid'
               className={`p-2 ${searchAndFilter.viewMode === 'grid' ? 'bg-teal-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
             >
               <Grid3X3 className='w-4 h-4' />

@@ -51,7 +51,7 @@ describe('ServiceFilters', () => {
 
     it('should render close button', () => {
       render(<ServiceFilters {...defaultProps} />);
-      const closeButton = screen.getByRole('button');
+      const closeButton = screen.getByRole('button', { name: /fermer/i });
       expect(closeButton).toBeInTheDocument();
       // The close button contains an X icon from lucide-react
     });
@@ -241,7 +241,7 @@ describe('ServiceFilters', () => {
       const user = userEvent.setup();
       render(<ServiceFilters {...defaultProps} />);
 
-      const closeButton = screen.getByRole('button');
+      const closeButton = screen.getByRole('button', { name: /fermer/i });
       await user.click(closeButton);
 
       expect(mockOnToggle).toHaveBeenCalled();

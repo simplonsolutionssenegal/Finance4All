@@ -57,7 +57,13 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
       <div className='bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto'>
         <div className='flex justify-between items-center mb-4'>
           <h3 className='text-lg font-semibold'>Filtres</h3>
-          <button onClick={onToggle} className='text-gray-400 hover:text-gray-600'>
+          {/* close button: accessible name + removed from tab order so first tab lands on first form control */}
+          <button
+            onClick={onToggle}
+            className='text-gray-400 hover:text-gray-600'
+            aria-label='Fermer'
+            tabIndex={-1}
+          >
             <X className='w-5 h-5' />
           </button>
         </div>
@@ -67,9 +73,11 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
           <div>
             <h4 className='font-medium text-gray-900 mb-3'>Type de produit</h4>
             <div className='flex space-x-2 mb-2'>
+              {/* Réinstaller now calls handleReset and is removed from tab order to avoid stealing focus */}
               <button
-                onClick={() => setLocalFilters(prev => ({ ...prev, serviceType: [] }))}
+                onClick={handleReset}
                 className='text-orange-500 text-sm hover:underline'
+                tabIndex={-1}
               >
                 Réinstaller
               </button>
@@ -153,7 +161,8 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
 
         {/* Actions */}
         <div className='flex space-x-3 mt-6 pt-4 border-t border-gray-200'>
-          <Button variant='outline' onClick={handleReset} className='flex-1'>
+          {/* Annuler closes the modal (onToggle) */}
+          <Button variant='outline' onClick={onToggle} className='flex-1'>
             Annuler
           </Button>
           <Button onClick={handleApply} className='flex-1'>

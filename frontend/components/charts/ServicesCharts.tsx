@@ -24,12 +24,30 @@ interface ServicesChartProps {
 const COLORS = ['#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartType }) => {
+  if (!services || services.length === 0) {
+    return (
+      <div className='bg-white rounded-lg border border-gray-200 p-6'>
+        <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+          Analyse des Produits Financiers
+        </h3>
+        <div className='flex items-center justify-center h-64 text-gray-500'>
+          Aucun service à afficher
+        </div>
+      </div>
+    );
+  }
+
   // Données pour graphique en barres - Montants par type
   const barData = services.reduce(
     (
       acc: Array<{ type: string; count: number; totalAmount: number; avgAmount: number }>,
       service
     ) => {
+      // Skip services with missing required properties
+      if (!service || !service.type || typeof service.maxAmount !== 'number') {
+        return acc;
+      }
+
       const existing = acc.find(item => item.type === service.type);
       if (existing) {
         existing.count += 1;
@@ -50,6 +68,10 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
 
   // Données pour graphique circulaire - Répartition par type
   const pieData = services.reduce((acc: Array<{ name: string; value: number }>, service) => {
+    if (!service || !service.type) {
+      return acc;
+    }
+
     const existing = acc.find(item => item.name === service.type);
     if (existing) {
       existing.value += 1;
@@ -63,13 +85,13 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
   }, []);
 
   // Données pour graphique linéaire - Évolution des taux
-  const lineData: Array<{ name: string; taux: number; montant: number }> = services.map(
-    service => ({
+  const lineData: Array<{ name: string; taux: number; montant: number }> = services
+    .filter(service => service && service.designation && typeof service.interestRate === 'number')
+    .map(service => ({
       name: `${service.designation.substring(0, 10)}...`,
       taux: service.interestRate,
       montant: service.maxAmount / 1000000, // En millions
-    })
-  );
+    }));
 
   const renderBarChart = () => (
     <ResponsiveContainer width='100%' height={300}>

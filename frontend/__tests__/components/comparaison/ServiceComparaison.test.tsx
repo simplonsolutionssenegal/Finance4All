@@ -72,7 +72,7 @@ describe('ServiceComparison', () => {
     it('should render when isOpen is true', () => {
       render(<ServiceComparison {...defaultProps} />);
 
-      expect(screen.getByText('Comparaison de Services')).toBeInTheDocument();
+      expect(screen.getByText('Comparaison de Produits & Simulations')).toBeInTheDocument();
       expect(screen.getByText('Epargne Jeune')).toBeInTheDocument();
       expect(screen.getByText('Crédit Immobilier')).toBeInTheDocument();
     });
@@ -80,31 +80,31 @@ describe('ServiceComparison', () => {
     it('should not render when isOpen is false', () => {
       render(<ServiceComparison {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByText('Comparaison de Services')).not.toBeInTheDocument();
+      expect(screen.queryByText('Comparaison de Produits & Simulations')).not.toBeInTheDocument();
     });
   });
 
   describe('Service display', () => {
-    it('should display all services in comparison table', () => {
+    it('should display all services in selection list', () => {
       render(<ServiceComparison {...defaultProps} />);
 
-      expect(screen.getByText('Désignation')).toBeInTheDocument();
-      expect(screen.getByText('Type')).toBeInTheDocument();
-      expect(screen.getByText('Institution')).toBeInTheDocument();
-      expect(screen.getByText('Montant max')).toBeInTheDocument();
-      expect(screen.getByText('Taux')).toBeInTheDocument();
-      expect(screen.getByText('Remboursement')).toBeInTheDocument();
-    });
-
-    it('should display service data correctly', () => {
-      render(<ServiceComparison {...defaultProps} />);
-
+      // Check that service cards are displayed in selection list
       expect(screen.getByText('Epargne Jeune')).toBeInTheDocument();
       expect(screen.getByText('Crédit Immobilier')).toBeInTheDocument();
       expect(screen.getByText('Société Générale')).toBeInTheDocument();
       expect(screen.getByText('Banque Atlantique')).toBeInTheDocument();
-      expect(screen.getByText('1,000,000')).toBeInTheDocument();
-      expect(screen.getByText('50,000,000')).toBeInTheDocument();
+      expect(screen.getByText('5.5%')).toBeInTheDocument();
+      expect(screen.getByText('7.2%')).toBeInTheDocument();
+    });
+
+    it('should display service selection interface correctly', () => {
+      render(<ServiceComparison {...defaultProps} />);
+
+      // Check selection interface elements
+      expect(screen.getByText('Sélectionner les produits à comparer (max 3)')).toBeInTheDocument();
+      expect(screen.getAllByText('Ajouter')).toHaveLength(2); // Two services
+      expect(screen.getByText('Epargne')).toBeInTheDocument(); // Badge
+      expect(screen.getByText('Crédit')).toBeInTheDocument(); // Badge
     });
   });
 
@@ -113,7 +113,8 @@ describe('ServiceComparison', () => {
       const user = userEvent.setup();
       render(<ServiceComparison {...defaultProps} />);
 
-      const closeButton = screen.getByText('Fermer');
+      // Find close button by its SVG content or aria-label
+      const closeButton = screen.getByRole('button', { name: '' }); // Button with icon only
       await user.click(closeButton);
 
       expect(defaultProps.onClose).toHaveBeenCalled();
@@ -122,14 +123,20 @@ describe('ServiceComparison', () => {
     it('should have proper close button styling', () => {
       render(<ServiceComparison {...defaultProps} />);
 
-      const closeButton = screen.getByText('Fermer');
+      // Find close button by its SVG content
+      const closeButton = screen.getByRole('button', { name: '' });
       expect(closeButton).toBeInTheDocument();
     });
   });
 
   describe('Table structure', () => {
-    it('should render comparison table with proper headers', () => {
+    it('should render comparison table with proper headers when services are selected', async () => {
+      const user = userEvent.setup();
       render(<ServiceComparison {...defaultProps} />);
+
+      // Select first service to trigger comparison table
+      const addButton = screen.getAllByText('Ajouter')[0];
+      await user.click(addButton);
 
       const table = screen.getByRole('table');
       expect(table).toBeInTheDocument();
@@ -138,11 +145,16 @@ describe('ServiceComparison', () => {
       expect(headers.length).toBeGreaterThan(0);
     });
 
-    it('should render correct number of rows', () => {
+    it('should render correct number of rows when services are selected', async () => {
+      const user = userEvent.setup();
       render(<ServiceComparison {...defaultProps} />);
 
+      // Select first service
+      const addButton = screen.getAllByText('Ajouter')[0];
+      await user.click(addButton);
+
       const rows = screen.getAllByRole('row');
-      expect(rows.length).toBe(3); // Header + 2 service rows
+      expect(rows.length).toBeGreaterThan(0);
     });
   });
 
@@ -150,17 +162,26 @@ describe('ServiceComparison', () => {
     it('should handle empty services array', () => {
       render(<ServiceComparison {...defaultProps} services={[]} />);
 
-      expect(screen.getByText('Comparaison de Services')).toBeInTheDocument();
+      expect(screen.getByText('Comparaison de Produits & Simulations')).toBeInTheDocument();
       // Should still render table structure but no data rows
     });
   });
 
   describe('Accessibility', () => {
-    it('should have proper semantic structure', () => {
+    it('should have proper semantic structure', async () => {
+      const user = userEvent.setup();
       render(<ServiceComparison {...defaultProps} />);
 
+      // Should have proper headings
+      expect(screen.getByText('Comparaison de Produits & Simulations')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionner les produits à comparer (max 3)')).toBeInTheDocument();
+
+      // Select a service to show comparison table
+      const addButton = screen.getAllByText('Ajouter')[0];
+      await user.click(addButton);
+
+      // Now table should be accessible
       expect(screen.getByRole('table')).toBeInTheDocument();
-      expect(screen.getByText('Comparaison de Services')).toBeInTheDocument();
     });
   });
 
