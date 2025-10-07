@@ -37,8 +37,9 @@ const Button = React.forwardRef<
   React.ComponentProps<'button'> &
     VariantProps<typeof buttonVariants> & {
       asChild?: boolean;
+      icon?: React.ComponentType<{ className?: string }>;
     }
->(({ className, variant, size, asChild = false, ...props }, ref) => {
+>(({ className, variant, size, asChild = false, icon: Icon, children, ...props }, ref) => {
   const Comp = asChild ? Slot : 'button';
 
   return (
@@ -47,7 +48,10 @@ const Button = React.forwardRef<
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
       {...props}
-    />
+    >
+      {Icon ? <Icon className='size-4' /> : null}
+      {children}
+    </Comp>
   );
 });
 
