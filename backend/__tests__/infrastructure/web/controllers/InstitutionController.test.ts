@@ -1,11 +1,13 @@
 import { InstitutionController } from '@/infrastructure/web/controllers/InstitutionController';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
+import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
 import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
   let mockCreateInstitutionUseCase: jest.Mocked<CreateInstitutionUseCase>;
+  let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -15,10 +17,18 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
-    controller = new InstitutionController(mockCreateInstitutionUseCase);
+    mockGetInstitutionsUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    controller = new InstitutionController(
+      mockCreateInstitutionUseCase,
+      mockGetInstitutionsUseCase
+    );
 
     mockRequest = {
       body: {},
+      query: {},
     };
 
     mockResponse = {
@@ -183,6 +193,125 @@ describe('InstitutionController', () => {
       await controller.create(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockCreateInstitutionUseCase.execute).toHaveBeenCalledWith(requestBody);
+    });
+  });
+
+  describe('getAll', () => {
+    it('should get all institutions with default pagination', async () => {
+      const paginatedResult = {
+        data: [
+          {
+            id: 'inst_1',
+            name: 'Institution 1',
+            description: 'Description 1',
+            website: 'https://test1.com',
+            geographicZones: ['USD'],
+            logoUrl: 'https://test1.com/logo.png',
+            status: InstitutionStatus.ACTIVE,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 'inst_2',
+            name: 'Institution 2',
+            description: 'Description 2',
+            website: 'https://test2.com',
+            geographicZones: ['EURO'],
+            logoUrl: 'https://test2.com/logo.png',
+            status: InstitutionStatus.PENDING,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 2,
+          totalPages: 1,
+        },
+      };
+
+      mockRequest.query = {};
+      mockGetInstitutionsUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getAll(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsUseCase.execute).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        ...paginatedResult,
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should get all institutions with custom pagination', async () => {
+      const paginatedResult = {
+        data: [
+          {
+            id: 'inst_3',
+            name: 'Institution 3',
+            description: 'Description 3',
+            website: 'https://test3.com',
+            geographicZones: ['GBP'],
+            logoUrl: 'https://test3.com/logo.png',
+            status: InstitutionStatus.ACTIVE,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        pagination: {
+          page: 2,
+          limit: 5,
+          total: 10,
+          totalPages: 2,
+        },
+      };
+
+      mockRequest.query = { page: '2', limit: '5' };
+      mockGetInstitutionsUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getAll(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsUseCase.execute).toHaveBeenCalledWith({ page: 2, limit: 5 });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        ...paginatedResult,
+      });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.query = {};
+      mockGetInstitutionsUseCase.execute.mockRejectedValue(error);
+
+      await controller.getAll(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsUseCase.execute).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
+    });
+
+    it('should handle invalid pagination parameters with defaults', async () => {
+      const paginatedResult = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+
+      mockRequest.query = { page: 'invalid', limit: 'invalid' };
+      mockGetInstitutionsUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getAll(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsUseCase.execute).toHaveBeenCalledWith({ page: 1, limit: 10 });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
   });
 });

@@ -1,5 +1,6 @@
 import {
   validateCreateInstitution,
+  validatePagination,
   handleValidationErrors,
 } from '@/infrastructure/web/validators/institution.validator';
 import type { Request, Response, NextFunction } from 'express';
@@ -15,6 +16,8 @@ jest.mock('express-validator', () => {
     isURL: jest.fn().mockReturnThis(),
     optional: jest.fn().mockReturnThis(),
     withMessage: jest.fn().mockReturnThis(),
+    isInt: jest.fn().mockReturnThis(),
+    toInt: jest.fn().mockReturnThis(),
   };
 
   return {
@@ -55,6 +58,14 @@ describe('Institution Validator', () => {
       expect(validateCreateInstitution).toBeDefined();
       expect(Array.isArray(validateCreateInstitution)).toBe(true);
       expect(validateCreateInstitution.length).toBe(5);
+    });
+  });
+
+  describe('validatePagination', () => {
+    it('should have validators for pagination fields', () => {
+      expect(validatePagination).toBeDefined();
+      expect(Array.isArray(validatePagination)).toBe(true);
+      expect(validatePagination.length).toBe(2);
     });
   });
 

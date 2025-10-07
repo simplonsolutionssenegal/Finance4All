@@ -1,4 +1,4 @@
-import { body, validationResult } from 'express-validator';
+import { body, query, validationResult } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 
 export const validateCreateInstitution = [
@@ -11,6 +11,15 @@ export const validateCreateInstitution = [
   body('website').optional().isURL().withMessage('Invalid website URL'),
   body('geographicZones').isArray().withMessage('Geographic zones must be an array'),
   body('logoUrl').optional().isURL().withMessage('Invalid logo URL'),
+];
+
+export const validatePagination = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer').toInt(),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100')
+    .toInt(),
 ];
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {

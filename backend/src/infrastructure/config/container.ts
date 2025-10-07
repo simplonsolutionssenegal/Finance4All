@@ -10,9 +10,12 @@ import { PrismaInstitutionRepository } from '@/infrastructure/persistence/reposi
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import { CreateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/CreateInsitution.usecase';
+import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
+import { GetInstitutionsUseCaseImpl } from '@/application/use-cases/GetInstitutionsUseCase';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
+  GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
 
   // Ports Out (External Services)
   InstitutionRepository: Symbol.for('InstitutionRepository'),
@@ -56,13 +59,24 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<GetInstitutionsUseCase>(TYPES.GetInstitutionsUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new GetInstitutionsUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // Bind controllers
 container
   .bind<InstitutionController>(TYPES.InstitutionController)
   .toDynamicValue(context => {
     const createUseCase = context.get<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase);
+    const getInstitutionsUseCase = context.get<GetInstitutionsUseCase>(
+      TYPES.GetInstitutionsUseCase
+    );
 
-    return new InstitutionController(createUseCase);
+    return new InstitutionController(createUseCase, getInstitutionsUseCase);
   })
   .inSingletonScope();
 
