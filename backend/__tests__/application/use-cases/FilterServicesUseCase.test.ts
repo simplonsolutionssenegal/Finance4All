@@ -1,30 +1,29 @@
-// __tests__/application/use-cases/FilterServicesUseCase.test.ts
-import type { InstitutionService } from '@/domain/entities/InstitutionService';
-import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
-import type { FilterServicesUseCase } from '@/application/use-cases/FilterServicesUseCase';
-import { FilterServicesUseCaseImpl } from '@/domain/use-cases/FilterServicesUseCaseImpl';
+// __tests__/application/use-cases/FilterProductUseCase.test.ts
+import type { Product } from '@/domain/entities/Product';
+import { ProductType } from '@/domain/entities/types/ProductType';
+import type { FilterProductUseCase } from '@/application/use-cases/FilterProductUseCase';
+import { FilterProductUseCaseImpl } from '@/domain/use-cases/FilterProductUseCaseImpl';
 
-describe('FilterServicesUseCaseImpl', () => {
-  // ⚠️ Un SEUL objet mock, et on y met bien institutionExists + findByFilters
+describe('FilterProductUseCaseImpl', () => {
   const mockRepo: {
     institutionExists: jest.Mock<Promise<boolean>, [string]>;
     findByFilters: jest.Mock<
-      Promise<InstitutionService[]>,
-      [string, ServiceType[] | undefined, string[] | undefined, Date | undefined]
+      Promise<Product[]>,
+      [string, ProductType[] | undefined, string[] | undefined, Date | undefined]
     >;
   } = {
     institutionExists: jest.fn<Promise<boolean>, [string]>(),
     findByFilters: jest.fn<
-      Promise<InstitutionService[]>,
-      [string, ServiceType[] | undefined, string[] | undefined, Date | undefined]
+      Promise<Product[]>,
+      [string, ProductType[] | undefined, string[] | undefined, Date | undefined]
     >(),
   };
 
   const INSTITUTION_ID = 'inst-1';
   const ZONES = ['Z1', 'Z2'] as const;
-  const TYPES: ServiceType[] = ['CREDIT', 'EPARGNE'];
+  const TYPES = [ProductType.CREDIT, ProductType.EPARGNE];
 
-  const makeService = (overrides?: Partial<InstitutionService>): InstitutionService =>
+  const makeService = (overrides?: Partial<Product>): Product =>
     ({
       id: 'svc-1',
       designation: 'Crédit Nano',
@@ -37,10 +36,10 @@ describe('FilterServicesUseCaseImpl', () => {
       createdAt: new Date('2025-09-01T00:00:00Z'),
       updatedAt: new Date('2025-09-01T00:00:00Z'),
       ...overrides,
-    }) as unknown as InstitutionService;
+    }) as unknown as Product;
 
   const NOW = new Date('2025-10-05T00:00:00Z');
-  let useCase: FilterServicesUseCase;
+  let useCase: FilterProductUseCase;
 
   beforeAll(() => {
     jest.useFakeTimers();
@@ -52,15 +51,11 @@ describe('FilterServicesUseCaseImpl', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // 👇 Très important: on passe EXACTEMENT "mockRepo" au constructeur
-    useCase = new FilterServicesUseCaseImpl(mockRepo as any);
+    useCase = new FilterProductUseCaseImpl(mockRepo as any);
   });
 
   it("appelle le repo avec types + zones + fromDate('recent') et retourne les services", async () => {
-    const expected: InstitutionService[] = [
-      makeService({ id: 'svc-a' }),
-      makeService({ id: 'svc-b' }),
-    ];
+    const expected: Product[] = [makeService({ id: 'svc-a' }), makeService({ id: 'svc-b' })];
 
     mockRepo.institutionExists.mockResolvedValueOnce(true);
     mockRepo.findByFilters.mockResolvedValueOnce(expected);
@@ -88,7 +83,7 @@ describe('FilterServicesUseCaseImpl', () => {
   });
 
   it("appelle le repo avec seulement institutionId (aucun filtre) et n'envoie pas fromDate", async () => {
-    const expected: InstitutionService[] = [];
+    const expected: Product[] = [];
 
     mockRepo.institutionExists.mockResolvedValueOnce(true);
     mockRepo.findByFilters.mockResolvedValueOnce(expected);
@@ -107,7 +102,7 @@ describe('FilterServicesUseCaseImpl', () => {
   });
 
   it("appelle le repo avec datePreset='3mois' et calcule un fromDate dans ~90 jours", async () => {
-    const expected: InstitutionService[] = [makeService({ id: 'svc-3m' })];
+    const expected: Product[] = [makeService({ id: 'svc-3m' })];
 
     mockRepo.institutionExists.mockResolvedValueOnce(true);
     mockRepo.findByFilters.mockResolvedValueOnce(expected);

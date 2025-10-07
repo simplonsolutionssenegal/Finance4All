@@ -1,25 +1,46 @@
 // src/infrastructure/web/controllers/ProductController.ts
 import type { Request, Response } from 'express';
-import type { GetServiceByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
-import type { FilterServicesUseCase } from '@/application/use-cases/FilterServicesUseCase';
-import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
+import type { GetProductByInstitutionUseCase } from '@/application/use-cases/GetProductByInstitutionUseCase';
+import type { FilterProductUseCase } from '@/application/use-cases/FilterProductUseCase';
+import type { ProductType } from '@/domain/entities/types/ProductType';
+import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
-export class ServiceController {
+export class ProductController {
   constructor(
-    private readonly getProductsByInstitution: GetServiceByInstitutionUseCase,
-    private readonly filterServices: FilterServicesUseCase
+    private readonly getProductsByInstitution: GetProductByInstitutionUseCase,
+    private readonly filterServices: FilterProductUseCase
   ) {}
+
+  // byInstitution = async (req: Request, res: Response) => {
+  //   try {
+  //     const institutionId = req.params.institutionId;
+  //     const products = await this.getProductsByInstitution.execute(institutionId);
+  //     return res.status(200).json({ status: 'success', results: products.length, data: products });
+  //   } catch (err) {
+  //     if (err instanceof Error && err.message === 'INSTITUTION_NOT_FOUND') {
+  //       return res.status(404).json({
+  //         status: 'fail',
+  //         message: 'institutionId introuvable',
+  //       });
+  //     }
+  //     return res.status(500).json({
+  //       status: 'error',
+  //       message: 'Erreur lors de la récupération des services',
+  //     });
+  //   }
+  // };
 
   byInstitution = async (req: Request, res: Response) => {
     try {
-      const institutionId = req.params.institutionId;
-      const services = await this.getProductsByInstitution.execute(institutionId);
-      return res.status(200).json({ status: 'success', results: services.length, data: services });
-    } catch (err) {
-      if (err instanceof Error && err.message === 'INSTITUTION_NOT_FOUND') {
+      const { institutionId } = req.params;
+      const products = await this.getProductsByInstitution.execute(institutionId);
+      return res.status(200).json({ status: 'success', results: products.length, data: products });
+    } catch (err: unknown) {
+      if (err instanceof InstitutionNotFoundError) {
         return res.status(404).json({
-          status: 'fail',
-          message: 'institutionId introuvable',
+          status: 'error',
+          code: 'INSTITUTION_NOT_FOUND',
+          message: err.message,
         });
       }
       return res.status(500).json({
@@ -35,8 +56,8 @@ export class ServiceController {
 
       const typeParam = req.query.type;
       const rawTypes = Array.isArray(typeParam) ? typeParam : typeParam ? [typeParam] : [];
-      const types: ServiceType[] | undefined = rawTypes.length
-        ? (rawTypes.map(t => String(t).toUpperCase()) as ServiceType[])
+      const types: ProductType[] | undefined = rawTypes.length
+        ? (rawTypes.map(t => String(t).toUpperCase()) as ProductType[])
         : undefined;
 
       const zoneParam = req.query.zone;

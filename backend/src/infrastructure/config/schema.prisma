@@ -13,8 +13,7 @@ model User {
   email String @unique
 }
 
-
-enum InstitutionServiceType {
+enum ProductType {
   CREDIT
   EPARGNE
   MOBILE_MONEY
@@ -29,26 +28,27 @@ enum RemboursementMode {
 }
 
 model Institution {
-  id                  String                @id @default(cuid())
-  name                String                @unique
-  avatar              String
-  institutionServices InstitutionService[]
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  avatar    String
+  // ancien: institutionServices
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model InstitutionService {
-  id                 String                 @id @default(cuid())
+model Product {
+  id                 String            @id @default(cuid())
   designation        String
-  montantMin         Decimal                @db.Decimal(18, 2)
-  montantMax         Decimal                @db.Decimal(18, 2)
-  type               InstitutionServiceType
+  montantMin         Decimal           @db.Decimal(18, 2)
+  montantMax         Decimal           @db.Decimal(18, 2)
+  type               ProductType
   modesRemboursement RemboursementMode
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id])
 
-  // Zone(s) stockées en BDD sous forme de tableau (invariant: 1 élément)
+  // Zone(s) (array texte)
   zones String[] @db.Text
 
   createdAt DateTime @default(now())

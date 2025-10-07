@@ -1,14 +1,14 @@
 // frontend/lib/api/services.ts
-import type { Service } from '@/models/service';
+import type { Product } from '@/models/product';
 import type { ApiResponse } from '@/types/ApiResponse';
 import type { FilterOptions } from '@/types/FilterOptions';
 
 function getApiBaseUrl(): string {
-  const env = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').trim();
+  const env = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   return `${env}/api/v1`;
 }
 
-type ServicesListResponse = ApiResponse<Service>;
+type ServicesListResponse = ApiResponse<Product>;
 type FetchOptions = Parameters<typeof fetch>[1];
 
 export class ServicesAPI {
@@ -40,8 +40,8 @@ export class ServicesAPI {
     return params.toString();
   }
 
-  static async getByInstitution(institutionId: string): Promise<Service[]> {
-    const url = `${getApiBaseUrl()}/service/by-institution/${encodeURIComponent(institutionId)}`;
+  static async getByInstitution(institutionId: string): Promise<Product[]> {
+    const url = `${getApiBaseUrl()}/product/by-institution/${encodeURIComponent(institutionId)}`;
     const resp = await this.fetchJSON<ServicesListResponse>(url);
     if (resp.status !== 'success' || !Array.isArray(resp.data)) return [];
     return resp.data;
@@ -50,9 +50,9 @@ export class ServicesAPI {
   static async filterByInstitution(
     institutionId: string,
     filters: FilterOptions
-  ): Promise<Service[]> {
+  ): Promise<Product[]> {
     const qs = this.buildFilterQuery(filters);
-    const url = `${getApiBaseUrl()}/service/by-institution/${encodeURIComponent(institutionId)}/filter?${qs}`;
+    const url = `${getApiBaseUrl()}/product/by-institution/${encodeURIComponent(institutionId)}/filter?${qs}`;
     const resp = await this.fetchJSON<ServicesListResponse>(url);
     if (resp.status !== 'success' || !Array.isArray(resp.data)) return [];
     return resp.data;

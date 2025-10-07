@@ -7,7 +7,7 @@ import {
   DATE_OPTIONS,
 } from '@/components/institutions/filters/options';
 import type { FilterOptions, DateFilter } from '@/types/FilterOptions';
-import type { ServiceType } from '@/types/ServiceType';
+import { ProductType } from '@/types/ProductType';
 
 describe('FilterPopup', () => {
   const baseProps = {
@@ -45,8 +45,7 @@ describe('FilterPopup', () => {
 
   it('active "Confirmer" quand des filtres existent', () => {
     const withFilters: FilterOptions = {
-      // on utilise les options typées pour éviter les erreurs TS
-      type: [TYPE_OPTIONS.find(o => o.value === 'CREDIT')!.value] as ServiceType[],
+      type: [TYPE_OPTIONS.find(o => o.value === 'CREDIT')!.value] as ProductType[],
       zone: ['DAKAR'],
       date: DATE_OPTIONS.find(o => o.value === 'recent')!.value as DateFilter,
     };
@@ -68,13 +67,13 @@ describe('FilterPopup', () => {
     render(<FilterPopup {...baseProps} onChange={onChange} onCancel={onCancel} />);
 
     fireEvent.click(screen.getByText('Annuler'));
-    expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS); // reset UI
-    expect(onCancel).toHaveBeenCalledTimes(1); // laisse l’adaptateur décider pour la liste
+    expect(onChange).toHaveBeenCalledWith(EMPTY_FILTERS);
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('clic "Confirmer" appelle onApply(value) puis onClose()', () => {
     const withFilters: FilterOptions = {
-      type: ['CREDIT'] as ServiceType[],
+      type: ['CREDIT'] as ProductType[],
       zone: ['DAKAR'],
       date: 'recent' as DateFilter,
     };

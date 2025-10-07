@@ -4,40 +4,36 @@ import { Eye, SquarePen, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import type { Service } from '@/models/service';
+import type { Product } from '@/models/product';
 
-interface ServiceTableProps {
-  services: Service[];
-  isLoading: boolean;
-}
+import { ProductsMobileSkeleton } from '../ui/skeletons';
+
+type Props = {
+  products: Product[];
+  isLoading?: boolean;
+};
 
 const thousandDot = new Intl.NumberFormat('de-DE', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
 
-export default function ServiceList({ services, isLoading }: ServiceTableProps) {
+export default function ProductListClient({ products, isLoading = false }: Props) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [editOpen, setEditOpen] = useState<boolean>(false);
 
   const itemsPerPage = 5;
-  const totalPages = Math.ceil(services.length / itemsPerPage);
-  const paginatedServices = services.slice(
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedServices = products.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
   if (isLoading) {
-    return (
-      <div className='bg-white rounded-lg shadow p-6'>
-        <div className='flex justify-center items-center py-12'>
-          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500' />
-        </div>
-      </div>
-    );
+    return <ProductsMobileSkeleton />;
   }
 
-  if (services.length === 0) {
+  if (products.length === 0) {
     return (
       <div className='bg-white rounded-lg shadow p-6'>
         <div className='text-center py-12'>
@@ -70,19 +66,19 @@ export default function ServiceList({ services, isLoading }: ServiceTableProps) 
               <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Désignation
               </th>
-              <th className='px-6 py-3 text-left text-xs  font-SemiBold text-[#000000] uppercase tracking-wider'>
+              <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Type
               </th>
-              <th className='px-6 py-3 text-left text-xs  font-SemiBold text-[#000000] uppercase tracking-wider'>
+              <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Montant min.
               </th>
-              <th className='px-6 py-3 text-left text-xs  font-SemiBold text-[#000000] uppercase tracking-wider'>
+              <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Montant max.
               </th>
-              <th className='px-6 py-3 text-left text-xs  font-SemiBold text-[#000000] uppercase tracking-wider'>
+              <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Remboursement
               </th>
-              <th className='px-6 py-3 text-left text-xs  font-SemiBold text-[#000000] uppercase tracking-wider'>
+              <th className='px-6 py-3 text-left text-xs font-SemiBold text-[#000000] uppercase tracking-wider'>
                 Action
               </th>
             </tr>
@@ -142,7 +138,7 @@ export default function ServiceList({ services, isLoading }: ServiceTableProps) 
           </tbody>
         </table>
 
-        {/* Pagination */}
+        {/* Pagination locale */}
         <div className='flex justify-center items-center py-4 gap-2 border-t border-b border-[#EAEAEA]'>
           <button
             className='px-3 py-1 rounded text-white disabled:opacity-50'

@@ -4,10 +4,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 
 import SearchBar from '@/components/institutions/SearchBar';
-import ServiceList from '@/components/institutions/ServiceList';
-import { ServicesAPI } from '@/lib/api-services';
-import type { Service } from '@/models/service';
+import { ServicesAPI } from '@/lib/API/api-product';
+import type { Product } from '@/models/product';
 import type { FilterOptions } from '@/types/FilterOptions';
+
+import ProductList from './ProductList';
 
 type Props = { institutionId: string };
 function hasAnyFilter(f: FilterOptions) {
@@ -15,7 +16,7 @@ function hasAnyFilter(f: FilterOptions) {
 }
 
 const InstitutionClient: React.FC<Props> = ({ institutionId }) => {
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({ type: [], zone: [], date: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +77,7 @@ const InstitutionClient: React.FC<Props> = ({ institutionId }) => {
         onApplyFilters={setFilters}
         currentFilters={filters}
       />
-      <ServiceList services={filteredServices} isLoading={isLoading} />
+      <ProductList products={filteredServices} isLoading={isLoading} />
     </>
   );
 };

@@ -1,36 +1,37 @@
 import {
-  TYPE_OPTIONS,
-  ZONE_OPTIONS,
   DATE_OPTIONS,
   EMPTY_FILTERS,
+  TYPE_OPTIONS,
+  ZONE_OPTIONS,
 } from '@/components/institutions/filters/options';
-import type { ServiceType } from '@/types/ServiceType';
-import type { DateFilter } from '@/types/FilterOptions';
 
-describe('filters/options', () => {
-  it('TYPE_OPTIONS contient les valeurs attendues (typiées ServiceType)', () => {
-    const values = TYPE_OPTIONS.map(o => o.value);
-    const expected: ServiceType[] = [
-      'EPARGNE',
-      'CREDIT',
-      'MOBILE_MONEY',
-      'INVESTISSEMENT',
-      'ASSURANCE',
-    ];
-    expect(values).toEqual(expected);
+describe('FilterOptions constants', () => {
+  it('contient les bonnes valeurs pour TYPE_OPTIONS', () => {
+    expect(TYPE_OPTIONS).toHaveLength(5);
+    expect(TYPE_OPTIONS).toEqual([
+      { value: 'CREDIT', label: 'Crédit' },
+      { value: 'EPARGNE', label: 'Épargne' },
+      { value: 'ASSURANCE', label: 'Assurance' },
+      { value: 'MOBILE_MONEY', label: 'Mobile Money' },
+      { value: 'INVESTISSEMENT', label: 'Investissement' },
+    ]);
   });
 
-  it('ZONE_OPTIONS contient des zones simples (string)', () => {
-    expect(ZONE_OPTIONS.map(o => o.value)).toEqual(['DAKAR', 'THIES', 'MBOUR', 'FATICK']);
+  it('contient les bonnes valeurs pour ZONE_OPTIONS', () => {
+    expect(ZONE_OPTIONS).toHaveLength(4);
+    expect(ZONE_OPTIONS).toContainEqual({ value: 'DAKAR', label: 'Dakar' });
+    expect(ZONE_OPTIONS).toContainEqual({ value: 'THIES', label: 'Thiès' });
   });
 
-  it('DATE_OPTIONS contient les valeurs attendues (typiées DateFilter)', () => {
-    const values = DATE_OPTIONS.map(o => o.value);
-    const expected: DateFilter[] = ['recent', '3mois'];
-    expect(values).toEqual(expected);
+  it('contient les bonnes valeurs pour DATE_OPTIONS', () => {
+    expect(DATE_OPTIONS).toHaveLength(2);
+    expect(DATE_OPTIONS).toEqual([
+      { value: 'recent', label: 'Récente' },
+      { value: '3mois', label: 'Il y a 3 mois' },
+    ]);
   });
 
-  it('EMPTY_FILTERS est bien vide et typé', () => {
+  it('EMPTY_FILTERS doit être vide par défaut', () => {
     expect(EMPTY_FILTERS).toEqual({ type: [], zone: [], date: '' });
   });
 });

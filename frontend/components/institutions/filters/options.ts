@@ -1,14 +1,14 @@
 import type { DateFilter, FilterOptions } from '@/types/FilterOptions';
-import type { ServiceType } from '@/types/ServiceType';
+import type { ProductType } from '@/types/ProductType';
 
 export type SelectOption<T extends string> = { value: T; label: string };
 
-export const TYPE_OPTIONS: ReadonlyArray<SelectOption<ServiceType>> = [
-  { value: 'EPARGNE', label: 'Épargne' },
+export const TYPE_OPTIONS: ReadonlyArray<SelectOption<ProductType>> = [
   { value: 'CREDIT', label: 'Crédit' },
+  { value: 'EPARGNE', label: 'Épargne' },
+  { value: 'ASSURANCE', label: 'Assurance' },
   { value: 'MOBILE_MONEY', label: 'Mobile Money' },
   { value: 'INVESTISSEMENT', label: 'Investissement' },
-  { value: 'ASSURANCE', label: 'Assurance' },
 ] as const;
 
 export const ZONE_OPTIONS: ReadonlyArray<SelectOption<string>> = [

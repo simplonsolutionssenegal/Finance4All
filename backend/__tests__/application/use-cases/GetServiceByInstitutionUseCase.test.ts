@@ -1,24 +1,20 @@
-// __tests__/application/use-cases/GetServiceByInstitutionUseCase.test.ts
-import type { InstitutionService } from '@/domain/entities/InstitutionService';
-import type { GetServiceByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
+// __tests__/application/use-cases/GetProductByInstitutionUseCase.test.ts
+import type { Product } from '@/domain/entities/Product';
+import type { GetProductByInstitutionUseCase } from '@/application/use-cases/GetProductByInstitutionUseCase';
 // ⚠️ Adapte le chemin si besoin
-import { GetServiceByInstitutionUseCaseImpl } from '@/domain/use-cases/GetServiceByInstitutionUseCaseImpl';
-describe('GetServiceByInstitutionUseCaseImpl', () => {
-  // Le repo réel appelé par l’implémentation s’appelle "serviceRepo" et expose:
-  // - institutionExists(institutionId: string): Promise<boolean>
-  // - findByInstitution(institutionId: string): Promise<InstitutionService[]>
+import { GetProductByInstitutionUseCaseImpl } from '@/domain/use-cases/GetProductByInstitutionUseCaseImpl';
+describe('GetProductByInstitutionUseCaseImpl', () => {
   const mockRepo: {
     institutionExists: jest.Mock<Promise<boolean>, [string]>;
-    findByInstitution: jest.Mock<Promise<InstitutionService[]>, [string]>;
+    findByInstitution: jest.Mock<Promise<Product[]>, [string]>;
   } = {
     institutionExists: jest.fn<Promise<boolean>, [string]>(),
-    findByInstitution: jest.fn<Promise<InstitutionService[]>, [string]>(),
+    findByInstitution: jest.fn<Promise<Product[]>, [string]>(),
   };
 
   const INSTITUTION_ID = 'inst-42';
 
-  // Si InstitutionService est une classe, remplace par `new InstitutionService(...)`
-  const makeService = (overrides?: Partial<InstitutionService>): InstitutionService =>
+  const makeService = (overrides?: Partial<Product>): Product =>
     ({
       id: 'svc-1',
       designation: 'Produit X',
@@ -31,20 +27,17 @@ describe('GetServiceByInstitutionUseCaseImpl', () => {
       createdAt: new Date('2025-09-01T00:00:00Z'),
       updatedAt: new Date('2025-09-01T00:00:00Z'),
       ...overrides,
-    }) as unknown as InstitutionService;
+    }) as unknown as Product;
 
-  let useCase: GetServiceByInstitutionUseCase;
+  let useCase: GetProductByInstitutionUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new GetServiceByInstitutionUseCaseImpl(mockRepo as any);
+    useCase = new GetProductByInstitutionUseCaseImpl(mockRepo as any);
   });
 
   it('retourne les services et appelle le repo avec le bon id (string)', async () => {
-    const expected: InstitutionService[] = [
-      makeService({ id: 'svc-a' }),
-      makeService({ id: 'svc-b' }),
-    ];
+    const expected: Product[] = [makeService({ id: 'svc-a' }), makeService({ id: 'svc-b' })];
 
     mockRepo.institutionExists.mockResolvedValueOnce(true);
     mockRepo.findByInstitution.mockResolvedValueOnce(expected);
@@ -61,7 +54,7 @@ describe('GetServiceByInstitutionUseCaseImpl', () => {
   });
 
   it('retourne [] quand le repo ne trouve rien', async () => {
-    const expected: InstitutionService[] = [];
+    const expected: Product[] = [];
 
     mockRepo.institutionExists.mockResolvedValueOnce(true);
     mockRepo.findByInstitution.mockResolvedValueOnce(expected);
@@ -83,18 +76,17 @@ describe('GetServiceByInstitutionUseCaseImpl', () => {
     expect(mockRepo.findByInstitution).toHaveBeenCalledWith(INSTITUTION_ID);
   });
 
-  // Active ce test seulement si ton implémentation valide l’ID avant l’appel repo
   it('rejette si institutionId est invalide (implémentations strictes)', async () => {
     await expect(useCase.execute('')).rejects.toThrow();
-    // selon ton implémentation, institutionExists peut ne PAS être appelé :
-    // ici on n’impose rien; on s’assure surtout qu’aucun accès data n’est fait.
     expect(mockRepo.findByInstitution).not.toHaveBeenCalled();
   });
 
   it("rejette 'INSTITUTION_NOT_FOUND' si l'institution n'existe pas", async () => {
     mockRepo.institutionExists.mockResolvedValueOnce(false);
 
-    await expect(useCase.execute(INSTITUTION_ID)).rejects.toThrow('INSTITUTION_NOT_FOUND');
+    await expect(useCase.execute(INSTITUTION_ID)).rejects.toMatchObject({
+      code: 'INSTITUTION_NOT_FOUND',
+    });
 
     expect(mockRepo.institutionExists).toHaveBeenCalledWith(INSTITUTION_ID);
     expect(mockRepo.findByInstitution).not.toHaveBeenCalled();

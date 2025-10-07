@@ -12,7 +12,6 @@ type PageProps = Readonly<{
 }>;
 
 export default async function InstitutionPage({ searchParams }: PageProps) {
-  // ✅ on résout le promise; si undefined, on prend un objet vide
   const resolved = (await searchParams) ?? {};
   const institutionId = resolved.id ?? '99e13ab0-b2df-423f-ba5b-c847c1dc0fef';
 

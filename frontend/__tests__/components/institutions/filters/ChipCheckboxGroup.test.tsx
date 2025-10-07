@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import ChipCheckboxGroup from '@/components/institutions/filters/ChipCheckboxGroup';
+import ChipCheckboxGroup from '@/components/institutions/filters/BadgeCheckboxGroup';
 
 type T = 'CREDIT' | 'EPARGNE';
 

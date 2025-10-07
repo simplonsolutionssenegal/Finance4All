@@ -1,23 +1,19 @@
-import {
-  PrismaClient,
-  type InstitutionService as PrismaInstitutionService,
-  type Prisma,
-} from '@prisma/client';
-import { InstitutionService } from '@/domain/entities/InstitutionService';
+import { PrismaClient, type Product as PrismaProduct, type Prisma } from '@prisma/client';
+import { Product } from '@/domain/entities/Product';
 
-import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
-import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
+import type { ProductRepository } from '@/domain/repositories/ProductRepository';
+import type { ProductType } from '@/domain/entities/types/ProductType';
 import type { RemboursementMode } from '@/domain/entities/types/RemboursementMode';
 
 const prisma = new PrismaClient();
 
-function toDomain(p: PrismaInstitutionService): InstitutionService {
-  return new InstitutionService(
+function toDomain(p: PrismaProduct): Product {
+  return new Product(
     p.id,
     p.designation,
     Number(p.montantMin),
     Number(p.montantMax),
-    p.type as ServiceType,
+    p.type as ProductType,
     p.modesRemboursement as RemboursementMode,
     p.institutionId,
     p.zones?.[0] ?? '', // array → scalaire
@@ -26,9 +22,9 @@ function toDomain(p: PrismaInstitutionService): InstitutionService {
   );
 }
 
-export class PrismaServiceRepository implements ServiceRepository {
-  async findByInstitution(institutionId: string): Promise<InstitutionService[]> {
-    const rows = await prisma.institutionService.findMany({
+export class PrismaProductRepository implements ProductRepository {
+  async findByInstitution(institutionId: string): Promise<Product[]> {
+    const rows = await prisma.product.findMany({
       where: { institutionId },
       orderBy: [{ designation: 'asc' }],
     });
@@ -37,23 +33,23 @@ export class PrismaServiceRepository implements ServiceRepository {
 
   async findByFilters(
     institutionId: string,
-    types?: ServiceType[],
+    types?: ProductType[],
     zoneCodes?: string[],
     fromDate?: Date
-  ): Promise<InstitutionService[]> {
-    const where: Prisma.InstitutionServiceWhereInput = { institutionId };
+  ): Promise<Product[]> {
+    const where: Prisma.ProductWhereInput = { institutionId };
 
     if (types?.length) {
       where.type = { in: types };
     }
     if (zoneCodes?.length) {
-      where.zones = { hasSome: zoneCodes }; // au moins une des zones demandées
+      where.zones = { hasSome: zoneCodes };
     }
     if (fromDate instanceof Date && !isNaN(fromDate.getTime())) {
       where.createdAt = { gte: fromDate };
     }
 
-    const rows = await prisma.institutionService.findMany({
+    const rows = await prisma.product.findMany({
       where,
       orderBy: [{ designation: 'asc' }],
     });

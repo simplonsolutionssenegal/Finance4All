@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
-import type { GetServiceByInstitutionUseCase } from '@/application/use-cases/GetServiceByInstitutionUseCase';
-import type { FilterServicesUseCase } from '@/application/use-cases/FilterServicesUseCase';
-import { ServiceController } from '@/infrastructure/web/controllers/ServiceController';
+import type { GetProductByInstitutionUseCase } from '@/application/use-cases/GetProductByInstitutionUseCase';
+import type { FilterProductUseCase } from '@/application/use-cases/FilterProductUseCase';
+import { ProductController } from '@/infrastructure/web/controllers/ProductController';
+import { InstitutionNotFoundError } from '@/domain/errors/InstitutionNotFoundError';
 
 function makeRes() {
   const res = {
@@ -14,21 +15,21 @@ function makeRes() {
   return res;
 }
 
-describe('ServiceController', () => {
-  let getUC: jest.Mocked<GetServiceByInstitutionUseCase>;
-  let filterUC: jest.Mocked<FilterServicesUseCase>;
-  let controller: ServiceController;
+describe('ProductController', () => {
+  let getUC: jest.Mocked<GetProductByInstitutionUseCase>;
+  let filterUC: jest.Mocked<FilterProductUseCase>;
+  let controller: ProductController;
 
   beforeEach(() => {
     getUC = {
       execute: jest.fn(),
-    } as unknown as jest.Mocked<GetServiceByInstitutionUseCase>;
+    } as unknown as jest.Mocked<GetProductByInstitutionUseCase>;
 
     filterUC = {
       execute: jest.fn(),
-    } as unknown as jest.Mocked<FilterServicesUseCase>;
+    } as unknown as jest.Mocked<FilterProductUseCase>;
 
-    controller = new ServiceController(getUC, filterUC);
+    controller = new ProductController(getUC, filterUC);
     jest.clearAllMocks();
   });
 
@@ -55,14 +56,15 @@ describe('ServiceController', () => {
       const req = { params: { institutionId: 'inst-404' } } as unknown as Request;
       const res = makeRes();
 
-      getUC.execute.mockRejectedValueOnce(new Error('INSTITUTION_NOT_FOUND'));
+      getUC.execute.mockRejectedValueOnce(new InstitutionNotFoundError('inst-404'));
 
       await controller.byInstitution(req, res);
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'institutionId introuvable',
+        status: 'error',
+        code: 'INSTITUTION_NOT_FOUND',
+        message: 'Institution not found: inst-404',
       });
     });
 
@@ -87,9 +89,9 @@ describe('ServiceController', () => {
       const req = {
         params: { institutionId: 'inst-123' },
         query: {
-          type: ['credit', 'EPARGNE'], // mélange casse/array
-          zone: 'DAKAR', // string simple
-          date: 'recent', // preset valide
+          type: ['credit', 'EPARGNE'],
+          zone: 'DAKAR',
+          date: 'recent',
         },
       } as unknown as Request;
       const res = makeRes();
@@ -99,7 +101,6 @@ describe('ServiceController', () => {
 
       await controller.filterByInstitution(req, res);
 
-      // Vérifie la normalisation & passage correct au use-case
       expect(filterUC.execute).toHaveBeenCalledWith({
         institutionId: 'inst-123',
         types: ['CREDIT', 'EPARGNE'],
@@ -120,8 +121,8 @@ describe('ServiceController', () => {
         params: { institutionId: 'inst-123' },
         query: {
           type: 'assurance',
-          zone: [' DAKAR ', 'THIES', ''], // espaces + vide
-          date: 'invalid', // ignoré
+          zone: [' DAKAR ', 'THIES', ''],
+          date: 'invalid',
         },
       } as unknown as Request;
       const res = makeRes();

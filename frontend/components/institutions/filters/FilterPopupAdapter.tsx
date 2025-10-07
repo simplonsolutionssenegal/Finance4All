@@ -33,7 +33,6 @@ export default function FilterPopupAdapter({
       onClose={onClose}
       onApply={f => {
         onApplyFilters(f);
-        // setValue(EMPTY_FILTERS);
         onClose();
       }}
       onCancel={() => {

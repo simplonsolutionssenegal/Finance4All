@@ -3,16 +3,16 @@
 import React from 'react';
 
 import type { FilterOptions, DateFilter } from '@/types/FilterOptions';
-import type { ServiceType } from '@/types/ServiceType';
+import type { ProductType } from '@/types/ProductType';
 
-import ChipCheckboxGroup from './filters/ChipCheckboxGroup';
-import ChipRadioGroup from './filters/ChipRadioGroup';
+import BadgeCheckboxGroup from './filters/BadgeCheckboxGroup';
+import BadgeRadioGroup from './filters/BadgeRadioGroup';
 import FilterSection from './filters/FilterSection';
 import { DATE_OPTIONS, EMPTY_FILTERS, TYPE_OPTIONS, ZONE_OPTIONS } from './filters/options';
 
 type Props = {
   isOpen: boolean;
-  value: FilterOptions; // ← modèle contrôlé
+  value: FilterOptions; // contrôlé
   onChange: (next: FilterOptions) => void;
   onClose: () => void;
   onApply: (filters: FilterOptions) => void;
@@ -47,7 +47,7 @@ export default function FilterPopup({
     >
       <div className='bg-white rounded-xl shadow-xl w-full max-w-64 mx-2'>
         <div className='px-4 pt-4 flex items-center justify-between'>
-          <span className='text-sm font-semibold text-black'>Filtres</span>
+          <span className='text-sm font-semibold text-black'>Type de produit</span>
           <button
             type='button'
             onClick={reinit}
@@ -58,8 +58,8 @@ export default function FilterPopup({
         </div>
 
         <div className='p-2 space-y-5'>
-          <FilterSection title='Type de produit'>
-            <ChipCheckboxGroup<ServiceType>
+          <FilterSection title=''>
+            <BadgeCheckboxGroup<ProductType>
               options={TYPE_OPTIONS}
               values={value.type}
               onChange={next => onChange({ ...value, type: next })}
@@ -67,7 +67,7 @@ export default function FilterPopup({
           </FilterSection>
 
           <FilterSection title='Zone géographique'>
-            <ChipCheckboxGroup<string>
+            <BadgeCheckboxGroup<string>
               options={ZONE_OPTIONS}
               values={value.zone}
               onChange={next => onChange({ ...value, zone: next })}
@@ -75,7 +75,7 @@ export default function FilterPopup({
           </FilterSection>
 
           <FilterSection title='Date'>
-            <ChipRadioGroup<DateFilter>
+            <BadgeRadioGroup<DateFilter>
               name='date'
               options={DATE_OPTIONS}
               value={value.date}
@@ -87,12 +87,9 @@ export default function FilterPopup({
         <div className='flex items-center justify-between p-2 w-full mb-3 gap-3'>
           <button
             onClick={() => {
-              onChange(EMPTY_FILTERS); // reset UI
-              if (onCancel) {
-                onCancel(); // 👈 laisse l’adaptateur décider quoi faire pour la liste
-              } else {
-                onClose();
-              }
+              onChange(EMPTY_FILTERS);
+              if (onCancel) onCancel();
+              else onClose();
             }}
             className='px-4 py-1 w-sm text-xs font-medium text-gray-700 bg-[#8b8e8fff] rounded-md transition-colors'
           >

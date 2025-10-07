@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import ChipRadioGroup from '@/components/institutions/filters/ChipRadioGroup';
+import ChipRadioGroup from '@/components/institutions/filters/BadgeRadioGroup';
 
 type D = 'recent' | '3mois';
 const options = [

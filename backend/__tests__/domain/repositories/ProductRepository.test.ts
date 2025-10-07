@@ -1,61 +1,51 @@
-// backend/__tests__/domain/repositories/ServiceRepository.test.ts
+// backend/__tests__/domain/repositories/ProductRepository.test.ts
 
-import type { ServiceRepository } from '@/domain/repositories/ServiceRepository';
-import type { InstitutionService } from '@/domain/entities/InstitutionService';
-import type { ServiceType } from '@/domain/entities/types/InstitutionServiceType';
-import { GetServiceByInstitutionUseCaseImpl } from '@/domain/use-cases/GetServiceByInstitutionUseCaseImpl';
-import { FilterServicesUseCaseImpl } from '@/domain/use-cases/FilterServicesUseCaseImpl';
+import type { ProductRepository } from '@/domain/repositories/ProductRepository';
+import type { Product } from '@/domain/entities/Product';
+import { ProductType } from '@/domain/entities/types/ProductType';
+import { GetProductByInstitutionUseCaseImpl } from '@/domain/use-cases/GetProductByInstitutionUseCaseImpl';
+import { FilterProductUseCaseImpl } from '@/domain/use-cases/FilterProductUseCaseImpl';
 
-// -----------------------------------------------------------------------------
-// MOCK unique et typé pour ServiceRepository
-// -----------------------------------------------------------------------------
-function makeServiceRepositoryMock(): jest.Mocked<ServiceRepository> {
+function makeProductRepositoryMock(): jest.Mocked<ProductRepository> {
   return {
-    findByInstitution: jest.fn<Promise<InstitutionService[]>, [string]>(),
+    findByInstitution: jest.fn<Promise<Product[]>, [string]>(),
     institutionExists: jest.fn<Promise<boolean>, [string]>(),
     findByFilters: jest.fn<
-      Promise<InstitutionService[]>,
-      [string, ServiceType[] | undefined, string[] | undefined, Date | undefined]
+      Promise<Product[]>,
+      [string, ProductType[] | undefined, string[] | undefined, Date | undefined]
     >(),
   };
 }
 
-// Petite factory de service (si c’est une classe, remplace par `new InstitutionService(...)`)
-function makeService(
-  overrides: Partial<InstitutionService> = {},
-  base: Partial<InstitutionService> = {}
-): InstitutionService {
-  const def: Partial<InstitutionService> = {
+function makeService(overrides: Partial<Product> = {}, base: Partial<Product> = {}): Product {
+  const def: Partial<Product> = {
     id: 'svc-1',
     designation: 'Crédit Nano',
     montantMin: 10000,
     montantMax: 200000,
-    type: 'CREDIT',
+    type: ProductType.CREDIT,
     modesRemboursement: 'USSD',
     institutionId: base.institutionId ?? 'inst-1',
     zone: 'Z1',
     createdAt: new Date('2025-09-01T00:00:00Z'),
     updatedAt: new Date('2025-09-01T00:00:00Z'),
   };
-  return { ...def, ...base, ...overrides } as InstitutionService;
+  return { ...def, ...base, ...overrides } as Product;
 }
 
-// -----------------------------------------------------------------------------
-// SUITE 1 — GetServiceByInstitutionUseCaseImpl
-// -----------------------------------------------------------------------------
 describe('GetServiceByInstitutionUseCaseImpl', () => {
   const INSTITUTION_ID = 'inst-42';
 
-  let repo: jest.Mocked<ServiceRepository>;
-  let useCase: { execute: (institutionId: string) => Promise<InstitutionService[]> };
+  let repo: jest.Mocked<ProductRepository>;
+  let useCase: { execute: (institutionId: string) => Promise<Product[]> };
 
   beforeEach(() => {
-    repo = makeServiceRepositoryMock();
-    useCase = new GetServiceByInstitutionUseCaseImpl(repo as ServiceRepository) as any;
+    repo = makeProductRepositoryMock();
+    useCase = new GetProductByInstitutionUseCaseImpl(repo as ProductRepository) as any;
   });
 
   it('retourne les services et appelle le repo avec le bon id', async () => {
-    const expected: InstitutionService[] = [
+    const expected: Product[] = [
       makeService({ id: 'svc-a' }, { institutionId: INSTITUTION_ID }),
       makeService({ id: 'svc-b' }, { institutionId: INSTITUTION_ID }),
     ];
@@ -70,7 +60,7 @@ describe('GetServiceByInstitutionUseCaseImpl', () => {
   });
 
   it('retourne [] quand le repo ne trouve rien', async () => {
-    const expected: InstitutionService[] = [];
+    const expected: Product[] = [];
     repo.institutionExists.mockResolvedValueOnce(true);
     repo.findByInstitution.mockResolvedValueOnce(expected);
 
@@ -91,28 +81,27 @@ describe('GetServiceByInstitutionUseCaseImpl', () => {
   it("rejette 'INSTITUTION_NOT_FOUND' si l'institution n'existe pas", async () => {
     repo.institutionExists.mockResolvedValueOnce(false);
 
-    await expect(useCase.execute(INSTITUTION_ID)).rejects.toThrow('INSTITUTION_NOT_FOUND');
+    await expect(useCase.execute(INSTITUTION_ID)).rejects.toMatchObject({
+      code: 'INSTITUTION_NOT_FOUND',
+    });
     expect(repo.findByInstitution).not.toHaveBeenCalled();
   });
 });
 
-// -----------------------------------------------------------------------------
-// SUITE 2 — FilterServicesUseCaseImpl
-// -----------------------------------------------------------------------------
 describe('FilterServicesUseCaseImpl', () => {
   const INSTITUTION_ID = 'inst-1';
   const ZONES = ['Z1', 'Z2'] as const;
-  const TYPES: ServiceType[] = ['CREDIT', 'EPARGNE'];
+  const TYPES: ProductType[] = [ProductType.CREDIT, ProductType.EPARGNE];
   const NOW = new Date('2025-10-05T00:00:00Z');
 
-  let repo: jest.Mocked<ServiceRepository>;
+  let repo: jest.Mocked<ProductRepository>;
   let useCase: {
     execute: (p: {
       institutionId: string;
-      types?: ServiceType[];
+      types?: ProductType[];
       zoneCodes?: string[];
       datePreset?: 'recent' | '3mois';
-    }) => Promise<InstitutionService[]>;
+    }) => Promise<Product[]>;
   };
 
   beforeAll(() => {
@@ -124,12 +113,12 @@ describe('FilterServicesUseCaseImpl', () => {
   });
 
   beforeEach(() => {
-    repo = makeServiceRepositoryMock();
-    useCase = new FilterServicesUseCaseImpl(repo as ServiceRepository) as any;
+    repo = makeProductRepositoryMock();
+    useCase = new FilterProductUseCaseImpl(repo as ProductRepository) as any;
   });
 
   it('recent: appelle institutionExists puis findByFilters avec un fromDate récent', async () => {
-    const expected: InstitutionService[] = [
+    const expected: Product[] = [
       makeService({ id: 'svc-a' }, { institutionId: INSTITUTION_ID }),
       makeService({ id: 'svc-b' }, { institutionId: INSTITUTION_ID }),
     ];
@@ -159,7 +148,7 @@ describe('FilterServicesUseCaseImpl', () => {
   });
 
   it('aucun filtre: fromDate undefined', async () => {
-    const expected: InstitutionService[] = [];
+    const expected: Product[] = [];
     repo.institutionExists.mockResolvedValueOnce(true);
     repo.findByFilters.mockResolvedValueOnce(expected);
 
@@ -174,9 +163,7 @@ describe('FilterServicesUseCaseImpl', () => {
   });
 
   it('3mois: fromDate ~90 jours', async () => {
-    const expected: InstitutionService[] = [
-      makeService({ id: 'svc-3m' }, { institutionId: INSTITUTION_ID }),
-    ];
+    const expected: Product[] = [makeService({ id: 'svc-3m' }, { institutionId: INSTITUTION_ID })];
     repo.institutionExists.mockResolvedValueOnce(true);
     repo.findByFilters.mockResolvedValueOnce(expected);
 

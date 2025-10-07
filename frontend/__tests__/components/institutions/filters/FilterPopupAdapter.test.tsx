@@ -8,11 +8,9 @@ import {
   DATE_OPTIONS,
 } from '@/components/institutions/filters/options';
 import type { FilterOptions, DateFilter } from '@/types/FilterOptions';
-import type { ServiceType } from '@/types/ServiceType';
+import { ProductType } from '@/types/ProductType';
 
-// 🧪 Mock du composant enfant FilterPopup pour contrôler l'UI dans nos tests
 jest.mock('@/components/institutions/FilterPopup', () => {
-  // on renvoie un composant React qui affiche les props importantes
   return function MockFilterPopup(props: {
     isOpen: boolean;
     value: FilterOptions;
@@ -26,7 +24,6 @@ jest.mock('@/components/institutions/FilterPopup', () => {
       <div role='dialog' aria-label='Filtres des produits financiers'>
         <div data-testid='fp-is-open'>{String(props.isOpen)}</div>
         <div data-testid='fp-value'>{JSON.stringify(props.value)}</div>
-        {/* Boutons de test pour simuler l'action de l'enfant */}
         <button onClick={() => props.onApply(props.value)}>__apply__</button>
         <button onClick={() => props.onCancel && props.onCancel!()}>__cancel__</button>
       </div>
@@ -53,7 +50,7 @@ describe('FilterPopupAdapter', () => {
 
   it('synchronise sa valeur interne avec currentFilters à l’ouverture', () => {
     const currentFilters: FilterOptions = {
-      type: [TYPE_OPTIONS.find(o => o.value === 'CREDIT')!.value] as ServiceType[],
+      type: [TYPE_OPTIONS.find(o => o.value === 'CREDIT')!.value] as ProductType[],
       zone: ['DAKAR'],
       date: DATE_OPTIONS.find(o => o.value === 'recent')!.value as DateFilter,
     };
@@ -70,7 +67,7 @@ describe('FilterPopupAdapter', () => {
     const onClose = jest.fn();
 
     const currentFilters: FilterOptions = {
-      type: ['CREDIT'] as ServiceType[],
+      type: ['CREDIT'] as ProductType[],
       zone: ['DAKAR'],
       date: 'recent' as DateFilter,
     };
@@ -84,7 +81,6 @@ describe('FilterPopupAdapter', () => {
       />
     );
 
-    // clique sur le bouton __apply__ du mock enfant
     fireEvent.click(screen.getByText('__apply__'));
 
     expect(onApplyFilters).toHaveBeenCalledTimes(1);
@@ -102,14 +98,13 @@ describe('FilterPopupAdapter', () => {
         onClose={onClose}
         onApplyFilters={onApplyFilters}
         currentFilters={{
-          type: ['CREDIT'] as ServiceType[],
+          type: ['CREDIT'] as ProductType[],
           zone: ['DAKAR'],
           date: 'recent' as DateFilter,
         }}
       />
     );
 
-    // clique sur le bouton __cancel__ du mock enfant
     fireEvent.click(screen.getByText('__cancel__'));
 
     expect(onApplyFilters).toHaveBeenCalledTimes(1);

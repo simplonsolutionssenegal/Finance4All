@@ -1,5 +1,5 @@
 // frontend/__tests__/lib/api-services.test.ts
-import { ServicesAPI } from '@/lib/api-services';
+import { ServicesAPI } from '@/lib/API/api-product';
 import type { FilterOptions } from '@/types/FilterOptions';
 
 describe('ServicesAPI', () => {
@@ -59,7 +59,7 @@ describe('ServicesAPI', () => {
     const calledUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
 
     // Avec NEXT_PUBLIC_API_URL=http://localhost:5000, l’URL finale doit inclure /api/v1/
-    expect(calledUrl).toBe(`http://localhost:5000/api/v1/service/by-institution/${institutionId}`);
+    expect(calledUrl).toBe(`http://localhost:5000/api/v1/product/by-institution/${institutionId}`);
     expect(res).toEqual(data);
   });
 
@@ -79,7 +79,7 @@ describe('ServicesAPI', () => {
 
     // Chemin correct
     expect(
-      calledUrl.startsWith('http://localhost:5000/api/v1/service/by-institution/inst-1/filter')
+      calledUrl.startsWith('http://localhost:5000/api/v1/product/by-institution/inst-1/filter')
     ).toBe(true);
 
     // Fragments de query (l'ordre n'est pas garanti)

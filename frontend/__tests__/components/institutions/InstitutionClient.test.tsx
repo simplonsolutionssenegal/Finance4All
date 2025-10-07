@@ -1,57 +1,138 @@
-import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import InstitutionClient from '@/components/institutions/InstitutionClient';
-import { ServicesAPI } from '@/lib/api-services';
+import type { Product } from '@/models/product';
 
-// Mock API
-jest.mock('@/lib/api-services', () => ({
+const getByInstitution = jest.fn();
+const filterByInstitution = jest.fn();
+
+jest.mock('@/lib/API/api-product', () => ({
   ServicesAPI: {
-    getByInstitution: jest.fn().mockResolvedValue([]),
-    filterByInstitution: jest.fn().mockResolvedValue([]),
+    getByInstitution: (...args: any[]) => getByInstitution(...args),
+    filterByInstitution: (...args: any[]) => filterByInstitution(...args),
   },
 }));
 
-// Mock ServiceList pour afficher le nombre d'items passés
-jest.mock('@/components/institutions/ServiceList', () => {
-  return function MockServiceList(props: { services: any[]; isLoading?: boolean }) {
+jest.mock('@/components/institutions/ProductList', () => {
+  return function MockProductList(props: { products: Product[]; isLoading: boolean }) {
     return (
-      <div>
-        <div data-testid='service-count'>{props.services.length}</div>
-        {props.isLoading ? <div data-testid='loading'>loading</div> : null}
+      <div data-testid='ProductList'>
+        <span data-testid='count'>{props.products.length}</span>
+        <span data-testid='loading'>{String(props.isLoading)}</span>
       </div>
     );
   };
 });
 
-// Mock SearchBar (juste rendu statique, on ne déclenche pas d’actions)
-jest.mock('@/components/institutions/SearchBar', () => {
-  return function MockSearchBar(props: {
-    onSearch: (v: string) => void;
-    resultsCount: number;
-    onApplyFilters: (f: any) => void;
-    currentFilters: any;
-  }) {
-    return (
-      <div>
-        <div data-testid='searchbar'>SearchBar</div>
-        <div data-testid='results'>{props.resultsCount}</div>
-        <div data-testid='current-filters'>{JSON.stringify(props.currentFilters)}</div>
-      </div>
-    );
-  };
+let searchBarProps: any = null;
+jest.mock('@/components/institutions/SearchBar', () => (props: any) => {
+  searchBarProps = props;
+  return <div data-testid='SearchBar'></div>;
 });
+
+function makeProduct(overrides: Partial<Product> = {}, i = 1): Product {
+  const base: Product = {
+    id: `p-${i}`,
+    designation: `Produit ${i}`,
+    type: 'CREDIT',
+    montantMin: 1000 * i,
+    montantMax: 10000 * i,
+    modesRemboursement: 'AGENCE',
+    institutionId: '11111111-2222-3333-4444-555555555555',
+    zoneId: 'ZONE1',
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-02T00:00:00Z',
+  };
+  return { ...base, ...overrides };
+}
 
 describe('InstitutionClient', () => {
-  it('appelle getByInstitution au montage et rend la liste (0 item au départ)', async () => {
-    render(<InstitutionClient institutionId='inst-123' />);
+  const INSTITUTION_ID = 'abc-123';
 
-    // getByInstitution doit être appelé une fois au premier chargement (EMPTY_FILTERS)
-    expect(ServicesAPI.getByInstitution).toHaveBeenCalledWith('inst-123');
+  beforeEach(() => {
+    jest.clearAllMocks();
+    searchBarProps = null;
+  });
 
-    // ServiceList reçoit un tableau vide => "0"
-    expect(await screen.findByTestId('service-count')).toHaveTextContent('0');
+  it('charge les produits au mount (getByInstitution) et met à jour isLoading', async () => {
+    const data = [
+      makeProduct({ designation: 'Crédit A' }, 1),
+      makeProduct({ designation: 'Épargne B', type: 'EPARGNE' }, 2),
+    ];
+    getByInstitution.mockResolvedValueOnce(data);
 
-    // SearchBar rend aussi le compteur passé (ici 0 car aucune recherche)
-    expect(screen.getByTestId('results')).toHaveTextContent('0');
+    render(<InstitutionClient institutionId={INSTITUTION_ID} />);
+
+    expect(await screen.findByTestId('ProductList')).toBeInTheDocument();
+    expect(screen.getByTestId('loading')).toHaveTextContent('true');
+
+    await waitFor(() => {
+      expect(getByInstitution).toHaveBeenCalledWith(INSTITUTION_ID);
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      expect(screen.getByTestId('count')).toHaveTextContent('2');
+    });
+  });
+
+  it('applique filtres (filterByInstitution) quand SearchBar appelle onApplyFilters', async () => {
+    const initial = [makeProduct({}, 1)];
+    const filtered = [makeProduct({}, 2), makeProduct({}, 3), makeProduct({}, 4)];
+    getByInstitution.mockResolvedValueOnce(initial);
+    filterByInstitution.mockResolvedValueOnce(filtered);
+
+    render(<InstitutionClient institutionId={INSTITUTION_ID} />);
+
+    await waitFor(() => expect(getByInstitution).toHaveBeenCalled());
+
+    const filters = { type: ['CREDIT'], zone: [], date: '' };
+
+    await act(async () => {
+      searchBarProps.onApplyFilters(filters);
+    });
+
+    await waitFor(() => {
+      expect(filterByInstitution).toHaveBeenCalledWith(INSTITUTION_ID, filters);
+      expect(screen.getByTestId('count')).toHaveTextContent('3');
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+  });
+
+  it('filtre côté client via onSearch (memo) sans nouvel appel API', async () => {
+    const data = [
+      makeProduct({ designation: 'Crédit Scolaire', type: 'CREDIT' }, 1),
+      makeProduct({ designation: 'Plan Épargne', type: 'EPARGNE' }, 2),
+    ];
+    getByInstitution.mockResolvedValueOnce(data);
+
+    render(<InstitutionClient institutionId={INSTITUTION_ID} />);
+    await waitFor(() => expect(getByInstitution).toHaveBeenCalled());
+
+    await act(async () => {
+      searchBarProps.onSearch('épar');
+    });
+
+    expect(screen.getByTestId('count')).toHaveTextContent('1');
+
+    expect(filterByInstitution).not.toHaveBeenCalled();
+  });
+
+  it('affiche un panneau d’erreur et relance un retry (Réessayer)', async () => {
+    getByInstitution.mockRejectedValueOnce(new Error('BOOM'));
+
+    getByInstitution.mockResolvedValueOnce([makeProduct({}, 1)]);
+
+    render(<InstitutionClient institutionId={INSTITUTION_ID} />);
+
+    const errTitle = await screen.findByText(/Erreur de chargement/i);
+    expect(errTitle).toBeInTheDocument();
+    expect(screen.getByText('BOOM')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Réessayer/i }));
+
+    await waitFor(() => {
+      expect(getByInstitution).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('ProductList')).toBeInTheDocument();
+      expect(screen.getByTestId('count')).toHaveTextContent('1');
+    });
   });
 });
