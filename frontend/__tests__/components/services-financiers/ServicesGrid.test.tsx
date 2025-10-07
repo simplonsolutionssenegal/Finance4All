@@ -25,7 +25,7 @@ jest.mock('@/components/ui/badge', () => ({
 
 // Mock formatCurrency and formatPercentage
 jest.mock('@/data/MockData', () => ({
-  formatCurrency: jest.fn((amount: number) => `$${amount.toLocaleString()}`),
+  formatCurrency: jest.fn(),
   formatPercentage: jest.fn((rate: number) => `${rate}%`),
 }));
 
@@ -124,10 +124,15 @@ describe('ServicesGrid', () => {
 
       const montantLabels = screen.getAllByText('Montant max:');
       expect(montantLabels.length).toBeGreaterThan(0);
-      expect(screen.getByText('$1 000 000')).toBeInTheDocument();
-      expect(formatCurrency).toHaveBeenCalledWith(1000000);
-    });
 
+      // Verify that the formatted currency values are displayed correctly
+      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
+      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+
+      // Also verify that formatCurrency is called with correct values
+      expect(formatCurrency).toHaveBeenCalledWith(1000000);
+      expect(formatCurrency).toHaveBeenCalledWith(50000000);
+    });
     it('should display formatted interest rate', () => {
       render(<ServicesGrid {...defaultProps} />);
 

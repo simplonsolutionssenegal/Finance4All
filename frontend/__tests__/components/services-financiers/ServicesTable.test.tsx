@@ -148,9 +148,11 @@ describe('ServicesTable', () => {
     it('should display formatted max amount', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Test for formatted currency amounts (either with FCFA or fallback format)
-      expect(screen.getByText(/1[\s\d]*000[\s\d]*000/)).toBeInTheDocument();
-      expect(screen.getByText(/50[\s\d]*000[\s\d]*000/)).toBeInTheDocument();
+      // Test for formatted currency amounts (verify actual displayed values)
+      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
+      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+
+      // Also verify that formatCurrency is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(1000000);
       expect(formatCurrency).toHaveBeenCalledWith(50000000);
     });
@@ -158,11 +160,15 @@ describe('ServicesTable', () => {
     it('should display formatted min amount', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Just check that Min: labels exist and formatCurrency is called
+      // Check that Min: labels exist and verify the formatted values are displayed
       const minLabels = screen.getAllByText(/Min:/);
       expect(minLabels.length).toBeGreaterThan(0);
 
-      // Verify the function is called with correct values
+      // Verify that the formatted min amounts are displayed correctly
+      expect(screen.getByText('$10,000')).toBeInTheDocument();
+      expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+
+      // Also verify the function is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(10000);
       expect(formatCurrency).toHaveBeenCalledWith(5000000);
     });
@@ -449,6 +455,13 @@ describe('ServicesTable', () => {
     it('should format currency correctly', () => {
       render(<ServicesTable {...defaultProps} />);
 
+      // Verify that the formatted currency values are displayed correctly in the table
+      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
+      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+      expect(screen.getByText('$10,000')).toBeInTheDocument();
+      expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+
+      // Also verify that formatCurrency is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(1000000);
       expect(formatCurrency).toHaveBeenCalledWith(50000000);
     });
@@ -456,6 +469,11 @@ describe('ServicesTable', () => {
     it('should format percentage correctly', () => {
       render(<ServicesTable {...defaultProps} />);
 
+      // Verify that the formatted percentage values are displayed correctly
+      expect(screen.getByText('5.5%')).toBeInTheDocument();
+      expect(screen.getByText('7.2%')).toBeInTheDocument();
+
+      // Also verify that formatPercentage is called with correct values
       expect(formatPercentage).toHaveBeenCalledWith(5.5);
       expect(formatPercentage).toHaveBeenCalledWith(7.2);
     });
