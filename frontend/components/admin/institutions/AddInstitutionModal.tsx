@@ -25,6 +25,7 @@ import { useCreateInstitution } from '@/hooks/useCreateInstitution';
 interface AddInstitutionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  refresh: () => void;
 }
 
 const institutionSchema = z.object({
@@ -50,7 +51,7 @@ const availableZones = [
   'Pacifique',
 ];
 
-const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) => {
+const AddInstitutionModal = ({ open, onOpenChange, refresh }: AddInstitutionModalProps) => {
   const form = useForm<FormData>({
     resolver: zodResolver(institutionSchema),
     defaultValues: {
@@ -66,6 +67,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
     onSuccess: () => {
       form.reset();
       onOpenChange(false);
+      refresh();
     },
   });
 

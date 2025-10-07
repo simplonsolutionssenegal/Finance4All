@@ -1,7 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import InstitutionsList from '@/components/admin/institutions/InstitutionsList';
-
 // Mock the Button component
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, className, variant }: any) => (
@@ -11,12 +9,18 @@ jest.mock('@/components/ui/button', () => ({
   ),
 }));
 
+// Mock the Badge component
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children, className }: any) => <span className={className}>{children}</span>,
+}));
+
 // Mock AddInstitutionModal
 jest.mock('@/components/admin/institutions/AddInstitutionModal', () => {
-  return function MockAddInstitutionModal({ open, onOpenChange }: any) {
+  return function MockAddInstitutionModal({ open, onOpenChange, refresh }: any) {
     return open ? (
       <div data-testid='add-institution-modal'>
         <button onClick={() => onOpenChange(false)}>Close Modal</button>
+        <button onClick={refresh}>Refresh</button>
       </div>
     ) : null;
   };
@@ -29,9 +33,118 @@ jest.mock('lucide-react', () => ({
   Edit: (props: any) => <div data-testid='edit-icon' {...props} />,
   Trash2: (props: any) => <div data-testid='trash-icon' {...props} />,
   Plus: (props: any) => <div data-testid='plus-icon' {...props} />,
+  ChevronLeftIcon: (props: any) => <div data-testid='chevron-left-icon' {...props} />,
+  ChevronRightIcon: (props: any) => <div data-testid='chevron-right-icon' {...props} />,
+  MoreHorizontalIcon: (props: any) => <div data-testid='more-horizontal-icon' {...props} />,
 }));
 
+// Mock pagination components
+jest.mock('@/components/ui/pagination', () => ({
+  Pagination: ({ children }: any) => <nav data-testid='pagination'>{children}</nav>,
+  PaginationContent: ({ children }: any) => <ul data-testid='pagination-content'>{children}</ul>,
+  PaginationItem: ({ children }: any) => <li data-testid='pagination-item'>{children}</li>,
+  PaginationLink: ({ children, onClick, isActive }: any) => (
+    <a
+      data-testid='pagination-link'
+      onClick={onClick}
+      data-active={isActive}
+      className={isActive ? 'active' : ''}
+    >
+      {children}
+    </a>
+  ),
+  PaginationPrevious: ({ onClick, className }: any) => (
+    <a data-testid='pagination-previous' onClick={onClick} className={className}>
+      Previous
+    </a>
+  ),
+  PaginationNext: ({ onClick, className }: any) => (
+    <a data-testid='pagination-next' onClick={onClick} className={className}>
+      Next
+    </a>
+  ),
+  PaginationEllipsis: () => <span data-testid='pagination-ellipsis'>...</span>,
+}));
+
+// Mock useGetInstitutions hook
+const mockRefetch = jest.fn();
+jest.mock('@/hooks/useGetInstitutions', () => ({
+  useGetInstitutions: jest.fn(),
+  InstitutionStatus: {
+    ACTIVE: 'ACTIVE',
+    INACTIVE: 'INACTIVE',
+    PENDING: 'PENDING',
+  },
+}));
+
+// Mock useLoader hook
+jest.mock('@/contexts/LoaderContext', () => ({
+  useLoader: jest.fn(() => ({
+    showLoader: jest.fn(),
+    hideLoader: jest.fn(),
+  })),
+}));
+
+import InstitutionsList from '@/components/admin/institutions/InstitutionsList';
+import { useGetInstitutions } from '@/hooks/useGetInstitutions';
+const mockUseGetInstitutions = useGetInstitutions as jest.Mock;
+
 describe('InstitutionsList', () => {
+  const mockInstitutions = [
+    {
+      id: '1',
+      name: 'Société générale',
+      website: 'www.test.com',
+      description: 'Achat de carte visa',
+      status: 'ACTIVE' as const,
+      geographicZones: ['UEMOA'],
+      logoUrl: 'https://logo.com/logo1.png',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+    },
+    {
+      id: '2',
+      name: 'Société générale',
+      website: 'www.test.com',
+      description: 'Achat de carte visa',
+      status: 'ACTIVE' as const,
+      geographicZones: ['CEMAC'],
+      logoUrl: 'https://logo.com/logo2.png',
+      createdAt: '2024-01-02',
+      updatedAt: '2024-01-02',
+    },
+    {
+      id: '3',
+      name: 'Société générale',
+      website: 'www.test.com',
+      description: 'Achat de carte visa',
+      status: 'ACTIVE' as const,
+      geographicZones: ['UEMOA', 'CEMAC'],
+      logoUrl: 'https://logo.com/logo3.png',
+      createdAt: '2024-01-03',
+      updatedAt: '2024-01-03',
+    },
+  ];
+
+  const mockPagination = {
+    page: 1,
+    limit: 10,
+    total: 3,
+    totalPages: 1,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseGetInstitutions.mockReturnValue({
+      institutions: mockInstitutions,
+      pagination: mockPagination,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+  });
+
   it('renders without crashing', () => {
     render(<InstitutionsList />);
     expect(screen.getByText('Liste des instituts')).toBeInTheDocument();
@@ -298,6 +411,244 @@ describe('InstitutionsList', () => {
 
       fireEvent.click(addButton);
       expect(screen.getByTestId('add-institution-modal')).toBeInTheDocument();
+    });
+  });
+
+  describe('Error State', () => {
+    it('displays error message when there is an error', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: true,
+        error: { message: 'Failed to fetch institutions' },
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.getByText(/Erreur lors du chargement des institutions/)).toBeInTheDocument();
+      expect(screen.getByText(/Failed to fetch institutions/)).toBeInTheDocument();
+    });
+
+    it('displays retry button when there is an error', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: true,
+        error: { message: 'Network error' },
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const retryButton = screen.getByText('Réessayer');
+      expect(retryButton).toBeInTheDocument();
+    });
+
+    it('calls refetch when retry button is clicked', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: true,
+        error: { message: 'Network error' },
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const retryButton = screen.getByText('Réessayer');
+      fireEvent.click(retryButton);
+
+      expect(mockRefetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not display table when there is an error', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: true,
+        error: { message: 'Network error' },
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.queryByText('Société générale')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Empty State', () => {
+    it('displays empty message when there are no institutions', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.getByText('Aucune institution trouvée')).toBeInTheDocument();
+    });
+
+    it('does not display table when there are no institutions', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: null,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      const { container } = render(<InstitutionsList />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Pagination', () => {
+    it('does not display pagination when there is only one page', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 3, totalPages: 1 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
+    });
+
+    it('displays pagination when there are multiple pages', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.getByTestId('pagination')).toBeInTheDocument();
+    });
+
+    it('displays correct page numbers', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText('2')).toBeInTheDocument();
+      expect(screen.getByText('3')).toBeInTheDocument();
+    });
+
+    it('displays pagination info text', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      expect(screen.getByText('Page 1 sur 3 (25 institutions au total)')).toBeInTheDocument();
+    });
+
+    it('previous button is disabled on first page', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const previousButton = screen.getByTestId('pagination-previous');
+      expect(previousButton.className).toContain('pointer-events-none opacity-50');
+    });
+
+    it('next button is enabled on first page when there are more pages', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const nextButton = screen.getByTestId('pagination-next');
+      expect(nextButton.className).toContain('cursor-pointer');
+    });
+
+    it('next button is disabled on last page', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 3, limit: 10, total: 25, totalPages: 3 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const nextButton = screen.getByTestId('pagination-next');
+      expect(nextButton.className).toContain('pointer-events-none opacity-50');
+    });
+
+    it('displays ellipsis when there are many pages', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: mockInstitutions,
+        pagination: { page: 1, limit: 10, total: 100, totalPages: 10 },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionsList />);
+      const ellipsis = screen.getByTestId('pagination-ellipsis');
+      expect(ellipsis).toBeInTheDocument();
+    });
+  });
+
+  describe('Data Fetching', () => {
+    it('calls useGetInstitutions with correct default parameters', () => {
+      render(<InstitutionsList />);
+      expect(mockUseGetInstitutions).toHaveBeenCalledWith({ page: 1, limit: 10 });
+    });
+
+    it('uses institutions data from the hook', () => {
+      render(<InstitutionsList />);
+      expect(screen.getAllByText('Société générale').length).toBe(3);
+    });
+
+    it('displays institution details correctly', () => {
+      render(<InstitutionsList />);
+      const websites = screen.getAllByText('www.test.com');
+      expect(websites.length).toBe(3);
+
+      const descriptions = screen.getAllByText('Achat de carte visa');
+      expect(descriptions.length).toBe(3);
+
+      const statuses = screen.getAllByText('Actif');
+      expect(statuses.length).toBe(3);
     });
   });
 });

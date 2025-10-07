@@ -55,11 +55,13 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('AddInstitutionModal', () => {
   let mockCreateInstitution: jest.Mock;
   let mockOnOpenChange: jest.Mock;
+  let mockRefresh: jest.Mock;
   let mockSuccessCallback: () => void = () => {};
 
   const setup = (open = true, isCreating = false) => {
     mockCreateInstitution = jest.fn();
     mockOnOpenChange = jest.fn();
+    mockRefresh = jest.fn();
 
     mockUseCreateInstitution.mockImplementation(({ onSuccess }) => {
       if (onSuccess) mockSuccessCallback = onSuccess;
@@ -68,7 +70,7 @@ describe('AddInstitutionModal', () => {
 
     const user = userEvent.setup();
     const renderResult = render(
-      <AddInstitutionModal open={open} onOpenChange={mockOnOpenChange} />,
+      <AddInstitutionModal open={open} onOpenChange={mockOnOpenChange} refresh={mockRefresh} />,
       {
         wrapper,
       }
@@ -93,7 +95,9 @@ describe('AddInstitutionModal', () => {
   });
 
   it('renders nothing when open=false', () => {
-    render(<AddInstitutionModal open={false} onOpenChange={jest.fn()} />, { wrapper });
+    render(<AddInstitutionModal open={false} onOpenChange={jest.fn()} refresh={jest.fn()} />, {
+      wrapper,
+    });
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
   });
 
