@@ -61,10 +61,7 @@ const ConfirmUpdateStatusModal = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className='flex-row justify-center space-x-4 mt-6'>
-          <AlertDialogCancel
-            onClick={onClose}
-            className='px-6 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg'
-          >
+          <AlertDialogCancel className='px-6 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg'>
             Annuler
           </AlertDialogCancel>
           <AlertDialogAction

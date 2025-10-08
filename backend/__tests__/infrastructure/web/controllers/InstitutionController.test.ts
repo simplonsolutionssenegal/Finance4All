@@ -452,4 +452,87 @@ describe('InstitutionController', () => {
       }
     });
   });
+
+  describe('update', () => {
+    it('should update an institution successfully', async () => {
+      const requestBody = { name: 'New Name' };
+      const institutionDTO = { id: 'inst_123', name: 'New Name' };
+      mockRequest.params = { id: 'inst_123' };
+      mockRequest.body = requestBody;
+      mockUpdateInstitutionUseCase.execute.mockResolvedValue(institutionDTO as any);
+
+      await controller.update(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockUpdateInstitutionUseCase.execute).toHaveBeenCalledWith({
+        id: 'inst_123',
+        ...requestBody,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: institutionDTO });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_123' };
+      mockUpdateInstitutionUseCase.execute.mockRejectedValue(error);
+
+      await controller.update(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('activate', () => {
+    it('should activate an institution successfully', async () => {
+      const institutionDTO = { id: 'inst_123', status: InstitutionStatus.ACTIVE };
+      mockRequest.params = { id: 'inst_123' };
+      mockUpdateInstitutionStatusUseCase.execute.mockResolvedValue(institutionDTO as any);
+
+      await controller.activate(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockUpdateInstitutionStatusUseCase.execute).toHaveBeenCalledWith({
+        id: 'inst_123',
+        status: InstitutionStatus.ACTIVE,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: institutionDTO });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_123' };
+      mockUpdateInstitutionStatusUseCase.execute.mockRejectedValue(error);
+
+      await controller.activate(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('desactivate', () => {
+    it('should desactivate an institution successfully', async () => {
+      const institutionDTO = { id: 'inst_123', status: InstitutionStatus.INACTIVE };
+      mockRequest.params = { id: 'inst_123' };
+      mockUpdateInstitutionStatusUseCase.execute.mockResolvedValue(institutionDTO as any);
+
+      await controller.desactivate(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockUpdateInstitutionStatusUseCase.execute).toHaveBeenCalledWith({
+        id: 'inst_123',
+        status: InstitutionStatus.INACTIVE,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: institutionDTO });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_123' };
+      mockUpdateInstitutionStatusUseCase.execute.mockRejectedValue(error);
+
+      await controller.desactivate(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
 });
