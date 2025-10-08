@@ -1,6 +1,7 @@
 import { InstitutionController } from '@/infrastructure/web/controllers/InstitutionController';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
+import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
 import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 
@@ -8,6 +9,7 @@ describe('InstitutionController', () => {
   let controller: InstitutionController;
   let mockCreateInstitutionUseCase: jest.Mocked<CreateInstitutionUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
+  let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -21,14 +23,20 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockGetInstitutionByIdUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
-      mockGetInstitutionsUseCase
+      mockGetInstitutionsUseCase,
+      mockGetInstitutionByIdUseCase
     );
 
     mockRequest = {
       body: {},
       query: {},
+      params: {},
     };
 
     mockResponse = {
@@ -312,6 +320,122 @@ describe('InstitutionController', () => {
 
       expect(mockGetInstitutionsUseCase.execute).toHaveBeenCalledWith({ page: 1, limit: 10 });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('getById', () => {
+    it('should get an institution by id successfully', async () => {
+      const institutionDTO = {
+        id: 'inst_123',
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: 'https://test.com',
+        geographicZones: ['EURO', 'USD'],
+        logoUrl: 'https://test.com/logo.png',
+        status: InstitutionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRequest.params = { id: 'inst_123' };
+      mockGetInstitutionByIdUseCase.execute.mockResolvedValue(institutionDTO);
+
+      await controller.getById(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionByIdUseCase.execute).toHaveBeenCalledWith({ id: 'inst_123' });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: institutionDTO,
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should get an institution with null website and logoUrl', async () => {
+      const institutionDTO = {
+        id: 'inst_456',
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: null,
+        geographicZones: ['EURO'],
+        logoUrl: null,
+        status: InstitutionStatus.PENDING,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRequest.params = { id: 'inst_456' };
+      mockGetInstitutionByIdUseCase.execute.mockResolvedValue(institutionDTO);
+
+      await controller.getById(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionByIdUseCase.execute).toHaveBeenCalledWith({ id: 'inst_456' });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: institutionDTO,
+      });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_789' };
+      mockGetInstitutionByIdUseCase.execute.mockRejectedValue(error);
+
+      await controller.getById(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionByIdUseCase.execute).toHaveBeenCalledWith({ id: 'inst_789' });
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
+    });
+
+    it('should handle NotFoundError', async () => {
+      const notFoundError = new Error('Institution with id inst_999 not found');
+      notFoundError.name = 'NotFoundError';
+      mockRequest.params = { id: 'inst_999' };
+      mockGetInstitutionByIdUseCase.execute.mockRejectedValue(notFoundError);
+
+      await controller.getById(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionByIdUseCase.execute).toHaveBeenCalledWith({ id: 'inst_999' });
+      expect(mockNext).toHaveBeenCalledWith(notFoundError);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
+    });
+
+    it('should handle different institution statuses', async () => {
+      const statuses = [
+        InstitutionStatus.ACTIVE,
+        InstitutionStatus.INACTIVE,
+        InstitutionStatus.PENDING,
+      ];
+
+      for (const status of statuses) {
+        const institutionDTO = {
+          id: 'inst_status_test',
+          name: 'Test Institution',
+          description: 'Test Description',
+          website: 'https://test.com',
+          geographicZones: ['EURO'],
+          logoUrl: 'https://test.com/logo.png',
+          status,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockRequest.params = { id: 'inst_status_test' };
+        mockGetInstitutionByIdUseCase.execute.mockResolvedValue(institutionDTO);
+
+        await controller.getById(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          data: institutionDTO,
+        });
+
+        jest.clearAllMocks();
+      }
     });
   });
 });

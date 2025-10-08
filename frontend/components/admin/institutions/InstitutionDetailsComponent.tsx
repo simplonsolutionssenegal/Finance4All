@@ -89,14 +89,13 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
       </div>
 
       <div className='flex gap-6'>
-        <div className='border-2 border-gray-200 rounded-2xl h-32 w-32 overflow-hidden flex items-center justify-center bg-gray-50'>
+        <div className='p-2 border-2 border-gray-200 rounded-2xl h-32 w-32 overflow-hidden flex items-center justify-center bg-gray-50'>
           {institution.logoUrl ? (
             <Image
               src={institution.logoUrl}
               alt={`Logo de ${institution.name}`}
-              width={128}
-              height={128}
-              className='object-contain'
+              width={500}
+              height={500}
             />
           ) : (
             <div className='text-gray-400 text-4xl font-bold'>
@@ -134,7 +133,9 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
           </div>
           <div className='flex flex-1 gap-4 items-center'>
             {renderStatus(institution.status)}
-            <Badge className='bg-[#6CB9C642] p-2 rounded-xl'>{institution.website}</Badge>
+            <Badge className='bg-[#6CB9C642] p-2 rounded-xl'>
+              <Link href={institution.website}>{institution.website}</Link>
+            </Badge>
           </div>
           <div className='flex flex-1 flex-col gap-2'>
             <Label className='font-semibold'>Description :</Label>

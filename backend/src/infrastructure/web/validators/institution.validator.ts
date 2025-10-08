@@ -1,4 +1,4 @@
-import { body, query, validationResult } from 'express-validator';
+import { body, query, param, validationResult } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 
 export const validateCreateInstitution = [
@@ -20,6 +20,10 @@ export const validatePagination = [
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100')
     .toInt(),
+];
+
+export const validateInstitutionId = [
+  param('id').isUUID().withMessage('Invalid institution ID format'),
 ];
 
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {

@@ -1,6 +1,7 @@
 import {
   validateCreateInstitution,
   validatePagination,
+  validateInstitutionId,
   handleValidationErrors,
 } from '@/infrastructure/web/validators/institution.validator';
 import type { Request, Response, NextFunction } from 'express';
@@ -14,6 +15,7 @@ jest.mock('express-validator', () => {
     notEmpty: jest.fn().mockReturnThis(),
     isArray: jest.fn().mockReturnThis(),
     isURL: jest.fn().mockReturnThis(),
+    isUUID: jest.fn().mockReturnThis(),
     optional: jest.fn().mockReturnThis(),
     withMessage: jest.fn().mockReturnThis(),
     isInt: jest.fn().mockReturnThis(),
@@ -66,6 +68,14 @@ describe('Institution Validator', () => {
       expect(validatePagination).toBeDefined();
       expect(Array.isArray(validatePagination)).toBe(true);
       expect(validatePagination.length).toBe(2);
+    });
+  });
+
+  describe('validateInstitutionId', () => {
+    it('should have validator for institution id', () => {
+      expect(validateInstitutionId).toBeDefined();
+      expect(Array.isArray(validateInstitutionId)).toBe(true);
+      expect(validateInstitutionId.length).toBe(1);
     });
   });
 

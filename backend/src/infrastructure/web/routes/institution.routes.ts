@@ -3,6 +3,7 @@ import type { InstitutionController } from '../controllers/InstitutionController
 import {
   validateCreateInstitution,
   validatePagination,
+  validateInstitutionId,
   handleValidationErrors,
 } from '../validators/institution.validator';
 import { container, TYPES } from '@/infrastructure/config/container';
@@ -15,9 +16,11 @@ export const InstitutionRoutes = (): Router => {
   const boundController = {
     create: controller.create.bind(controller),
     getAll: controller.getAll.bind(controller),
+    getById: controller.getById.bind(controller),
   };
 
   router.get('/', validatePagination, handleValidationErrors, boundController.getAll);
+  router.get('/:id', validateInstitutionId, handleValidationErrors, boundController.getById);
   router.post('/', validateCreateInstitution, handleValidationErrors, boundController.create);
 
   return router;

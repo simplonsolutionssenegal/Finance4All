@@ -1,11 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
+import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
 
 export class InstitutionController {
   constructor(
     private readonly createInstitutionUseCase: CreateInstitutionUseCase,
-    private readonly getInstitutionsUseCase: GetInstitutionsUseCase
+    private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
+    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
   ) {}
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -29,6 +31,19 @@ export class InstitutionController {
       res.status(200).json({
         success: true,
         ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.getInstitutionByIdUseCase.execute({ id });
+      res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);
