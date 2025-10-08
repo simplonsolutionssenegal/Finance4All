@@ -46,7 +46,7 @@ jest.mock('@/contexts/LoaderContext', () => ({
 
 // Mock useGetInstitution hook
 const mockRefetch = jest.fn();
-jest.mock('@/hooks/useGetInstitution', () => ({
+jest.mock('@/hooks/institution/useGetInstitution', () => ({
   useGetInstitution: jest.fn(),
 }));
 

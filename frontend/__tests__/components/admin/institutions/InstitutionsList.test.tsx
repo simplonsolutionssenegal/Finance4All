@@ -1,4 +1,16 @@
+import { useAuth } from '@clerk/nextjs';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+
+const queryClient = new QueryClient();
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+);
+
+// Mock Clerk
+jest.mock('@clerk/nextjs', () => ({
+  useAuth: jest.fn(),
+}));
 
 // Mock the Button component
 jest.mock('@/components/ui/button', () => ({
@@ -14,9 +26,9 @@ jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, className }: any) => <span className={className}>{children}</span>,
 }));
 
-// Mock AddInstitutionModal
-jest.mock('@/components/admin/institutions/AddInstitutionModal', () => {
-  return function MockAddInstitutionModal({ open, onOpenChange, refresh }: any) {
+// Mock InstitutionModal
+jest.mock('@/components/admin/institutions/InstitutionModal', () => {
+  return function MockInstitutionModal({ open, onOpenChange, refresh }: any) {
     return open ? (
       <div data-testid='add-institution-modal'>
         <button onClick={() => onOpenChange(false)}>Close Modal</button>
@@ -130,6 +142,8 @@ describe('InstitutionsList', () => {
   };
 
   beforeEach(() => {
+    const mockUseAuth = useAuth as jest.Mock;
+    mockUseAuth.mockReturnValue({ getToken: jest.fn().mockResolvedValue('test-token') });
     jest.clearAllMocks();
     mockUseGetInstitutions.mockReturnValue({
       institutions: mockInstitutions,
@@ -142,37 +156,37 @@ describe('InstitutionsList', () => {
   });
 
   it('renders without crashing', () => {
-    render(<InstitutionsList />);
+    render(<InstitutionsList />, { wrapper });
     expect(screen.getByText('Liste des instituts')).toBeInTheDocument();
   });
 
   it('displays the title', () => {
-    render(<InstitutionsList />);
+    render(<InstitutionsList />, { wrapper });
     expect(screen.getByText('Liste des instituts')).toBeInTheDocument();
   });
 
   describe('Search and Filter', () => {
     it('renders search input', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const searchInput = screen.getByPlaceholderText('Rechercher une institut');
       expect(searchInput).toBeInTheDocument();
       expect(searchInput).toHaveAttribute('type', 'text');
     });
 
     it('renders search icon', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByTestId('search-icon')).toBeInTheDocument();
     });
 
     it('renders filter button', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const filterButton = screen.getByText('Filter');
       expect(filterButton).toBeInTheDocument();
       expect(screen.getByTestId('filter-icon')).toBeInTheDocument();
     });
 
     it('search input is editable', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const searchInput = screen.getByPlaceholderText(
         'Rechercher une institut'
       ) as HTMLInputElement;
@@ -183,14 +197,14 @@ describe('InstitutionsList', () => {
 
   describe('Add Institution Button', () => {
     it('renders add institution button', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const addButton = screen.getByText('Ajouter une institution');
       expect(addButton).toBeInTheDocument();
       expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
     });
 
     it('opens modal when add button is clicked', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const addButton = screen.getByText('Ajouter une institution');
 
       // Modal should not be visible initially
@@ -204,7 +218,7 @@ describe('InstitutionsList', () => {
     });
 
     it('closes modal when close button is clicked', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const addButton = screen.getByText('Ajouter une institution');
 
       // Open modal
@@ -222,7 +236,7 @@ describe('InstitutionsList', () => {
 
   describe('Institutions Table', () => {
     it('renders table headers', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByText("Nom de l'institut")).toBeInTheDocument();
       expect(screen.getByText('Site web')).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
@@ -231,7 +245,7 @@ describe('InstitutionsList', () => {
     });
 
     it('renders institution data', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const societyNames = screen.getAllByText('Société générale');
       expect(societyNames.length).toBe(3); // 3 institutions in mock data
 
@@ -246,7 +260,7 @@ describe('InstitutionsList', () => {
     });
 
     it('renders action buttons for each institution', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const editIcons = screen.getAllByTestId('edit-icon');
       const trashIcons = screen.getAllByTestId('trash-icon');
 
@@ -255,13 +269,13 @@ describe('InstitutionsList', () => {
     });
 
     it('edit buttons have correct styling', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const editButtons = container.querySelectorAll('.text-blue-500');
       expect(editButtons.length).toBeGreaterThanOrEqual(3);
     });
 
     it('delete buttons have correct styling', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const deleteButtons = container.querySelectorAll('.text-red-500');
       expect(deleteButtons.length).toBeGreaterThanOrEqual(3);
     });
@@ -269,13 +283,13 @@ describe('InstitutionsList', () => {
 
   describe('Table Structure', () => {
     it('has overflow-x-auto for responsive table', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const tableWrapper = container.querySelector('.overflow-x-auto');
       expect(tableWrapper).toBeInTheDocument();
     });
 
     it('renders table with correct structure', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const table = container.querySelector('table');
       expect(table).toBeInTheDocument();
       expect(table?.querySelector('thead')).toBeInTheDocument();
@@ -283,13 +297,13 @@ describe('InstitutionsList', () => {
     });
 
     it('thead has correct styling', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const thead = container.querySelector('thead');
       expect(thead).toHaveClass('bg-gray-300/30');
     });
 
     it('tbody rows have hover effect', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const rows = container.querySelectorAll('tbody tr');
       rows.forEach(row => {
         expect(row).toHaveClass('hover:bg-gray-50');
@@ -299,7 +313,7 @@ describe('InstitutionsList', () => {
 
   describe('Layout and Styling', () => {
     it('main container has correct styling', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const mainContainer = container.firstChild as HTMLElement;
       expect(mainContainer).toHaveClass(
         'bg-white',
@@ -312,13 +326,13 @@ describe('InstitutionsList', () => {
     });
 
     it('title has correct styling', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const title = screen.getByText('Liste des instituts');
       expect(title).toHaveClass('text-xl', 'font-bold', 'text-gray-900', 'mb-6');
     });
 
     it('renders correct number of table rows', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const tbody = container.querySelector('tbody');
       const rows = tbody?.querySelectorAll('tr');
       expect(rows?.length).toBe(3); // 3 institutions
@@ -327,14 +341,14 @@ describe('InstitutionsList', () => {
 
   describe('Interactive Elements', () => {
     it('filter button is clickable', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const filterButton = screen.getByText('Filter').closest('button');
       expect(filterButton).toBeInTheDocument();
       fireEvent.click(filterButton!);
     });
 
     it('edit buttons are clickable', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const editButtons = container.querySelectorAll('.text-blue-500');
       editButtons.forEach(button => {
         fireEvent.click(button);
@@ -342,7 +356,7 @@ describe('InstitutionsList', () => {
     });
 
     it('delete buttons are clickable', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const deleteButtons = container.querySelectorAll('.text-red-500');
       deleteButtons.forEach(button => {
         fireEvent.click(button);
@@ -352,13 +366,13 @@ describe('InstitutionsList', () => {
 
   describe('Responsive Design', () => {
     it('search and filter section has correct layout', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const searchFilterSection = container.querySelector('.flex.justify-between');
       expect(searchFilterSection).toBeInTheDocument();
     });
 
     it('uses rounded corners appropriately', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const roundedElements = container.querySelectorAll('.rounded-xl');
       expect(roundedElements.length).toBeGreaterThan(0);
     });
@@ -366,13 +380,13 @@ describe('InstitutionsList', () => {
 
   describe('Accessibility', () => {
     it('table headers have proper scope', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const headers = container.querySelectorAll('th');
       expect(headers.length).toBe(5); // 5 columns
     });
 
     it('buttons have proper structure', () => {
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const buttons = container.querySelectorAll('button');
       expect(buttons.length).toBeGreaterThan(0);
       buttons.forEach(button => {
@@ -383,7 +397,7 @@ describe('InstitutionsList', () => {
 
   describe('AddInstitutionModal Integration', () => {
     it('passes correct props to modal', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const addButton = screen.getByText('Ajouter une institution');
 
       // Initial state
@@ -395,7 +409,7 @@ describe('InstitutionsList', () => {
     });
 
     it('maintains modal state correctly', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const addButton = screen.getByText('Ajouter une institution');
 
       // Open and close multiple times
@@ -421,7 +435,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByText(/Erreur lors du chargement des institutions/)).toBeInTheDocument();
       expect(screen.getByText(/Failed to fetch institutions/)).toBeInTheDocument();
     });
@@ -436,7 +450,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const retryButton = screen.getByText('Réessayer');
       expect(retryButton).toBeInTheDocument();
     });
@@ -451,7 +465,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const retryButton = screen.getByText('Réessayer');
       fireEvent.click(retryButton);
 
@@ -468,7 +482,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.queryByText('Société générale')).not.toBeInTheDocument();
     });
   });
@@ -484,7 +498,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByText('Aucune institution trouvée')).toBeInTheDocument();
     });
 
@@ -498,7 +512,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      const { container } = render(<InstitutionsList />);
+      const { container } = render(<InstitutionsList />, { wrapper });
       const table = container.querySelector('table');
       expect(table).not.toBeInTheDocument();
     });
@@ -515,7 +529,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
     });
 
@@ -529,7 +543,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByTestId('pagination')).toBeInTheDocument();
     });
 
@@ -543,7 +557,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByText('1')).toBeInTheDocument();
       expect(screen.getByText('2')).toBeInTheDocument();
       expect(screen.getByText('3')).toBeInTheDocument();
@@ -559,7 +573,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getByText('Page 1 sur 3 (25 institutions au total)')).toBeInTheDocument();
     });
 
@@ -573,7 +587,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const previousButton = screen.getByTestId('pagination-previous');
       expect(previousButton.className).toContain('pointer-events-none opacity-50');
     });
@@ -588,7 +602,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const nextButton = screen.getByTestId('pagination-next');
       expect(nextButton.className).toContain('cursor-pointer');
     });
@@ -603,7 +617,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const nextButton = screen.getByTestId('pagination-next');
       expect(nextButton.className).toContain('pointer-events-none opacity-50');
     });
@@ -618,7 +632,7 @@ describe('InstitutionsList', () => {
         refetch: mockRefetch,
       });
 
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const ellipsis = screen.getByTestId('pagination-ellipsis');
       expect(ellipsis).toBeInTheDocument();
     });
@@ -626,17 +640,17 @@ describe('InstitutionsList', () => {
 
   describe('Data Fetching', () => {
     it('calls useGetInstitutions with correct default parameters', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(mockUseGetInstitutions).toHaveBeenCalledWith({ page: 1, limit: 10 });
     });
 
     it('uses institutions data from the hook', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       expect(screen.getAllByText('Société générale').length).toBe(3);
     });
 
     it('displays institution details correctly', () => {
-      render(<InstitutionsList />);
+      render(<InstitutionsList />, { wrapper });
       const websites = screen.getAllByText('www.test.com');
       expect(websites.length).toBe(3);
 
