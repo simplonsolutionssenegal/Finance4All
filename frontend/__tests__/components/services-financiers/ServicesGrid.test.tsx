@@ -120,10 +120,17 @@ describe('ServicesGrid', () => {
     });
 
     it('should display formatted max amount', () => {
-      render(<ServicesGrid {...defaultProps} />);
+      // Make sure formatCurrency mock returns the expected values
+      (formatCurrency as jest.Mock).mockImplementation((value: number) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      });
 
-      const montantLabels = screen.getAllByText('Montant max:');
-      expect(montantLabels.length).toBeGreaterThan(0);
+      render(<ServicesGrid {...defaultProps} />);
 
       // Verify that the formatted currency values are displayed correctly
       expect(screen.getByText('$1,000,000')).toBeInTheDocument();

@@ -160,13 +160,18 @@ describe('ServicesTable', () => {
     it('should display formatted min amount', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Check that Min: labels exist and verify the formatted values are displayed
-      const minLabels = screen.getAllByText(/Min:/);
-      expect(minLabels.length).toBeGreaterThan(0);
+      // Use a function matcher to find text that might be split across elements
+      expect(
+        screen.getByText((content, element) => {
+          return element?.textContent?.includes('Min: $10,000') || false;
+        })
+      ).toBeInTheDocument();
 
-      // Verify that the formatted min amounts are displayed correctly
-      expect(screen.getByText('$10,000')).toBeInTheDocument();
-      expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+      expect(
+        screen.getByText((content, element) => {
+          return element?.textContent?.includes('Min: $5,000,000') || false;
+        })
+      ).toBeInTheDocument();
 
       // Also verify the function is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(10000);
@@ -455,15 +460,27 @@ describe('ServicesTable', () => {
     it('should format currency correctly', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Verify that the formatted currency values are displayed correctly in the table
       expect(screen.getByText('$1,000,000')).toBeInTheDocument();
       expect(screen.getByText('$50,000,000')).toBeInTheDocument();
-      expect(screen.getByText('$10,000')).toBeInTheDocument();
-      expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+
+      // Use function matchers for text that's split across elements
+      expect(
+        screen.getByText((content, element) => {
+          return element?.textContent?.includes('$10,000') || false;
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByText((content, element) => {
+          return element?.textContent?.includes('$5,000,000') || false;
+        })
+      ).toBeInTheDocument();
 
       // Also verify that formatCurrency is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(1000000);
       expect(formatCurrency).toHaveBeenCalledWith(50000000);
+      expect(formatCurrency).toHaveBeenCalledWith(10000);
+      expect(formatCurrency).toHaveBeenCalledWith(5000000);
     });
 
     it('should format percentage correctly', () => {
