@@ -14,7 +14,7 @@ interface ProductTableProps {
 export default function ProductList({ products, isLoading }: ProductTableProps) {
   return (
     <Suspense fallback={<ProductsTableSkeleton />}>
-      <ProductListClient products={products} isLoading={isLoading} />;
+      <ProductListClient products={products} isLoading={isLoading} />
     </Suspense>
   );
 }
