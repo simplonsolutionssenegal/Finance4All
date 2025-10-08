@@ -17,13 +17,14 @@ import {
 } from '@/components/ui/pagination';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
-import { InstitutionStatus } from '@/types/Institution';
+import { type Institution, InstitutionStatus } from '@/types/Institution';
 
-import AddInstitutionModal from './AddInstitutionModal';
+import InstitutionModal from './InstitutionModal';
 
 const InstitutionsList = () => {
   const { showLoader, hideLoader } = useLoader();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageLimit = 10;
 
@@ -180,7 +181,13 @@ const InstitutionsList = () => {
                   <td className='py-4 px-4'>{renderStatut(institution.status)}</td>
                   <td className='py-4 px-4'>
                     <div className='flex items-center gap-2'>
-                      <button className='p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors'>
+                      <button
+                        onClick={() => {
+                          setSelectedInstitution(institution);
+                          setIsModalOpen(true);
+                        }}
+                        className='p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors'
+                      >
                         <Edit className='w-5 h-5' />
                       </button>
                       <button className='p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors'>
@@ -250,7 +257,10 @@ const InstitutionsList = () => {
         <div className='flex justify-end gap-4'>
           <Button
             variant={'default'}
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setSelectedInstitution(null);
+              setIsModalOpen(true);
+            }}
             className='flex items-center bg-teal-500 text-white font-bold gap-2 px-6 py-3 rounded-xl transition-colors'
           >
             <Plus className='w-5 h-5' color='white' />
@@ -261,10 +271,16 @@ const InstitutionsList = () => {
 
       {renderInstitutionTable()}
 
-      <AddInstitutionModal
+      <InstitutionModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={open => {
+          setIsModalOpen(open);
+          if (!open) {
+            setSelectedInstitution(null);
+          }
+        }}
         refresh={() => refetch()}
+        institution={selectedInstitution}
       />
     </div>
   );

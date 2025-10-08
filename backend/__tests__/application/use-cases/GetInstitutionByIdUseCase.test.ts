@@ -1,4 +1,4 @@
-import { GetInstitutionByIdUseCaseImpl } from '@/application/use-cases/GetInstitutionByIdUseCase';
+import { GetInstitutionByIdUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionByIdUseCase';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';

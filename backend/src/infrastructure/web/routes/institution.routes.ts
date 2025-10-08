@@ -5,6 +5,7 @@ import {
   validatePagination,
   validateInstitutionId,
   handleValidationErrors,
+  validateUpdateInstitution,
 } from '../validators/institution.validator';
 import { container, TYPES } from '@/infrastructure/config/container';
 
@@ -15,6 +16,7 @@ export const InstitutionRoutes = (): Router => {
   // Bind methods to preserve 'this' context
   const boundController = {
     create: controller.create.bind(controller),
+    update: controller.update.bind(controller),
     getAll: controller.getAll.bind(controller),
     getById: controller.getById.bind(controller),
   };
@@ -22,6 +24,7 @@ export const InstitutionRoutes = (): Router => {
   router.get('/', validatePagination, handleValidationErrors, boundController.getAll);
   router.get('/:id', validateInstitutionId, handleValidationErrors, boundController.getById);
   router.post('/', validateCreateInstitution, handleValidationErrors, boundController.create);
+  router.put('/:id', validateUpdateInstitution, handleValidationErrors, boundController.update);
 
   return router;
 };

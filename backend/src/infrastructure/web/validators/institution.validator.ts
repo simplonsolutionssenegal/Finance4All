@@ -13,6 +13,19 @@ export const validateCreateInstitution = [
   body('logoUrl').optional().isURL().withMessage('Invalid logo URL'),
 ];
 
+export const validateUpdateInstitution = [
+  param('id').isUUID().withMessage('Invalid institution ID format'),
+  body('name')
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 255 })
+    .withMessage('Name must be between 2 and 255 characters'),
+  body('description').isString().trim().notEmpty().withMessage('Description is required'),
+  body('website').optional().isURL().withMessage('Invalid website URL'),
+  body('geographicZones').isArray().withMessage('Geographic zones must be an array'),
+  body('logoUrl').optional().isURL().withMessage('Invalid logo URL'),
+];
+
 export const validatePagination = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer').toInt(),
   query('limit')

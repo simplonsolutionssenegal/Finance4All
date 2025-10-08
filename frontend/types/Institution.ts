@@ -6,6 +6,14 @@ export interface CreateInstitutionDto {
   logoUrl?: string;
 }
 
+export interface UpdateInstitutionDto {
+  name: string;
+  description: string;
+  website?: string;
+  geographicZones: string[];
+  logoUrl?: string;
+}
+
 export interface Institution {
   id: string;
   name: string;

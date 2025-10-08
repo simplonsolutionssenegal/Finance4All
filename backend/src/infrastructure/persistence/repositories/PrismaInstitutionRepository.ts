@@ -25,6 +25,17 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     return this.toDomain(saved);
   }
 
+  async update(institution: Institution): Promise<Institution> {
+    const data = this.toPrismaData(institution);
+
+    const updated = await this.prisma.institution.update({
+      where: { id: institution.id.getValue() },
+      data,
+    });
+
+    return this.toDomain(updated);
+  }
+
   async findById(id: string): Promise<Institution | null> {
     const institution = await this.prisma.institution.findUnique({
       where: { id },

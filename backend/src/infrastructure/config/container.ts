@@ -11,12 +11,15 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import { CreateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/CreateInsitution.usecase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
-import { GetInstitutionsUseCaseImpl } from '@/application/use-cases/GetInstitutionsUseCase';
+import { GetInstitutionsUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionsUseCase';
 import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
-import { GetInstitutionByIdUseCaseImpl } from '@/application/use-cases/GetInstitutionByIdUseCase';
+import { GetInstitutionByIdUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionByIdUseCase';
+import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
+import { UpdateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionUseCase';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
+  UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
 
@@ -63,6 +66,14 @@ container
   .inSingletonScope();
 
 container
+  .bind<UpdateInstitutionUseCase>(TYPES.UpdateInstitutionUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new UpdateInstitutionUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
   .bind<GetInstitutionsUseCase>(TYPES.GetInstitutionsUseCase)
   .toDynamicValue(context => {
     const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
@@ -83,6 +94,7 @@ container
   .bind<InstitutionController>(TYPES.InstitutionController)
   .toDynamicValue(context => {
     const createUseCase = context.get<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase);
+    const updateUseCase = context.get<UpdateInstitutionUseCase>(TYPES.UpdateInstitutionUseCase);
     const getInstitutionsUseCase = context.get<GetInstitutionsUseCase>(
       TYPES.GetInstitutionsUseCase
     );
@@ -92,6 +104,7 @@ container
 
     return new InstitutionController(
       createUseCase,
+      updateUseCase,
       getInstitutionsUseCase,
       getInstitutionByIdUseCase
     );

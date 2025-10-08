@@ -3,6 +3,7 @@ import type { PaginationParams, PaginatedResult } from '@/domain/shared/Paginati
 
 export interface InstitutionRepository {
   save(institution: Institution): Promise<Institution>;
+  update(institution: Institution): Promise<Institution>;
   findById(id: string): Promise<Institution | null>;
   findByName(name: string): Promise<Institution[]>;
   findAll(params: PaginationParams): Promise<PaginatedResult<Institution>>;
