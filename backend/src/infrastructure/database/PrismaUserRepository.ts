@@ -1,5 +1,6 @@
 // src/infrastructure/database/PrismaUserRepository.ts
 import { prisma } from './prisma';
+import { UserRole } from '@prisma/client';
 import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User as DomainUser } from '@/domain/entities/User';
 
@@ -21,8 +22,9 @@ export class PrismaUserRepository implements UserRepository {
         return null;
       }
 
-      // Extract name from email if name is not provided
-      const name = user.name || user.email.split('@')[0];
+      // Build display name from firstName/lastName, fallback to email local-part
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      const name = fullName || user.email.split('@')[0];
       return new DomainUser(user.id?.toString() || id, name, user.email);
     } catch (error) {
       console.warn('Error finding user:', error);
@@ -36,16 +38,25 @@ export class PrismaUserRepository implements UserRepository {
       // Convert string ID to number for Prisma
       const numericId = parseInt(user.id, 10);
 
+      const [derivedFirstName, derivedLastName] = (() => {
+        const [first, ...rest] = (user.name || '').split(' ').filter(Boolean);
+        return [first || user.email.split('@')[0], rest.join(' ')];
+      })();
+
       const savedUser = await prisma.user.create({
         data: {
           id: numericId,
-          name: user.name,
+          firstName: derivedFirstName,
+          lastName: derivedLastName || '',
           email: user.email,
+          clerkId: user.id, // reuse domain id as external clerk id
+          role: UserRole.BENEFICIAIRE,
         },
       });
 
-      // Extract name from email if name is not provided
-      const name = savedUser.name || savedUser.email.split('@')[0];
+      // Build display name from saved firstName/lastName, fallback to email local-part
+      const savedFullName = `${savedUser.firstName || ''} ${savedUser.lastName || ''}`.trim();
+      const name = savedFullName || savedUser.email.split('@')[0];
       return new DomainUser(savedUser.id.toString(), name, savedUser.email);
     } catch (error) {
       console.warn('Error saving user:', error);
