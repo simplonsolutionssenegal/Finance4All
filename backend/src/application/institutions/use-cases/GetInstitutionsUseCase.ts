@@ -2,7 +2,7 @@ import type {
   GetInstitutionsUseCase,
   GetInstitutionsQuery,
 } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
-import type { InstitutionDTO } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
+import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginatedResult } from '@/domain/shared/Pagination';
 import type { Institution } from '@/domain/institutions/entities/Institution';
