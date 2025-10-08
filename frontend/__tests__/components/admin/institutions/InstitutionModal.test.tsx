@@ -2,12 +2,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import AddInstitutionModal from '@/components/admin/institutions/AddInstitutionModal';
+import InstitutionModal from '@/components/admin/institutions/InstitutionModal';
 import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
+import { useUpdateInstitution } from '@/hooks/institution/useUpdateInstitution';
 
-// Mock the hook
+// Mock hooks
 jest.mock('@/hooks/institution/useCreateInstitution');
+jest.mock('@/hooks/institution/useUpdateInstitution');
 const mockUseCreateInstitution = useCreateInstitution as jest.Mock;
+const mockUseUpdateInstitution = useUpdateInstitution as jest.Mock;
+
+// Mock Clerk
+jest.mock('@clerk/nextjs', () => ({
+  useAuth: () => ({
+    getToken: jest.fn().mockResolvedValue('test-token'),
+  }),
+}));
 
 // Mock next/image
 jest.mock('next/image', () => ({
@@ -54,12 +64,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 describe('AddInstitutionModal', () => {
   let mockCreateInstitution: jest.Mock;
+  let mockUpdateInstitution: jest.Mock;
   let mockOnOpenChange: jest.Mock;
   let mockRefresh: jest.Mock;
   let mockSuccessCallback: () => void = () => {};
 
   const setup = (open = true, isCreating = false) => {
     mockCreateInstitution = jest.fn();
+    mockUpdateInstitution = jest.fn();
     mockOnOpenChange = jest.fn();
     mockRefresh = jest.fn();
 
@@ -68,9 +80,14 @@ describe('AddInstitutionModal', () => {
       return { createInstitution: mockCreateInstitution, isCreating };
     });
 
+    mockUseUpdateInstitution.mockReturnValue({
+      updateInstitution: mockUpdateInstitution,
+      isUpdating: isCreating,
+    });
+
     const user = userEvent.setup();
     const renderResult = render(
-      <AddInstitutionModal open={open} onOpenChange={mockOnOpenChange} refresh={mockRefresh} />,
+      <InstitutionModal open={open} onOpenChange={mockOnOpenChange} refresh={mockRefresh} />,
       {
         wrapper,
       }
@@ -95,7 +112,7 @@ describe('AddInstitutionModal', () => {
   });
 
   it('renders nothing when open=false', () => {
-    render(<AddInstitutionModal open={false} onOpenChange={jest.fn()} refresh={jest.fn()} />, {
+    render(<InstitutionModal open={false} onOpenChange={jest.fn()} refresh={jest.fn()} />, {
       wrapper,
     });
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
