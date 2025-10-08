@@ -7,7 +7,7 @@ import { useAuth } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 
-import { useGetInstitutions } from '@/hooks/useGetInstitutions';
+import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
 
 const mockUseAuth = useAuth as jest.Mock;
 

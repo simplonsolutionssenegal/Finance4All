@@ -1,23 +1,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 
-interface Institution {
-  id: string;
-  name: string;
-  description: string;
-  website: string;
-  geographicZones: string[];
-  logoUrl: string;
-  status: InstitutionStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export enum InstitutionStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  PENDING = 'PENDING',
-}
+import type { Institution } from '@/types/Institution';
 
 interface PaginationInfo {
   page: number;

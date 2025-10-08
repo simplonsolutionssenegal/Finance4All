@@ -3,14 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
-
-interface CreateInstitutionDto {
-  name: string;
-  description: string;
-  website?: string;
-  geographicZones: string[];
-  logoUrl?: string;
-}
+import type { CreateInstitutionDto } from '@/types/Institution';
 
 interface BackendResponse {
   success: boolean;

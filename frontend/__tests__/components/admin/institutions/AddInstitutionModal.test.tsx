@@ -3,10 +3,10 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 
 import AddInstitutionModal from '@/components/admin/institutions/AddInstitutionModal';
-import { useCreateInstitution } from '@/hooks/useCreateInstitution';
+import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
 
 // Mock the hook
-jest.mock('@/hooks/useCreateInstitution');
+jest.mock('@/hooks/institution/useCreateInstitution');
 const mockUseCreateInstitution = useCreateInstitution as jest.Mock;
 
 // Mock next/image

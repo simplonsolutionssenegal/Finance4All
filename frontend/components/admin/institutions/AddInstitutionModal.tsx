@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateInstitution } from '@/hooks/useCreateInstitution';
+import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
 
 interface AddInstitutionModalProps {
   open: boolean;

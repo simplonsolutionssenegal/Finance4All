@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, Filter, Edit, Trash2, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,8 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination';
 import { useLoader } from '@/contexts/LoaderContext';
-import { InstitutionStatus, useGetInstitutions } from '@/hooks/useGetInstitutions';
+import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
+import { InstitutionStatus } from '@/types/Institution';
 
 import AddInstitutionModal from './AddInstitutionModal';
 
@@ -165,7 +167,14 @@ const InstitutionsList = () => {
             <tbody>
               {institutions.map(institution => (
                 <tr key={institution.id} className='hover:bg-gray-50'>
-                  <td className='py-4 px-4 text-sm text-gray-900'>{institution.name}</td>
+                  <td className='py-4 px-4 text-sm font-bold text-gray-900'>
+                    <Link
+                      className='underline decoration-blue-500'
+                      href={`/institutions/${institution.id}`}
+                    >
+                      {institution.name}
+                    </Link>
+                  </td>
                   <td className='py-4 px-4 text-sm text-gray-600'>{institution.website}</td>
                   <td className='py-4 px-4 text-sm text-gray-600'>{institution.description}</td>
                   <td className='py-4 px-4'>{renderStatut(institution.status)}</td>

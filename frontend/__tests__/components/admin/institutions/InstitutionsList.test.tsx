@@ -68,13 +68,8 @@ jest.mock('@/components/ui/pagination', () => ({
 
 // Mock useGetInstitutions hook
 const mockRefetch = jest.fn();
-jest.mock('@/hooks/useGetInstitutions', () => ({
+jest.mock('@/hooks/institution/useGetInstitutions', () => ({
   useGetInstitutions: jest.fn(),
-  InstitutionStatus: {
-    ACTIVE: 'ACTIVE',
-    INACTIVE: 'INACTIVE',
-    PENDING: 'PENDING',
-  },
 }));
 
 // Mock useLoader hook
@@ -86,7 +81,8 @@ jest.mock('@/contexts/LoaderContext', () => ({
 }));
 
 import InstitutionsList from '@/components/admin/institutions/InstitutionsList';
-import { useGetInstitutions } from '@/hooks/useGetInstitutions';
+import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
+
 const mockUseGetInstitutions = useGetInstitutions as jest.Mock;
 
 describe('InstitutionsList', () => {
