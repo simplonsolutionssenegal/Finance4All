@@ -29,6 +29,47 @@ import { ServiceFilters } from './ServiceFilters';
 import { ServicesGrid } from './ServicesGrid';
 import { ServicesTable } from './ServicesTable';
 
+// Helper predicates to keep callbacks shallow and readable
+export function matchesSearchTerm(service: FinancialService, searchTerm: string) {
+  const term = searchTerm.toLowerCase();
+  return (
+    service.designation.toLowerCase().includes(term) ||
+    service.institution.toLowerCase().includes(term) ||
+    service.type.toLowerCase().includes(term)
+  );
+}
+
+export function matchesServiceTypeFilter(
+  service: FinancialService,
+  serviceTypeFilters: FilterOptions['serviceType']
+) {
+  if (!serviceTypeFilters || serviceTypeFilters.length === 0) return true;
+  const mappedType: FilterOptions['serviceType'][number] =
+    service.type === 'Assurance' ? 'Autre type' : service.type;
+  return serviceTypeFilters.includes(mappedType);
+}
+
+export function matchesGeographicFilter(
+  service: FinancialService,
+  geographicFilters: FilterOptions['geographicZone']
+) {
+  if (!geographicFilters || geographicFilters.length === 0) return true;
+  // Convert filter label then check if any service zone includes it
+  return service.geographicZones.some(zone =>
+    geographicFilters.some(filterZone =>
+      zone.includes(filterZone.replace('Zone Géo ', 'Zone géographique '))
+    )
+  );
+}
+
+export function matchesInstitutFilter(
+  service: FinancialService,
+  institutFilters: FilterOptions['institut']
+) {
+  if (!institutFilters || institutFilters.length === 0) return true;
+  return institutFilters.some(institut => service.institution.includes(institut));
+}
+
 export const ServicesDashboard: React.FC = () => {
   const [searchAndFilter, setSearchAndFilter] = useState<SearchAndFilterState>({
     searchTerm: '',
@@ -59,39 +100,23 @@ export const ServicesDashboard: React.FC = () => {
 
     // Recherche par terme
     if (searchAndFilter.searchTerm) {
-      const searchTerm = searchAndFilter.searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        service =>
-          service.designation.toLowerCase().includes(searchTerm) ||
-          service.institution.toLowerCase().includes(searchTerm) ||
-          service.type.toLowerCase().includes(searchTerm)
-      );
+      filtered = filtered.filter(service => matchesSearchTerm(service, searchAndFilter.searchTerm));
     }
 
     const { filters } = searchAndFilter;
 
     if (filters.serviceType.length > 0) {
-      filtered = filtered.filter(service => {
-        const mappedType: FilterOptions['serviceType'][number] =
-          service.type === 'Assurance' ? 'Autre type' : service.type;
-        return filters.serviceType.includes(mappedType);
-      });
+      filtered = filtered.filter(service => matchesServiceTypeFilter(service, filters.serviceType));
     }
 
     if (filters.geographicZone.length > 0) {
       filtered = filtered.filter(service =>
-        service.geographicZones.some(zone =>
-          filters.geographicZone.some(filterZone =>
-            zone.includes(filterZone.replace('Zone Géo ', 'Zone géographique '))
-          )
-        )
+        matchesGeographicFilter(service, filters.geographicZone)
       );
     }
 
     if (filters.institut.length > 0) {
-      filtered = filtered.filter(service =>
-        filters.institut.some(institut => service.institution.includes(institut))
-      );
+      filtered = filtered.filter(service => matchesInstitutFilter(service, filters.institut));
     }
 
     // Tri

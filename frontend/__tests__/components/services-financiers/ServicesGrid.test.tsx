@@ -133,8 +133,8 @@ describe('ServicesGrid', () => {
       render(<ServicesGrid {...defaultProps} />);
 
       // Verify that the formatted currency values are displayed correctly
-      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
-      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+      expect(screen.getByText(/\$1[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
+      expect(screen.getByText(/\$50[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
 
       // Also verify that formatCurrency is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(1000000);

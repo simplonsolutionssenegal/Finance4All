@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -148,11 +148,9 @@ describe('ServicesTable', () => {
     it('should display formatted max amount', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Test for formatted currency amounts (verify actual displayed values)
-      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
-      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+      expect(screen.getByText(/\$1[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
+      expect(screen.getByText(/\$50[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
 
-      // Also verify that formatCurrency is called with correct values
       expect(formatCurrency).toHaveBeenCalledWith(1000000);
       expect(formatCurrency).toHaveBeenCalledWith(50000000);
     });
@@ -160,17 +158,15 @@ describe('ServicesTable', () => {
     it('should display formatted min amount', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      // Use a function matcher to find text that might be split across elements
-      expect(
-        screen.getByText((content, element) => {
-          return element?.textContent?.includes('Min: $10,000') || false;
-        })
-      ).toBeInTheDocument();
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1];
+      const secondDataRow = rows[2];
 
+      // Scope to specific rows to avoid multiple matches across the table
+      // Match 'Min:' followed by a formatted currency that may use commas or spaces
+      expect(within(firstDataRow).getByText(/Min:\s*\$10[,\s\u202F]?000/)).toBeInTheDocument();
       expect(
-        screen.getByText((content, element) => {
-          return element?.textContent?.includes('Min: $5,000,000') || false;
-        })
+        within(secondDataRow).getByText(/Min:\s*\$5[,\s\u202F]?000[,\s\u202F]?000/)
       ).toBeInTheDocument();
 
       // Also verify the function is called with correct values
@@ -460,20 +456,18 @@ describe('ServicesTable', () => {
     it('should format currency correctly', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
-      expect(screen.getByText('$50,000,000')).toBeInTheDocument();
+      // Max amounts can be matched globally (unique per row)
+      expect(screen.getByText(/\$1[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
+      expect(screen.getByText(/\$50[,\s\u202F]?000[,\s\u202F]?000/)).toBeInTheDocument();
 
-      // Use function matchers for text that's split across elements
-      expect(
-        screen.getByText((content, element) => {
-          return element?.textContent?.includes('$10,000') || false;
-        })
-      ).toBeInTheDocument();
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1];
+      const secondDataRow = rows[2];
 
+      // Scope min amounts to their specific rows to avoid multiple matches
+      expect(within(firstDataRow).getByText(/\$10[,\s\u202F]?000/)).toBeInTheDocument();
       expect(
-        screen.getByText((content, element) => {
-          return element?.textContent?.includes('$5,000,000') || false;
-        })
+        within(secondDataRow).getByText(/\$5[,\s\u202F]?000[,\s\u202F]?000/)
       ).toBeInTheDocument();
 
       // Also verify that formatCurrency is called with correct values
