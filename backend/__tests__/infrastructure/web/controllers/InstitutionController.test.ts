@@ -5,11 +5,13 @@ import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/G
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
+import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
   let mockCreateInstitutionUseCase: jest.Mocked<CreateInstitutionUseCase>;
   let mockUpdateInstitutionUseCase: jest.Mocked<UpdateInstitutionUseCase>;
+  let mockUpdateInstitutionStatusUseCase: jest.Mocked<UpdateInstitutionStatusUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
   let mockRequest: Partial<Request>;
@@ -25,6 +27,10 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockUpdateInstitutionStatusUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     mockGetInstitutionsUseCase = {
       execute: jest.fn(),
     } as any;
@@ -36,6 +42,7 @@ describe('InstitutionController', () => {
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
       mockUpdateInstitutionUseCase,
+      mockUpdateInstitutionStatusUseCase,
       mockGetInstitutionsUseCase,
       mockGetInstitutionByIdUseCase
     );

@@ -3,8 +3,9 @@
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -19,7 +20,9 @@ interface InstitutionDetailsComponentProps {
 
 const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsComponentProps) => {
   const { showLoader, hideLoader } = useLoader();
-  const { institution, isLoading, isError, error } = useGetInstitution(institutionId);
+  const { institution, isLoading, isError, error, refetch } = useGetInstitution(institutionId);
+  const [showUpdateStateModal, setShowUpdateStateModal] = useState<boolean>(false);
+  const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
 
   useEffect(() => {
     if (isLoading) {
@@ -56,6 +59,29 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         return null;
     }
   };
+
+  const activationButton = () => (
+    <Button
+      onClick={() => {
+        setNewStatus(InstitutionStatus.ACTIVE);
+        setShowUpdateStateModal(true);
+      }}
+      className='bg-green-500 text-white font-bold text-sm hover:bg-green-600'
+    >
+      ACTIVER
+    </Button>
+  );
+  const desactivationButton = () => (
+    <Button
+      onClick={() => {
+        setNewStatus(InstitutionStatus.INACTIVE);
+        setShowUpdateStateModal(true);
+      }}
+      className='bg-red-500 text-white font-bold text-sm hover:bg-red-600'
+    >
+      REJETER
+    </Button>
+  );
 
   if (isError) {
     return (
@@ -111,24 +137,12 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
             <div className='flex gap-4'>
               {institution.status === InstitutionStatus.PENDING && (
                 <>
-                  <Button className='bg-red-500 text-white font-bold text-sm hover:bg-red-600'>
-                    REJETER
-                  </Button>
-                  <Button className='bg-green-500 text-white font-bold text-sm hover:bg-green-600'>
-                    ACTIVER
-                  </Button>
+                  {desactivationButton()}
+                  {activationButton()}
                 </>
               )}
-              {institution.status === InstitutionStatus.ACTIVE && (
-                <Button className='bg-red-500 text-white font-bold text-sm hover:bg-red-600'>
-                  DÉSACTIVER
-                </Button>
-              )}
-              {institution.status === InstitutionStatus.INACTIVE && (
-                <Button className='bg-green-500 text-white font-bold text-sm hover:bg-green-600'>
-                  ACTIVER
-                </Button>
-              )}
+              {institution.status === InstitutionStatus.ACTIVE && <>{desactivationButton()}</>}
+              {institution.status === InstitutionStatus.INACTIVE && <>{activationButton()}</>}
             </div>
           </div>
           <div className='flex flex-1 gap-4 items-center'>
@@ -160,6 +174,14 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         <h2 className='text-2xl font-bold text-gray-900 mb-4'>Produits Financiers</h2>
         <p className='text-gray-500'>Aucun produit financier pour le moment.</p>
       </div>
+
+      <ConfirmUpdateStatusModal
+        isOpen={showUpdateStateModal}
+        onClose={() => setShowUpdateStateModal(false)}
+        refresh={() => refetch()}
+        institution={institution}
+        status={newStatus}
+      />
     </div>
   );
 };

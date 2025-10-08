@@ -5,7 +5,7 @@ interface BackendErrorResponse {
 
 export const apiClient = async <T>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   token: string | null,
   body?: any
 ): Promise<T> => {
