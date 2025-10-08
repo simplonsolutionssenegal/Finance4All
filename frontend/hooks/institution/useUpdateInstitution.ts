@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
+import { apiClient } from '@/lib/api-client';
 import type { UpdateInstitutionDto } from '@/types/Institution';
 
 interface BackendResponse {
@@ -11,45 +12,12 @@ interface BackendResponse {
   data?: any;
 }
 
-interface BackendErrorResponse {
-  message?: string;
-  errors?: { message: string }[];
-}
-
 const updateInstitution = async (
   id: string,
   institutionData: UpdateInstitutionDto,
   token: string | null
 ): Promise<BackendResponse> => {
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/institutions/${id}`;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(apiUrl, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(institutionData),
-  });
-
-  if (!response.ok) {
-    let errorData: BackendErrorResponse;
-    try {
-      errorData = await response.json();
-    } catch (_parseError) {
-      errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-    }
-    throw new Error(
-      errorData.errors?.[0]?.message || errorData.message || 'Failed to update institution'
-    );
-  }
-
-  return response.json();
+  return apiClient<BackendResponse>(`institutions/${id}`, 'PUT', token, institutionData);
 };
 
 export const useUpdateInstitution = (options?: { onSuccess?: () => void }) => {

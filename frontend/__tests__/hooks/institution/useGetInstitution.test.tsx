@@ -206,7 +206,7 @@ describe('useGetInstitution', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.institution).toBeUndefined();
-    expect(result.current.error?.message).toBe('Failed to fetch institution');
+    expect(result.current.error?.message).toBe('Failed to GET institutions/1');
   });
 
   it('updates queryKey when id changes', async () => {

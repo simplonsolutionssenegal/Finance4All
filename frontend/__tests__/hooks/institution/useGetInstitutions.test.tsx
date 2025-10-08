@@ -301,6 +301,6 @@ describe('useGetInstitutions', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.institutions).toEqual([]);
-    expect(result.current.error?.message).toBe('Failed to fetch institutions');
+    expect(result.current.error?.message).toBe('Failed to GET institutions?page=1&limit=10');
   });
 });

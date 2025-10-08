@@ -282,7 +282,7 @@ describe('useCreateInstitution', () => {
 
     expect(mockHideLoader).toHaveBeenCalledTimes(1);
     expect(mockToast.error).toHaveBeenCalledWith('La création a échoué', {
-      description: 'Failed to create institution',
+      description: 'Failed to POST institutions',
     });
   });
 

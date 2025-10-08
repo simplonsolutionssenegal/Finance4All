@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 
+import { apiClient } from '@/lib/api-client';
 import type { Institution } from '@/types/Institution';
 
 interface PaginationInfo {
@@ -26,34 +27,11 @@ const getInstitutions = async (
   token: string | null
 ): Promise<GetInstitutionsResponse> => {
   const { page = 1, limit = 10 } = params;
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=${page}&limit=${limit}`;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(apiUrl, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorData: { message?: string; errors?: { message: string }[] };
-    try {
-      errorData = await response.json();
-    } catch (_parseError) {
-      errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-    }
-    throw new Error(
-      errorData.errors?.[0]?.message || errorData.message || 'Failed to fetch institutions'
-    );
-  }
-
-  return response.json();
+  return apiClient<GetInstitutionsResponse>(
+    `institutions?page=${page}&limit=${limit}`,
+    'GET',
+    token
+  );
 };
 
 export const useGetInstitutions = (params: GetInstitutionsParams = {}) => {

@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 
+import { apiClient } from '@/lib/api-client';
 import type { Institution } from '@/types/Institution';
 
 interface GetInstitutionResponse {
@@ -12,34 +13,7 @@ const getInstitution = async (
   id: string,
   token: string | null
 ): Promise<GetInstitutionResponse> => {
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/institutions/${id}`;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(apiUrl, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorData: { message?: string; errors?: { message: string }[] };
-    try {
-      errorData = await response.json();
-    } catch (_parseError) {
-      errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-    }
-    throw new Error(
-      errorData.errors?.[0]?.message || errorData.message || 'Failed to fetch institution'
-    );
-  }
-
-  return response.json();
+  return apiClient<GetInstitutionResponse>(`institutions/${id}`, 'GET', token);
 };
 
 export const useGetInstitution = (id: string) => {

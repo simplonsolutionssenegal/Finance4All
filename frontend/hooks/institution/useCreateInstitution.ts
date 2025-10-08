@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
+import { apiClient } from '@/lib/api-client';
 import type { CreateInstitutionDto } from '@/types/Institution';
 
 interface BackendResponse {
@@ -11,44 +12,11 @@ interface BackendResponse {
   data?: any;
 }
 
-interface BackendErrorResponse {
-  message?: string;
-  errors?: { message: string }[];
-}
-
 const createInstitution = async (
   institutionData: CreateInstitutionDto,
   token: string | null
 ): Promise<BackendResponse> => {
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/institutions`;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(institutionData),
-  });
-
-  if (!response.ok) {
-    let errorData: BackendErrorResponse;
-    try {
-      errorData = await response.json();
-    } catch (_parseError) {
-      errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-    }
-    throw new Error(
-      errorData.errors?.[0]?.message || errorData.message || 'Failed to create institution'
-    );
-  }
-
-  return response.json();
+  return apiClient<BackendResponse>('institutions', 'POST', token, institutionData);
 };
 
 export const useCreateInstitution = (options?: { onSuccess?: () => void }) => {

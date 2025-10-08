@@ -233,7 +233,7 @@ describe('useUpdateInstitution', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(toast.error).toHaveBeenCalledWith('La modification a échoué', {
-      description: 'Failed to update institution',
+      description: `Failed to PUT institutions/${institutionId}`,
     });
   });
 
