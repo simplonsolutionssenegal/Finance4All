@@ -1,5 +1,5 @@
-import { X } from 'lucide-react';
-import React, { useState } from 'react';
+import { X, Check } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 import type { FilterOptions } from '../../types/FinancialServices';
 import { Button } from '../ui/button';
@@ -17,22 +17,24 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const [localFilters, setLocalFilters] = useState(filters);
+  const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
 
-  const handleFilterChange = (
-    category: keyof FilterOptions,
-    value: string | FilterOptions['date']
-  ) => {
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
+  const handleFilterChange = (category: keyof FilterOptions, value: string) => {
     if (category === 'date') {
       setLocalFilters(prev => ({ ...prev, [category]: value as FilterOptions['date'] }));
-    } else {
-      const currentValues = localFilters[category] as string[];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
-
-      setLocalFilters(prev => ({ ...prev, [category]: newValues }));
+      return;
     }
+
+    const currentValues = localFilters[category] as string[];
+    const newValues = currentValues.includes(value)
+      ? currentValues.filter(v => v !== value)
+      : [...currentValues, value];
+
+    setLocalFilters(prev => ({ ...prev, [category]: newValues }));
   };
 
   const handleApply = () => {
@@ -48,124 +50,190 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
       date: 'Récente',
     };
     setLocalFilters(resetFilters);
+    onToggle();
+  };
+
+  const defaultFilters: FilterOptions = {
+    serviceType: [],
+    geographicZone: [],
+    institut: [],
+    date: 'Récente',
+  };
+
+  const handleResetLocal = () => {
+    setLocalFilters(defaultFilters);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className='fixed inset-0 bg-black/60 flex items-center justify-center z-50'>
-      <div className='bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto'>
-        <div className='flex justify-between items-center mb-4'>
-          <h3 className='text-lg font-semibold'>Filtres</h3>
-          {/* close button: accessible name + removed from tab order so first tab lands on first form control */}
+      <div className='bg-white rounded-2xl p-6 w-[400px] max-h-[90vh] overflow-y-auto shadow-2xl'>
+        <div className='flex items-start justify-between mb-4'>
+          <div>
+            <h3 className='text-base font-semibold text-gray-900'>Filtres</h3>
+            <p className='text-xs text-gray-500'>Affinez les résultats</p>
+          </div>
           <button
             onClick={onToggle}
+            tabIndex={-1}
             className='text-gray-400 hover:text-gray-600'
             aria-label='Fermer'
-            tabIndex={-1}
           >
             <X className='w-5 h-5' />
           </button>
         </div>
 
         <div className='space-y-6'>
-          {/* Type de produit */}
           <div>
-            <h4 className='font-medium text-gray-900 mb-3'>Type de produit</h4>
-            <div className='flex space-x-2 mb-2'>
-              {/* Réinstaller now calls handleReset and is removed from tab order to avoid stealing focus */}
+            <div className='flex justify-between items-center mb-4'>
+              <h4 className='font-semibold text-gray-900 text-base'>Type de produit</h4>
               <button
-                onClick={handleReset}
-                className='text-orange-500 text-sm hover:underline'
+                onClick={handleResetLocal}
                 tabIndex={-1}
+                className='text-yellow-600 text-sm font-medium hover:underline'
               >
                 Réinstaller
               </button>
             </div>
-            <div className='space-y-2'>
-              {['Epargne', 'Crédit', 'Autre type'].map(type => (
-                <label key={type} className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={localFilters.serviceType.includes(
-                      type as FilterOptions['serviceType'][number]
-                    )}
-                    onChange={() => handleFilterChange('serviceType', type)}
-                    className='mr-2 text-teal-500 focus:ring-teal-500'
-                  />
-                  <span className='text-sm'>{type}</span>
-                </label>
-              ))}
+
+            <div className='flex flex-wrap gap-2'>
+              {['Epargne', 'Crédit', 'Autre type'].map(type => {
+                const isSelected = localFilters.serviceType.includes(type as any);
+                return (
+                  <label
+                    key={type}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 font-medium text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type='checkbox'
+                      className='sr-only'
+                      checked={isSelected}
+                      onChange={() => handleFilterChange('serviceType', type)}
+                    />
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-green-600' : 'border-2 border-gray-300'}`}
+                    >
+                      {isSelected && <Check className='w-2.5 h-2.5 text-white stroke-[2]' />}
+                    </div>
+                    <span className='text-gray-700 text-xs'>{type}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
-          {/* Zone géographique */}
           <div>
-            <h4 className='font-medium text-gray-900 mb-3'>Zone géographique</h4>
-            <div className='space-y-2'>
-              {['Zone Géo A', 'Zone Géo B'].map(zone => (
-                <label key={zone} className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={localFilters.geographicZone.includes(
-                      zone as FilterOptions['geographicZone'][number]
-                    )}
-                    onChange={() => handleFilterChange('geographicZone', zone)}
-                    className='mr-2 text-teal-500 focus:ring-teal-500'
-                  />
-                  <span className='text-sm'>{zone}</span>
-                </label>
-              ))}
+            <h4 className='font-semibold text-gray-900 text-base mb-4'>Zone géographique</h4>
+            <div className='flex flex-wrap gap-2'>
+              {['Zone Géo A', 'Zone Géo B'].map(zone => {
+                const isSelected = localFilters.geographicZone.includes(zone as any);
+                return (
+                  <label
+                    key={zone}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 font-medium text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type='checkbox'
+                      className='sr-only'
+                      checked={isSelected}
+                      onChange={() => handleFilterChange('geographicZone', zone)}
+                    />
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-green-600' : 'border-2 border-gray-300'}`}
+                    >
+                      {isSelected && <Check className='w-2.5 h-2.5 text-white stroke-[2]' />}
+                    </div>
+                    <span className='text-gray-700 text-xs'>{zone}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
-          {/* Institut */}
           <div>
-            <h4 className='font-medium text-gray-900 mb-3'>Institut</h4>
-            <div className='space-y-2'>
-              {['SIMPLON', 'PAYTECH SN', 'ODK'].map(institut => (
-                <label key={institut} className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={localFilters.institut.includes(
-                      institut as FilterOptions['institut'][number]
-                    )}
-                    onChange={() => handleFilterChange('institut', institut)}
-                    className='mr-2 text-teal-500 focus:ring-teal-500'
-                  />
-                  <span className='text-sm'>{institut}</span>
-                </label>
-              ))}
+            <h4 className='font-semibold text-gray-900 text-base mb-4'>Institut</h4>
+            <div className='flex flex-wrap gap-2'>
+              {['SIMPLON', 'PAYTECH SN', 'ODK'].map(institut => {
+                const isSelected = localFilters.institut.includes(institut as any);
+                return (
+                  <label
+                    key={institut}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 font-medium text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type='checkbox'
+                      className='sr-only'
+                      checked={isSelected}
+                      onChange={() => handleFilterChange('institut', institut)}
+                    />
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-green-600' : 'border-2 border-gray-300'}`}
+                    >
+                      {isSelected && <Check className='w-2.5 h-2.5 text-white stroke-[2]' />}
+                    </div>
+                    <span className='text-gray-700 text-xs'>{institut}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
-          {/* Date */}
           <div>
-            <h4 className='font-medium text-gray-900 mb-3'>Date</h4>
-            <div className='space-y-2'>
-              {['Récente', 'Il y a 3 mois'].map(date => (
-                <label key={date} className='flex items-center'>
-                  <input
-                    type='radio'
-                    name='date'
-                    checked={localFilters.date === date}
-                    onChange={() => handleFilterChange('date', date)}
-                    className='mr-2 text-teal-500 focus:ring-teal-500'
-                  />
-                  <span className='text-sm'>{date}</span>
-                </label>
-              ))}
+            <h4 className='font-semibold text-gray-900 text-base mb-4'>Date</h4>
+            <div className='flex flex-wrap gap-2'>
+              {['Récente', 'Il y a 3 mois'].map(date => {
+                const isSelected = localFilters.date === date;
+                return (
+                  <label
+                    key={date}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 font-medium text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type='radio'
+                      name='date'
+                      className='sr-only'
+                      checked={isSelected}
+                      onChange={() => handleFilterChange('date', date)}
+                    />
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-green-600' : 'border-2 border-gray-300'}`}
+                    >
+                      {isSelected && <Check className='w-2.5 h-2.5 text-white stroke-[2]' />}
+                    </div>
+                    <span className='text-gray-700 text-xs'>{date}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className='flex space-x-3 mt-6 pt-4 border-t border-gray-200'>
-          {/* Annuler closes the modal (onToggle) */}
-          <Button variant='outline' onClick={onToggle} className='flex-1'>
+        <div className='flex gap-3 mt-6 pt-4'>
+          <Button variant='outline' onClick={handleReset} className='flex-1 py-2 text-sm'>
             Annuler
           </Button>
-          <Button onClick={handleApply} className='flex-1'>
+          <Button
+            onClick={handleApply}
+            className='flex-1 py-2 text-sm'
+            style={{ backgroundColor: 'var(--primary-300)', color: 'white' }}
+          >
             Confirmer
           </Button>
         </div>

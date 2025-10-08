@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Search,
-  Filter,
-  Plus,
-  Grid3x3 as Grid3X3,
-  List,
-  BarChart3,
-  GitCompare,
-} from 'lucide-react';
+import { Search, Filter, Grid3x3 as Grid3X3, List, BarChart3, GitCompare } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
 import { ServicesChart } from '@/components/charts/ServicesCharts';
@@ -190,10 +182,8 @@ export const ServicesDashboard: React.FC = () => {
 
       {/* Header Section */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0'>
-        <h2 className='text-xl font-semibold text-gray-900'>Produits financier</h2>
-        <div className='flex space-x-2'>
-          <Button icon={Plus}>Ajouter un produit</Button>
-        </div>
+        <h2 className='text-xl font-semibold text-gray-900'>Service(s) financier(s)</h2>
+        <div className='flex space-x-2'>{/* Add product button removed per design */}</div>
       </div>
 
       {/* Search and Filters */}
