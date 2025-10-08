@@ -15,7 +15,7 @@ interface ServiceComparisonProps {
 interface SimulationData {
   serviceId: string;
   amount: number;
-  duration: number; // en mois
+  duration: number;
 }
 
 export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
@@ -52,7 +52,6 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
     const monthlyRate = service.interestRate / 100 / 12;
 
     if (service.type === 'Crédit') {
-      // Calcul mensualité crédit
       const monthlyPayment =
         (amount * monthlyRate * Math.pow(1 + monthlyRate, duration)) /
         (Math.pow(1 + monthlyRate, duration) - 1);
@@ -67,20 +66,19 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
         monthlyGain: 0,
         type: 'credit' as const,
       };
-    } else {
-      // Calcul épargne
-      const finalAmount = amount * Math.pow(1 + monthlyRate, duration);
-      const totalInterest = finalAmount - amount;
-
-      return {
-        monthlyPayment: 0,
-        totalPayment: 0,
-        finalAmount,
-        totalInterest,
-        monthlyGain: totalInterest / duration,
-        type: 'savings' as const,
-      };
     }
+
+    const finalAmount = amount * Math.pow(1 + monthlyRate, duration);
+    const totalInterest = finalAmount - amount;
+
+    return {
+      monthlyPayment: 0,
+      totalPayment: 0,
+      finalAmount,
+      totalInterest,
+      monthlyGain: totalInterest / duration,
+      type: 'savings' as const,
+    };
   };
 
   if (!isOpen) return null;
@@ -100,7 +98,6 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
         </div>
 
         <div className='p-6'>
-          {/* Sélection des produits */}
           <div className='mb-8'>
             <h3 className='text-lg font-medium text-gray-900 mb-4'>
               Sélectionner les produits à comparer (max 3)
@@ -144,10 +141,8 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
             </div>
           </div>
 
-          {/* Comparaison et simulations */}
           {selectedServices.length > 0 && (
             <div className='space-y-8'>
-              {/* Paramètres de simulation globaux */}
               <div className='bg-gray-50 rounded-lg p-6'>
                 <h3 className='text-lg font-medium text-gray-900 mb-4 flex items-center'>
                   <Calculator className='w-5 h-5 mr-2' />
@@ -187,7 +182,6 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                 </div>
               </div>
 
-              {/* Tableau de comparaison */}
               <div className='overflow-x-auto'>
                 <table className='min-w-full bg-white border border-gray-200 rounded-lg'>
                   <thead className='bg-gray-50'>
@@ -252,7 +246,6 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                 </table>
               </div>
 
-              {/* Résultats des simulations */}
               <div className='bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg p-6'>
                 <h3 className='text-lg font-medium text-gray-900 mb-4 flex items-center'>
                   <TrendingUp className='w-5 h-5 mr-2' />
@@ -260,8 +253,18 @@ export const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                   {selectedServices.map(service => {
-                    const simulation = simulations.find(s => s.serviceId === service.id);
-                    if (!simulation) return null;
+                    const storedSimulation = simulations.find(s => s.serviceId === service.id);
+                    const simulation = storedSimulation
+                      ? {
+                          ...storedSimulation,
+                          amount: simulationAmount,
+                          duration: simulationDuration,
+                        }
+                      : {
+                          serviceId: service.id,
+                          amount: simulationAmount,
+                          duration: simulationDuration,
+                        };
 
                     const results = calculateSimulation(service, simulation);
 
