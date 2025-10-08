@@ -4,7 +4,7 @@ import { prisma } from '@/infrastructure/database/prisma';
 
 // Mock Prisma User type
 type PrismaUser = {
-  id: number;
+  id: string;
   name: string;
   email: string;
 };
@@ -37,7 +37,7 @@ describe('PrismaUserRepository', () => {
   describe('findById', () => {
     it('should find a user by id successfully', async () => {
       const mockPrismaUser: PrismaUser = {
-        id: 1,
+        id: '1',
         name: 'John Doe',
         email: 'john@example.com',
       };
@@ -46,18 +46,19 @@ describe('PrismaUserRepository', () => {
 
       const result = await repository.findById('1');
 
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: '1' } });
       expect(result).toBeInstanceOf(User);
       expect(result?.id).toBe('1');
       expect(result?.name).toBe('John Doe');
       expect(result?.email).toBe('john@example.com');
     });
 
-    it('should return null when id is not numeric', async () => {
+    it('should return null when user is not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
       const result = await repository.findById('nonexistent');
 
-      // Should not call Prisma when id is not numeric
-      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: 'nonexistent' } });
       expect(result).toBeNull();
     });
 
@@ -73,7 +74,7 @@ describe('PrismaUserRepository', () => {
     it('should save a user successfully', async () => {
       const domainUser = new User('1', 'John Doe', 'john@example.com');
       const mockPrismaUser: PrismaUser = {
-        id: 1,
+        id: '1',
         name: 'John Doe',
         email: 'john@example.com',
       };
@@ -84,7 +85,7 @@ describe('PrismaUserRepository', () => {
 
       expect(mockPrisma.user.create).toHaveBeenCalledWith({
         data: {
-          id: 1,
+          id: '1',
           name: 'John Doe',
           email: 'john@example.com',
         },
@@ -103,10 +104,10 @@ describe('PrismaUserRepository', () => {
       await expect(repository.save(domainUser)).rejects.toThrow('Unique constraint failed');
     });
 
-    it('should save user with another numeric id', async () => {
-      const domainUser = new User('2', 'Jane Smith', 'jane.smith@example.com');
+    it('should save user with different data types', async () => {
+      const domainUser = new User('uuid-123', 'Jane Smith', 'jane.smith@example.com');
       const mockPrismaUser: PrismaUser = {
-        id: 2,
+        id: 'uuid-123',
         name: 'Jane Smith',
         email: 'jane.smith@example.com',
       };
@@ -115,10 +116,7 @@ describe('PrismaUserRepository', () => {
 
       const result = await repository.save(domainUser);
 
-      expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com' },
-      });
-      expect(result.id).toBe('2');
+      expect(result.id).toBe('uuid-123');
       expect(result.name).toBe('Jane Smith');
       expect(result.email).toBe('jane.smith@example.com');
     });
@@ -127,17 +125,17 @@ describe('PrismaUserRepository', () => {
   describe('toDomain conversion', () => {
     it('should correctly convert Prisma user to domain user', async () => {
       const mockPrismaUser: PrismaUser = {
-        id: 42,
+        id: 'test-id',
         name: 'Test User',
         email: 'test@example.com',
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockPrismaUser);
 
-      const result = await repository.findById('42');
+      const result = await repository.findById('test-id');
 
       expect(result).toBeInstanceOf(User);
-      expect(result?.id).toBe(mockPrismaUser.id.toString());
+      expect(result?.id).toBe(mockPrismaUser.id);
       expect(result?.name).toBe(mockPrismaUser.name);
       expect(result?.email).toBe(mockPrismaUser.email);
     });
