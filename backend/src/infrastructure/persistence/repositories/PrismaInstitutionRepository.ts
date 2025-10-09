@@ -10,6 +10,7 @@ import type {
   InstitutionStatus as PrismaInstitutionStatus,
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
+import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
 
 export class PrismaInstitutionRepository implements InstitutionRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -24,9 +25,20 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     return this.toDomain(saved);
   }
 
-  async findById(id: EntityId): Promise<Institution | null> {
+  async update(institution: Institution): Promise<Institution> {
+    const data = this.toPrismaData(institution);
+
+    const updated = await this.prisma.institution.update({
+      where: { id: institution.id.getValue() },
+      data,
+    });
+
+    return this.toDomain(updated);
+  }
+
+  async findById(id: string): Promise<Institution | null> {
     const institution = await this.prisma.institution.findUnique({
-      where: { id: id.getValue() },
+      where: { id },
     });
 
     return institution ? this.toDomain(institution) : null;
@@ -38,6 +50,31 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     });
 
     return institutions.map((i: PrismaInstitution) => this.toDomain(i));
+  }
+
+  async findAll(params: PaginationParams): Promise<PaginatedResult<Institution>> {
+    const skip = (params.page - 1) * params.limit;
+
+    const [institutions, total] = await Promise.all([
+      this.prisma.institution.findMany({
+        skip,
+        take: params.limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.institution.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / params.limit);
+
+    return {
+      data: institutions.map((i: PrismaInstitution) => this.toDomain(i)),
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total,
+        totalPages,
+      },
+    };
   }
 
   private toDomain(prismaInstitution: PrismaInstitution): Institution {

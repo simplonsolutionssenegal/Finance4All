@@ -137,7 +137,7 @@ describe('PrismaInstitutionRepository', () => {
 
       (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(prismaInstitution);
 
-      const result = await repository.findById(EntityId.from(testUuid1));
+      const result = await repository.findById(testUuid1);
 
       expect(mockPrisma.institution.findUnique).toHaveBeenCalledWith({
         where: { id: testUuid1 },
@@ -152,7 +152,7 @@ describe('PrismaInstitutionRepository', () => {
       const nonExistentId = randomUUID();
       (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.findById(EntityId.from(nonExistentId));
+      const result = await repository.findById(nonExistentId);
 
       expect(mockPrisma.institution.findUnique).toHaveBeenCalledWith({
         where: { id: nonExistentId },
@@ -176,7 +176,7 @@ describe('PrismaInstitutionRepository', () => {
 
       (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(prismaInstitution);
 
-      const result = await repository.findById(EntityId.from(testUuid3));
+      const result = await repository.findById(testUuid3);
 
       expect(result?.website.getValue()).toBeNull();
       expect(result?.logoUrl.getValue()).toBeNull();

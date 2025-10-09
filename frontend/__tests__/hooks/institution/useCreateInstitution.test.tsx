@@ -22,7 +22,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
-import { useCreateInstitution } from '@/hooks/useCreateInstitution';
+import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
 
 const mockUseAuth = useAuth as jest.Mock;
 const mockUseLoader = useLoader as unknown as jest.Mock;
@@ -282,7 +282,7 @@ describe('useCreateInstitution', () => {
 
     expect(mockHideLoader).toHaveBeenCalledTimes(1);
     expect(mockToast.error).toHaveBeenCalledWith('La création a échoué', {
-      description: 'Failed to create institution',
+      description: 'Failed to POST institutions',
     });
   });
 

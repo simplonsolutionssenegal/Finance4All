@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown, X } from 'lucide-react';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -20,11 +20,15 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateInstitution } from '@/hooks/useCreateInstitution';
+import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
+import { useUpdateInstitution } from '@/hooks/institution/useUpdateInstitution';
+import type { Institution } from '@/types/Institution';
 
-interface AddInstitutionModalProps {
+interface InstitutionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  refresh: () => void;
+  institution?: Institution | null;
 }
 
 const institutionSchema = z.object({
@@ -50,7 +54,9 @@ const availableZones = [
   'Pacifique',
 ];
 
-const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) => {
+const InstitutionModal = ({ open, onOpenChange, refresh, institution }: InstitutionModalProps) => {
+  const isEditMode = !!institution;
+
   const form = useForm<FormData>({
     resolver: zodResolver(institutionSchema),
     defaultValues: {
@@ -62,10 +68,39 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
     },
   });
 
+  useEffect(() => {
+    if (institution) {
+      form.reset({
+        name: institution.name,
+        description: institution.description,
+        website: institution.website || '',
+        geographicZones: institution.geographicZones,
+        logoUrl: institution.logoUrl || '',
+      });
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+        website: '',
+        geographicZones: [],
+        logoUrl: '',
+      });
+    }
+  }, [institution, form]);
+
   const { isCreating, createInstitution } = useCreateInstitution({
     onSuccess: () => {
       form.reset();
       onOpenChange(false);
+      refresh();
+    },
+  });
+
+  const { isUpdating, updateInstitution } = useUpdateInstitution({
+    onSuccess: () => {
+      form.reset();
+      onOpenChange(false);
+      refresh();
     },
   });
 
@@ -82,14 +117,20 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
   );
 
   const onSubmit = (data: FormData) => {
-    createInstitution(data);
+    if (isEditMode && institution) {
+      updateInstitution({ id: institution.id, data });
+    } else {
+      createInstitution(data);
+    }
   };
+
+  const isSubmitting = isCreating || isUpdating;
 
   return (
     <Dialog
       open={open}
       onOpenChange={open => {
-        if (!isCreating) {
+        if (!isSubmitting) {
           onOpenChange(open);
           if (!open) form.reset();
         }
@@ -97,7 +138,9 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
     >
       <DialogContent className='max-w-md bg-white'>
         <DialogHeader>
-          <DialogTitle className='text-xl font-bold text-gray-900'>Ajouter un institut</DialogTitle>
+          <DialogTitle className='text-xl font-bold text-gray-900'>
+            {isEditMode ? "Modifier l'institut" : 'Ajouter un institut'}
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -113,7 +156,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                       placeholder='Société générale'
                       className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                       {...field}
-                      disabled={isCreating}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -133,7 +176,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                       placeholder="Description de l'institution..."
                       className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
                       {...field}
-                      disabled={isCreating}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -152,7 +195,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                       placeholder='https://www.institut.sn'
                       className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                       {...field}
-                      disabled={isCreating}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -178,7 +221,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                         onFocus={() => setIsDropdownOpen(true)}
                         placeholder='Rechercher une zone...'
                         className='w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                        disabled={isCreating}
+                        disabled={isSubmitting}
                       />
                       <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none' />
                     </div>
@@ -208,7 +251,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                           variant='default'
                           className='bg-gray-400/30 p-2 cursor-pointer hover:bg-gray-500'
                           onClick={() =>
-                            !isCreating &&
+                            !isSubmitting &&
                             field.onChange((field.value || []).filter(z => z !== zone))
                           }
                         >
@@ -234,7 +277,7 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
                       type='url'
                       placeholder='https://exemple.com/logo.png'
                       {...field}
-                      disabled={isCreating}
+                      disabled={isSubmitting}
                       className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                     />
                   </FormControl>
@@ -260,10 +303,10 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
             <div className='flex justify-end pt-4'>
               <Button
                 type='submit'
-                disabled={isCreating || !form.formState.isValid}
+                disabled={isSubmitting || !form.formState.isValid}
                 className='bg-cyan-400 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'
               >
-                {isCreating ? 'Enregistrement...' : 'Enregistrer'}
+                {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Modifier' : 'Enregistrer'}
               </Button>
             </div>
           </form>
@@ -273,4 +316,4 @@ const AddInstitutionModal = ({ open, onOpenChange }: AddInstitutionModalProps) =
   );
 };
 
-export default AddInstitutionModal;
+export default InstitutionModal;

@@ -6,9 +6,9 @@ import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObje
 import type {
   CreateInstitutionCommand,
   CreateInstitutionUseCase,
-  InstitutionDTO,
 } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
+import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 
 export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
   constructor(
