@@ -1,4 +1,4 @@
-import { Eye, CreditCard as Edit, Trash2, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
+import { ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import React from 'react';
 
 import { formatCurrency, formatPercentage } from '../../data/MockData';
@@ -9,21 +9,11 @@ interface ServicesTableProps {
   services: FinancialService[];
   searchAndFilter: SearchAndFilterState;
   onSort: (field: SearchAndFilterState['sortBy']) => void;
-  onEdit: (service: FinancialService) => void;
-  onDelete: (serviceId: string) => void;
-  onView: (service: FinancialService) => void;
   onSchedule: (service: FinancialService) => void;
 }
 
-export const ServicesTable: React.FC<ServicesTableProps> = ({
-  services,
-  searchAndFilter,
-  onSort,
-  onEdit,
-  onDelete,
-  onView,
-  onSchedule,
-}) => {
+export const ServicesTable: React.FC<ServicesTableProps> = props => {
+  const { services, searchAndFilter, onSort, onSchedule } = props;
   const getSortIcon = (field: SearchAndFilterState['sortBy']) => {
     if (searchAndFilter.sortBy !== field) return null;
     return searchAndFilter.sortOrder === 'asc' ? (
@@ -122,32 +112,11 @@ export const ServicesTable: React.FC<ServicesTableProps> = ({
                 <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                   <div className='flex items-center space-x-2 justify-end'>
                     <button
-                      onClick={() => onView(service)}
-                      className='text-gray-400 hover:text-gray-600 p-1'
-                      title='Voir'
-                    >
-                      <Eye className='w-4 h-4' />
-                    </button>
-                    <button
                       onClick={() => onSchedule(service)}
                       className='text-green-400 hover:text-green-600 p-1'
                       title='Échéancier'
                     >
                       <Calendar className='w-4 h-4' />
-                    </button>
-                    <button
-                      onClick={() => onEdit(service)}
-                      className='text-blue-400 hover:text-blue-600 p-1'
-                      title='Modifier'
-                    >
-                      <Edit className='w-4 h-4' />
-                    </button>
-                    <button
-                      onClick={() => onDelete(service.id)}
-                      className='text-red-400 hover:text-red-600 p-1'
-                      title='Supprimer'
-                    >
-                      <Trash2 className='w-4 h-4' />
                     </button>
                   </div>
                 </td>

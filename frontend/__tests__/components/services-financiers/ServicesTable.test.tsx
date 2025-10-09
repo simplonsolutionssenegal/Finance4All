@@ -282,58 +282,17 @@ describe('ServicesTable', () => {
   });
 
   describe('Action buttons', () => {
-    it('should render action buttons for each service', () => {
+    it('should render schedule button for each service and call onSchedule when clicked', async () => {
+      const user = userEvent.setup();
       render(<ServicesTable {...defaultProps} />);
 
-      const eyeIcons = screen.getAllByTestId('eye-icon');
       const calendarIcons = screen.getAllByTestId('calendar-icon');
-      const editIcons = screen.getAllByTestId('edit-icon');
-      const trashIcons = screen.getAllByTestId('trash-icon');
-
-      expect(eyeIcons).toHaveLength(2);
       expect(calendarIcons).toHaveLength(2);
-      expect(editIcons).toHaveLength(2);
-      expect(trashIcons).toHaveLength(2);
-    });
-
-    it('should call onView when view button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesTable {...defaultProps} />);
-
-      const viewButtons = screen.getAllByTitle('Voir');
-      await user.click(viewButtons[0]);
-
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onSchedule when schedule button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesTable {...defaultProps} />);
 
       const scheduleButtons = screen.getAllByTitle('Échéancier');
       await user.click(scheduleButtons[0]);
 
       expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onEdit when edit button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesTable {...defaultProps} />);
-
-      const editButtons = screen.getAllByTitle('Modifier');
-      await user.click(editButtons[0]);
-
-      expect(mockOnEdit).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onDelete when delete button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesTable {...defaultProps} />);
-
-      const deleteButtons = screen.getAllByTitle('Supprimer');
-      await user.click(deleteButtons[0]);
-
-      expect(mockOnDelete).toHaveBeenCalledWith('1');
     });
   });
 
@@ -421,17 +380,8 @@ describe('ServicesTable', () => {
     it('should have proper button titles', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const viewButtons = screen.getAllByTitle('Voir');
-      expect(viewButtons.length).toBe(2);
-
       const scheduleButtons = screen.getAllByTitle('Échéancier');
       expect(scheduleButtons.length).toBe(2);
-
-      const editButtons = screen.getAllByTitle('Modifier');
-      expect(editButtons.length).toBe(2);
-
-      const deleteButtons = screen.getAllByTitle('Supprimer');
-      expect(deleteButtons.length).toBe(2);
     });
 
     it('should have proper table structure', () => {
@@ -637,13 +587,13 @@ describe('ServicesTable', () => {
       const user = userEvent.setup();
       render(<ServicesTable {...defaultProps} />);
 
-      const viewButtons = screen.getAllByTitle('Voir');
-      await user.click(viewButtons[0]);
-      await user.click(viewButtons[1]);
+      const scheduleButtons = screen.getAllByTitle('Échéancier');
+      await user.click(scheduleButtons[0]);
+      await user.click(scheduleButtons[1]);
 
-      expect(mockOnView).toHaveBeenCalledTimes(2);
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[1]);
+      expect(mockOnSchedule).toHaveBeenCalledTimes(2);
+      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
+      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[1]);
     });
   });
 

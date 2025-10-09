@@ -1,5 +1,5 @@
 import { Calendar, Download, TrendingUp } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { formatCurrency } from '../../data/MockData';
 import type { FinancialService } from '../../types/FinancialServices';
@@ -23,19 +23,26 @@ interface ScheduleItem {
 export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amount, duration }) => {
   const [showFullSchedule, setShowFullSchedule] = useState(false);
 
-  const generateSchedule = (): ScheduleItem[] => {
+  // Local editable state so user can change amount/duration and see live recalculations
+  const [amountState, setAmountState] = useState<number>(amount);
+  const [durationState, setDurationState] = useState<number>(duration);
+
+  const sanitizedAmount = Math.max(0, Number(amountState) || 0);
+  const sanitizedDuration = Math.max(1, Math.floor(Number(durationState) || 1));
+
+  const schedule = useMemo<ScheduleItem[]>(() => {
     const schedule: ScheduleItem[] = [];
     const monthlyRate = service.interestRate / 100 / 12;
 
     if (service.type === 'Crédit') {
       // Calcul pour crédit - amortissement constant
       const monthlyPayment =
-        (amount * monthlyRate * Math.pow(1 + monthlyRate, duration)) /
-        (Math.pow(1 + monthlyRate, duration) - 1);
+        (sanitizedAmount * monthlyRate * Math.pow(1 + monthlyRate, sanitizedDuration)) /
+        (Math.pow(1 + monthlyRate, sanitizedDuration) - 1);
 
-      let remainingBalance = amount;
+      let remainingBalance = sanitizedAmount;
 
-      for (let month = 1; month <= duration; month++) {
+      for (let month = 1; month <= sanitizedDuration; month++) {
         const interestPayment = remainingBalance * monthlyRate;
         const principalPayment = monthlyPayment - interestPayment;
         remainingBalance -= principalPayment;
@@ -54,10 +61,10 @@ export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amoun
       }
     } else {
       // Calcul pour épargne - capitalisation mensuelle
-      let currentBalance = amount;
-      const monthlyDeposit = amount / duration; // Dépôt mensuel constant
+      let currentBalance = sanitizedAmount;
+      const monthlyDeposit = sanitizedAmount / sanitizedDuration; // Dépôt mensuel constant
 
-      for (let month = 1; month <= duration; month++) {
+      for (let month = 1; month <= sanitizedDuration; month++) {
         const interestEarned = currentBalance * monthlyRate;
         currentBalance += monthlyDeposit + interestEarned;
 
@@ -76,13 +83,19 @@ export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amoun
     }
 
     return schedule;
-  };
+  }, [service, sanitizedAmount, sanitizedDuration]);
 
-  const schedule = generateSchedule();
-  const displayedSchedule = showFullSchedule ? schedule : schedule.slice(0, 12);
+  const defaultVisible = Math.min(12, schedule.length);
+  const displayedSchedule = showFullSchedule ? schedule : schedule.slice(0, defaultVisible);
 
-  const totalPayments = schedule.reduce((sum, item) => sum + item.payment, 0);
-  const totalInterest = schedule.reduce((sum, item) => sum + item.interest, 0);
+  const totalPayments = useMemo(
+    () => schedule.reduce((sum, item) => sum + item.payment, 0),
+    [schedule]
+  );
+  const totalInterest = useMemo(
+    () => schedule.reduce((sum, item) => sum + item.interest, 0),
+    [schedule]
+  );
 
   const exportScheduleCSV = () => {
     const headers = ['Mois', 'Date', 'Paiement', 'Capital', 'Intérêts', 'Solde Restant'];
@@ -123,15 +136,47 @@ export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amoun
             {service.designation} - {service.institution}
           </p>
         </div>
-        <Button variant='outline' icon={Download} onClick={exportScheduleCSV}>
-          Exporter CSV
-        </Button>
+        <div className='flex items-center space-x-3'>
+          <div className='flex items-center space-x-2'>
+            <label htmlFor='ps-amount' className='text-sm text-gray-600'>
+              Montant:
+            </label>
+            <input
+              id='ps-amount'
+              type='number'
+              min={0}
+              step={100}
+              value={amountState}
+              onChange={e => setAmountState(Number(e.target.value))}
+              className='w-28 p-1 border border-gray-200 rounded-md text-right'
+            />
+          </div>
+
+          <div className='flex items-center space-x-2'>
+            <label htmlFor='ps-duration' className='text-sm text-gray-600'>
+              Durée (mois):
+            </label>
+            <input
+              id='ps-duration'
+              type='number'
+              min={1}
+              step={1}
+              value={durationState}
+              onChange={e => setDurationState(Number(e.target.value))}
+              className='w-20 p-1 border border-gray-200 rounded-md text-right'
+            />
+          </div>
+
+          <Button variant='outline' icon={Download} onClick={exportScheduleCSV}>
+            Exporter CSV
+          </Button>
+        </div>
       </div>
 
       {/* Résumé */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg'>
         <div className='text-center'>
-          <div className='text-2xl font-bold text-gray-900'>{formatCurrency(amount)}</div>
+          <div className='text-2xl font-bold text-gray-900'>{formatCurrency(sanitizedAmount)}</div>
           <div className='text-sm text-gray-600'>
             {service.type === 'Crédit' ? 'Montant emprunté' : 'Capital initial'}
           </div>
@@ -161,9 +206,9 @@ export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amoun
           Évolution {service.type === 'Crédit' ? 'du solde restant' : "de l'épargne"}
         </h4>
         <div className='h-32 bg-gradient-to-r from-teal-100 to-blue-100 rounded-lg p-4 flex items-end space-x-1'>
-          {schedule.slice(0, 24).map(item => {
+          {schedule.slice(0, Math.min(24, schedule.length)).map(item => {
             const maxBalance = Math.max(...schedule.map(s => s.remainingBalance));
-            const height = (item.remainingBalance / maxBalance) * 100;
+            const height = maxBalance > 0 ? (item.remainingBalance / maxBalance) * 100 : 4;
 
             return (
               <div
@@ -232,12 +277,12 @@ export const PaymentSchedule: React.FC<PaymentScheduleProps> = ({ service, amoun
         </table>
       </div>
 
-      {schedule.length > 12 && (
+      {schedule.length > defaultVisible && (
         <div className='mt-4 text-center'>
           <Button variant='outline' onClick={() => setShowFullSchedule(!showFullSchedule)}>
             {showFullSchedule
               ? 'Afficher moins'
-              : `Afficher les ${schedule.length - 12} mois restants`}
+              : `Afficher les ${schedule.length - defaultVisible} mois restants`}
           </Button>
         </div>
       )}

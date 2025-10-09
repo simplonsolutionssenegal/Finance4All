@@ -1,4 +1,4 @@
-import { Eye, CreditCard as Edit, Trash2, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import React from 'react';
 
 import { formatCurrency, formatPercentage } from '../../data/MockData';
@@ -7,19 +7,11 @@ import { Badge } from '../ui/badge';
 
 interface ServicesGridProps {
   services: FinancialService[];
-  onEdit: (service: FinancialService) => void;
-  onDelete: (serviceId: string) => void;
-  onView: (service: FinancialService) => void;
   onSchedule: (service: FinancialService) => void;
 }
 
-export const ServicesGrid: React.FC<ServicesGridProps> = ({
-  services,
-  onEdit,
-  onDelete,
-  onView,
-  onSchedule,
-}) => {
+export const ServicesGrid: React.FC<ServicesGridProps> = props => {
+  const { services, onSchedule } = props;
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
       {services.map(service => (
@@ -77,32 +69,11 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({
 
             <div className='flex items-center space-x-2'>
               <button
-                onClick={() => onView(service)}
-                className='text-gray-400 hover:text-gray-600 p-1'
-                title='Voir'
-              >
-                <Eye className='w-4 h-4' />
-              </button>
-              <button
                 onClick={() => onSchedule(service)}
                 className='text-green-400 hover:text-green-600 p-1'
                 title='Échéancier'
               >
                 <Calendar className='w-4 h-4' />
-              </button>
-              <button
-                onClick={() => onEdit(service)}
-                className='text-blue-400 hover:text-blue-600 p-1'
-                title='Modifier'
-              >
-                <Edit className='w-4 h-4' />
-              </button>
-              <button
-                onClick={() => onDelete(service.id)}
-                className='text-red-400 hover:text-red-600 p-1'
-                title='Supprimer'
-              >
-                <Trash2 className='w-4 h-4' />
               </button>
             </div>
           </div>

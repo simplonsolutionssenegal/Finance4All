@@ -175,58 +175,17 @@ describe('ServicesGrid', () => {
   });
 
   describe('Action buttons', () => {
-    it('should render all action buttons for each service', () => {
+    it('should render schedule button for each service and call onSchedule when clicked', async () => {
+      const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const eyeIcons = screen.getAllByTestId('eye-icon');
       const calendarIcons = screen.getAllByTestId('calendar-icon');
-      const editIcons = screen.getAllByTestId('edit-icon');
-      const trashIcons = screen.getAllByTestId('trash-icon');
-
-      expect(eyeIcons).toHaveLength(2);
       expect(calendarIcons).toHaveLength(2);
-      expect(editIcons).toHaveLength(2);
-      expect(trashIcons).toHaveLength(2);
-    });
-
-    it('should call onView when view button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesGrid {...defaultProps} />);
-
-      const viewButtons = screen.getAllByTitle('Voir');
-      await user.click(viewButtons[0]);
-
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onSchedule when schedule button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesGrid {...defaultProps} />);
 
       const scheduleButtons = screen.getAllByTitle('Échéancier');
       await user.click(scheduleButtons[0]);
 
       expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onEdit when edit button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesGrid {...defaultProps} />);
-
-      const editButtons = screen.getAllByTitle('Modifier');
-      await user.click(editButtons[0]);
-
-      expect(mockOnEdit).toHaveBeenCalledWith(mockServices[0]);
-    });
-
-    it('should call onDelete when delete button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesGrid {...defaultProps} />);
-
-      const deleteButtons = screen.getAllByTitle('Supprimer');
-      await user.click(deleteButtons[0]);
-
-      expect(mockOnDelete).toHaveBeenCalledWith('1');
     });
   });
 
@@ -419,34 +378,25 @@ describe('ServicesGrid', () => {
     it('should have proper button titles', () => {
       render(<ServicesGrid {...defaultProps} />);
 
-      const viewButtons = screen.getAllByTitle('Voir');
-      expect(viewButtons.length).toBe(2);
-
       const scheduleButtons = screen.getAllByTitle('Échéancier');
       expect(scheduleButtons.length).toBe(2);
-
-      const editButtons = screen.getAllByTitle('Modifier');
-      expect(editButtons.length).toBe(2);
-
-      const deleteButtons = screen.getAllByTitle('Supprimer');
-      expect(deleteButtons.length).toBe(2);
     });
 
     it('should have proper button accessibility attributes', () => {
       render(<ServicesGrid {...defaultProps} />);
 
-      const viewButtons = screen.getAllByTitle('Voir');
-      expect(viewButtons[0]).toHaveClass('text-gray-400', 'hover:text-gray-600', 'p-1');
+      const scheduleButtons = screen.getAllByTitle('Échéancier');
+      expect(scheduleButtons[0]).toHaveClass('text-green-400', 'hover:text-green-600', 'p-1');
     });
 
     it('should be keyboard navigable', async () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const firstViewButton = screen.getAllByTitle('Voir')[0];
+      const firstScheduleButton = screen.getAllByTitle('Échéancier')[0];
 
       await user.tab();
-      expect(firstViewButton).toHaveFocus();
+      expect(firstScheduleButton).toHaveFocus();
     });
   });
 
@@ -542,26 +492,26 @@ describe('ServicesGrid', () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const viewButtons = screen.getAllByTitle('Voir');
-      await user.click(viewButtons[0]);
-      await user.click(viewButtons[1]);
+      const scheduleButtons = screen.getAllByTitle('Échéancier');
+      await user.click(scheduleButtons[0]);
+      await user.click(scheduleButtons[1]);
 
-      expect(mockOnView).toHaveBeenCalledTimes(2);
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
-      expect(mockOnView).toHaveBeenCalledWith(mockServices[1]);
+      expect(mockOnSchedule).toHaveBeenCalledTimes(2);
+      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
+      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[1]);
     });
 
     it('should handle rapid successive clicks', async () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const editButton = screen.getAllByTitle('Modifier')[0];
+      const scheduleButton = screen.getAllByTitle('Échéancier')[0];
 
-      await user.click(editButton);
-      await user.click(editButton);
-      await user.click(editButton);
+      await user.click(scheduleButton);
+      await user.click(scheduleButton);
+      await user.click(scheduleButton);
 
-      expect(mockOnEdit).toHaveBeenCalledTimes(3);
+      expect(mockOnSchedule).toHaveBeenCalledTimes(3);
     });
   });
 });

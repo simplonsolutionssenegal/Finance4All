@@ -277,17 +277,11 @@ export const ServicesDashboard: React.FC = () => {
           services={paginatedServices}
           searchAndFilter={searchAndFilter}
           onSort={handleSort}
-          onEdit={service => handleServiceAction('edit', service)}
-          onDelete={id => handleServiceAction('delete', { id } as FinancialService)}
-          onView={service => handleServiceAction('view', service)}
           onSchedule={service => handleServiceAction('schedule', service)}
         />
       ) : (
         <ServicesGrid
           services={paginatedServices}
-          onEdit={service => handleServiceAction('edit', service)}
-          onDelete={id => handleServiceAction('delete', { id } as FinancialService)}
-          onView={service => handleServiceAction('view', service)}
           onSchedule={service => handleServiceAction('schedule', service)}
         />
       )}

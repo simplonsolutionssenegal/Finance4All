@@ -7,7 +7,7 @@ jest.mock('@/components/services-financiers/ServicesDashboard', () => ({
 }));
 
 // Import the page (server component) that includes the dashboard
-import FoundServicesDisplay from '@/app/(auth)/found-services-display/page';
+import FoundServicesDisplay from '@/app/(public)/comparator/found-services-display/page';
 
 describe('FoundServicesDisplay page', () => {
   it('renders the services dashboard wrapper', () => {
