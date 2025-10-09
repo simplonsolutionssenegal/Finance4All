@@ -16,10 +16,13 @@ import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/G
 import { GetInstitutionByIdUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionByIdUseCase';
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import { UpdateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionUseCase';
+import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
+import { UpdateInstitutionStatusUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionStatusUseCase';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
+  UpdateInstitutionStatusUseCase: Symbol.for('UpdateInstitutionStatusUseCase'),
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
 
@@ -74,6 +77,14 @@ container
   .inSingletonScope();
 
 container
+  .bind<UpdateInstitutionStatusUseCase>(TYPES.UpdateInstitutionStatusUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new UpdateInstitutionStatusUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
   .bind<GetInstitutionsUseCase>(TYPES.GetInstitutionsUseCase)
   .toDynamicValue(context => {
     const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
@@ -95,6 +106,9 @@ container
   .toDynamicValue(context => {
     const createUseCase = context.get<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase);
     const updateUseCase = context.get<UpdateInstitutionUseCase>(TYPES.UpdateInstitutionUseCase);
+    const updateStatusUseCase = context.get<UpdateInstitutionStatusUseCase>(
+      TYPES.UpdateInstitutionStatusUseCase
+    );
     const getInstitutionsUseCase = context.get<GetInstitutionsUseCase>(
       TYPES.GetInstitutionsUseCase
     );
@@ -105,6 +119,7 @@ container
     return new InstitutionController(
       createUseCase,
       updateUseCase,
+      updateStatusUseCase,
       getInstitutionsUseCase,
       getInstitutionByIdUseCase
     );

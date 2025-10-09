@@ -1,13 +1,16 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
 import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
+import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
+import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 
 export class InstitutionController {
   constructor(
     private readonly createInstitutionUseCase: CreateInstitutionUseCase,
     private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
+    private readonly updateInstitutionStatusUseCase: UpdateInstitutionStatusUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
     private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
   ) {}
@@ -28,6 +31,38 @@ export class InstitutionController {
     try {
       const { id } = req.params;
       const result = await this.updateInstitutionUseCase.execute({ id, ...req.body });
+      res.status(201).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async activate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.updateInstitutionStatusUseCase.execute({
+        id,
+        status: InstitutionStatus.ACTIVE,
+      });
+      res.status(201).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async desactivate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.updateInstitutionStatusUseCase.execute({
+        id,
+        status: InstitutionStatus.INACTIVE,
+      });
       res.status(201).json({
         success: true,
         data: result,

@@ -22,6 +22,8 @@ describe('PrismaInstitutionRepository', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         findMany: jest.fn(),
+        update: jest.fn(),
+        count: jest.fn(),
       },
     } as any;
 
@@ -282,6 +284,95 @@ describe('PrismaInstitutionRepository', () => {
       expect(result[0].status).toBe(InstitutionStatus.ACTIVE);
       expect(result[1].status).toBe(InstitutionStatus.PENDING);
       expect(result[2].status).toBe(InstitutionStatus.INACTIVE);
+    });
+  });
+
+  describe('update', () => {
+    it('should update an institution successfully', async () => {
+      const institution = new Institution({
+        id: EntityId.from(testUuid1),
+        name: 'Updated Name',
+        description: 'Updated Description',
+        website: UrlValueObject.from('https://updated.com'),
+        geographicZones: ['CEMAC'],
+        logoUrl: UrlValueObject.from('https://updated.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+      });
+
+      const prismaInstitution: PrismaInstitution = {
+        id: testUuid1,
+        name: 'Updated Name',
+        description: 'Updated Description',
+        website: 'https://updated.com',
+        geographicZones: ['CEMAC'],
+        logoUrl: 'https://updated.com/logo.png',
+        status: 'ACTIVE' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.institution.update as jest.Mock).mockResolvedValue(prismaInstitution);
+
+      const result = await repository.update(institution);
+
+      expect(mockPrisma.institution.update).toHaveBeenCalledWith({
+        where: { id: testUuid1 },
+        data: {
+          id: testUuid1,
+          name: 'Updated Name',
+          description: 'Updated Description',
+          website: 'https://updated.com',
+          geographicZones: ['CEMAC'],
+          logoUrl: 'https://updated.com/logo.png',
+          status: 'ACTIVE',
+        },
+      });
+
+      expect(result).toBeInstanceOf(Institution);
+      expect(result.name).toBe('Updated Name');
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated institutions', async () => {
+      const prismaInstitutions: PrismaInstitution[] = [
+        {
+          id: randomUUID(),
+          name: 'Bank 1',
+          description: 'Desc 1',
+          website: null,
+          geographicZones: [],
+          logoUrl: null,
+          status: 'ACTIVE' as any,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: randomUUID(),
+          name: 'Bank 2',
+          description: 'Desc 2',
+          website: null,
+          geographicZones: [],
+          logoUrl: null,
+          status: 'PENDING' as any,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      (mockPrisma.institution.findMany as jest.Mock).mockResolvedValue(prismaInstitutions);
+      (mockPrisma.institution.count as jest.Mock).mockResolvedValue(5);
+
+      const result = await repository.findAll({ page: 2, limit: 2 });
+
+      expect(mockPrisma.institution.findMany).toHaveBeenCalledWith({
+        skip: 2,
+        take: 2,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.institution.count).toHaveBeenCalled();
+      expect(result.data).toHaveLength(2);
+      expect(result.pagination).toEqual({ page: 2, limit: 2, total: 5, totalPages: 3 });
     });
   });
 });

@@ -189,21 +189,91 @@ describe('bootstrap()', () => {
     expect(prisma.$disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('si la connexion Prisma échoue en production: exit avec code 1', async () => {
+  it('should trigger graceful shutdown on SIGTERM', async () => {
     const { bootstrap } = await import('@/main');
-    process.env.NODE_ENV = 'production';
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(((_code?: number) => {
-      return undefined as never;
-    }) as any);
 
-    prisma.$connect.mockRejectedValue(new Error('connect failed'));
+    prisma.$connect.mockResolvedValue(undefined);
 
     await bootstrap();
 
-    expect(logger.error).toHaveBeenCalledWith('❌ Failed to start application:', expect.any(Error));
-    expect(prisma.$disconnect).toHaveBeenCalledTimes(1);
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    process.emit('SIGTERM');
 
-    exitSpy.mockRestore();
+    expect(logger.info).toHaveBeenCalledWith('\nSIGTERM received. Starting graceful shutdown...');
+
+    expect(closeMock).toHaveBeenCalled();
+  });
+
+  it('should trigger graceful shutdown on SIGINT', async () => {
+    const { bootstrap } = await import('@/main');
+
+    prisma.$connect.mockResolvedValue(undefined);
+
+    await bootstrap();
+
+    process.emit('SIGINT');
+
+    expect(logger.info).toHaveBeenCalledWith('\nSIGINT received. Starting graceful shutdown...');
+
+    expect(closeMock).toHaveBeenCalled();
+  });
+
+  it('should handle unhandledRejection in production', async () => {
+    const { bootstrap } = await import('@/main');
+
+    process.env.NODE_ENV = 'production';
+
+    prisma.$connect.mockResolvedValue(undefined);
+
+    await bootstrap();
+
+    process.emit('unhandledRejection', new Error('prod rejection'), Promise.resolve());
+
+    expect(logger.error).toHaveBeenCalledWith(
+      '❌ Unhandled Rejection at:',
+      expect.any(Promise),
+      'reason:',
+      expect.any(Error)
+    );
+
+    expect(logger.info).toHaveBeenCalledWith(
+      '\nUNHANDLED_REJECTION received. Starting graceful shutdown...'
+    );
+  });
+
+  it('should handle uncaughtException in production', async () => {
+    const { bootstrap } = await import('@/main');
+
+    process.env.NODE_ENV = 'production';
+
+    prisma.$connect.mockResolvedValue(undefined);
+
+    await bootstrap();
+
+    process.emit('uncaughtException', new Error('prod exception'));
+
+    expect(logger.error).toHaveBeenCalledWith('❌ Uncaught Exception:', expect.any(Error));
+
+    expect(logger.info).toHaveBeenCalledWith(
+      '\nUNCAUGHT_EXCEPTION received. Starting graceful shutdown...'
+    );
+  });
+
+  it('should log error if prisma.$disconnect fails during shutdown', async () => {
+    const { bootstrap } = await import('@/main');
+
+    prisma.$connect.mockResolvedValue(undefined);
+
+    prisma.$disconnect.mockRejectedValue(new Error('disconnect failed'));
+
+    await bootstrap();
+
+    process.emit('SIGINT');
+
+    await jest.runAllTimersAsync();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      '❌ Error closing database connections:',
+      expect.any(Error)
+    );
   });
 });

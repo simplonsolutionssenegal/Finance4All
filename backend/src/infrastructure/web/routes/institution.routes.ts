@@ -17,6 +17,8 @@ export const InstitutionRoutes = (): Router => {
   const boundController = {
     create: controller.create.bind(controller),
     update: controller.update.bind(controller),
+    activate: controller.activate.bind(controller),
+    desactivate: controller.desactivate.bind(controller),
     getAll: controller.getAll.bind(controller),
     getById: controller.getById.bind(controller),
   };
@@ -25,6 +27,18 @@ export const InstitutionRoutes = (): Router => {
   router.get('/:id', validateInstitutionId, handleValidationErrors, boundController.getById);
   router.post('/', validateCreateInstitution, handleValidationErrors, boundController.create);
   router.put('/:id', validateUpdateInstitution, handleValidationErrors, boundController.update);
+  router.patch(
+    '/:id/activate',
+    validateInstitutionId,
+    handleValidationErrors,
+    boundController.activate
+  );
+  router.patch(
+    '/:id/desactivate',
+    validateInstitutionId,
+    handleValidationErrors,
+    boundController.desactivate
+  );
 
   return router;
 };
