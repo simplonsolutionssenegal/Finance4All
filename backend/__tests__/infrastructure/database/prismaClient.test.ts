@@ -1,4 +1,4 @@
-import { prisma } from '@/infrastructure/database/prismaClient';
+import { prisma } from '@/infrastructure/config/prismaClient';
 
 describe('PrismaClient', () => {
   it('should have user property', () => {

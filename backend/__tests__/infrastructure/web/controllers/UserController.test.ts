@@ -5,12 +5,12 @@ import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRo
 import { getAuth, clerkClient } from '@clerk/express';
 
 // Mocking emailService
-jest.mock('@/utils/emailService', () => ({
+jest.mock('@/infrastructure/utils/emailService', () => ({
   sendInvitationEmail: jest.fn(),
 }));
 
 // Mocking logger
-jest.mock('@/utils/logger', () => ({
+jest.mock('@/infrastructure/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -46,7 +46,7 @@ describe('UserController', () => {
   const mockGetUser = clerkClient.users.getUser as jest.Mock;
 
   // Import the mocked email service
-  const { sendInvitationEmail } = require('@/utils/emailService');
+  const { sendInvitationEmail } = require('@/infrastructure/utils/emailService');
   const mockSendInvitationEmail = sendInvitationEmail as jest.Mock;
 
   beforeEach(() => {

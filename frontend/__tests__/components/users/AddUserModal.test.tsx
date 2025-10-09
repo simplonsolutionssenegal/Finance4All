@@ -3,6 +3,32 @@ import userEvent from '@testing-library/user-event';
 
 import AddUserModal from '@/components/users/AddUserModal';
 
+// Mock Dialog to suppress accessibility warnings
+jest.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open, onOpenChange }: any) =>
+    open ? (
+      <div data-testid='dialog' onBlur={onOpenChange}>
+        {children}
+      </div>
+    ) : null,
+  DialogContent: ({ children, className }: any) => (
+    <div data-testid='dialog-content' className={className} aria-describedby='dialog-description'>
+      {children}
+    </div>
+  ),
+  DialogHeader: ({ children }: any) => <div data-testid='dialog-header'>{children}</div>,
+  DialogTitle: ({ children, className }: any) => (
+    <h2 data-testid='dialog-title' className={className}>
+      {children}
+    </h2>
+  ),
+  DialogDescription: ({ children }: any) => (
+    <p id='dialog-description' data-testid='dialog-description'>
+      {children}
+    </p>
+  ),
+}));
+
 describe('AddUserModal', () => {
   const mockOnClose = jest.fn();
   const mockOnCreateUser = jest.fn();

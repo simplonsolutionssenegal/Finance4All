@@ -1,4 +1,3 @@
-// src/infrastructure/database/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
 // Déclare une variable globale (uniquement en dev) pour éviter de recréer le client en HMR

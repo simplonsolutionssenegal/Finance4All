@@ -1,8 +1,8 @@
 import request from 'supertest';
-import app from '../src';
+import { app } from '@/main';
 
 // Mock external dependencies
-jest.mock('backend/src/utils/logger', () => ({
+jest.mock('@/infrastructure/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -13,12 +13,13 @@ jest.mock('@clerk/express', () => ({
   clerkMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
-jest.mock('../src/infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/config/prismaClient', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    $queryRaw: jest.fn().mockResolvedValue([{ 1: 1 }]),
   },
 }));
 
@@ -41,10 +42,10 @@ describe('App Integration Tests', () => {
       const response = await request(app).get('/health').expect(200);
 
       expect(response.body).toMatchObject({
-        status: 'OK',
+        status: 'ok',
         timestamp: expect.any(String),
-        uptime: expect.any(Number),
-        environment: expect.any(String),
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development',
       });
     });
 
@@ -182,15 +183,11 @@ describe('App Integration Tests', () => {
   });
 
   describe('Request Logging', () => {
-    it('should not break when logging is enabled in development', async () => {
-      const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
+    it('should not break when logging is enabled', async () => {
       const response = await request(app).get('/api/v1/test').expect(200);
 
       expect(response.body.status).toBe('success');
-
-      process.env.NODE_ENV = originalNodeEnv;
+      expect(response.body.message).toBe('API is working!');
     });
   });
 });

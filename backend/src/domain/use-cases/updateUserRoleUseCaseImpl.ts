@@ -1,6 +1,6 @@
 import { clerkClient } from '@clerk/express';
 import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 /**
  * Implémentation du cas d'utilisation pour modifier le rôle d'un utilisateur

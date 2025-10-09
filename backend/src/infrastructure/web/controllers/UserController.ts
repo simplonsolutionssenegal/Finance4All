@@ -2,8 +2,8 @@ import type { Request, Response } from 'express';
 import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
 import type { UpdateUserRoleUseCase } from '@/application/use-cases/UpdateUserRoleUseCase';
 import { clerkClient, getAuth } from '@clerk/express';
-import { sendInvitationEmail } from '@/utils/emailService';
-import { logger } from '@/utils/logger';
+import { sendInvitationEmail } from '@/infrastructure/utils/emailService';
+import { logger } from '@/infrastructure/utils/logger';
 
 export class UserController {
   constructor(

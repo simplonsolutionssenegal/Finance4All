@@ -2,7 +2,7 @@ import request from 'supertest';
 import express from 'express';
 
 // Mock des dépendances
-jest.mock('backend/src/infrastructure/database/prisma', () => ({
+jest.mock('@/infrastructure/config/prismaClient', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -10,8 +10,8 @@ jest.mock('backend/src/infrastructure/database/prisma', () => ({
     },
   },
 }));
-jest.mock('backend/src/infrastructure/database/PrismaUserRepository');
-jest.mock('backend/src/domain/use-cases/createUserUseCaseImpl');
+
+jest.mock('@/domain/use-cases/createUserUseCaseImpl');
 
 const mockUserController = {
   create: jest.fn(),
@@ -19,7 +19,7 @@ const mockUserController = {
   updateRole: jest.fn(),
 };
 
-jest.doMock('backend/src/infrastructure/web/controllers/UserController', () => {
+jest.doMock('@/infrastructure/web/controllers/UserController', () => {
   return {
     UserController: jest.fn().mockImplementation(() => {
       return mockUserController;
@@ -36,7 +36,7 @@ describe('User Routes', () => {
     jest.clearAllMocks();
 
     // Dynamically import routes after mocks are set up
-    userRoutes = require('backend/src/infrastructure/web/routes/user.routes').default;
+    userRoutes = require('@/infrastructure/web/routes/user.routes').default;
 
     // Setup Express app with routes
     app = express();
