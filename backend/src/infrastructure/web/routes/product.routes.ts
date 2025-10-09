@@ -1,9 +1,9 @@
 import { Router } from 'express';
 
-import { PrismaProductRepository } from '@/infrastructure/database/PrismaProductRepository';
 import { GetProductByInstitutionUseCaseImpl } from '@/domain/use-cases/GetProductByInstitutionUseCaseImpl';
 import { FilterProductUseCaseImpl } from '@/domain/use-cases/FilterProductUseCaseImpl';
 import { ProductController } from '@/infrastructure/web/controllers/ProductController';
+import { PrismaProductRepository } from '@/infrastructure/config/PrismaProductRepository';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { logError } from '@/utils/logger';
+import { logError } from '@/infrastructure/utils/logger';
 
 // Interface pour les erreurs personnalisées
 export class AppError extends Error {

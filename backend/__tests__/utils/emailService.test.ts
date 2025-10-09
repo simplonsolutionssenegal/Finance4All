@@ -3,13 +3,13 @@ import {
   sendInvitationEmail,
   testEmailConnection,
   type InvitationEmailData,
-} from '@/utils/emailService';
+} from '@/infrastructure/utils/emailService';
 import nodemailer from 'nodemailer';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 // Mock dependencies
 jest.mock('nodemailer');
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('@/infrastructure/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),

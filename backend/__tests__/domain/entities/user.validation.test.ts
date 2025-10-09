@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from '@jest/globals';
-import { User } from 'backend/src/domain/entities/User';
-import { CreateUserUseCaseImpl } from 'backend/src/domain/use-cases/createUserUseCaseImpl';
+import { User } from '@/domain/entities/User';
+import { CreateUserUseCaseImpl } from '@/domain/use-cases/createUserUseCaseImpl';
 
 describe('User Entity and Use Cases', () => {
   describe('User Entity', () => {

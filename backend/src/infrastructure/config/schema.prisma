@@ -13,6 +13,24 @@ model User {
   email String @unique
 }
 
+model Institution {
+  id              String            @id @default(uuid())
+  name            String            @unique
+  description     String
+  website         String?
+  geographicZones String[]
+  logoUrl         String?
+  status          InstitutionStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
 enum ProductType {
   CREDIT
   EPARGNE

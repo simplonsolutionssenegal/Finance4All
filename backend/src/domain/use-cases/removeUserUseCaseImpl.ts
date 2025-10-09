@@ -1,6 +1,6 @@
 import { clerkClient } from '@clerk/express';
 import type { RemoveUserUseCase } from '@/application/use-cases/RemoveUserUseCase';
-import { logger } from '@/utils/logger';
+import { logger } from '@/infrastructure/utils/logger';
 
 /**
  * Implémentation du cas d'utilisation pour supprimer un utilisateur

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express from 'express';
-import { apiRoutes } from '@/routes';
+import { apiRoutes } from '@/infrastructure/web/routes';
 
 // Mock user routes
 jest.mock('@/infrastructure/web/routes/user.routes', () => {
