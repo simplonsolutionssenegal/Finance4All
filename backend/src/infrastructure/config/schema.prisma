@@ -19,6 +19,7 @@ model Institution {
   description     String
   website         String?
   geographicZones String[]
+  products  Product[]
   logoUrl         String?
   status          InstitutionStatus @default(PENDING)
   createdAt       DateTime          @default(now())
@@ -43,16 +44,6 @@ enum RemboursementMode {
   AGENCE
   USSD
   MOBILE
-}
-
-model Institution {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  avatar    String
-  // ancien: institutionServices
-  products  Product[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Product {
