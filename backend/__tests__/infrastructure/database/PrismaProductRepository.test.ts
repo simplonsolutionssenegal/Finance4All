@@ -22,8 +22,8 @@ jest.mock('@prisma/client', () => {
 });
 
 import { ProductType } from '@/domain/entities/types/ProductType';
+import { PrismaProductRepository } from '@/infrastructure/config/PrismaProductRepository';
 // ------- Import du repo APRÈS le mock -------
-import { PrismaProductRepository } from '@/infrastructure/database/PrismaProductRepository';
 
 // Helper pour reset les mocks
 const resetPrismaMocks = () => {
