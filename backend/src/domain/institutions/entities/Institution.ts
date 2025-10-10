@@ -1,6 +1,7 @@
 import type { EntityId } from '@/domain/shared/EntityId';
 import type { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { DomainEntity } from '@/domain/shared/Entity';
+import type { Service } from '@/domain/institutions/entities/Service';
 
 export interface InstitutionProps {
   id: EntityId;
@@ -10,6 +11,7 @@ export interface InstitutionProps {
   geographicZones: string[];
   status: InstitutionStatus;
   logoUrl: UrlValueObject;
+  services: Service[];
 }
 
 export enum InstitutionStatus {
@@ -25,6 +27,7 @@ export class Institution extends DomainEntity<EntityId> {
   private _geographicZones: Set<string>;
   private _status: InstitutionStatus;
   private _logoUrl: UrlValueObject;
+  private _services: Set<Service>;
 
   constructor(props: InstitutionProps) {
     super(props.id);
@@ -34,6 +37,7 @@ export class Institution extends DomainEntity<EntityId> {
     this._geographicZones = new Set(props.geographicZones);
     this._status = props.status;
     this._logoUrl = props.logoUrl;
+    this._services = new Set(props.services);
   }
 
   get name(): string {
@@ -109,6 +113,16 @@ export class Institution extends DomainEntity<EntityId> {
 
   updateLogo(logoUrl: UrlValueObject): void {
     this._logoUrl = logoUrl;
+    this._updatedAt = new Date();
+  }
+
+  addService(service: Service): void {
+    this._services.add(service);
+    this._updatedAt = new Date();
+  }
+
+  removeService(service: Service): void {
+    this._services.delete(service);
     this._updatedAt = new Date();
   }
 }
