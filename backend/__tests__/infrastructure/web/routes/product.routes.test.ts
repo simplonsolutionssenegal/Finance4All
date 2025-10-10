@@ -84,6 +84,7 @@ describe('productRoutes', () => {
       );
 
       expect(res.status).toBe(200);
+
       expect(res.body).toEqual(expect.objectContaining({ data: fakeFiltered }));
 
       expect(filterExecuteMock).toHaveBeenCalledTimes(1);
