@@ -32,6 +32,7 @@ export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
       geographicZones: dto.geographicZones,
       logoUrl: UrlValueObject.from(dto.logoUrl || null),
       status: InstitutionStatus.PENDING,
+      services: [],
     });
 
     const savedInstitution = await this.institutionRepository.save(institution);
@@ -48,6 +49,7 @@ export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
       geographicZones: institution.geographicZones,
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status,
+      services: institution.services,
       createdAt: institution.createdAt,
       updatedAt: institution.updatedAt,
     };

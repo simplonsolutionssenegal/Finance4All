@@ -4,6 +4,7 @@ import type { Frais } from '@/domain/institutions/entities/Frais';
 import type { TypeService } from '@/domain/institutions/entities/Service';
 
 export interface AddServiceCommand {
+  idInstitution: string;
   name: string;
   longName: string;
   type: TypeService;

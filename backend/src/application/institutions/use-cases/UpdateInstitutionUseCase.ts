@@ -28,6 +28,7 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
       geographicZones: command.geographicZones,
       logoUrl: UrlValueObject.from(command.logoUrl || null),
       status: existingInstitution.status,
+      services: existingInstitution.services,
     });
 
     const savedInstitution = await this.institutionRepository.update(updatedInstitution);
@@ -44,6 +45,7 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
       geographicZones: institution.geographicZones,
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status,
+      services: institution.services,
       createdAt: institution.createdAt,
       updatedAt: institution.updatedAt,
     };

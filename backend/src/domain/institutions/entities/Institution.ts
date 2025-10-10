@@ -56,6 +56,10 @@ export class Institution extends DomainEntity<EntityId> {
     return Array.from(this._geographicZones);
   }
 
+  get services(): Service[] {
+    return Array.from(this._services);
+  }
+
   get status(): InstitutionStatus {
     return this._status;
   }

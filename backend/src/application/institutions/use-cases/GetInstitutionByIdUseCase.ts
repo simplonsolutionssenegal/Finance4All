@@ -29,6 +29,7 @@ export class GetInstitutionByIdUseCaseImpl implements GetInstitutionByIdUseCase 
       geographicZones: institution.geographicZones,
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status,
+      services: institution.services,
       createdAt: institution.createdAt,
       updatedAt: institution.updatedAt,
     };
