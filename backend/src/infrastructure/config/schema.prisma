@@ -31,7 +31,6 @@ enum InstitutionStatus {
   INACTIVE
   PENDING
 }
-
 enum ProductType {
   CREDIT
   EPARGNE
@@ -45,6 +44,7 @@ enum RemboursementMode {
   USSD
   MOBILE
 }
+
 
 model Product {
   id                 String            @id @default(cuid())

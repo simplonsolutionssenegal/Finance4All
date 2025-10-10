@@ -37,7 +37,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/express": "^1.7.26",
     "@prisma/client": "^6.14.0",
     "bcryptjs": "^3.0.2",
@@ -48,7 +48,7 @@
     "helmet": "^8.1.0",
     "inversify": "^7.10.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^7.0.9",
     "svix": "^1.76.1",
     "uuid": "^8.3.2",
     "winston": "^3.17.0",
