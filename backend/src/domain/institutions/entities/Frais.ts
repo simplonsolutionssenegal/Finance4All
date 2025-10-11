@@ -2,7 +2,7 @@ export type Money = number;
 
 export type Tranche = { min: Money; max?: Money; fee: Money };
 
-enum TypeCalculation {
+export enum TypeCalculation {
   FREE,
   POURCENTAGE,
   FIX,
@@ -40,11 +40,14 @@ export class FraisFixes extends Frais {
   }
 
   describe(): string {
-    const rateString = this._rate
-      ? ` + ${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}%`
-      : '';
-    const fxString = this._fxSurcharge ? ` + Frais de change` : '';
-    return `${this._amount} ${rateString} ${fxString}`;
+    let description = `${this._amount}`;
+    if (this._rate) {
+      description += ` + ${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}%`;
+    }
+    if (this._fxSurcharge) {
+      description += ` + Frais de change`;
+    }
+    return description;
   }
 
   get typeCalculation(): TypeCalculation {
@@ -79,24 +82,17 @@ export class FraisPourcentage extends Frais {
   }
 
   describe(): string {
-    const capString = this._cap ?? `(plafonné à ${this._cap})`;
-    const floorString = this._floor ?? `(frais minimum ${this._floor})`;
-
     let addInfo = '';
 
-    if (this._cap !== undefined) {
-      addInfo += capString;
-    }
-
-    if (this._floor !== undefined) {
-      addInfo += floorString;
-    }
-
     if (this._cap !== undefined && this._floor !== undefined) {
-      addInfo = `Frais min ${this._floor} et frais max ${this._cap}`;
+      addInfo = `(frais min ${this._floor} et frais max ${this._cap})`;
+    } else if (this._cap !== undefined) {
+      addInfo = `(plafonné à ${this._cap})`;
+    } else if (this._floor !== undefined) {
+      addInfo = `(frais minimum ${this._floor})`;
     }
 
-    return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`;
+    return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`.trim();
   }
 
   get typeCalculation(): TypeCalculation {

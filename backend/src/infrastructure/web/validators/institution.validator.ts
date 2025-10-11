@@ -63,7 +63,12 @@ export const validateAddService = [
     .isLength({ min: 2, max: 255 })
     .withMessage('Long name must be between 2 and 255 characters'),
   body('type').isString().notEmpty().withMessage('Service type is required'),
-  body('frais').isObject().withMessage('Frais must be an object'),
+  body('frais').custom(value => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new Error('Frais must be an object');
+    }
+    return true;
+  }),
   body('frais.montantFixe').optional().isNumeric().withMessage('Montant fixe must be a number'),
   body('frais.pourcentage')
     .optional()

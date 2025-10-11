@@ -52,6 +52,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA', 'CEMAC'],
         logoUrl: 'https://logo.com/logo.png',
         status: 'ACTIVE',
+        services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
@@ -93,6 +94,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });

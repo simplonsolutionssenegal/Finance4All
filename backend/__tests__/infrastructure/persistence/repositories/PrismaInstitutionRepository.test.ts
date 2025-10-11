@@ -73,6 +73,9 @@ describe('PrismaInstitutionRepository', () => {
           logoUrl: 'https://test.com/logo.png',
           status: 'PENDING',
         },
+        include: {
+          services: true,
+        },
       });
 
       expect(result).toBeInstanceOf(Institution);
@@ -118,6 +121,9 @@ describe('PrismaInstitutionRepository', () => {
           logoUrl: null,
           status: 'ACTIVE',
         },
+        include: {
+          services: true,
+        },
       });
 
       expect(result.website.getValue()).toBeNull();
@@ -145,6 +151,9 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(mockPrisma.institution.findUnique).toHaveBeenCalledWith({
         where: { id: testUuid1 },
+        include: {
+          services: true,
+        },
       });
 
       expect(result).toBeInstanceOf(Institution);
@@ -160,6 +169,9 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(mockPrisma.institution.findUnique).toHaveBeenCalledWith({
         where: { id: nonExistentId },
+        include: {
+          services: true,
+        },
       });
 
       expect(result).toBeNull();
@@ -220,6 +232,9 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(mockPrisma.institution.findMany).toHaveBeenCalledWith({
         where: { name: 'Test Bank' },
+        include: {
+          services: true,
+        },
       });
 
       expect(result).toHaveLength(2);
@@ -236,6 +251,9 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(mockPrisma.institution.findMany).toHaveBeenCalledWith({
         where: { name: 'Nonexistent Bank' },
+        include: {
+          services: true,
+        },
       });
 
       expect(result).toEqual([]);
@@ -328,6 +346,12 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: ['CEMAC'],
           logoUrl: 'https://updated.com/logo.png',
           status: 'ACTIVE',
+          services: {
+            create: [],
+          },
+        },
+        include: {
+          services: true,
         },
       });
 

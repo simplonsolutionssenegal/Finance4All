@@ -20,6 +20,9 @@ jest.mock('express-validator', () => {
     withMessage: jest.fn().mockReturnThis(),
     isInt: jest.fn().mockReturnThis(),
     toInt: jest.fn().mockReturnThis(),
+    isNumeric: jest.fn().mockReturnThis(),
+    isFloat: jest.fn().mockReturnThis(),
+    custom: jest.fn().mockReturnThis(),
   };
 
   return {

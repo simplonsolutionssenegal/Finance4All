@@ -133,6 +133,7 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         logoUrl: existingInstitution.logoUrl.getValue(),
         status: InstitutionStatus.ACTIVE,
+        services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
       });

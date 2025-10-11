@@ -71,6 +71,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: validCommand.geographicZones,
         logoUrl: validCommand.logoUrl,
         status: InstitutionStatus.PENDING,
+        services: [],
         createdAt: savedInstitution.createdAt,
         updatedAt: savedInstitution.updatedAt,
       });
@@ -109,6 +110,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithoutOptionalFields.geographicZones,
         logoUrl: null,
         status: InstitutionStatus.PENDING,
+        services: [],
         createdAt: savedInstitution.createdAt,
         updatedAt: savedInstitution.updatedAt,
       });

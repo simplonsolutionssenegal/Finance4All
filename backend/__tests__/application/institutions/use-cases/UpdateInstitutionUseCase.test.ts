@@ -88,6 +88,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: updateCommand.logoUrl,
         status: existingInstitution.status,
+        services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
       });
