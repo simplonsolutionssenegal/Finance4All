@@ -1,5 +1,5 @@
 import type { InstitutionStatus } from '@/domain/institutions/entities/Institution';
-import type { Service } from '@/domain/institutions/entities/Service';
+import type { ServiceDTO } from '@/domain/institutions/value-objects/ServiceDTO';
 
 export interface InstitutionDTO {
   id: string;
@@ -9,7 +9,7 @@ export interface InstitutionDTO {
   geographicZones: string[];
   logoUrl: string | null;
   status: InstitutionStatus;
-  services: Service[];
+  services: ServiceDTO[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -15,8 +15,13 @@ export abstract class Frais {
 
 export class FraisGratuit extends Frais {
   readonly _typeCalculation = TypeCalculation.FREE;
+
   describe(): string {
     return 'Gratuit';
+  }
+
+  get typeCalculation(): TypeCalculation {
+    return this._typeCalculation;
   }
 }
 
@@ -40,6 +45,22 @@ export class FraisFixes extends Frais {
       : '';
     const fxString = this._fxSurcharge ? ` + Frais de change` : '';
     return `${this._amount} ${rateString} ${fxString}`;
+  }
+
+  get typeCalculation(): TypeCalculation {
+    return this._typeCalculation;
+  }
+
+  get amount(): Money {
+    return this._amount;
+  }
+
+  get rate(): number | undefined {
+    return this._rate;
+  }
+
+  get fxSurcharge(): Money | undefined {
+    return this._fxSurcharge;
   }
 }
 
@@ -76,5 +97,21 @@ export class FraisPourcentage extends Frais {
     }
 
     return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`;
+  }
+
+  get typeCalculation(): TypeCalculation {
+    return this._typeCalculation;
+  }
+
+  get rate(): number {
+    return this._rate;
+  }
+
+  get cap(): Money | undefined {
+    return this._cap;
+  }
+
+  get floor(): Money | undefined {
+    return this._floor;
   }
 }

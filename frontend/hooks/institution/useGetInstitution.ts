@@ -29,6 +29,8 @@ export const useGetInstitution = (id: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  console.log(query.data);
+
   return {
     institution: query.data?.data,
     ...query,

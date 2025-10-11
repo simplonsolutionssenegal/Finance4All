@@ -5,12 +5,14 @@ import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/G
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
+import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
 
 export class InstitutionController {
   constructor(
     private readonly createInstitutionUseCase: CreateInstitutionUseCase,
     private readonly updateInstitutionUseCase: UpdateInstitutionUseCase,
     private readonly updateInstitutionStatusUseCase: UpdateInstitutionStatusUseCase,
+    private readonly addServiceUseCase: AddServiceUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
     private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
   ) {}
@@ -31,6 +33,19 @@ export class InstitutionController {
     try {
       const { id } = req.params;
       const result = await this.updateInstitutionUseCase.execute({ id, ...req.body });
+      res.status(201).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addService(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.addServiceUseCase.execute({ idInstitution: id, ...req.body });
       res.status(201).json({
         success: true,
         data: result,
