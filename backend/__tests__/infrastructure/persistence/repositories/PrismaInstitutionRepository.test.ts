@@ -44,6 +44,7 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO', 'USD'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       const prismaInstitution: PrismaInstitution = {
@@ -88,6 +89,7 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       const prismaInstitution: PrismaInstitution = {
@@ -297,6 +299,7 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from('https://updated.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       const prismaInstitution: PrismaInstitution = {

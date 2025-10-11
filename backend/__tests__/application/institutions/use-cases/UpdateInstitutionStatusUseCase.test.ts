@@ -16,6 +16,7 @@ const cloneInstitution = (institution: Institution, newStatus: InstitutionStatus
     geographicZones: institution.geographicZones,
     logoUrl: institution.logoUrl,
     status: newStatus,
+    services: [],
   });
 };
 
@@ -32,6 +33,7 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.PENDING,
+    services: [],
   });
 
   beforeEach(() => {

@@ -45,7 +45,7 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
       geographicZones: institution.geographicZones,
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status,
-      services: institution.services,
+      services: institution.services.map(service => service.toDTO()),
       createdAt: institution.createdAt,
       updatedAt: institution.updatedAt,
     };

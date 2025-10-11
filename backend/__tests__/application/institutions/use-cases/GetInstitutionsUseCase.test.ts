@@ -32,6 +32,7 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from('https://test1.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       const institution2 = new Institution({
@@ -42,6 +43,7 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from('https://test2.com/logo.png'),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       const paginatedResult = {
@@ -106,6 +108,7 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['GBP'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       const paginatedResult = {

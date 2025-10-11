@@ -16,6 +16,7 @@ import type {
   Institution as PrismaInstitution,
   Service as PrismaService,
   InstitutionStatus as PrismaInstitutionStatus,
+  TypeService as PrismaTypeService,
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
@@ -109,9 +110,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
         skip,
         take: params.limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          services: true,
-        },
       }),
       this.prisma.institution.count(),
     ]);
@@ -119,7 +117,7 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: institutions.map(i => this.toDomain(i)),
+      data: institutions.map(i => this.toDomain({ ...i, services: [] })),
       pagination: {
         page: params.page,
         limit: params.limit,
@@ -190,7 +188,7 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       id: service.id.getValue(),
       name: service.name,
       longName: service.longName,
-      type: this.mapTypeServiceToPrismaType(service.type) as any,
+      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
       frais: this.mapFraisToPrisma(service.frais),
       conditionAccess: service.conditionAccess,
       plafonds: service.plafonds,

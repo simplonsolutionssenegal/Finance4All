@@ -54,6 +54,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);
@@ -93,6 +94,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithoutOptionalFields.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);
@@ -144,6 +146,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);
@@ -170,6 +173,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyWebsite.geographicZones,
         logoUrl: UrlValueObject.from(commandWithEmptyWebsite.logoUrl),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);
@@ -196,6 +200,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyLogo.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);
@@ -217,6 +222,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.save.mockResolvedValue(savedInstitution);

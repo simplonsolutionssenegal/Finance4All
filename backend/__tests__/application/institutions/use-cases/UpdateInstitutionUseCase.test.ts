@@ -19,6 +19,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.ACTIVE,
+    services: [],
   });
 
   beforeEach(() => {
@@ -66,6 +67,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -107,6 +109,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithNulls.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -132,6 +135,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyStrings.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -151,6 +155,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         status: existingInstitution.status,
         logoUrl: existingInstitution.logoUrl,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 

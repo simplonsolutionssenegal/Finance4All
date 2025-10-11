@@ -20,6 +20,7 @@ describe('GetInstitutionByIdUseCase', () => {
       geographicZones: ['UEMOA', 'CEMAC'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      services: [],
     });
 
     mockRepository = {
@@ -77,6 +78,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.findById.mockResolvedValue(institutionWithNulls);
@@ -112,6 +114,7 @@ describe('GetInstitutionByIdUseCase', () => {
           geographicZones: ['UEMOA'],
           logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
           status,
+          services: [],
         });
 
         mockRepository.findById.mockResolvedValue(institution);
