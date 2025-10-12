@@ -498,6 +498,35 @@ describe('InstitutionController', () => {
     });
   });
 
+  describe('addService', () => {
+    it('should add a service to an institution successfully', async () => {
+      const requestBody = { name: 'New Service' };
+      const serviceDTO = { id: 'serv_123', name: 'New Service' };
+      mockRequest.params = { id: 'inst_123' };
+      mockRequest.body = requestBody;
+      mockAddServiceUseCase.execute.mockResolvedValue(serviceDTO as any);
+
+      await controller.addService(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockAddServiceUseCase.execute).toHaveBeenCalledWith({
+        idInstitution: 'inst_123',
+        ...requestBody,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: serviceDTO });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_123' };
+      mockAddServiceUseCase.execute.mockRejectedValue(error);
+
+      await controller.addService(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
   describe('activate', () => {
     it('should activate an institution successfully', async () => {
       const institutionDTO = { id: 'inst_123', status: InstitutionStatus.ACTIVE };

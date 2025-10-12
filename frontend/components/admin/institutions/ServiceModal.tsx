@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type ControllerRenderProps } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,106 @@ const serviceSchema = z.object({
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
+// Composant réutilisable pour les champs de frais numériques
+interface NumberFieldProps {
+  field: ControllerRenderProps<
+    ServiceFormData,
+    'frais.montantFixe' | 'frais.pourcentage' | 'frais.minimum' | 'frais.maximum'
+  >;
+  label: string;
+  placeholder?: string;
+  step?: string;
+  isCreating: boolean;
+}
+
+const NumberField = ({ field, label, placeholder = '0', step, isCreating }: NumberFieldProps) => (
+  <FormItem>
+    <FormLabel className='text-sm text-gray-600'>{label}</FormLabel>
+    <FormControl>
+      <Input
+        type='number'
+        step={step}
+        placeholder={placeholder}
+        className='w-full px-4 py-3 border border-gray-200 rounded-lg'
+        {...field}
+        value={field.value || ''}
+        onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+        disabled={isCreating}
+      />
+    </FormControl>
+    <FormMessage />
+  </FormItem>
+);
+
+// Composant réutilisable pour la gestion des tableaux
+interface ArrayFieldProps {
+  field: ControllerRenderProps<
+    ServiceFormData,
+    'conditionAccess' | 'plafonds' | 'infrastructureAccess'
+  >;
+  label: string;
+  placeholder: string;
+  inputValue: string;
+  onInputChange: (value: string) => void;
+  isCreating: boolean;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}
+
+const ArrayField = ({
+  field,
+  label,
+  placeholder,
+  inputValue,
+  onInputChange,
+  isCreating,
+  onAdd,
+  onRemove,
+}: ArrayFieldProps) => (
+  <FormItem>
+    <FormLabel>{label}</FormLabel>
+    <div className='flex gap-2'>
+      <Input
+        value={inputValue}
+        onChange={e => onInputChange(e.target.value)}
+        placeholder={placeholder}
+        className='flex-1'
+        disabled={isCreating}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onAdd();
+          }
+        }}
+      />
+      <Button
+        type='button'
+        onClick={onAdd}
+        disabled={isCreating || !inputValue.trim()}
+        className='bg-cyan-400 hover:bg-cyan-500'
+      >
+        <Plus className='w-4 h-4' />
+      </Button>
+    </div>
+    {field.value && field.value.length > 0 && (
+      <div className='flex flex-wrap gap-2 mt-2'>
+        {field.value.map((item: string, index: number) => (
+          <Badge
+            key={`${item}-${index}`} // eslint-disable-line react/no-array-index-key
+            variant='secondary'
+            className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
+            onClick={() => !isCreating && onRemove(index)}
+          >
+            {item}
+            <X className='w-3 h-3 ml-1' />
+          </Badge>
+        ))}
+      </div>
+    )}
+    <FormMessage />
+  </FormItem>
+);
+
 const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceModalProps) => {
   const { createService, isCreating } = useCreateService({
     onSuccess: () => {
@@ -107,15 +207,28 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
     createService({ institutionId, serviceData });
   };
 
-  const addArrayItem = (field: any, input: string, setInput: (value: string) => void) => {
+  const addArrayItem = (
+    field: ControllerRenderProps<
+      ServiceFormData,
+      'conditionAccess' | 'plafonds' | 'infrastructureAccess'
+    >,
+    input: string,
+    setInput: (value: string) => void
+  ) => {
     if (input.trim()) {
       field.onChange([...(field.value || []), input.trim()]);
       setInput('');
     }
   };
 
-  const removeArrayItem = (field: any, index: number) => {
-    field.onChange(field.value.filter((_: any, i: number) => i !== index));
+  const removeArrayItem = (
+    field: ControllerRenderProps<
+      ServiceFormData,
+      'conditionAccess' | 'plafonds' | 'infrastructureAccess'
+    >,
+    index: number
+  ) => {
+    field.onChange(field.value.filter((_, i: number) => i !== index));
   };
 
   return (
@@ -209,23 +322,11 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
                   control={form.control}
                   name='frais.montantFixe'
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-sm text-gray-600'>Montant fixe (FCFA)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          placeholder='0'
-                          className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                          {...field}
-                          value={field.value || ''}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <NumberField
+                      field={field}
+                      label='Montant fixe (FCFA)'
+                      isCreating={isCreating}
+                    />
                   )}
                 />
 
@@ -233,24 +334,12 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
                   control={form.control}
                   name='frais.pourcentage'
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-sm text-gray-600'>Pourcentage (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          step='0.01'
-                          placeholder='0'
-                          className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                          {...field}
-                          value={field.value || ''}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <NumberField
+                      field={field}
+                      label='Pourcentage (%)'
+                      step='0.01'
+                      isCreating={isCreating}
+                    />
                   )}
                 />
 
@@ -258,23 +347,7 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
                   control={form.control}
                   name='frais.minimum'
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-sm text-gray-600'>Minimum (FCFA)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          placeholder='0'
-                          className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                          {...field}
-                          value={field.value || ''}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <NumberField field={field} label='Minimum (FCFA)' isCreating={isCreating} />
                   )}
                 />
 
@@ -282,23 +355,7 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
                   control={form.control}
                   name='frais.maximum'
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-sm text-gray-600'>Maximum (FCFA)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          placeholder='0'
-                          className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                          {...field}
-                          value={field.value || ''}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <NumberField field={field} label='Maximum (FCFA)' isCreating={isCreating} />
                   )}
                 />
               </div>
@@ -308,48 +365,16 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
               control={form.control}
               name='conditionAccess'
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Conditions d&apos;accès</FormLabel>
-                  <div className='flex gap-2'>
-                    <Input
-                      value={conditionInput}
-                      onChange={e => setConditionInput(e.target.value)}
-                      placeholder='Ajouter une condition'
-                      className='flex-1'
-                      disabled={isCreating}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addArrayItem(field, conditionInput, setConditionInput);
-                        }
-                      }}
-                    />
-                    <Button
-                      type='button'
-                      onClick={() => addArrayItem(field, conditionInput, setConditionInput)}
-                      disabled={isCreating || !conditionInput.trim()}
-                      className='bg-cyan-400 hover:bg-cyan-500'
-                    >
-                      <Plus className='w-4 h-4' />
-                    </Button>
-                  </div>
-                  {field.value && field.value.length > 0 && (
-                    <div className='flex flex-wrap gap-2 mt-2'>
-                      {field.value.map((item: string, index: number) => (
-                        <Badge
-                          key={index}
-                          variant='secondary'
-                          className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                          onClick={() => !isCreating && removeArrayItem(field, index)}
-                        >
-                          {item}
-                          <X className='w-3 h-3 ml-1' />
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
+                <ArrayField
+                  field={field}
+                  label="Conditions d'accès"
+                  placeholder='Ajouter une condition'
+                  inputValue={conditionInput}
+                  onInputChange={setConditionInput}
+                  isCreating={isCreating}
+                  onAdd={() => addArrayItem(field, conditionInput, setConditionInput)}
+                  onRemove={index => removeArrayItem(field, index)}
+                />
               )}
             />
 
@@ -357,48 +382,16 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
               control={form.control}
               name='plafonds'
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plafonds</FormLabel>
-                  <div className='flex gap-2'>
-                    <Input
-                      value={plafondInput}
-                      onChange={e => setPlafondInput(e.target.value)}
-                      placeholder='Ex: 500 000 FCFA/jour'
-                      className='flex-1'
-                      disabled={isCreating}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addArrayItem(field, plafondInput, setPlafondInput);
-                        }
-                      }}
-                    />
-                    <Button
-                      type='button'
-                      onClick={() => addArrayItem(field, plafondInput, setPlafondInput)}
-                      disabled={isCreating || !plafondInput.trim()}
-                      className='bg-cyan-400 hover:bg-cyan-500'
-                    >
-                      <Plus className='w-4 h-4' />
-                    </Button>
-                  </div>
-                  {field.value && field.value.length > 0 && (
-                    <div className='flex flex-wrap gap-2 mt-2'>
-                      {field.value.map((item: string, index: number) => (
-                        <Badge
-                          key={index}
-                          variant='secondary'
-                          className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                          onClick={() => !isCreating && removeArrayItem(field, index)}
-                        >
-                          {item}
-                          <X className='w-3 h-3 ml-1' />
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
+                <ArrayField
+                  field={field}
+                  label='Plafonds'
+                  placeholder='Ex: 500 000 FCFA/jour'
+                  inputValue={plafondInput}
+                  onInputChange={setPlafondInput}
+                  isCreating={isCreating}
+                  onAdd={() => addArrayItem(field, plafondInput, setPlafondInput)}
+                  onRemove={index => removeArrayItem(field, index)}
+                />
               )}
             />
 
@@ -406,50 +399,16 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
               control={form.control}
               name='infrastructureAccess'
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Infrastructure d&apos;accès</FormLabel>
-                  <div className='flex gap-2'>
-                    <Input
-                      value={infrastructureInput}
-                      onChange={e => setInfrastructureInput(e.target.value)}
-                      placeholder='Ex: Agence, GAB, Mobile'
-                      className='flex-1'
-                      disabled={isCreating}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addArrayItem(field, infrastructureInput, setInfrastructureInput);
-                        }
-                      }}
-                    />
-                    <Button
-                      type='button'
-                      onClick={() =>
-                        addArrayItem(field, infrastructureInput, setInfrastructureInput)
-                      }
-                      disabled={isCreating || !infrastructureInput.trim()}
-                      className='bg-cyan-400 hover:bg-cyan-500'
-                    >
-                      <Plus className='w-4 h-4' />
-                    </Button>
-                  </div>
-                  {field.value && field.value.length > 0 && (
-                    <div className='flex flex-wrap gap-2 mt-2'>
-                      {field.value.map((item: string, index: number) => (
-                        <Badge
-                          key={index}
-                          variant='secondary'
-                          className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                          onClick={() => !isCreating && removeArrayItem(field, index)}
-                        >
-                          {item}
-                          <X className='w-3 h-3 ml-1' />
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
+                <ArrayField
+                  field={field}
+                  label="Infrastructure d'accès"
+                  placeholder='Ex: Agence, GAB, Mobile'
+                  inputValue={infrastructureInput}
+                  onInputChange={setInfrastructureInput}
+                  isCreating={isCreating}
+                  onAdd={() => addArrayItem(field, infrastructureInput, setInfrastructureInput)}
+                  onRemove={index => removeArrayItem(field, index)}
+                />
               )}
             />
 

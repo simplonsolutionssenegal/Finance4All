@@ -137,5 +137,61 @@ describe('GetInstitutionsUseCase', () => {
       await expect(useCase.execute({ page: 1, limit: 10 })).rejects.toThrow('Database error');
       expect(mockRepository.findAll).toHaveBeenCalledWith({ page: 1, limit: 10 });
     });
+
+    it('should retrieve institutions with services correctly', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
+      const { randomUUID } = await import('crypto');
+
+      const serviceId = randomUUID();
+      const mockService = new Service({
+        id: EntityId.from(serviceId),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.EPARGNE,
+        frais: new FraisPourcentage(0.02, 500, 50),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const institution = new Institution({
+        id: EntityId.generate(),
+        name: 'Institution with Service',
+        description: 'Description',
+        website: UrlValueObject.from('https://test.com'),
+        geographicZones: ['USD'],
+        logoUrl: UrlValueObject.from('https://test.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        services: [mockService],
+      });
+
+      const paginatedResult = {
+        data: [institution],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+
+      mockRepository.findAll.mockResolvedValue(paginatedResult);
+
+      const result = await useCase.execute({ page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].services).toHaveLength(1);
+      expect(result.data[0].services[0]).toEqual({
+        id: serviceId,
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.EPARGNE,
+        frais: expect.any(FraisPourcentage),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+    });
   });
 });

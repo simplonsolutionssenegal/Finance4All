@@ -2,6 +2,7 @@ import type { EntityId } from '@/domain/shared/EntityId';
 import type { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { Service } from '@/domain/institutions/entities/Service';
+import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 
 export interface InstitutionProps {
   id: EntityId;
@@ -128,5 +129,20 @@ export class Institution extends DomainEntity<EntityId> {
   removeService(service: Service): void {
     this._services.delete(service);
     this._updatedAt = new Date();
+  }
+
+  toDTO(): InstitutionDTO {
+    return {
+      id: this._id.getValue(),
+      name: this._name,
+      description: this._description,
+      website: this._website.getValue(),
+      geographicZones: this.geographicZones,
+      logoUrl: this._logoUrl.getValue(),
+      status: this._status,
+      services: this.services.map(service => service.toDTO()),
+      createdAt: this._createdAt,
+      updatedAt: this._updatedAt,
+    };
   }
 }

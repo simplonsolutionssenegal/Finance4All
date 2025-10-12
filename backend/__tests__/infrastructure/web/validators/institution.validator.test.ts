@@ -1,222 +1,224 @@
+import type { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 import {
   validateCreateInstitution,
+  validateUpdateInstitution,
   validatePagination,
   validateInstitutionId,
   handleValidationErrors,
+  validateAddService,
 } from '@/infrastructure/web/validators/institution.validator';
-import type { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
 
-jest.mock('express-validator', () => {
-  const mockChain = {
-    isString: jest.fn().mockReturnThis(),
-    trim: jest.fn().mockReturnThis(),
-    isLength: jest.fn().mockReturnThis(),
-    notEmpty: jest.fn().mockReturnThis(),
-    isArray: jest.fn().mockReturnThis(),
-    isURL: jest.fn().mockReturnThis(),
-    isUUID: jest.fn().mockReturnThis(),
-    optional: jest.fn().mockReturnThis(),
-    withMessage: jest.fn().mockReturnThis(),
-    isInt: jest.fn().mockReturnThis(),
-    toInt: jest.fn().mockReturnThis(),
-    isNumeric: jest.fn().mockReturnThis(),
-    isFloat: jest.fn().mockReturnThis(),
-    custom: jest.fn().mockReturnThis(),
-  };
-
-  return {
-    validationResult: jest.fn(),
-    body: jest.fn(() => mockChain),
-    check: jest.fn(() => mockChain),
-    param: jest.fn(() => mockChain),
-    query: jest.fn(() => mockChain),
-  };
-});
+// Helper to run validation middleware
+const runValidation = async (req: Request, validations: any[]) => {
+  await Promise.all(validations.map(validation => validation.run(req)));
+  return validationResult(req);
+};
 
 describe('Institution Validator', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
-  let mockValidationResult: jest.MockedFunction<typeof validationResult>;
 
   beforeEach(() => {
     mockRequest = {
       body: {},
+      query: {},
+      params: {},
     };
-
     mockResponse = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
-
     mockNext = jest.fn();
-    mockValidationResult = validationResult as jest.MockedFunction<typeof validationResult>;
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  describe('handleValidationErrors', () => {
+    it('should call next() if there are no validation errors', async () => {
+      mockRequest.body = { name: 'test' }; // no validation rules applied yet
+      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 with errors if validation fails', async () => {
+      mockRequest.params = { id: 'invalid-id' };
+      await runValidation(mockRequest as Request, validateInstitutionId);
+
+      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        errors: expect.any(Array),
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
   });
 
   describe('validateCreateInstitution', () => {
-    it('should have validators for all required fields', () => {
-      expect(validateCreateInstitution).toBeDefined();
-      expect(Array.isArray(validateCreateInstitution)).toBe(true);
-      expect(validateCreateInstitution.length).toBe(5);
+    const validData = {
+      name: 'Test Institution',
+      description: 'A great institution',
+      website: 'https://test.com',
+      geographicZones: ['Zone 1'],
+      logoUrl: 'https://test.com/logo.png',
+    };
+
+    it('should pass with valid data', async () => {
+      mockRequest.body = validData;
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail if name is missing', async () => {
+      mockRequest.body = { ...validData, name: '' };
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'name',
+            msg: 'Name must be between 2 and 255 characters',
+          }),
+        ])
+      );
+    });
+  });
+
+  describe('validateUpdateInstitution', () => {
+    const validData = {
+      name: 'Updated Institution',
+      description: 'Updated description',
+      website: 'https://updated.com',
+      geographicZones: ['Zone 2'],
+      logoUrl: 'https://updated.com/logo.png',
+    };
+
+    it('should pass with valid data', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = validData;
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail if id is not a UUID', async () => {
+      mockRequest.params = { id: 'invalid-id' };
+      mockRequest.body = validData;
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'id', msg: 'Invalid institution ID format' }),
+        ])
+      );
     });
   });
 
   describe('validatePagination', () => {
-    it('should have validators for pagination fields', () => {
-      expect(validatePagination).toBeDefined();
-      expect(Array.isArray(validatePagination)).toBe(true);
-      expect(validatePagination.length).toBe(2);
+    it('should pass with valid pagination data', async () => {
+      mockRequest.query = { page: '2', limit: '20' };
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail if page is not an integer', async () => {
+      mockRequest.query = { page: 'a' };
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'page', msg: 'Page must be a positive integer' }),
+        ])
+      );
+    });
+
+    it('should fail if limit is out of range', async () => {
+      mockRequest.query = { limit: '200' };
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'limit', msg: 'Limit must be between 1 and 100' }),
+        ])
+      );
     });
   });
 
   describe('validateInstitutionId', () => {
-    it('should have validator for institution id', () => {
-      expect(validateInstitutionId).toBeDefined();
-      expect(Array.isArray(validateInstitutionId)).toBe(true);
-      expect(validateInstitutionId.length).toBe(1);
+    it('should pass with a valid UUID', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      const errors = await runValidation(mockRequest as Request, validateInstitutionId);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail with an invalid UUID', async () => {
+      mockRequest.params = { id: 'not-a-uuid' };
+      const errors = await runValidation(mockRequest as Request, validateInstitutionId);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'id', msg: 'Invalid institution ID format' }),
+        ])
+      );
     });
   });
 
-  describe('handleValidationErrors', () => {
-    it('should call next when there are no validation errors', () => {
-      const mockResult = {
-        isEmpty: jest.fn().mockReturnValue(true),
-        array: jest.fn().mockReturnValue([]),
-      };
+  describe('validateAddService', () => {
+    const validService = {
+      name: 'Test Service',
+      longName: 'Test Service Long Name',
+      type: 'Loan',
+      frais: {
+        montantFixe: 100,
+        pourcentage: 1.5,
+        minimum: 10,
+        maximum: 1000,
+      },
+      conditionAccess: ['Condition 1'],
+      plafonds: ['Plafond 1'],
+      infrastructureAccess: ['Infra 1'],
+    };
 
-      mockValidationResult.mockReturnValue(mockResult as any);
-
-      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
-
-      expect(mockResult.isEmpty).toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalled();
-      expect(mockResponse.status).not.toHaveBeenCalled();
-      expect(mockResponse.json).not.toHaveBeenCalled();
+    it('should pass with valid service data', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = validService;
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.isEmpty()).toBe(true);
     });
 
-    it('should return 400 status with errors when validation fails', () => {
-      const errors = [
-        {
-          msg: 'Name must be between 2 and 255 characters',
-          param: 'name',
-          location: 'body',
-        },
-        {
-          msg: 'Description is required',
-          param: 'description',
-          location: 'body',
-        },
-      ];
-
-      const mockResult = {
-        isEmpty: jest.fn().mockReturnValue(false),
-        array: jest.fn().mockReturnValue(errors),
-      };
-
-      mockValidationResult.mockReturnValue(mockResult as any);
-
-      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
-
-      expect(mockResult.isEmpty).toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'error',
-        errors,
-      });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-
-    it('should handle multiple validation errors', () => {
-      const errors = [
-        {
-          msg: 'Name must be between 2 and 255 characters',
-          param: 'name',
-          location: 'body',
-        },
-        {
-          msg: 'Description is required',
-          param: 'description',
-          location: 'body',
-        },
-        {
-          msg: 'Invalid website URL',
-          param: 'website',
-          location: 'body',
-        },
-        {
-          msg: 'Geographic zones must be an array',
-          param: 'geographicZones',
-          location: 'body',
-        },
-      ];
-
-      const mockResult = {
-        isEmpty: jest.fn().mockReturnValue(false),
-        array: jest.fn().mockReturnValue(errors),
-      };
-
-      mockValidationResult.mockReturnValue(mockResult as any);
-
-      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'error',
-        errors,
-      });
-    });
-
-    it('should handle single validation error', () => {
-      const errors = [
-        {
-          msg: 'Invalid logo URL',
-          param: 'logoUrl',
-          location: 'body',
-        },
-      ];
-
-      const mockResult = {
-        isEmpty: jest.fn().mockReturnValue(false),
-        array: jest.fn().mockReturnValue(errors),
-      };
-
-      mockValidationResult.mockReturnValue(mockResult as any);
-
-      handleValidationErrors(mockRequest as Request, mockResponse as Response, mockNext);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'error',
-        errors,
-      });
-      expect(mockNext).not.toHaveBeenCalled();
-    });
-
-    it('should return early when validation errors exist', () => {
-      const errors = [{ msg: 'Error', param: 'name', location: 'body' }];
-
-      const mockResult = {
-        isEmpty: jest.fn().mockReturnValue(false),
-        array: jest.fn().mockReturnValue(errors),
-      };
-
-      mockValidationResult.mockReturnValue(mockResult as any);
-
-      const result = handleValidationErrors(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
+    it('should fail if service name is too short', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = { ...validService, name: 'a' };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'name',
+            msg: 'Service name must be between 2 and 255 characters',
+          }),
+        ])
       );
+    });
 
-      // The function returns the response object when there are errors
-      expect(result).toBe(mockResponse);
-      expect(mockNext).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
+    it('should fail if frais is not an object', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = { ...validService, frais: 'not-an-object' };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'frais', msg: 'Frais must be an object' }),
+        ])
+      );
+    });
+
+    it('should fail if frais.pourcentage is out of range', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = { ...validService, frais: { ...validService.frais, pourcentage: 101 } };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'frais.pourcentage',
+            msg: 'Pourcentage must be between 0 and 100',
+          }),
+        ])
+      );
     });
   });
 });

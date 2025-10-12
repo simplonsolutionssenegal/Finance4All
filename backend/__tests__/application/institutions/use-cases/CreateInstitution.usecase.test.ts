@@ -241,5 +241,53 @@ describe('CreateInstitutionUseCaseImpl', () => {
       expect(result).toHaveProperty('createdAt');
       expect(result).toHaveProperty('updatedAt');
     });
+
+    it('should convert institution with services to DTO correctly', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
+
+      const testUuid = randomUUID();
+      const serviceUuid = randomUUID();
+      mockDomainService.isNameUnique.mockResolvedValue(true);
+
+      const mockService = new Service({
+        id: EntityId.from(serviceUuid),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.PAIEMENT_MARCHAND,
+        frais: new FraisFixes(100),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const savedInstitution = new Institution({
+        id: EntityId.from(testUuid),
+        name: validCommand.name,
+        description: validCommand.description,
+        website: UrlValueObject.from(validCommand.website),
+        geographicZones: validCommand.geographicZones,
+        logoUrl: UrlValueObject.from(validCommand.logoUrl),
+        status: InstitutionStatus.PENDING,
+        services: [mockService],
+      });
+
+      mockRepository.save.mockResolvedValue(savedInstitution);
+
+      const result = await useCase.execute(validCommand);
+
+      expect(result).toHaveProperty('services');
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0]).toEqual({
+        id: serviceUuid,
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.PAIEMENT_MARCHAND,
+        frais: expect.any(FraisFixes),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+    });
   });
 });

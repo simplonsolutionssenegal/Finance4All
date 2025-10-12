@@ -7,7 +7,6 @@ import type { InstitutionDTO } from '@/domain/institutions/value-objects/Institu
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { Service } from '@/domain/institutions/entities/Service';
-import type { Institution } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import {
   FraisGratuit,
@@ -43,7 +42,7 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
 
     const savedInstitution = await this.institutionRepository.update(existingInstitution);
 
-    return this.toDTO(savedInstitution);
+    return savedInstitution.toDTO();
   }
 
   private mapFraisFromDTO(fraisDTO: FraisDTO): Frais {
@@ -61,20 +60,5 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
 
     // Par défaut, gratuit
     return new FraisGratuit();
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      services: institution.services.map(service => service.toDTO()),
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
-    };
   }
 }

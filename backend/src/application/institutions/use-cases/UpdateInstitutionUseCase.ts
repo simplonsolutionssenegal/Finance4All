@@ -33,21 +33,6 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
 
     const savedInstitution = await this.institutionRepository.update(updatedInstitution);
 
-    return this.toDTO(savedInstitution);
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      services: institution.services.map(service => service.toDTO()),
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
-    };
+    return savedInstitution.toDTO();
   }
 }
