@@ -1,6 +1,8 @@
 import type { EntityId } from '@/domain/shared/EntityId';
 import type { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { DomainEntity } from '@/domain/shared/Entity';
+import type { Service } from '@/domain/institutions/entities/Service';
+import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 
 export interface InstitutionProps {
   id: EntityId;
@@ -10,6 +12,7 @@ export interface InstitutionProps {
   geographicZones: string[];
   status: InstitutionStatus;
   logoUrl: UrlValueObject;
+  services: Service[];
 }
 
 export enum InstitutionStatus {
@@ -25,6 +28,7 @@ export class Institution extends DomainEntity<EntityId> {
   private _geographicZones: Set<string>;
   private _status: InstitutionStatus;
   private _logoUrl: UrlValueObject;
+  private _services: Set<Service>;
 
   constructor(props: InstitutionProps) {
     super(props.id);
@@ -34,6 +38,7 @@ export class Institution extends DomainEntity<EntityId> {
     this._geographicZones = new Set(props.geographicZones);
     this._status = props.status;
     this._logoUrl = props.logoUrl;
+    this._services = new Set(props.services);
   }
 
   get name(): string {
@@ -50,6 +55,10 @@ export class Institution extends DomainEntity<EntityId> {
 
   get geographicZones(): string[] {
     return Array.from(this._geographicZones);
+  }
+
+  get services(): Service[] {
+    return Array.from(this._services);
   }
 
   get status(): InstitutionStatus {
@@ -110,5 +119,30 @@ export class Institution extends DomainEntity<EntityId> {
   updateLogo(logoUrl: UrlValueObject): void {
     this._logoUrl = logoUrl;
     this._updatedAt = new Date();
+  }
+
+  addService(service: Service): void {
+    this._services.add(service);
+    this._updatedAt = new Date();
+  }
+
+  removeService(service: Service): void {
+    this._services.delete(service);
+    this._updatedAt = new Date();
+  }
+
+  toDTO(): InstitutionDTO {
+    return {
+      id: this._id.getValue(),
+      name: this._name,
+      description: this._description,
+      website: this._website.getValue(),
+      geographicZones: this.geographicZones,
+      logoUrl: this._logoUrl.getValue(),
+      status: this._status,
+      services: this.services.map(service => service.toDTO()),
+      createdAt: this._createdAt,
+      updatedAt: this._updatedAt,
+    };
   }
 }

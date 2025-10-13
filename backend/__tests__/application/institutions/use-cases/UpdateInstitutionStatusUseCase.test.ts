@@ -16,6 +16,7 @@ const cloneInstitution = (institution: Institution, newStatus: InstitutionStatus
     geographicZones: institution.geographicZones,
     logoUrl: institution.logoUrl,
     status: newStatus,
+    services: [],
   });
 };
 
@@ -32,6 +33,7 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.PENDING,
+    services: [],
   });
 
   beforeEach(() => {
@@ -131,8 +133,67 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         logoUrl: existingInstitution.logoUrl.getValue(),
         status: InstitutionStatus.ACTIVE,
+        services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
+      });
+    });
+
+    it('should convert institution with services to DTO correctly', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+      const serviceId = randomUUID();
+      const mockService = new Service({
+        id: EntityId.from(serviceId),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.CREDIT,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const institutionWithService = new Institution({
+        id: EntityId.from(testId),
+        name: 'Old Name',
+        description: 'Old Description',
+        website: UrlValueObject.from('https://old.com'),
+        geographicZones: ['UEMOA'],
+        logoUrl: UrlValueObject.from('https://old.com/logo.png'),
+        status: InstitutionStatus.PENDING,
+        services: [mockService],
+      });
+
+      mockRepository.findById.mockResolvedValue(institutionWithService);
+
+      const updatedInstitutionWithService = new Institution({
+        id: EntityId.from(testId),
+        name: 'Old Name',
+        description: 'Old Description',
+        website: UrlValueObject.from('https://old.com'),
+        geographicZones: ['UEMOA'],
+        logoUrl: UrlValueObject.from('https://old.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        services: [mockService],
+      });
+
+      mockRepository.update.mockResolvedValue(updatedInstitutionWithService);
+
+      const command = { id: testId, status: InstitutionStatus.ACTIVE };
+      const result = await useCase.execute(command);
+
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0]).toEqual({
+        id: serviceId,
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.CREDIT,
+        frais: expect.any(FraisGratuit),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
       });
     });
   });

@@ -1,11 +1,13 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
+import ServiceItem from '@/components/admin/institutions/ServiceItem';
+import ServiceModal from '@/components/admin/institutions/ServiceModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -23,6 +25,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
   const { institution, isLoading, isError, error, refetch } = useGetInstitution(institutionId);
   const [showUpdateStateModal, setShowUpdateStateModal] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
+  const [showServiceModal, setShowServiceModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (isLoading) {
@@ -171,8 +174,26 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
       <Separator className='border border-gray-300 my-10' />
 
       <div>
-        <h2 className='text-2xl font-bold text-gray-900 mb-4'>Produits Financiers</h2>
-        <p className='text-gray-500'>Aucun produit financier pour le moment.</p>
+        <div className='flex justify-between items-center mb-6'>
+          <h2 className='text-2xl font-bold text-gray-900'>Services Financiers</h2>
+          <Button
+            onClick={() => setShowServiceModal(true)}
+            className='bg-cyan-400 text-white hover:bg-cyan-500 flex items-center gap-2'
+          >
+            <Plus className='w-4 h-4' />
+            Ajouter un service
+          </Button>
+        </div>
+
+        {institution.services && institution.services.length > 0 ? (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+            {institution.services.map(service => (
+              <ServiceItem key={service.id} service={service} />
+            ))}
+          </div>
+        ) : (
+          <p className='text-gray-500 text-center py-8'>Aucun service financier pour le moment.</p>
+        )}
       </div>
 
       <ConfirmUpdateStatusModal
@@ -181,6 +202,13 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         refresh={() => refetch()}
         institution={institution}
         status={newStatus}
+      />
+
+      <ServiceModal
+        open={showServiceModal}
+        onOpenChange={setShowServiceModal}
+        institutionId={institutionId}
+        refresh={() => refetch()}
       />
     </div>
   );

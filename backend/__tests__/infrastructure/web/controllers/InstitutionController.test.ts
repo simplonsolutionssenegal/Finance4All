@@ -6,14 +6,18 @@ import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/Up
 import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
+import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
+import type { FilterServicesByInstitutionUseCase } from '@/domain/institutions/ports/in/FilterServicesByInstitutionUseCase';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
   let mockCreateInstitutionUseCase: jest.Mocked<CreateInstitutionUseCase>;
   let mockUpdateInstitutionUseCase: jest.Mocked<UpdateInstitutionUseCase>;
   let mockUpdateInstitutionStatusUseCase: jest.Mocked<UpdateInstitutionStatusUseCase>;
+  let mockAddServiceUseCase: jest.Mocked<AddServiceUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
+  let mockFilterServicesByInstitutionUseCase: jest.Mocked<FilterServicesByInstitutionUseCase>; // AJOUT
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -31,6 +35,10 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockAddServiceUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     mockGetInstitutionsUseCase = {
       execute: jest.fn(),
     } as any;
@@ -39,12 +47,18 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockFilterServicesByInstitutionUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
       mockUpdateInstitutionUseCase,
       mockUpdateInstitutionStatusUseCase,
+      mockAddServiceUseCase,
       mockGetInstitutionsUseCase,
-      mockGetInstitutionByIdUseCase
+      mockGetInstitutionByIdUseCase,
+      mockFilterServicesByInstitutionUseCase
     );
 
     mockRequest = {
@@ -83,6 +97,7 @@ describe('InstitutionController', () => {
         geographicZones: requestBody.geographicZones,
         logoUrl: requestBody.logoUrl,
         status: InstitutionStatus.PENDING,
+        services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -116,6 +131,7 @@ describe('InstitutionController', () => {
         geographicZones: requestBody.geographicZones,
         logoUrl: null,
         status: InstitutionStatus.PENDING,
+        services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -205,6 +221,7 @@ describe('InstitutionController', () => {
         geographicZones: requestBody.geographicZones,
         logoUrl: requestBody.logoUrl,
         status: InstitutionStatus.ACTIVE,
+        services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -230,6 +247,7 @@ describe('InstitutionController', () => {
             geographicZones: ['USD'],
             logoUrl: 'https://test1.com/logo.png',
             status: InstitutionStatus.ACTIVE,
+            services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -241,6 +259,7 @@ describe('InstitutionController', () => {
             geographicZones: ['EURO'],
             logoUrl: 'https://test2.com/logo.png',
             status: InstitutionStatus.PENDING,
+            services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -278,6 +297,7 @@ describe('InstitutionController', () => {
             geographicZones: ['GBP'],
             logoUrl: 'https://test3.com/logo.png',
             status: InstitutionStatus.ACTIVE,
+            services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -347,6 +367,7 @@ describe('InstitutionController', () => {
         geographicZones: ['EURO', 'USD'],
         logoUrl: 'https://test.com/logo.png',
         status: InstitutionStatus.ACTIVE,
+        services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -374,6 +395,7 @@ describe('InstitutionController', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: InstitutionStatus.PENDING,
+        services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -434,6 +456,7 @@ describe('InstitutionController', () => {
           geographicZones: ['EURO'],
           logoUrl: 'https://test.com/logo.png',
           status,
+          services: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -477,6 +500,35 @@ describe('InstitutionController', () => {
       mockUpdateInstitutionUseCase.execute.mockRejectedValue(error);
 
       await controller.update(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('addService', () => {
+    it('should add a service to an institution successfully', async () => {
+      const requestBody = { name: 'New Service' };
+      const serviceDTO = { id: 'serv_123', name: 'New Service' };
+      mockRequest.params = { id: 'inst_123' };
+      mockRequest.body = requestBody;
+      mockAddServiceUseCase.execute.mockResolvedValue(serviceDTO as any);
+
+      await controller.addService(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockAddServiceUseCase.execute).toHaveBeenCalledWith({
+        idInstitution: 'inst_123',
+        ...requestBody,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: serviceDTO });
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.params = { id: 'inst_123' };
+      mockAddServiceUseCase.execute.mockRejectedValue(error);
+
+      await controller.addService(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

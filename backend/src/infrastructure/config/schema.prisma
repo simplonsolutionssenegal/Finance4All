@@ -19,11 +19,30 @@ model Institution {
   description     String
   website         String?
   geographicZones String[]
-  products  Product[]
   logoUrl         String?
   status          InstitutionStatus @default(PENDING)
+  services        Service[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+}
+
+model Service {
+  id                   String      @id @default(uuid())
+  name                 String
+  longName             String
+  type                 TypeService
+  frais                Json
+  conditionAccess      String[]
+  plafonds             String[]
+  infrastructureAccess String[]
+
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
 }
 
 enum InstitutionStatus {
@@ -31,37 +50,19 @@ enum InstitutionStatus {
   INACTIVE
   PENDING
 }
-enum ProductType {
-  CREDIT
+
+enum TypeService {
+  PAIEMENT_MARCHAND
+  ACHAT_CREDIT
+  PAIEMENT_FACTURES
+  DEPOT_SIMPLE
+  DEPOT_RETRAIT_SIMPLE
+  RETRAIT_SIMPLE
+  TRANSFERT_ARGENT
+  BANQUE_WALLET
+  WALLET_BANQUE
   EPARGNE
-  MOBILE_MONEY
-  INVESTISSEMENT
+  CREDIT
   ASSURANCE
-}
-
-enum RemboursementMode {
-  AGENCE
-  USSD
-  MOBILE
-}
-
-
-model Product {
-  id                 String            @id @default(cuid())
-  designation        String
-  montantMin         Decimal           @db.Decimal(18, 2)
-  montantMax         Decimal           @db.Decimal(18, 2)
-  type               ProductType
-  modesRemboursement RemboursementMode
-
-  institutionId String
-  institution   Institution @relation(fields: [institutionId], references: [id])
-
-  // Zone(s) (array texte)
-  zones String[] @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([institutionId])
+  AUTRES
 }

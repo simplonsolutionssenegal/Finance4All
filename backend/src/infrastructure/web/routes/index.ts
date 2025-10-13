@@ -1,12 +1,10 @@
 import { Router } from 'express';
 import userRoutes from '@/infrastructure/web/routes/user.routes';
-import { productRoutes } from '@/infrastructure/web/routes/product.routes';
 import { InstitutionRoutes } from './institution.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
-router.use('/product', productRoutes);
 router.use('/institutions', InstitutionRoutes());
 
 // Route de test

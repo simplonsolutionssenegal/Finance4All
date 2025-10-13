@@ -1,6 +1,6 @@
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 
-import { InstitutionStatus, type Institution } from '@/domain/institutions/entities/Institution';
+import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 import type {
@@ -28,20 +28,6 @@ export class UpdateInstitutionStatusUseCaseImpl implements UpdateInstitutionStat
 
     const savedInstitution = await this.institutionRepository.update(existingInstitution);
 
-    return this.toDTO(savedInstitution);
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
-    };
+    return savedInstitution.toDTO();
   }
 }

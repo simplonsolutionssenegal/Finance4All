@@ -45,6 +45,7 @@ describe('InstitutionDomainService', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       mockRepository.findByName.mockResolvedValue([existingInstitution]);
@@ -64,6 +65,7 @@ describe('InstitutionDomainService', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        services: [],
       });
 
       const institution2 = new Institution({
@@ -74,6 +76,7 @@ describe('InstitutionDomainService', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.findByName.mockResolvedValue([institution1, institution2]);

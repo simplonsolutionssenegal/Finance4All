@@ -1,16 +1,38 @@
 import { Institution } from '@/domain/institutions/entities/Institution';
 // eslint-disable-next-line no-duplicate-imports
 import type { InstitutionStatus } from '@/domain/institutions/entities/Institution';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
+import {
+  FraisGratuit,
+  FraisFixes,
+  FraisPourcentage,
+  type Frais,
+} from '@/domain/institutions/entities/Frais';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import type {
   Prisma,
   PrismaClient,
   Institution as PrismaInstitution,
+  Service as PrismaService,
   InstitutionStatus as PrismaInstitutionStatus,
+  TypeService as PrismaTypeService,
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
+
+type InstitutionWithServices = PrismaInstitution & {
+  services: PrismaService[];
+};
+
+type FraisData = {
+  type: 'FREE' | 'FIX' | 'POURCENTAGE';
+  amount?: number;
+  rate?: number;
+  fxSurcharge?: number;
+  cap?: number;
+  floor?: number;
+};
 
 export class PrismaInstitutionRepository implements InstitutionRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -20,17 +42,39 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
 
     const saved = await this.prisma.institution.create({
       data,
+      include: {
+        services: true,
+      },
     });
 
     return this.toDomain(saved);
   }
 
   async update(institution: Institution): Promise<Institution> {
-    const data = this.toPrismaData(institution);
+    const institutionData = this.toPrismaData(institution);
+    const services = institution.services;
 
+    // Récupérer l'institution existante pour comparer les services
+    const existingInstitution = await this.prisma.institution.findUnique({
+      where: { id: institution.id.getValue() },
+      include: { services: true },
+    });
+
+    const existingServiceIds = new Set(existingInstitution?.services.map(s => s.id) || []);
+    const newServices = services.filter(s => !existingServiceIds.has(s.id.getValue()));
+
+    // Mettre à jour l'institution et créer les nouveaux services
     const updated = await this.prisma.institution.update({
       where: { id: institution.id.getValue() },
-      data,
+      data: {
+        ...institutionData,
+        services: {
+          create: newServices.map(service => this.mapServiceToPrisma(service)),
+        },
+      },
+      include: {
+        services: true,
+      },
     });
 
     return this.toDomain(updated);
@@ -39,6 +83,9 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
   async findById(id: string): Promise<Institution | null> {
     const institution = await this.prisma.institution.findUnique({
       where: { id },
+      include: {
+        services: true,
+      },
     });
 
     return institution ? this.toDomain(institution) : null;
@@ -47,9 +94,12 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
   async findByName(name: string): Promise<Institution[]> {
     const institutions = await this.prisma.institution.findMany({
       where: { name },
+      include: {
+        services: true,
+      },
     });
 
-    return institutions.map((i: PrismaInstitution) => this.toDomain(i));
+    return institutions.map(i => this.toDomain(i));
   }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<Institution>> {
@@ -67,7 +117,7 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: institutions.map((i: PrismaInstitution) => this.toDomain(i)),
+      data: institutions.map(i => this.toDomain({ ...i, services: [] })),
       pagination: {
         page: params.page,
         limit: params.limit,
@@ -77,7 +127,49 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     };
   }
 
-  private toDomain(prismaInstitution: PrismaInstitution): Institution {
+  async findByFilters(
+    params: PaginationParams & {
+      institutionId: string;
+      types?: TypeService[];
+      fromDate?: Date;
+    }
+  ): Promise<PaginatedResult<Service>> {
+    const skip = (params.page - 1) * params.limit;
+
+    const where: any = { institutionId: params.institutionId };
+
+    if (params.types?.length) {
+      where.type = { in: params.types };
+    }
+
+    if (params.fromDate) {
+      where.createdAt = { gte: params.fromDate };
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.service.findMany({
+        where,
+        skip,
+        take: params.limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.service.count({ where }),
+    ]);
+
+    return {
+      data: rows.map(this.mapServiceToDomains),
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total,
+        totalPages: Math.ceil(total / params.limit),
+      },
+    };
+  }
+
+  private toDomain(prismaInstitution: InstitutionWithServices): Institution {
+    const services = prismaInstitution.services?.map(s => this.mapServiceToDomain(s)) || [];
+
     return new Institution({
       id: EntityId.from(prismaInstitution.id),
       name: prismaInstitution.name,
@@ -86,7 +178,54 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       geographicZones: prismaInstitution.geographicZones,
       logoUrl: UrlValueObject.from(prismaInstitution.logoUrl),
       status: prismaInstitution.status as InstitutionStatus,
+      services,
     });
+  }
+
+  private mapServiceToDomains = (prismaService: PrismaService): Service => {
+    return new Service({
+      id: EntityId.from(prismaService.id),
+      name: prismaService.name,
+      longName: prismaService.longName,
+      type: this.mapPrismaTypeToTypeService(prismaService.type),
+      frais: this.mapFraisToDomain(prismaService.frais as FraisData),
+      conditionAccess: prismaService.conditionAccess,
+      plafonds: prismaService.plafonds,
+      infrastructureAccess: prismaService.infrastructureAccess,
+    });
+  };
+
+  // private mapPrismaTypeToTypeService = (t: PrismaTypeService): TypeService => {
+  //   // ton mapping actuel ici
+  // };
+
+  private mapServiceToDomain(prismaService: PrismaService): Service {
+    return new Service({
+      id: EntityId.from(prismaService.id),
+      name: prismaService.name,
+      longName: prismaService.longName,
+      type: this.mapPrismaTypeToTypeService(prismaService.type),
+      frais: this.mapFraisToDomain(prismaService.frais as FraisData),
+      conditionAccess: prismaService.conditionAccess,
+      plafonds: prismaService.plafonds,
+      infrastructureAccess: prismaService.infrastructureAccess,
+    });
+  }
+
+  private mapFraisToDomain(fraisData: FraisData): Frais {
+    if (!fraisData || fraisData.type === 'FREE') {
+      return new FraisGratuit();
+    }
+
+    if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
+      return new FraisFixes(fraisData.amount, fraisData.rate, fraisData.fxSurcharge);
+    }
+
+    if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
+      return new FraisPourcentage(fraisData.rate, fraisData.cap, fraisData.floor);
+    }
+
+    return new FraisGratuit();
   }
 
   private toPrismaData(institution: Institution): Prisma.InstitutionCreateInput {
@@ -99,5 +238,82 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status as PrismaInstitutionStatus,
     };
+  }
+
+  private mapServiceToPrisma(service: Service): Prisma.ServiceCreateWithoutInstitutionInput {
+    return {
+      id: service.id.getValue(),
+      name: service.name,
+      longName: service.longName,
+      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
+      frais: this.mapFraisToPrisma(service.frais),
+      conditionAccess: service.conditionAccess,
+      plafonds: service.plafonds,
+      infrastructureAccess: service.infrastructureAccess,
+    };
+  }
+
+  private mapTypeServiceToPrismaType(type: TypeService): string {
+    const typeMap: Record<TypeService, string> = {
+      [TypeService.PAIEMENT_MARCHAND]: 'PAIEMENT_MARCHAND',
+      [TypeService.ACHAT_CREDIT]: 'ACHAT_CREDIT',
+      [TypeService.PAIEMENT_FACTURES]: 'PAIEMENT_FACTURES',
+      [TypeService.DEPOT_SIMPLE]: 'DEPOT_SIMPLE',
+      [TypeService.DEPOT_RETRAIT_SIMPLE]: 'DEPOT_RETRAIT_SIMPLE',
+      [TypeService.RETRAIT_SIMPLE]: 'RETRAIT_SIMPLE',
+      [TypeService.TRANSFERT_ARGENT]: 'TRANSFERT_ARGENT',
+      [TypeService.BANQUE_WALLET]: 'BANQUE_WALLET',
+      [TypeService.WALLET_BANQUE]: 'WALLET_BANQUE',
+      [TypeService.EPARGNE]: 'EPARGNE',
+      [TypeService.CREDIT]: 'CREDIT',
+      [TypeService.ASSURANCE]: 'ASSURANCE',
+      [TypeService.AUTRES]: 'AUTRES',
+    };
+    return typeMap[type] || 'AUTRES';
+  }
+
+  private mapPrismaTypeToTypeService(prismaType: string): TypeService {
+    const typeMap: Record<string, TypeService> = {
+      PAIEMENT_MARCHAND: TypeService.PAIEMENT_MARCHAND,
+      ACHAT_CREDIT: TypeService.ACHAT_CREDIT,
+      PAIEMENT_FACTURES: TypeService.PAIEMENT_FACTURES,
+      DEPOT_SIMPLE: TypeService.DEPOT_SIMPLE,
+      DEPOT_RETRAIT_SIMPLE: TypeService.DEPOT_RETRAIT_SIMPLE,
+      RETRAIT_SIMPLE: TypeService.RETRAIT_SIMPLE,
+      TRANSFERT_ARGENT: TypeService.TRANSFERT_ARGENT,
+      BANQUE_WALLET: TypeService.BANQUE_WALLET,
+      WALLET_BANQUE: TypeService.WALLET_BANQUE,
+      EPARGNE: TypeService.EPARGNE,
+      CREDIT: TypeService.CREDIT,
+      ASSURANCE: TypeService.ASSURANCE,
+      AUTRES: TypeService.AUTRES,
+    };
+    return typeMap[prismaType] || TypeService.AUTRES;
+  }
+
+  private mapFraisToPrisma(frais: Frais): FraisData {
+    if (frais instanceof FraisGratuit) {
+      return { type: 'FREE' };
+    }
+
+    if (frais instanceof FraisFixes) {
+      return {
+        type: 'FIX',
+        amount: frais.amount,
+        rate: frais.rate,
+        fxSurcharge: frais.fxSurcharge,
+      };
+    }
+
+    if (frais instanceof FraisPourcentage) {
+      return {
+        type: 'POURCENTAGE',
+        rate: frais.rate,
+        cap: frais.cap,
+        floor: frais.floor,
+      };
+    }
+
+    return { type: 'FREE' };
   }
 }

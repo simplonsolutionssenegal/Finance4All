@@ -19,6 +19,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.ACTIVE,
+    services: [],
   });
 
   beforeEach(() => {
@@ -66,6 +67,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -86,6 +88,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: updateCommand.logoUrl,
         status: existingInstitution.status,
+        services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
       });
@@ -107,6 +110,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithNulls.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -132,6 +136,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyStrings.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
@@ -151,12 +156,70 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         status: existingInstitution.status,
         logoUrl: existingInstitution.logoUrl,
+        services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
 
       const result = await useCase.execute(updateCommand);
 
       expect(result.status).toBe(existingInstitution.status);
+    });
+
+    it('should preserve existing services when updating institution', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
+
+      const serviceId = randomUUID();
+      const mockService = new Service({
+        id: EntityId.from(serviceId),
+        name: 'Existing Service',
+        longName: 'Existing Service Long Name',
+        type: TypeService.ASSURANCE,
+        frais: new FraisFixes(200, 0.01),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const institutionWithService = new Institution({
+        id: EntityId.from(testId),
+        name: 'Old Name',
+        description: 'Old Description',
+        website: UrlValueObject.from('https://old.com'),
+        geographicZones: ['UEMOA'],
+        logoUrl: UrlValueObject.from('https://old.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        services: [mockService],
+      });
+
+      mockRepository.findById.mockResolvedValue(institutionWithService);
+
+      const updatedInstitutionWithService = new Institution({
+        id: EntityId.from(testId),
+        name: updateCommand.name,
+        description: updateCommand.description,
+        website: UrlValueObject.from(updateCommand.website),
+        geographicZones: updateCommand.geographicZones,
+        logoUrl: UrlValueObject.from(updateCommand.logoUrl),
+        status: institutionWithService.status,
+        services: [mockService],
+      });
+
+      mockRepository.update.mockResolvedValue(updatedInstitutionWithService);
+
+      const result = await useCase.execute(updateCommand);
+
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0]).toEqual({
+        id: serviceId,
+        name: 'Existing Service',
+        longName: 'Existing Service Long Name',
+        type: TypeService.ASSURANCE,
+        frais: expect.any(FraisFixes),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
     });
   });
 });
