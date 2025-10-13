@@ -1,11 +1,32 @@
 'use client';
 
 import { ChevronDown, Check } from 'lucide-react';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 
 import { Input } from '@/components/ui/input';
-import type { CustomDropdownProps, DropdownOption } from '@/lib/dropdown-types';
+import type { CustomDropdownProps, DropdownOption, IconType } from '@/lib/dropdown-types';
 import { filterDropdownOptions } from '@/lib/dropdown-utils';
+
+const renderIcon = (icon: IconType | undefined, className = '') => {
+  if (!icon) return null;
+
+  // Si c'est une string, on considère que c'est une URL d'image
+  if (typeof icon === 'string') {
+    return (
+      <Image
+        src={icon}
+        alt='Icon'
+        width={30}
+        height={30}
+        className={`object-contain ${className}`}
+      />
+    );
+  }
+
+  // Sinon, c'est un ReactNode (composant d'icône)
+  return <>{icon}</>;
+};
 
 export function CustomDropdown<T = unknown>({
   options,
@@ -52,7 +73,7 @@ export function CustomDropdown<T = unknown>({
         }`}
       >
         <div className='flex items-center gap-3'>
-          {icon}
+          {renderIcon(icon)}
           <span className={`font-medium ${selected ? 'text-gray-900' : 'text-gray-500'}`}>
             {selected ? selected.name : placeholder}
           </span>
@@ -90,7 +111,7 @@ export function CustomDropdown<T = unknown>({
                     option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   }`}
                 >
-                  {option.icon && <span className='text-lg'>{option.icon}</span>}
+                  {option.icon && <span className='text-lg'>{renderIcon(option.icon)}</span>}
                   <div className='flex-1'>
                     <div className='font-medium text-gray-900'>{option.name}</div>
                     {option.description && (
