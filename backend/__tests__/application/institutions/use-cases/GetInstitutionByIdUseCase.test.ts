@@ -20,6 +20,7 @@ describe('GetInstitutionByIdUseCase', () => {
       geographicZones: ['UEMOA', 'CEMAC'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      services: [],
     });
 
     mockRepository = {
@@ -51,6 +52,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA', 'CEMAC'],
         logoUrl: 'https://logo.com/logo.png',
         status: 'ACTIVE',
+        services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
@@ -77,6 +79,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        services: [],
       });
 
       mockRepository.findById.mockResolvedValue(institutionWithNulls);
@@ -91,6 +94,7 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
@@ -112,6 +116,7 @@ describe('GetInstitutionByIdUseCase', () => {
           geographicZones: ['UEMOA'],
           logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
           status,
+          services: [],
         });
 
         mockRepository.findById.mockResolvedValue(institution);
@@ -120,6 +125,51 @@ describe('GetInstitutionByIdUseCase', () => {
 
         expect(result.status).toBe(status);
       }
+    });
+
+    it('should return institution with services correctly', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
+      const { randomUUID } = await import('crypto');
+
+      const serviceId = randomUUID();
+      const mockService = new Service({
+        id: EntityId.from(serviceId),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.TRANSFERT_ARGENT,
+        frais: new FraisFixes(100),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const institutionWithService = new Institution({
+        id: EntityId.from(testId),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from('https://test.com'),
+        geographicZones: ['UEMOA', 'CEMAC'],
+        logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        services: [mockService],
+      });
+
+      mockRepository.findById.mockResolvedValue(institutionWithService);
+
+      const result = await useCase.execute({ id: testId });
+
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0]).toEqual({
+        id: serviceId,
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.TRANSFERT_ARGENT,
+        frais: expect.any(FraisFixes),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
     });
   });
 });

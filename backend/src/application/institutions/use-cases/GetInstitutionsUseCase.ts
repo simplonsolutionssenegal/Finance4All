@@ -17,22 +17,8 @@ export class GetInstitutionsUseCaseImpl implements GetInstitutionsUseCase {
     });
 
     return {
-      data: result.data.map((institution: Institution) => this.toDTO(institution)),
+      data: result.data.map((institution: Institution) => institution.toDTO()),
       pagination: result.pagination,
-    };
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
     };
   }
 }

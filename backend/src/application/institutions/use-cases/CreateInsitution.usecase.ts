@@ -32,24 +32,11 @@ export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
       geographicZones: dto.geographicZones,
       logoUrl: UrlValueObject.from(dto.logoUrl || null),
       status: InstitutionStatus.PENDING,
+      services: [],
     });
 
     const savedInstitution = await this.institutionRepository.save(institution);
 
-    return this.toDTO(savedInstitution);
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
-    };
+    return savedInstitution.toDTO();
   }
 }

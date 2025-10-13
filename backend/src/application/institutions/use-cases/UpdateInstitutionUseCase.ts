@@ -28,24 +28,11 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
       geographicZones: command.geographicZones,
       logoUrl: UrlValueObject.from(command.logoUrl || null),
       status: existingInstitution.status,
+      services: existingInstitution.services,
     });
 
     const savedInstitution = await this.institutionRepository.update(updatedInstitution);
 
-    return this.toDTO(savedInstitution);
-  }
-
-  private toDTO(institution: Institution): InstitutionDTO {
-    return {
-      id: institution.id.getValue(),
-      name: institution.name,
-      description: institution.description,
-      website: institution.website.getValue(),
-      geographicZones: institution.geographicZones,
-      logoUrl: institution.logoUrl.getValue(),
-      status: institution.status,
-      createdAt: institution.createdAt,
-      updatedAt: institution.updatedAt,
-    };
+    return savedInstitution.toDTO();
   }
 }

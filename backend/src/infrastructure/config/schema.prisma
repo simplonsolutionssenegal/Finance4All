@@ -21,12 +21,48 @@ model Institution {
   geographicZones String[]
   logoUrl         String?
   status          InstitutionStatus @default(PENDING)
+  services        Service[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+}
+
+model Service {
+  id                   String      @id @default(uuid())
+  name                 String
+  longName             String
+  type                 TypeService
+  frais                Json
+  conditionAccess      String[]
+  plafonds             String[]
+  infrastructureAccess String[]
+
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
 }
 
 enum InstitutionStatus {
   ACTIVE
   INACTIVE
   PENDING
+}
+
+enum TypeService {
+  PAIEMENT_MARCHAND
+  ACHAT_CREDIT
+  PAIEMENT_FACTURES
+  DEPOT_SIMPLE
+  DEPOT_RETRAIT_SIMPLE
+  RETRAIT_SIMPLE
+  TRANSFERT_ARGENT
+  BANQUE_WALLET
+  WALLET_BANQUE
+  EPARGNE
+  CREDIT
+  ASSURANCE
+  AUTRES
 }

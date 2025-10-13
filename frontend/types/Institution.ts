@@ -1,3 +1,5 @@
+import type { Service } from './Service';
+
 export interface CreateInstitutionDto {
   name: string;
   description: string;
@@ -22,6 +24,7 @@ export interface Institution {
   geographicZones: string[];
   logoUrl: string;
   status: InstitutionStatus;
+  services?: Service[];
   createdAt: string;
   updatedAt: string;
 }
