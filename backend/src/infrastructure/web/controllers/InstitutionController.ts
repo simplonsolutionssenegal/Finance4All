@@ -117,14 +117,22 @@ export class InstitutionController {
       next(error);
     }
   }
-
   filterByInstitution = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const institutionId = String(req.params.institutionId || req.params.id || '');
-
       const typeParam = req.query.type;
-      const asArray = (v: unknown): string[] =>
-        Array.isArray(v) ? (v as string[]) : typeof v === 'string' ? v.split(',') : [];
+
+      // S3358: Extraction de l'opération ternaire imbriquée
+      const asArray = (v: unknown): string[] => {
+        if (Array.isArray(v)) {
+          return v as string[];
+        }
+        if (typeof v === 'string') {
+          return v.split(',');
+        }
+        return [];
+      };
+
       const rawTypes = asArray(typeParam)
         .map(t => String(t).trim())
         .filter(Boolean);
@@ -132,14 +140,10 @@ export class InstitutionController {
         ? (rawTypes.map(t => t.toUpperCase()) as TypeService[])
         : undefined;
 
-      // const zoneParam = req.query.zone;
-      // const rawZones = asArray(zoneParam).map(z => String(z).trim()).filter(Boolean);
-      // const zoneCodes = rawZones.length ? rawZones : undefined;
-
       const preset = typeof req.query.date === 'string' ? req.query.date.toLowerCase() : undefined;
       const fromParam = typeof req.query.from === 'string' ? req.query.from : undefined;
-
       let fromDate: Date | undefined;
+
       if (fromParam) {
         const d = new Date(fromParam);
         fromDate = isNaN(d.getTime()) ? undefined : d;
@@ -151,8 +155,18 @@ export class InstitutionController {
         fromDate = new Date(Date.now() - 180 * 24 * 3600 * 1000);
       }
 
-      const page = parseInt(String(req.query.page ?? '1'), 10) || 1;
-      const limit = parseInt(String(req.query.limit ?? '10'), 10) || 10;
+      // S6551: Conversion sécurisée en string pour éviter [object Object]
+      const pageParam = req.query.page;
+      const pageValue =
+        typeof pageParam === 'string' || typeof pageParam === 'number' ? String(pageParam) : '1';
+      const page = parseInt(pageValue, 10) || 1;
+
+      const limitParam = req.query.limit;
+      const limitValue =
+        typeof limitParam === 'string' || typeof limitParam === 'number'
+          ? String(limitParam)
+          : '10';
+      const limit = parseInt(limitValue, 10) || 10;
 
       const result = await this.filterServicesByInstitutionUseCase.execute({
         institutionId,
