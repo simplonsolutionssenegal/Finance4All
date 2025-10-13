@@ -1,17 +1,19 @@
-// src/infrastructure/web/controllers/ProductController.ts (adapté avec votre style)
+// src/infrastructure/web/controllers/ServiceController.ts
 import { type Request, type Response } from 'express';
-import type { GetProductByIdUseCaseImpl } from '@/domain/use-cases/getProductByIdUseCaseImpl';
-import type { GetProductsUseCaseImpl } from '@/domain/use-cases/getProductsUseCaseImpl';
-import { ProductType, type ProductFilter } from '@/domain/entities/Product';
-import { logger } from '@/infrastructure/utils/logger';
 
-export class ProductController {
+import { logger } from '@/infrastructure/utils/logger';
+import type { ServiceFilter } from '@/domain/entities/Service';
+import { TypeService } from '@/domain/institutions/entities/Service';
+import type { GetServicesUseCaseImpl } from '@/domain/use-cases/getServiceUseCaseImpl';
+import type { GetServiceByIdUseCaseImpl } from '@/domain/use-cases/getServiceByIdUseCaseImpl';
+
+export class ServiceController {
   constructor(
-    private readonly getProductByIdUseCase: GetProductByIdUseCaseImpl,
-    private readonly getProductsUseCase: GetProductsUseCaseImpl
+    private readonly getServiceByIdUseCase: GetServiceByIdUseCaseImpl,
+    private readonly getServicesUseCase: GetServicesUseCaseImpl
   ) {}
 
-  getProductById = async (req: Request, res: Response): Promise<void> => {
+  getServiceById = async (req: Request, res: Response): Promise<void> => {
     try {
       // Correction : gérer le cas où req.params ou req.params.id est manquant
       const id = req.params?.id;
@@ -19,29 +21,29 @@ export class ProductController {
       if (!id || typeof id !== 'string' || id.trim() === '') {
         res.status(400).json({
           status: 'error',
-          message: 'ID du produit requis',
+          message: 'ID du service requis',
         });
         return;
       }
 
-      const product = await this.getProductByIdUseCase.execute(id);
+      const service = await this.getServiceByIdUseCase.execute(id);
 
-      if (!product) {
+      if (!service) {
         res.status(404).json({
           status: 'error',
-          message: 'Produit non trouvé',
+          message: 'Service non trouvé',
         });
         return;
       }
 
       res.json({
         status: 'success',
-        data: product,
+        data: service,
       });
     } catch (error) {
-      logger.error('Erreur lors de la récupération du produit', {
+      logger.error('Erreur lors de la récupération du service', {
         error: error as unknown,
-        productId: req.params?.id,
+        serviceId: req.params?.id,
       });
 
       if (error instanceof Error && error.message.includes('requis')) {
@@ -59,32 +61,31 @@ export class ProductController {
     }
   };
 
-  getProducts = async (req: Request, res: Response): Promise<void> => {
+  getServices = async (req: Request, res: Response): Promise<void> => {
     try {
       // Correction : gérer le cas où req.query est undefined
       const query = req.query ?? {};
-      const { type, designation, montantMinimum, montantMaximum } = query;
+      const { type, name, institutionId } = query;
 
       // Validation du type de produit en utilisant l'enum
-      const isValidProductType = (value: string): value is ProductType => {
-        return Object.values(ProductType).includes(value as ProductType);
+      const isValidServiceType = (value: string): value is TypeService => {
+        return Object.values(TypeService).includes(value as TypeService);
       };
       const typeParam = Array.isArray(type) ? type[0] : type;
       const typeStr = typeof typeParam === 'string' ? typeParam : undefined;
-      const filters: ProductFilter = {
-        type: typeStr && isValidProductType(typeStr) ? typeStr : undefined,
-        designation: typeof designation === 'string' ? designation : undefined,
-        montantMinimum: typeof montantMinimum === 'string' ? parseFloat(montantMinimum) : undefined,
-        montantMaximum: typeof montantMaximum === 'string' ? parseFloat(montantMaximum) : undefined,
+      const filters: ServiceFilter = {
+        type: typeStr && isValidServiceType(typeStr) ? typeStr : undefined,
+        name: typeof name === 'string' ? name : undefined,
+        institutionId: typeof institutionId === 'string' ? institutionId : undefined,
       };
 
-      const result = await this.getProductsUseCase.execute(filters);
+      const result = await this.getServicesUseCase.execute(filters);
       res.json({
         status: 'success',
         data: result,
       });
     } catch (error) {
-      logger.error('Erreur lors de la récupération des produits', {
+      logger.error('Erreur lors de la récupération des services', {
         error: error as unknown,
         query: req.query as unknown,
       });
