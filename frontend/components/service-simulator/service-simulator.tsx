@@ -15,7 +15,7 @@ import {
   validateValue,
   calculateStep,
 } from '@/lib/format-utils';
-import type { Institution, Service, DurationUnit } from '@/lib/simulator-types';
+import type { Institution, Service, DurationUnit, Estimation } from '@/lib/simulator-types';
 
 // Icônes par type de service
 const SERVICE_ICONS: Record<string, string> = {
@@ -123,13 +123,13 @@ export function ServiceSimulator() {
   const parsePlafond = (plafond: string): { min: number; max: number } | null => {
     if (!plafond || plafond.trim() === '') return null;
     if (plafond.includes('-')) {
-      const [min, max] = plafond.split('-').map(v => parseFloat(v.trim()));
-      if (!isNaN(min) && !isNaN(max)) {
+      const [min, max] = plafond.split('-').map(v => Number.parseFloat(v.trim()));
+      if (!Number.isNaN(min) && !Number.isNaN(max)) {
         return { min, max };
       }
     }
-    const value = parseFloat(plafond.trim());
-    if (!isNaN(value)) {
+    const value = Number.parseFloat(plafond.trim());
+    if (!Number.isNaN(value)) {
       return { min: 0, max: value };
     }
     return null;
@@ -139,7 +139,7 @@ export function ServiceSimulator() {
     // Limites de durée fixes
     const durationLimits = { min: 1, max: 10 };
 
-    if (!params.service || !params.service.plafonds || params.service.plafonds.length === 0) {
+    if (!params.service?.plafonds?.length) {
       return {
         amount: { min: 1000, max: 1000000 },
         duration: durationLimits,
@@ -159,7 +159,18 @@ export function ServiceSimulator() {
 
   const currentLimits = getLimits();
   const hasMultiplePlafonds =
-    params.service && params.service.plafonds && params.service.plafonds.length > 1;
+    params.service?.plafonds?.length && params.service.plafonds.length > 1;
+
+  // Helper function pour formater le montant principal
+  const formatMainAmount = (estimation: Estimation): string => {
+    if (estimation.monthlyPayment) {
+      return formatCurrency(estimation.monthlyPayment);
+    }
+    if (estimation.finalAmount) {
+      return formatCurrency(estimation.finalAmount);
+    }
+    return '0 F CFA';
+  };
 
   return (
     <section className='py-20 bg-white relative overflow-visible'>
@@ -274,24 +285,26 @@ export function ServiceSimulator() {
                   {/* Sélecteur de plafond (si plusieurs plafonds disponibles) */}
                   {hasMultiplePlafonds && params.service && (
                     <div className='bg-amber-50 border border-amber-200 rounded-lg p-4'>
-                      <label className='block text-sm font-medium text-amber-900 mb-2'>
-                        Sélectionnez le plafond à simuler :
-                      </label>
-                      <div className='flex flex-wrap gap-2'>
-                        {params.service.plafonds.map((plafond, index) => (
-                          <button
-                            key={`plafond-${params.service?.id}-${plafond}-${index}`}
-                            onClick={() => setSelectedPlafondIndex(index)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                              selectedPlafondIndex === index
-                                ? 'bg-teal-500 text-white shadow-md'
-                                : 'bg-white text-gray-700 border border-gray-300 hover:border-teal-400'
-                            }`}
-                          >
-                            Plafond {index + 1}: {plafond}
-                          </button>
-                        ))}
-                      </div>
+                      <fieldset>
+                        <legend className='block text-sm font-medium text-amber-900 mb-2'>
+                          Sélectionnez le plafond à simuler :
+                        </legend>
+                        <div className='flex flex-wrap gap-2'>
+                          {params.service.plafonds.map((plafond, index) => (
+                            <button
+                              key={`plafond-${params.service?.id}-${plafond}`}
+                              onClick={() => setSelectedPlafondIndex(index)}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                selectedPlafondIndex === index
+                                  ? 'bg-teal-500 text-white shadow-md'
+                                  : 'bg-white text-gray-700 border border-gray-300 hover:border-teal-400'
+                              }`}
+                            >
+                              Plafond {index + 1}: {plafond}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
                     </div>
                   )}
                 </div>
@@ -377,7 +390,7 @@ export function ServiceSimulator() {
                         }}
                         min={params.durationUnit === 'MONTHS' ? 3 : 1}
                         max={params.durationUnit === 'MONTHS' ? 12 : 10}
-                        step={params.durationUnit === 'MONTHS' ? 1 : 1}
+                        step={1}
                         label=''
                         icon={<Calendar className='w-4 h-4' />}
                         formatValue={value => formatDuration(value, params.durationUnit)}
@@ -403,11 +416,7 @@ export function ServiceSimulator() {
                         isAnimating ? 'scale-105' : 'scale-100'
                       }`}
                     >
-                      {estimation.monthlyPayment
-                        ? formatCurrency(estimation.monthlyPayment)
-                        : estimation.finalAmount
-                          ? formatCurrency(estimation.finalAmount)
-                          : '0 F CFA'}
+                      {formatMainAmount(estimation)}
                     </div>
                     <div className='text-white/90 mb-4'>
                       {estimation.monthlyPayment ? 'Mensualité estimée' : 'Montant final estimé'}

@@ -6,7 +6,8 @@ import type { Service } from '@/types/Service';
 export type DurationUnit = 'YEARS' | 'MONTHS';
 
 // Réexporter les types backend
-export type { Institution, Service };
+export type { Institution } from '@/types/Institution';
+export type { Service } from '@/types/Service';
 
 export interface SimulationParams {
   institution: Institution | null;

@@ -192,27 +192,31 @@ export function Slider({
       </div>
 
       <div className='relative'>
-        <div
-          ref={sliderRef}
-          className='relative h-2 sm:h-3 bg-gray-200 rounded-full cursor-pointer touch-none'
+        <input
+          ref={sliderRef as React.RefObject<HTMLInputElement>}
+          type='range'
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className='relative h-2 sm:h-3 bg-gray-200 rounded-full cursor-pointer touch-none w-full appearance-none'
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
-          role='slider'
           tabIndex={0}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={value}
           aria-label={label}
-        >
-          <div
-            className='absolute top-0 left-0 h-full bg-gradient-to-r from-teal-500 to-blue-500 rounded-full transition-all duration-200'
-            style={{ width: `${percentage}%` }}
-          />
-          <div
-            className='absolute top-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-teal-500 rounded-full shadow-lg transform -translate-y-1/2 -translate-x-1/2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:scale-110 active:scale-95'
-            style={{ left: `${percentage}%` }}
-          />
-        </div>
+        />
+        <div
+          className='absolute top-0 left-0 h-2 sm:h-3 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full transition-all duration-200 pointer-events-none'
+          style={{ width: `${percentage}%` }}
+        />
+        <div
+          className='absolute top-1/2 w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-teal-500 rounded-full shadow-lg transform -translate-y-1/2 -translate-x-1/2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:scale-110 active:scale-95 pointer-events-none'
+          style={{ left: `${percentage}%` }}
+        />
 
         <div className='flex justify-between text-xs sm:text-sm text-gray-500 mt-2'>
           <span>{formatValue(min)}</span>

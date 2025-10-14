@@ -42,7 +42,7 @@ export function useDropdownState<T>(
     return initialOptions.filter(
       option =>
         option.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (option.description && option.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        option.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [initialOptions, searchTerm, searchable]);
 

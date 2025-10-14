@@ -38,6 +38,25 @@ const calculateServiceFees = (
 };
 
 /**
+ * Helper function pour calculer l'estimation d'épargne (évite la duplication de code)
+ */
+const calculateSavingsEstimation = (
+  amount: number,
+  durationInYears: number,
+  rate: number,
+  serviceFees: number
+): Estimation => {
+  const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears) - serviceFees;
+  const totalGain = finalAmount - amount;
+
+  return {
+    finalAmount: Math.round(finalAmount),
+    totalInterest: Math.round(totalGain),
+    annualRate: rate,
+  };
+};
+
+/**
  * Calcule l'estimation financière basée sur les paramètres de simulation
  * @param params - Paramètres de simulation
  * @returns Estimation financière
@@ -79,14 +98,7 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
     };
   } else if (serviceTypeLower.includes('épargne') || serviceTypeLower.includes('epargne')) {
     // Pour l'épargne, on déduit les frais du montant final
-    const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears) - serviceFees;
-    const totalGain = finalAmount - amount;
-
-    return {
-      finalAmount: Math.round(finalAmount),
-      totalInterest: Math.round(totalGain),
-      annualRate: rate,
-    };
+    return calculateSavingsEstimation(amount, durationInYears, rate, serviceFees);
   } else if (serviceTypeLower.includes('assurance')) {
     // Pour l'assurance, on calcule généralement une prime annuelle
     const annualPremium = amount * (rate / 100) + serviceFees / durationInYears;
@@ -99,13 +111,6 @@ export const calculateEstimation = (params: SimulationParams): Estimation => {
     };
   } else {
     // Par défaut, calcul type épargne
-    const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears) - serviceFees;
-    const totalGain = finalAmount - amount;
-
-    return {
-      finalAmount: Math.round(finalAmount),
-      totalInterest: Math.round(totalGain),
-      annualRate: rate,
-    };
+    return calculateSavingsEstimation(amount, durationInYears, rate, serviceFees);
   }
 };
