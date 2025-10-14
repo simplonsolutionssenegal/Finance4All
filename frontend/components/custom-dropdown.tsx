@@ -11,17 +11,21 @@ import { filterDropdownOptions } from '@/lib/dropdown-utils';
 const renderIcon = (icon: IconType | undefined, className = '') => {
   if (!icon) return null;
 
-  // Si c'est une string, on considère que c'est une URL d'image
   if (typeof icon === 'string') {
-    return (
-      <Image
-        src={icon}
-        alt='Icon'
-        width={30}
-        height={30}
-        className={`object-contain ${className}`}
-      />
-    );
+    // Si ça commence par http, c'est une URL d'image
+    if (icon.startsWith('http')) {
+      return (
+        <Image
+          src={icon}
+          alt='Icon'
+          width={30}
+          height={30}
+          className={`object-contain ${className}`}
+        />
+      );
+    }
+    // Sinon, c'est un emoji
+    return <span className={`text-2xl ${className}`}>{icon}</span>;
   }
 
   // Sinon, c'est un ReactNode (composant d'icône)
