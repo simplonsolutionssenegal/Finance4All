@@ -504,6 +504,9 @@ describe('PrismaInstitutionRepository', () => {
         skip: 2,
         take: 2,
         orderBy: { createdAt: 'desc' },
+        include: {
+          services: true,
+        },
       });
       expect(mockPrisma.institution.count).toHaveBeenCalled();
       expect(result.data).toHaveLength(2);
