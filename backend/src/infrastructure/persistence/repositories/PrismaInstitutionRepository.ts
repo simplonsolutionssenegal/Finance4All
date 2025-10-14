@@ -127,46 +127,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     };
   }
 
-  async findByFilters(
-    params: PaginationParams & {
-      institutionId: string;
-      types?: TypeService[];
-      fromDate?: Date;
-    }
-  ): Promise<PaginatedResult<Service>> {
-    const skip = (params.page - 1) * params.limit;
-
-    const where: any = { institutionId: params.institutionId };
-
-    if (params.types?.length) {
-      where.type = { in: params.types };
-    }
-
-    if (params.fromDate) {
-      where.createdAt = { gte: params.fromDate };
-    }
-
-    const [rows, total] = await Promise.all([
-      this.prisma.service.findMany({
-        where,
-        skip,
-        take: params.limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.service.count({ where }),
-    ]);
-
-    return {
-      data: rows.map(this.mapServiceToDomains),
-      pagination: {
-        page: params.page,
-        limit: params.limit,
-        total,
-        totalPages: Math.ceil(total / params.limit),
-      },
-    };
-  }
-
   private toDomain(prismaInstitution: InstitutionWithServices): Institution {
     const services = prismaInstitution.services?.map(s => this.mapServiceToDomain(s)) || [];
 
@@ -181,23 +141,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       services,
     });
   }
-
-  private mapServiceToDomains = (prismaService: PrismaService): Service => {
-    return new Service({
-      id: EntityId.from(prismaService.id),
-      name: prismaService.name,
-      longName: prismaService.longName,
-      type: this.mapPrismaTypeToTypeService(prismaService.type),
-      frais: this.mapFraisToDomain(prismaService.frais as FraisData),
-      conditionAccess: prismaService.conditionAccess,
-      plafonds: prismaService.plafonds,
-      infrastructureAccess: prismaService.infrastructureAccess,
-    });
-  };
-
-  // private mapPrismaTypeToTypeService = (t: PrismaTypeService): TypeService => {
-  //   // ton mapping actuel ici
-  // };
 
   private mapServiceToDomain(prismaService: PrismaService): Service {
     return new Service({

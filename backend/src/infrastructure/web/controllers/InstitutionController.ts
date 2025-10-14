@@ -6,8 +6,6 @@ import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/Up
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
-import type { TypeService } from '@/domain/institutions/entities/Service';
-import type { FilterServicesByInstitutionUseCase } from '@/domain/institutions/ports/in/FilterServicesByInstitutionUseCase';
 
 export class InstitutionController {
   constructor(
@@ -16,8 +14,7 @@ export class InstitutionController {
     private readonly updateInstitutionStatusUseCase: UpdateInstitutionStatusUseCase,
     private readonly addServiceUseCase: AddServiceUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
-    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase,
-    private readonly filterServicesByInstitutionUseCase: FilterServicesByInstitutionUseCase
+    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
   ) {}
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -117,68 +114,4 @@ export class InstitutionController {
       next(error);
     }
   }
-  filterByInstitution = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const institutionId = String(req.params.institutionId || req.params.id || '');
-      const typeParam = req.query.type;
-
-      // S3358: Extraction de l'opération ternaire imbriquée
-      const asArray = (v: unknown): string[] => {
-        if (Array.isArray(v)) {
-          return v as string[];
-        }
-        if (typeof v === 'string') {
-          return v.split(',');
-        }
-        return [];
-      };
-
-      const rawTypes = asArray(typeParam)
-        .map(t => String(t).trim())
-        .filter(Boolean);
-      const types = rawTypes.length
-        ? (rawTypes.map(t => t.toUpperCase()) as TypeService[])
-        : undefined;
-
-      const preset = typeof req.query.date === 'string' ? req.query.date.toLowerCase() : undefined;
-      const fromParam = typeof req.query.from === 'string' ? req.query.from : undefined;
-      let fromDate: Date | undefined;
-
-      if (fromParam) {
-        const d = new Date(fromParam);
-        fromDate = isNaN(d.getTime()) ? undefined : d;
-      } else if (preset === 'recent') {
-        fromDate = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-      } else if (preset === '3mois') {
-        fromDate = new Date(Date.now() - 90 * 24 * 3600 * 1000);
-      } else if (preset === '6mois') {
-        fromDate = new Date(Date.now() - 180 * 24 * 3600 * 1000);
-      }
-
-      // S6551: Conversion sécurisée en string pour éviter [object Object]
-      const pageParam = req.query.page;
-      const pageValue =
-        typeof pageParam === 'string' || typeof pageParam === 'number' ? String(pageParam) : '1';
-      const page = parseInt(pageValue, 10) || 1;
-
-      const limitParam = req.query.limit;
-      const limitValue =
-        typeof limitParam === 'string' || typeof limitParam === 'number'
-          ? String(limitParam)
-          : '10';
-      const limit = parseInt(limitValue, 10) || 10;
-
-      const result = await this.filterServicesByInstitutionUseCase.execute({
-        institutionId,
-        types,
-        fromDate,
-        page,
-        limit,
-      });
-
-      res.status(200).json({ success: true, ...result });
-    } catch (e) {
-      next(e);
-    }
-  };
 }

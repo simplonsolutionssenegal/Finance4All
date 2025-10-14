@@ -7,7 +7,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
-import type { FilterServicesByInstitutionUseCase } from '@/domain/institutions/ports/in/FilterServicesByInstitutionUseCase';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
@@ -17,7 +16,6 @@ describe('InstitutionController', () => {
   let mockAddServiceUseCase: jest.Mocked<AddServiceUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
-  let mockFilterServicesByInstitutionUseCase: jest.Mocked<FilterServicesByInstitutionUseCase>; // AJOUT
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -47,18 +45,13 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
-    mockFilterServicesByInstitutionUseCase = {
-      execute: jest.fn(),
-    } as any;
-
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
       mockUpdateInstitutionUseCase,
       mockUpdateInstitutionStatusUseCase,
       mockAddServiceUseCase,
       mockGetInstitutionsUseCase,
-      mockGetInstitutionByIdUseCase,
-      mockFilterServicesByInstitutionUseCase
+      mockGetInstitutionByIdUseCase
     );
 
     mockRequest = {

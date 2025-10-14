@@ -23,14 +23,8 @@ export const InstitutionRoutes = (): Router => {
     desactivate: controller.desactivate.bind(controller),
     getAll: controller.getAll.bind(controller),
     getById: controller.getById.bind(controller),
-    filterByInstitution: controller.filterByInstitution.bind(controller),
   };
-  router.get(
-    '/filter-by-institution/:id/filter',
-    validateInstitutionId,
-    handleValidationErrors,
-    boundController.filterByInstitution
-  );
+
   router.get('/', validatePagination, handleValidationErrors, boundController.getAll);
   router.get('/:id', validateInstitutionId, handleValidationErrors, boundController.getById);
   router.post('/', validateCreateInstitution, handleValidationErrors, boundController.create);
