@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import {
   useSimulatorParams,
@@ -7,8 +8,10 @@ import {
   useSimulatorInstitutions,
   useSimulatorActions,
 } from '@/lib/simulator-store';
-import type { InstitutionProduct } from '@/lib/simulator-types';
-import { calculateEstimation, generateInstitutions } from '@/lib/simulator-utils';
+import type { Service } from '@/lib/simulator-types';
+import { calculateEstimation } from '@/lib/simulator-utils';
+
+import { useGetInstitutions } from './institution/useGetInstitutions';
 
 /**
  * Hook personnalisé pour gérer l'état et la logique du simulateur
@@ -21,20 +24,24 @@ export function useSimulator() {
   const isAnimating = useSimulatorIsAnimating();
   const institutions = useSimulatorInstitutions();
   const actions = useSimulatorActions();
+  const queryClient = useQueryClient();
 
-  // Génération des institutions (mémorisée)
-  const generatedInstitutions = useMemo(() => generateInstitutions(), []);
+  // Récupérer les institutions réelles du backend
+  const { institutions: backendInstitutions, isLoading } = useGetInstitutions({
+    page: 1,
+    limit: 20,
+  });
 
-  // Initialiser les institutions dans le store si elles ne sont pas encore définies
+  // Initialiser les institutions dans le store quand elles sont chargées
   useEffect(() => {
-    if (institutions.length === 0) {
-      actions.setInstitutions(generatedInstitutions);
+    if (backendInstitutions && backendInstitutions.length > 0 && institutions.length === 0) {
+      actions.setInstitutions(backendInstitutions);
     }
-  }, [institutions.length, generatedInstitutions, actions]);
+  }, [backendInstitutions, institutions.length, actions]);
 
   // Calculer l'estimation en temps réel
   useEffect(() => {
-    if (params.product) {
+    if (params.service) {
       actions.setIsAnimating(true);
       const timer = setTimeout(() => {
         const newEstimation = calculateEstimation(params);
@@ -45,14 +52,19 @@ export function useSimulator() {
     }
   }, [params, actions]);
 
-  const getAvailableProducts = (): InstitutionProduct[] => {
-    return params.institution?.products || [];
+  const getAvailableServices = (): Service[] => {
+    return params.institution?.services || [];
   };
 
-  const getCurrentLimits = () => {
-    return (
-      params.product?.limits || { amount: { min: 0, max: 100000 }, duration: { min: 1, max: 10 } }
-    );
+  const resetSimulation = () => {
+    // Réinitialiser l'état de la simulation
+    actions.resetSimulation();
+
+    // Invalider le cache des institutions pour forcer un rechargement
+    queryClient.invalidateQueries({ queryKey: ['institutions'] });
+
+    // Réinitialiser aussi les institutions dans le store
+    actions.setInstitutions([]);
   };
 
   return {
@@ -61,11 +73,11 @@ export function useSimulator() {
     estimation,
     isAnimating,
     institutions,
+    isLoading,
 
     // Fonctions
     updateParam: actions.updateParam,
-    getAvailableProducts,
-    getCurrentLimits,
-    resetSimulation: actions.resetSimulation,
+    getAvailableServices,
+    resetSimulation,
   };
 }

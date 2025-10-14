@@ -176,7 +176,7 @@ describe('useSimulatorStore', () => {
       });
 
       // Vérifier que les données sont persistées
-      const storedData = localStorage.getItem('product-simulator-storage');
+      const storedData = localStorage.getItem('service-simulator-storage');
       expect(storedData).toBeTruthy();
 
       const parsedData = JSON.parse(storedData || '{}');
@@ -197,7 +197,7 @@ describe('useSimulatorStore', () => {
         result.current.setIsAnimating(true);
       });
 
-      const storedData = localStorage.getItem('product-simulator-storage');
+      const storedData = localStorage.getItem('service-simulator-storage');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         expect(parsedData.state.estimation).toBeUndefined();

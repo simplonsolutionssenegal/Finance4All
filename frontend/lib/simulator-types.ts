@@ -1,12 +1,16 @@
 // Types pour le simulateur de produits financiers
 
-import type { Institution, InstitutionProduct } from '@/types/Institution';
+import type { Institution } from '@/types/Institution';
+import type { Service } from '@/types/Service';
 
 export type DurationUnit = 'YEARS' | 'MONTHS';
 
+// Réexporter les types backend
+export type { Institution, Service };
+
 export interface SimulationParams {
   institution: Institution | null;
-  product: InstitutionProduct | null;
+  service: Service | null;
   amount: number;
   duration: number;
   durationUnit: DurationUnit;
@@ -19,20 +23,3 @@ export interface Estimation {
   annualRate: number;
   totalCost?: number;
 }
-
-export interface ProductType {
-  name: string;
-  icon: string;
-  type: 'CREDIT' | 'EPARGNE' | 'INVESTISSEMENT' | 'ASSURANCE';
-  rates: {
-    min: number;
-    max: number;
-  };
-  limits: {
-    amount: { min: number; max: number };
-    duration: { min: number; max: number };
-  };
-}
-
-// Réexport des types backend pour la compatibilité
-export type { Institution, InstitutionProduct } from '@/types/Institution';

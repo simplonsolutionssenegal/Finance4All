@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { ProductSimulator } from '@/components/product-simulator/product-simulator';
+import { ServiceSimulator } from '@/components/service-simulator/service-simulator';
 import { useSimulatorStore } from '@/lib/simulator-store';
 import type { Institution, InstitutionProduct } from '@/lib/simulator-types';
 
@@ -65,7 +65,7 @@ const defaultMockReturn = {
   resetSimulation: jest.fn(),
 };
 
-describe('ProductSimulator', () => {
+describe('ServiceSimulator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseSimulator.mockReturnValue(defaultMockReturn);
@@ -78,7 +78,7 @@ describe('ProductSimulator', () => {
 
   describe('Rendu initial', () => {
     it('should render the simulator component', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('Simulateur de Produits Financiers')).toBeInTheDocument();
       expect(screen.getByText('Simulez votre projet financier')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('ProductSimulator', () => {
     });
 
     it('should render step 1 (institution selection)', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('1')).toBeInTheDocument();
       expect(screen.getByText('Choisissez votre institution')).toBeInTheDocument();
@@ -94,21 +94,21 @@ describe('ProductSimulator', () => {
     });
 
     it('should not render step 2 when no institution is selected', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.queryByText('2')).not.toBeInTheDocument();
       expect(screen.queryByText('Sélectionnez un produit')).not.toBeInTheDocument();
     });
 
     it('should not render step 3 when no product is selected', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.queryByText('3')).not.toBeInTheDocument();
       expect(screen.queryByText('Ajustez vos paramètres')).not.toBeInTheDocument();
     });
 
     it('should not render results when no estimation', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.queryByText('4')).not.toBeInTheDocument();
       expect(screen.queryByText('Votre estimation')).not.toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('2')).toBeInTheDocument();
       expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('3')).toBeInTheDocument();
       expect(screen.getByText('Ajustez vos paramètres')).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('Montant')).toBeInTheDocument();
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -186,7 +186,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('4')).toBeInTheDocument();
       expect(screen.getByText('Votre estimation')).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [creditProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText(/1\s*200\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Mensualité estimée')).toBeInTheDocument();
@@ -246,7 +246,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [investmentProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText(/150\s*000\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Montant final estimé')).toBeInTheDocument();
@@ -277,7 +277,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [savingsProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText(/55\s*000\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Montant final estimé')).toBeInTheDocument();
@@ -308,7 +308,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [insuranceProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText(/150\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Prime mensuelle estimée')).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('3.50%')).toBeInTheDocument();
       expect(screen.getByText('Taux annuel')).toBeInTheDocument();
@@ -345,14 +345,14 @@ describe('ProductSimulator', () => {
         },
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByTitle('Réinitialiser la simulation')).toBeInTheDocument();
       expect(screen.getByText('Réinitialiser')).toBeInTheDocument();
     });
 
     it('should not show reset button when nothing is selected', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.queryByTitle('Réinitialiser la simulation')).not.toBeInTheDocument();
     });
@@ -370,7 +370,7 @@ describe('ProductSimulator', () => {
         resetSimulation: mockResetSimulation,
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const resetButton = screen.getByTitle('Réinitialiser la simulation');
       await user.click(resetButton);
@@ -393,7 +393,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
       expect(estimationElement).toHaveClass('scale-105');
@@ -412,7 +412,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
       expect(estimationElement).toHaveClass('scale-100');
@@ -432,7 +432,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       expect(screen.getByText('Années')).toBeInTheDocument();
       expect(screen.getByText('Mois')).toBeInTheDocument();
@@ -451,7 +451,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const yearsButton = screen.getByText('Années');
       expect(yearsButton).toHaveClass('bg-white', 'text-teal-600');
@@ -470,7 +470,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const monthsButton = screen.getByText('Mois');
       expect(monthsButton).toHaveClass('bg-white', 'text-teal-600');
@@ -487,7 +487,7 @@ describe('ProductSimulator', () => {
         updateParam: mockUpdateParam,
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Le dropdown est rendu mais les interactions sont mockées
       // On teste que la fonction updateParam est disponible
@@ -508,7 +508,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Le dropdown produit est rendu
       expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
@@ -535,7 +535,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const monthsButton = screen.getByText('Mois');
       await user.click(monthsButton);
@@ -562,7 +562,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const yearsButton = screen.getByText('Années');
       await user.click(yearsButton);
@@ -589,7 +589,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const yearsButton = screen.getByText('Années');
       await user.click(yearsButton);
@@ -616,7 +616,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le slider de montant est rendu
       expect(screen.getByText('Montant')).toBeInTheDocument();
@@ -640,7 +640,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le slider de durée est rendu
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -664,7 +664,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le slider de durée est rendu
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -686,7 +686,7 @@ describe('ProductSimulator', () => {
         institutions: institutionsWithProducts,
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que les options d'institution sont créées
       expect(screen.getByText('Sélectionnez une institution...')).toBeInTheDocument();
@@ -709,7 +709,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => productsWithDescription),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que les options de produit sont créées
       expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
@@ -726,7 +726,7 @@ describe('ProductSimulator', () => {
         institutions: [institutionWithMultipleProducts],
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère les institutions avec plusieurs produits
       expect(screen.getByText('Sélectionnez une institution...')).toBeInTheDocument();
@@ -743,7 +743,7 @@ describe('ProductSimulator', () => {
         institutions: [institutionWithNoProducts],
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère les institutions sans produits
       expect(screen.getByText('Sélectionnez une institution...')).toBeInTheDocument();
@@ -771,7 +771,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [creditProduct, investmentProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère différents types de produits
       expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
@@ -792,7 +792,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [productWithoutDescription]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère les produits sans description
       expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
@@ -813,7 +813,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Le composant devrait utiliser les limites par défaut
       expect(screen.getByText('Montant')).toBeInTheDocument();
@@ -832,7 +832,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Le composant devrait utiliser les limites par défaut
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -851,7 +851,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère le minimum de 3 mois
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -870,7 +870,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que le composant gère le minimum de 1 an
       expect(screen.getByText('Durée')).toBeInTheDocument();
@@ -891,7 +891,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
       expect(estimationElement).toHaveClass('scale-105');
@@ -910,7 +910,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
       expect(estimationElement).toHaveClass('scale-100');
@@ -919,7 +919,7 @@ describe('ProductSimulator', () => {
 
   describe('Responsive Design', () => {
     it('should render with responsive classes', () => {
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       // Vérifier que les classes responsive sont présentes
       const container = screen.getByText('Simulez votre projet financier').closest('section');
@@ -935,7 +935,7 @@ describe('ProductSimulator', () => {
         },
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const resetButton = screen.getByTitle('Réinitialiser la simulation');
       expect(resetButton).toBeInTheDocument();
@@ -955,7 +955,7 @@ describe('ProductSimulator', () => {
         },
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const resetButton = screen.getByTitle('Réinitialiser la simulation');
       expect(resetButton).toBeInTheDocument();
@@ -973,7 +973,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      render(<ProductSimulator />);
+      render(<ServiceSimulator />);
 
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBeGreaterThan(0);
@@ -998,7 +998,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle zero values in estimation', () => {
@@ -1019,7 +1019,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle very large numbers in estimation', () => {
@@ -1040,7 +1040,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle missing product limits gracefully', () => {
@@ -1058,7 +1058,7 @@ describe('ProductSimulator', () => {
         })),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle empty institutions array', () => {
@@ -1067,7 +1067,7 @@ describe('ProductSimulator', () => {
         institutions: [],
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle institutions with no products', () => {
@@ -1081,7 +1081,7 @@ describe('ProductSimulator', () => {
         institutions: [institutionWithoutProducts],
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle negative values in estimation', () => {
@@ -1102,7 +1102,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle decimal values in estimation', () => {
@@ -1123,7 +1123,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle very small values in estimation', () => {
@@ -1144,7 +1144,7 @@ describe('ProductSimulator', () => {
         getAvailableProducts: jest.fn(() => [mockProduct]),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
   });
 
@@ -1170,7 +1170,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => productWithHighMin.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle amount above maximum limit', () => {
@@ -1194,7 +1194,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => productWithLowMax.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle duration below minimum limit', () => {
@@ -1218,7 +1218,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => productWithHighMinDuration.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle duration above maximum limit', () => {
@@ -1242,7 +1242,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => productWithLowMaxDuration.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle edge case with 0 duration', () => {
@@ -1258,7 +1258,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle edge case with 0 amount', () => {
@@ -1274,7 +1274,7 @@ describe('ProductSimulator', () => {
         getCurrentLimits: jest.fn(() => mockProduct.limits),
       });
 
-      expect(() => render(<ProductSimulator />)).not.toThrow();
+      expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
   });
 });

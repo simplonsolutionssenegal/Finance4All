@@ -5,7 +5,7 @@ import type {
   SimulationParams,
   Estimation,
   Institution,
-  InstitutionProduct,
+  Service,
   DurationUnit,
 } from './simulator-types';
 
@@ -20,7 +20,7 @@ interface SimulatorState {
   // Actions
   updateParam: (
     key: keyof SimulationParams,
-    value: Institution | InstitutionProduct | number | DurationUnit | null
+    value: Institution | Service | number | DurationUnit | null
   ) => void;
   setEstimation: (estimation: Estimation | null) => void;
   setIsAnimating: (isAnimating: boolean) => void;
@@ -31,7 +31,7 @@ interface SimulatorState {
 // État initial
 const initialState = {
   institution: null,
-  product: null,
+  service: null,
   amount: 0,
   duration: 0,
   durationUnit: 'YEARS' as DurationUnit,
@@ -75,7 +75,7 @@ export const useSimulatorStore = create<SimulatorState>()(
       },
     }),
     {
-      name: 'product-simulator-storage', // Clé
+      name: 'service-simulator-storage', // Clé
       partialize: state => ({
         // On ne persiste que les paramètres, pas l'estimation ni l'animation
         params: state.params,

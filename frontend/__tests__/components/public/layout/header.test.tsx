@@ -30,7 +30,7 @@ describe('PublicHeader', () => {
     render(<PublicHeader />);
 
     const navLinks = [
-      { text: 'Simulateur', href: '/product-simulator' },
+      { text: 'Simulateur', href: '/service-simulator' },
       { text: 'Comparateur', href: '/comparator' },
       { text: 'Formation', href: '/formations' },
       { text: 'FAQ', href: '/faq' },

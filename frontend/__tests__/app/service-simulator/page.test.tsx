@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 
-import ProductSimulatorPage from '@/app/product-simulator/page';
+import ServiceSimulatorPage from '@/app/service-simulator/page';
 
 // Mock des composants
-jest.mock('@/components/product-simulator/product-simulator', () => ({
-  ProductSimulator: () => <div data-testid='product-simulator'>Product Simulator</div>,
+jest.mock('@/components/service-simulator/service-simulator', () => ({
+  ServiceSimulator: () => <div data-testid='service-simulator'>Service Simulator</div>,
 }));
 
 jest.mock('@/components/public/layout/footer', () => {
@@ -19,28 +19,28 @@ jest.mock('@/components/public/layout/header', () => {
   };
 });
 
-describe('ProductSimulatorPage', () => {
-  it('should render the product simulator page with all components', () => {
-    render(<ProductSimulatorPage />);
+describe('ServiceSimulatorPage', () => {
+  it('should render the service simulator page with all components', () => {
+    render(<ServiceSimulatorPage />);
 
     // Vérifier que tous les composants sont rendus
     expect(screen.getByTestId('public-header')).toBeInTheDocument();
-    expect(screen.getByTestId('product-simulator')).toBeInTheDocument();
+    expect(screen.getByTestId('service-simulator')).toBeInTheDocument();
     expect(screen.getByTestId('public-footer')).toBeInTheDocument();
   });
 
   it('should have the correct CSS classes', () => {
-    const { container } = render(<ProductSimulatorPage />);
+    const { container } = render(<ServiceSimulatorPage />);
 
     const mainDiv = container.firstChild as HTMLElement;
     expect(mainDiv).toHaveClass('min-h-screen', 'overflow-visible');
   });
 
   it('should render in the correct order', () => {
-    render(<ProductSimulatorPage />);
+    render(<ServiceSimulatorPage />);
 
     const header = screen.getByTestId('public-header');
-    const simulator = screen.getByTestId('product-simulator');
+    const simulator = screen.getByTestId('service-simulator');
     const footer = screen.getByTestId('public-footer');
 
     // Vérifier l'ordre des éléments

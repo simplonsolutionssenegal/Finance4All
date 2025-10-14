@@ -1,15 +1,15 @@
-import { ProductSimulator } from '@/components/product-simulator/product-simulator';
 import PublicFooter from '@/components/public/layout/footer';
 import PublicHeader from '@/components/public/layout/header';
+import { ServiceSimulator } from '@/components/service-simulator/service-simulator';
 
-export default function ProductSimulatorPage() {
+export default function ServiceSimulatorPage() {
   return (
     <div className='min-h-screen overflow-visible'>
       {/* Header */}
       <PublicHeader />
 
-      {/* Product Simulator */}
-      <ProductSimulator />
+      {/* Service Simulator */}
+      <ServiceSimulator />
 
       {/* Footer */}
       <PublicFooter />
