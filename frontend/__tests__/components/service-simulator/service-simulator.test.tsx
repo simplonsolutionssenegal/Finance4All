@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 
 import { ServiceSimulator } from '@/components/service-simulator/service-simulator';
 import { useSimulatorStore } from '@/lib/simulator-store';
-import type { Institution, InstitutionProduct } from '@/lib/simulator-types';
+import type { Institution, Service } from '@/lib/simulator-types';
+import { InstitutionStatus } from '@/types/Institution';
+import { TypeService } from '@/types/Service';
 
 // Mock du hook useSimulator
 jest.mock('@/hooks/useSimulator', () => ({
@@ -15,29 +17,39 @@ const mockUseSimulator = require('@/hooks/useSimulator').useSimulator as jest.Mo
 >;
 
 // Mock data pour les tests
+const mockService: Service = {
+  id: 'test-service',
+  name: 'Test Service',
+  longName: 'Test Service Description',
+  type: TypeService.CREDIT,
+  frais: {
+    pourcentage: 3.5,
+    montantFixe: 100,
+    minimum: 50,
+    maximum: 500,
+  },
+  conditionAccess: [],
+  plafonds: ['1000-100000'],
+  infrastructureAccess: [],
+  institutionId: 'test-institution',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 const mockInstitution: Institution = {
   id: 'test-institution',
   name: 'Test Bank',
-  logo: '🏦',
-  products: [],
+  description: 'Test Bank Description',
+  website: 'https://testbank.com',
+  geographicZones: ['Sénégal'],
+  logoUrl: '🏦',
+  status: InstitutionStatus.ACTIVE,
+  services: [mockService],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
-const mockProduct: InstitutionProduct = {
-  id: 'test-product',
-  name: 'Test Product',
-  description: 'Test Description',
-  icon: '💰',
-  type: 'CREDIT',
-  rates: { min: 2.5, max: 4.0 },
-  limits: { amount: { min: 1000, max: 100000 }, duration: { min: 1, max: 10 } },
-};
-
-const mockInstitutionWithProducts: Institution = {
-  ...mockInstitution,
-  products: [mockProduct],
-};
-
-const mockInstitutions: Institution[] = [mockInstitutionWithProducts];
+const mockInstitutions: Institution[] = [mockInstitution];
 
 const mockEstimation = {
   monthlyPayment: 1000,
@@ -48,7 +60,7 @@ const mockEstimation = {
 const defaultMockReturn = {
   params: {
     institution: null,
-    product: null,
+    service: null,
     amount: 0,
     duration: 0,
     durationUnit: 'YEARS' as const,
@@ -56,12 +68,9 @@ const defaultMockReturn = {
   estimation: null,
   isAnimating: false,
   institutions: mockInstitutions,
+  isLoading: false,
   updateParam: jest.fn(),
-  getAvailableProducts: jest.fn(() => []),
-  getCurrentLimits: jest.fn(() => ({
-    amount: { min: 0, max: 100000 },
-    duration: { min: 1, max: 10 },
-  })),
+  getAvailableServices: jest.fn(() => []),
   resetSimulation: jest.fn(),
 };
 
@@ -97,7 +106,7 @@ describe('ServiceSimulator', () => {
       render(<ServiceSimulator />);
 
       expect(screen.queryByText('2')).not.toBeInTheDocument();
-      expect(screen.queryByText('Sélectionnez un produit')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sélectionnez un service')).not.toBeInTheDocument();
     });
 
     it('should not render step 3 when no product is selected', () => {
@@ -121,15 +130,15 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
       expect(screen.getByText('2')).toBeInTheDocument();
-      expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
     });
   });
 
@@ -139,11 +148,10 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -157,13 +165,12 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           amount: 50000,
           duration: 5,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -179,11 +186,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -199,20 +206,20 @@ describe('ServiceSimulator', () => {
         annualRate: 3.5,
       };
 
-      const creditProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'CREDIT',
+      const creditService: Service = {
+        ...mockService,
+        type: TypeService.CREDIT,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: creditProduct,
+          institution: mockInstitution,
+          service: creditService,
         },
         estimation: creditEstimation,
-        getAvailableProducts: jest.fn(() => [creditProduct]),
+        getAvailableServices: jest.fn(() => [creditService]),
       });
 
       render(<ServiceSimulator />);
@@ -220,7 +227,7 @@ describe('ServiceSimulator', () => {
       expect(screen.getByText(/1\s*200\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Mensualité estimée')).toBeInTheDocument();
       expect(screen.getByText(/44\s*000\s*F\s*CFA/)).toBeInTheDocument();
-      expect(screen.getByText('Intérêts totaux')).toBeInTheDocument();
+      expect(screen.getByText('Intérêts/Prime totaux')).toBeInTheDocument();
     });
 
     it('should display investment estimation correctly', () => {
@@ -230,20 +237,20 @@ describe('ServiceSimulator', () => {
         annualRate: 4.5,
       };
 
-      const investmentProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'INVESTISSEMENT',
+      const investmentService: Service = {
+        ...mockService,
+        type: TypeService.AUTRES,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: investmentProduct,
+          institution: mockInstitution,
+          service: investmentService,
         },
         estimation: investmentEstimation,
-        getAvailableProducts: jest.fn(() => [investmentProduct]),
+        getAvailableServices: jest.fn(() => [investmentService]),
       });
 
       render(<ServiceSimulator />);
@@ -261,20 +268,20 @@ describe('ServiceSimulator', () => {
         annualRate: 2.5,
       };
 
-      const savingsProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'EPARGNE',
+      const savingsService: Service = {
+        ...mockService,
+        type: TypeService.EPARGNE,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: savingsProduct,
+          institution: mockInstitution,
+          service: savingsService,
         },
         estimation: savingsEstimation,
-        getAvailableProducts: jest.fn(() => [savingsProduct]),
+        getAvailableServices: jest.fn(() => [savingsService]),
       });
 
       render(<ServiceSimulator />);
@@ -292,28 +299,28 @@ describe('ServiceSimulator', () => {
         annualRate: 1.8,
       };
 
-      const insuranceProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'ASSURANCE',
+      const insuranceService: Service = {
+        ...mockService,
+        type: TypeService.ASSURANCE,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: insuranceProduct,
+          institution: mockInstitution,
+          service: insuranceService,
         },
         estimation: insuranceEstimation,
-        getAvailableProducts: jest.fn(() => [insuranceProduct]),
+        getAvailableServices: jest.fn(() => [insuranceService]),
       });
 
       render(<ServiceSimulator />);
 
       expect(screen.getByText(/150\s*F\s*CFA/)).toBeInTheDocument();
-      expect(screen.getByText('Prime mensuelle estimée')).toBeInTheDocument();
+      expect(screen.getByText('Mensualité estimée')).toBeInTheDocument();
       expect(screen.getByText(/18\s*000\s*F\s*CFA/)).toBeInTheDocument();
-      expect(screen.getByText('Prime totale')).toBeInTheDocument();
+      expect(screen.getByText('Intérêts/Prime totaux')).toBeInTheDocument();
     });
 
     it('should display annual rate correctly', () => {
@@ -321,11 +328,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -341,7 +348,7 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
       });
 
@@ -365,7 +372,7 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
         resetSimulation: mockResetSimulation,
       });
@@ -385,17 +392,19 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
         isAnimating: true,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
-      const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
+      const estimationElements = screen.getAllByText(/1\s*000\s*F\s*CFA/);
+      const estimationElement = estimationElements.find(el => el.className.includes('scale-105'));
+      expect(estimationElement).toBeDefined();
       expect(estimationElement).toHaveClass('scale-105');
     });
 
@@ -404,17 +413,19 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
         isAnimating: false,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
-      const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
+      const estimationElements = screen.getAllByText(/1\s*000\s*F\s*CFA/);
+      const estimationElement = estimationElements.find(el => el.className.includes('scale-100'));
+      expect(estimationElement).toBeDefined();
       expect(estimationElement).toHaveClass('scale-100');
     });
   });
@@ -425,11 +436,10 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -443,12 +453,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           durationUnit: 'YEARS',
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -462,12 +471,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           durationUnit: 'MONTHS',
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -502,16 +510,16 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
       // Le dropdown produit est rendu
-      expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
       expect(mockUpdateParam).toBeDefined();
     });
   });
@@ -525,14 +533,13 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 2, // 2 years
           durationUnit: 'YEARS',
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -552,14 +559,13 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 24, // 24 months
           durationUnit: 'MONTHS',
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -579,14 +585,13 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 2,
           durationUnit: 'YEARS',
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -607,13 +612,12 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           amount: 50000,
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -630,14 +634,13 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 5,
           durationUnit: 'YEARS',
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -654,14 +657,13 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 36,
           durationUnit: 'MONTHS',
         },
         updateParam: mockUpdateParam,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -677,7 +679,7 @@ describe('ServiceSimulator', () => {
       const institutionsWithProducts: Institution[] = [
         {
           ...mockInstitution,
-          products: [mockProduct, mockProduct], // 2 products
+          services: [mockService, mockService], // 2 products
         },
       ];
 
@@ -693,10 +695,9 @@ describe('ServiceSimulator', () => {
     });
 
     it('should create product options with correct structure', () => {
-      const productsWithDescription: InstitutionProduct[] = [
+      const productsWithDescription: Service[] = [
         {
-          ...mockProduct,
-          description: 'Test Description',
+          ...mockService,
         },
       ];
 
@@ -704,21 +705,21 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
-        getAvailableProducts: jest.fn(() => productsWithDescription),
+        getAvailableServices: jest.fn(() => productsWithDescription),
       });
 
       render(<ServiceSimulator />);
 
       // Vérifier que les options de produit sont créées
-      expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
     });
 
     it('should handle institutions with multiple products', () => {
       const institutionWithMultipleProducts: Institution = {
         ...mockInstitution,
-        products: [mockProduct, mockProduct, mockProduct], // 3 products
+        services: [mockService, mockService, mockService], // 3 products
       };
 
       mockUseSimulator.mockReturnValue({
@@ -735,7 +736,7 @@ describe('ServiceSimulator', () => {
     it('should handle institutions with no products', () => {
       const institutionWithNoProducts: Institution = {
         ...mockInstitution,
-        products: [],
+        services: [],
       };
 
       mockUseSimulator.mockReturnValue({
@@ -750,15 +751,15 @@ describe('ServiceSimulator', () => {
     });
 
     it('should handle products with different types', () => {
-      const creditProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'CREDIT',
+      const creditService: Service = {
+        ...mockService,
+        type: TypeService.CREDIT,
         name: 'Credit Product',
       };
 
-      const investmentProduct: InstitutionProduct = {
-        ...mockProduct,
-        type: 'INVESTISSEMENT',
+      const investmentService: Service = {
+        ...mockService,
+        type: TypeService.AUTRES,
         name: 'Investment Product',
       };
 
@@ -766,36 +767,35 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
-        getAvailableProducts: jest.fn(() => [creditProduct, investmentProduct]),
+        getAvailableServices: jest.fn(() => [creditService, investmentService]),
       });
 
       render(<ServiceSimulator />);
 
       // Vérifier que le composant gère différents types de produits
-      expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
     });
 
     it('should handle products with missing descriptions', () => {
-      const productWithoutDescription: InstitutionProduct = {
-        ...mockProduct,
-        description: '',
+      const productWithoutDescription: Service = {
+        ...mockService,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
-        getAvailableProducts: jest.fn(() => [productWithoutDescription]),
+        getAvailableServices: jest.fn(() => [productWithoutDescription]),
       });
 
       render(<ServiceSimulator />);
 
       // Vérifier que le composant gère les produits sans description
-      expect(screen.getByText('Sélectionnez un produit')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
     });
   });
 
@@ -805,12 +805,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           amount: 0,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -824,12 +823,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 0,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -843,12 +841,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           durationUnit: 'MONTHS',
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -862,12 +859,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           durationUnit: 'YEARS',
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -883,17 +879,19 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
         isAnimating: true,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
-      const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
+      const estimationElements = screen.getAllByText(/1\s*000\s*F\s*CFA/);
+      const estimationElement = estimationElements.find(el => el.className.includes('scale-105'));
+      expect(estimationElement).toBeDefined();
       expect(estimationElement).toHaveClass('scale-105');
     });
 
@@ -902,17 +900,19 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
         isAnimating: false,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
 
-      const estimationElement = screen.getByText(/1\s*000\s*F\s*CFA/);
+      const estimationElements = screen.getAllByText(/1\s*000\s*F\s*CFA/);
+      const estimationElement = estimationElements.find(el => el.className.includes('scale-100'));
+      expect(estimationElement).toBeDefined();
       expect(estimationElement).toHaveClass('scale-100');
     });
   });
@@ -931,7 +931,7 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
       });
 
@@ -951,7 +951,7 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
+          institution: mockInstitution,
         },
       });
 
@@ -966,11 +966,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: mockEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       render(<ServiceSimulator />);
@@ -991,11 +991,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: incompleteEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1012,11 +1012,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: zeroEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1033,11 +1033,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: largeEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1048,14 +1048,10 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => ({
-          amount: { min: 0, max: 100000 },
-          duration: { min: 1, max: 10 },
-        })),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1073,7 +1069,7 @@ describe('ServiceSimulator', () => {
     it('should handle institutions with no products', () => {
       const institutionWithoutProducts: Institution = {
         ...mockInstitution,
-        products: [],
+        services: [],
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1095,11 +1091,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: negativeEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1116,11 +1112,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: decimalEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1137,11 +1133,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
         },
         estimation: smallEstimation,
-        getAvailableProducts: jest.fn(() => [mockProduct]),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1150,96 +1146,76 @@ describe('ServiceSimulator', () => {
 
   describe('Validation and Limits', () => {
     it('should handle amount below minimum limit', () => {
-      const productWithHighMin: InstitutionProduct = {
-        ...mockProduct,
-        limits: {
-          amount: { min: 50000, max: 100000 },
-          duration: { min: 1, max: 10 },
-        },
+      const productWithHighMin: Service = {
+        ...mockService,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: productWithHighMin,
+          institution: mockInstitution,
+          service: productWithHighMin,
           amount: 1000, // Below minimum
         },
-        getAvailableProducts: jest.fn(() => [productWithHighMin]),
-        getCurrentLimits: jest.fn(() => productWithHighMin.limits),
+        getAvailableServices: jest.fn(() => [productWithHighMin]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle amount above maximum limit', () => {
-      const productWithLowMax: InstitutionProduct = {
-        ...mockProduct,
-        limits: {
-          amount: { min: 1000, max: 10000 },
-          duration: { min: 1, max: 10 },
-        },
+      const productWithLowMax: Service = {
+        ...mockService,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: productWithLowMax,
+          institution: mockInstitution,
+          service: productWithLowMax,
           amount: 50000, // Above maximum
         },
-        getAvailableProducts: jest.fn(() => [productWithLowMax]),
-        getCurrentLimits: jest.fn(() => productWithLowMax.limits),
+        getAvailableServices: jest.fn(() => [productWithLowMax]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle duration below minimum limit', () => {
-      const productWithHighMinDuration: InstitutionProduct = {
-        ...mockProduct,
-        limits: {
-          amount: { min: 1000, max: 100000 },
-          duration: { min: 5, max: 10 },
-        },
+      const productWithHighMinDuration: Service = {
+        ...mockService,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: productWithHighMinDuration,
+          institution: mockInstitution,
+          service: productWithHighMinDuration,
           duration: 1, // Below minimum
         },
-        getAvailableProducts: jest.fn(() => [productWithHighMinDuration]),
-        getCurrentLimits: jest.fn(() => productWithHighMinDuration.limits),
+        getAvailableServices: jest.fn(() => [productWithHighMinDuration]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
     it('should handle duration above maximum limit', () => {
-      const productWithLowMaxDuration: InstitutionProduct = {
-        ...mockProduct,
-        limits: {
-          amount: { min: 1000, max: 100000 },
-          duration: { min: 1, max: 3 },
-        },
+      const productWithLowMaxDuration: Service = {
+        ...mockService,
       };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: productWithLowMaxDuration,
+          institution: mockInstitution,
+          service: productWithLowMaxDuration,
           duration: 10, // Above maximum
         },
-        getAvailableProducts: jest.fn(() => [productWithLowMaxDuration]),
-        getCurrentLimits: jest.fn(() => productWithLowMaxDuration.limits),
+        getAvailableServices: jest.fn(() => [productWithLowMaxDuration]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1250,12 +1226,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           duration: 0,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1266,12 +1241,11 @@ describe('ServiceSimulator', () => {
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
-          institution: mockInstitutionWithProducts,
-          product: mockProduct,
+          institution: mockInstitution,
+          service: mockService,
           amount: 0,
         },
-        getAvailableProducts: jest.fn(() => [mockProduct]),
-        getCurrentLimits: jest.fn(() => mockProduct.limits),
+        getAvailableServices: jest.fn(() => [mockService]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();

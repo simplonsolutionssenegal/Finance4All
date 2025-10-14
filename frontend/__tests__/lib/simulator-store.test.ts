@@ -8,24 +8,41 @@ import {
   useSimulatorInstitutions,
   useSimulatorActions,
 } from '@/lib/simulator-store';
-import type { Institution, InstitutionProduct } from '@/lib/simulator-types';
+import type { Institution, Service } from '@/lib/simulator-types';
+import { InstitutionStatus } from '@/types/Institution';
+import { TypeService } from '@/types/Service';
 
 // Mock data pour les tests
+const mockService: Service = {
+  id: 'test-service',
+  name: 'Test Service',
+  longName: 'Test Service Description',
+  type: TypeService.CREDIT,
+  frais: {
+    pourcentage: 3.5,
+    montantFixe: 100,
+    minimum: 50,
+    maximum: 500,
+  },
+  conditionAccess: [],
+  plafonds: ['1000-100000'],
+  infrastructureAccess: [],
+  institutionId: 'test-institution',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 const mockInstitution: Institution = {
   id: 'test-institution',
   name: 'Test Bank',
-  logo: '🏦',
-  products: [],
-};
-
-const mockProduct: InstitutionProduct = {
-  id: 'test-product',
-  name: 'Test Product',
-  description: 'Test Description',
-  icon: '💰',
-  type: 'CREDIT',
-  rates: { min: 2.5, max: 4.0 },
-  limits: { amount: { min: 1000, max: 100000 }, duration: { min: 1, max: 10 } },
+  description: 'Test Bank Description',
+  website: 'https://testbank.com',
+  geographicZones: ['Sénégal'],
+  logoUrl: '🏦',
+  status: InstitutionStatus.ACTIVE,
+  services: [mockService],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 const mockInstitutions: Institution[] = [mockInstitution];
@@ -49,7 +66,7 @@ describe('useSimulatorStore', () => {
 
       expect(result.current.params).toEqual({
         institution: null,
-        product: null,
+        service: null,
         amount: 0,
         duration: 0,
         durationUnit: 'YEARS',
@@ -69,7 +86,7 @@ describe('useSimulatorStore', () => {
       });
 
       expect(result.current.params.institution).toEqual(mockInstitution);
-      expect(result.current.params.product).toBeNull();
+      expect(result.current.params.service).toBeNull();
       expect(result.current.params.amount).toBe(0);
       expect(result.current.params.duration).toBe(0);
     });
@@ -79,14 +96,14 @@ describe('useSimulatorStore', () => {
 
       act(() => {
         result.current.updateParam('institution', mockInstitution);
-        result.current.updateParam('product', mockProduct);
+        result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
         result.current.updateParam('duration', 5);
       });
 
       expect(result.current.params).toEqual({
         institution: mockInstitution,
-        product: mockProduct,
+        service: mockService,
         amount: 50000,
         duration: 5,
         durationUnit: 'YEARS',
@@ -140,7 +157,7 @@ describe('useSimulatorStore', () => {
       // Set some state first
       act(() => {
         result.current.updateParam('institution', mockInstitution);
-        result.current.updateParam('product', mockProduct);
+        result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
         result.current.updateParam('duration', 5);
         result.current.setEstimation({ annualRate: 3.5 });
@@ -154,7 +171,7 @@ describe('useSimulatorStore', () => {
 
       expect(result.current.params).toEqual({
         institution: null,
-        product: null,
+        service: null,
         amount: 0,
         duration: 0,
         durationUnit: 'YEARS',
@@ -170,7 +187,7 @@ describe('useSimulatorStore', () => {
 
       act(() => {
         result.current.updateParam('institution', mockInstitution);
-        result.current.updateParam('product', mockProduct);
+        result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
         result.current.updateParam('duration', 5);
       });
@@ -182,7 +199,7 @@ describe('useSimulatorStore', () => {
       const parsedData = JSON.parse(storedData || '{}');
       expect(parsedData.state.params).toEqual({
         institution: mockInstitution,
-        product: mockProduct,
+        service: mockService,
         amount: 50000,
         duration: 5,
         durationUnit: 'YEARS',
@@ -224,7 +241,7 @@ describe('Sélecteurs', () => {
 
       expect(result.current).toEqual({
         institution: null,
-        product: null,
+        service: null,
         amount: 0,
         duration: 0,
         durationUnit: 'YEARS',
@@ -343,7 +360,7 @@ describe('Intégration', () => {
     act(() => {
       result.current.setInstitutions(mockInstitutions);
       result.current.updateParam('institution', mockInstitution);
-      result.current.updateParam('product', mockProduct);
+      result.current.updateParam('service', mockService);
       result.current.updateParam('amount', 75000);
       result.current.updateParam('duration', 7);
       result.current.setEstimation({
@@ -356,7 +373,7 @@ describe('Intégration', () => {
 
     expect(result.current.institutions).toEqual(mockInstitutions);
     expect(result.current.params.institution).toEqual(mockInstitution);
-    expect(result.current.params.product).toEqual(mockProduct);
+    expect(result.current.params.service).toEqual(mockService);
     expect(result.current.params.amount).toBe(75000);
     expect(result.current.params.duration).toBe(7);
     expect(result.current.estimation).toEqual({
