@@ -54,7 +54,7 @@ const serviceSchema = z.object({
       TypeService.ASSURANCE,
       TypeService.AUTRES,
     ],
-    'Le type de service doit être valide'
+    { errorMap: () => ({ message: 'Le type de service doit être valide' }) }
   ),
   frais: z.object({
     montantFixe: z.number().optional(),
