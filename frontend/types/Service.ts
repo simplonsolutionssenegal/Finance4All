@@ -4,6 +4,11 @@ export interface Frais {
   minimum?: number;
   maximum?: number;
 }
+export interface FraisFilter {
+  _typeCalculation?: number;
+  _amount?: number;
+  _rate?: number;
+}
 
 export interface CreateServiceDto {
   name: string;
@@ -45,12 +50,9 @@ export enum TypeService {
   AUTRES = 'autres services',
 }
 
-export type DateFilter = '' | 'recent' | '3mois';
-
 export interface FilterOptions {
   type: TypeService[];
-  Coût: string[];
-  // date: DateFilter;
+  Coût: CoutType[];
 }
 
 export const EMPTY_FILTERS: FilterOptions = { type: [], Coût: [] };
@@ -71,7 +73,13 @@ export const TYPE_OPTIONS = [
   { label: 'Autres services', value: TypeService.AUTRES },
 ];
 
-export const COUT_OPTIONS = [
+export const COUT_OPTIONS: { label: string; value: CoutType }[] = [
   { value: 'Gratuit', label: 'Gratuit' },
-  { value: 'payant', label: 'payant' },
+  { value: 'payant', label: 'Payant' },
 ];
+
+export type CoutType = 'Gratuit' | 'payant';
+
+export function getCoutType(frais: FraisFilter): CoutType {
+  return frais._typeCalculation === 0 ? 'Gratuit' : 'payant';
+}

@@ -1,11 +1,5 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import {
-  EMPTY_FILTERS,
-  TYPE_OPTIONS,
-  COUT_OPTIONS,
-  FilterOptions,
-  TypeService,
-} from '@/types/Service';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { EMPTY_FILTERS, FilterOptions, TypeService } from '@/types/Service';
 import FilterDialog from '@/components/admin/institutions/FilterPopup';
 
 // Mock des composants UI
@@ -472,7 +466,7 @@ describe('FilterDialog', () => {
     it('hasFilters est true avec au moins un filtre de coût', () => {
       const filters: FilterOptions = {
         ...EMPTY_FILTERS,
-        Coût: ['Payant'],
+        Coût: ['Gratuit'],
       };
       render(<FilterDialog {...defaultProps} value={filters} />);
       const confirmBtn = screen.getByText('Confirmer');

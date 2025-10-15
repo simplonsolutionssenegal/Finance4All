@@ -12,11 +12,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import {
+  type CoutType,
+  type FilterOptions,
+  type TypeService,
   COUT_OPTIONS,
   EMPTY_FILTERS,
   TYPE_OPTIONS,
-  type FilterOptions,
-  type TypeService,
 } from '@/types/Service';
 
 import BadgeCheckboxGroup from './filters/BadgeCheckboxGroup';
@@ -75,7 +76,7 @@ export default function FilterDialog({
             />
           </FilterSection>
           <FilterSection title='Coût'>
-            <BadgeCheckboxGroup<string>
+            <BadgeCheckboxGroup<CoutType>
               options={COUT_OPTIONS}
               values={value.Coût}
               onChange={next => onChange({ ...value, Coût: next })}
