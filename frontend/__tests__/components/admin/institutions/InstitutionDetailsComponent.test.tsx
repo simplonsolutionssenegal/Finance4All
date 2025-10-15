@@ -4,34 +4,32 @@ import userEvent from '@testing-library/user-event';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import InstitutionDetailsComponent from '@/components/admin/institutions/InstitutionDetailsComponent';
+import SearchBar from '@/components/admin/institutions/SearchBar';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
+import { EMPTY_FILTERS } from '@/types/Service';
 
 const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-// Mock Clerk
 jest.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
     getToken: jest.fn().mockResolvedValue('test-token'),
   }),
 }));
 
-// Mock next/link
 jest.mock('next/link', () => {
   return ({ children, href }: any) => <a href={href}>{children}</a>;
 });
 
-// Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props: any) => <img {...props} alt={props.alt} />,
 }));
 
-// Mock UI components
 jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, className }: any) => <span className={className}>{children}</span>,
 }));
@@ -52,7 +50,6 @@ jest.mock('@/components/ui/separator', () => ({
   Separator: ({ className }: any) => <hr className={className} />,
 }));
 
-// Mock useLoader hook
 jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: jest.fn(() => ({
     showLoader: jest.fn(),
@@ -60,13 +57,16 @@ jest.mock('@/contexts/LoaderContext', () => ({
   })),
 }));
 
-// Mock useGetInstitution hook
 jest.mock('@/hooks/institution/useGetInstitution');
 
-// Mock ConfirmUpdateStatusModal
 jest.mock('@/components/admin/institutions/ConfirmUpdateStatusModal', () => ({
   __esModule: true,
-  default: jest.fn(() => null), // Render nothing by default
+  default: jest.fn(() => null),
+}));
+
+jest.mock('@/components/admin/institutions/SearchBar', () => ({
+  __esModule: true,
+  default: jest.fn(() => <div data-testid='search-bar'>SearchBar</div>),
 }));
 
 const mockRefetch = jest.fn();
@@ -171,6 +171,22 @@ describe('InstitutionDetailsComponent', () => {
 
       expect(screen.getByText('En attente')).toBeInTheDocument();
     });
+
+    it('renders null for default status', () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, status: 'UNKNOWN' as any },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      expect(screen.queryByText('Actif')).toBeNull();
+      expect(screen.queryByText('Inactif')).toBeNull();
+      expect(screen.queryByText('En attente')).toBeNull();
+    });
   });
 
   describe('Action Buttons', () => {
@@ -259,12 +275,33 @@ describe('InstitutionDetailsComponent', () => {
   });
 
   describe('Financial Services Section', () => {
-    it('displays financial services section with "Ajouter un service" button', () => {
+    it('displays SearchBar component', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-      expect(screen.getByText('Services Financiers')).toBeInTheDocument();
-      expect(screen.getByText('Aucun service financier pour le moment.')).toBeInTheDocument();
+      expect(screen.getByTestId('search-bar')).toBeInTheDocument();
+    });
+
+    it('passes correct props to SearchBar', () => {
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const searchBarCall = (SearchBar as jest.Mock).mock.calls[0][0];
+      expect(searchBarCall).toHaveProperty('onSearch');
+      expect(searchBarCall).toHaveProperty('resultsCount');
+      expect(searchBarCall).toHaveProperty('onApplyFilters');
+      expect(searchBarCall).toHaveProperty('currentFilters');
+      expect(searchBarCall.currentFilters).toEqual(EMPTY_FILTERS);
+    });
+
+    it('displays "Ajouter un service" button', () => {
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
       expect(screen.getByText('Ajouter un service')).toBeInTheDocument();
+    });
+
+    it('displays empty message when no services exist', () => {
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      expect(screen.getByText('Aucun service financier pour le moment.')).toBeInTheDocument();
     });
 
     it('displays services when they exist', () => {
@@ -306,9 +343,146 @@ describe('InstitutionDetailsComponent', () => {
 
       const addButton = screen.getByText('Ajouter un service');
       await userEvent.click(addButton);
+    });
+  });
 
-      // Modal should be opened (check via modal visibility)
-      // Note: This test may need adjustment based on actual modal implementation
+  describe('Search and Filter Functionality', () => {
+    const mockServices = [
+      {
+        id: 'svc-1',
+        name: 'Service Mobile',
+        longName: 'Service Mobile Money',
+        type: 'mobile money',
+        frais: { montantFixe: 100 },
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+        institutionId: '1',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'svc-2',
+        name: 'Service Paiement',
+        longName: 'Service Paiement Marchand',
+        type: 'paiement marchand',
+        frais: { montantFixe: 200 },
+        conditionAccess: ['Condition 2'],
+        plafonds: ['Plafond 2'],
+        infrastructureAccess: ['Infra 2'],
+        institutionId: '1',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+    ];
+
+    it('filters services by search term (name)', async () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, services: mockServices },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const searchBarCall = (SearchBar as jest.Mock).mock.calls[0][0];
+      act(() => {
+        searchBarCall.onSearch('Mobile');
+      });
+
+      expect(screen.getByText('Service Mobile')).toBeInTheDocument();
+      expect(screen.queryByText('Service Paiement')).not.toBeInTheDocument();
+    });
+
+    it('filters services by type', async () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, services: mockServices },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const searchBarCall = (SearchBar as jest.Mock).mock.calls[0][0];
+      act(() => {
+        searchBarCall.onApplyFilters({ type: ['mobile money'] });
+      });
+
+      expect(screen.getByText('Service Mobile')).toBeInTheDocument();
+      expect(screen.queryByText('Service Paiement')).not.toBeInTheDocument();
+    });
+
+    it('shows "no results" message when filters return empty', async () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, services: mockServices },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const searchBarCall = (SearchBar as jest.Mock).mock.calls[0][0];
+      act(() => {
+        searchBarCall.onSearch('nonexistent');
+      });
+
+      expect(
+        screen.getByText('Aucun service ne correspond à votre recherche.')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Effacer les filtres')).toBeInTheDocument();
+    });
+
+    it('clears filters when "Effacer les filtres" is clicked', async () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, services: mockServices },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const searchBarCall = (SearchBar as jest.Mock).mock.calls[0][0];
+      act(() => {
+        searchBarCall.onSearch('nonexistent');
+      });
+
+      const clearButton = screen.getByText('Effacer les filtres');
+      await userEvent.click(clearButton);
+
+      expect(screen.getByText('Service Mobile')).toBeInTheDocument();
+      expect(screen.getByText('Service Paiement')).toBeInTheDocument();
+    });
+
+    it('updates results count in SearchBar after filtering', async () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, services: mockServices },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      const { rerender } = render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      let searchBarCall = (SearchBar as jest.Mock).mock.calls.slice(-1)[0][0];
+      expect(searchBarCall.resultsCount).toBe(2);
+
+      act(() => {
+        searchBarCall.onSearch('Mobile');
+      });
+
+      rerender(<InstitutionDetailsComponent institutionId='1' />);
+
+      searchBarCall = (SearchBar as jest.Mock).mock.calls.slice(-1)[0][0];
+      expect(searchBarCall.resultsCount).toBe(1);
     });
   });
 
@@ -443,24 +617,6 @@ describe('InstitutionDetailsComponent', () => {
       lastCall[0].refresh();
 
       expect(mockRefetch).toHaveBeenCalled();
-    });
-  });
-
-  describe('Status Badge', () => {
-    it('renders null for default status', () => {
-      mockUseGetInstitution.mockReturnValue({
-        institution: { ...mockInstitution, status: 'UNKNOWN' as any },
-        isLoading: false,
-        isError: false,
-        error: null,
-        refetch: mockRefetch,
-      });
-
-      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
-      expect(screen.queryByText('Actif')).toBeNull();
-      expect(screen.queryByText('Inactif')).toBeNull();
-      expect(screen.queryByText('En attente')).toBeNull();
     });
   });
 });

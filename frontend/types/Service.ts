@@ -44,3 +44,34 @@ export enum TypeService {
   ASSURANCE = 'assurance',
   AUTRES = 'autres services',
 }
+
+export type DateFilter = '' | 'recent' | '3mois';
+
+export interface FilterOptions {
+  type: TypeService[];
+  Coût: string[];
+  // date: DateFilter;
+}
+
+export const EMPTY_FILTERS: FilterOptions = { type: [], Coût: [] };
+
+export const TYPE_OPTIONS = [
+  { label: 'Paiement marchand', value: TypeService.PAIEMENT_MARCHAND },
+  { label: 'Achat de crédit', value: TypeService.ACHAT_CREDIT },
+  { label: 'Paiement de factures', value: TypeService.PAIEMENT_FACTURES },
+  { label: 'Dépôts simples', value: TypeService.DEPOT_SIMPLE },
+  { label: 'Dépôts et retraits simples', value: TypeService.DEPOT_RETRAIT_SIMPLE },
+  { label: 'Retraits simples', value: TypeService.RETRAIT_SIMPLE },
+  { label: "Transferts d'argent", value: TypeService.TRANSFERT_ARGENT },
+  { label: 'Banque vers wallet', value: TypeService.BANQUE_WALLET },
+  { label: 'Wallet vers banque', value: TypeService.WALLET_BANQUE },
+  { label: 'Épargne', value: TypeService.EPARGNE },
+  { label: 'Crédit', value: TypeService.CREDIT },
+  { label: 'Assurance', value: TypeService.ASSURANCE },
+  { label: 'Autres services', value: TypeService.AUTRES },
+];
+
+export const COUT_OPTIONS = [
+  { value: 'Gratuit', label: 'Gratuit' },
+  { value: 'payant', label: 'payant' },
+];

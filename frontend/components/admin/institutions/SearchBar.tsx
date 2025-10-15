@@ -1,13 +1,12 @@
 'use client';
 
 import { Filter, Search } from 'lucide-react';
-import React, { useState, type ChangeEvent } from 'react';
+import React, { useState, useEffect, type ChangeEvent } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { useSearchStore } from '@/hooks/useSearchStore';
-import type { FilterOptions } from '@/types/FilterOptions';
+import { type FilterOptions, EMPTY_FILTERS } from '@/types/Service';
 
-import FilterPopupAdapter from './filters/FilterPopupAdapter';
+import FilterPopup from './FilterPopup';
 
 interface SearchBarProps {
   onSearch: (value: string) => void;
@@ -24,31 +23,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [filterValue, setFilterValue] = useState<FilterOptions>(EMPTY_FILTERS);
 
-  // store Zustand pour garder l'historique
-  const recentSearches = useSearchStore(state => state.recentSearches);
-  const addSearch = useSearchStore(state => state.addSearch);
+  useEffect(() => {
+    if (filterOpen) {
+      setFilterValue(currentFilters ?? EMPTY_FILTERS);
+    }
+  }, [filterOpen, currentFilters]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
     onSearch(value);
-    setShowDropdown(true);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchValue.trim() !== '') {
-      addSearch(searchValue.trim());
-      setShowDropdown(false);
-    }
-  };
-
-  const handleSelectSearch = (value: string) => {
-    setSearchValue(value);
-    onSearch(value);
-    addSearch(value);
-    setShowDropdown(false);
   };
 
   const handleApplyFilters = (filters: FilterOptions) => {
@@ -56,8 +42,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setFilterOpen(false);
   };
 
+  const handleCancelFilters = () => {
+    setFilterValue(EMPTY_FILTERS);
+    onApplyFilters?.(EMPTY_FILTERS);
+    setFilterOpen(false);
+  };
+
   return (
-    <div className='bg-white rounded-lg mb-6 mt-6'>
+    <div className='bg-white rounded-lg '>
       <h3 className='text-black font-bold mb-2'>Services financiers ({resultsCount}) </h3>
 
       <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
@@ -69,31 +61,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
               placeholder='Rechercher un service...'
               value={searchValue}
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setShowDropdown(true)}
               className='pl-10 pr-4 py-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
             />
-
-            {showDropdown && recentSearches.length > 0 && (
-              <ul
-                className='absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto'
-                aria-label='Recherches récentes'
-              >
-                {recentSearches.map(s => (
-                  <li key={s}>
-                    <button
-                      type='button'
-                      onClick={() => handleSelectSearch(s)}
-                      className='w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none'
-                    >
-                      {s}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
-
           <button
             onClick={() => setFilterOpen(true)}
             type='button'
@@ -104,12 +74,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </button>
         </div>
       </div>
-
-      <FilterPopupAdapter
+      <FilterPopup
         isOpen={filterOpen}
+        value={filterValue}
+        onChange={setFilterValue}
         onClose={() => setFilterOpen(false)}
-        onApplyFilters={handleApplyFilters}
-        currentFilters={currentFilters}
+        onApply={handleApplyFilters}
+        onCancel={handleCancelFilters}
       />
     </div>
   );
