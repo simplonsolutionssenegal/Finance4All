@@ -322,7 +322,7 @@ describe('SearchBar', () => {
       const filters: FilterOptions = {
         ...EMPTY_FILTERS,
         type: [TypeService.CREDIT, TypeService.EPARGNE],
-        Coût: ['Gratuit'],
+        Coût: [true],
       };
 
       render(<SearchBar {...defaultProps} currentFilters={filters} />);
