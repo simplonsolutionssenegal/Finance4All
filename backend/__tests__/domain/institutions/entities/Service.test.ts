@@ -48,7 +48,7 @@ describe('Service', () => {
       expect(dto.name).toBe(serviceProps.name);
       expect(dto.longName).toBe(serviceProps.longName);
       expect(dto.type).toBe(serviceProps.type);
-      expect(dto.frais).toEqual(frais.toDTO());
+      expect(dto.frais).toEqual(frais.toDTOFrais());
       expect(dto.frais).toEqual({});
       expect(dto.isGratuit).toBe(true);
       expect(dto.conditionAccess).toEqual(serviceProps.conditionAccess);
@@ -74,7 +74,7 @@ describe('Service', () => {
 
       expect(dto.id).toBe(serviceProps.id.getValue());
       expect(dto.name).toBe(serviceProps.name);
-      expect(dto.frais).toEqual(frais.toDTO());
+      expect(dto.frais).toEqual(frais.toDTOFrais());
       expect(dto.frais).toEqual({
         montantFixe: 150, // 100 + 50 (fxSurcharge)
         pourcentage: 2, // 0.02 * 100
@@ -122,7 +122,7 @@ describe('Service', () => {
 
       expect(dto.id).toBe(serviceProps.id.getValue());
       expect(dto.name).toBe(serviceProps.name);
-      expect(dto.frais).toEqual(frais.toDTO());
+      expect(dto.frais).toEqual(frais.toDTOFrais());
       expect(dto.frais).toEqual({
         pourcentage: 1.5, // 0.015 * 100
         minimum: 50,

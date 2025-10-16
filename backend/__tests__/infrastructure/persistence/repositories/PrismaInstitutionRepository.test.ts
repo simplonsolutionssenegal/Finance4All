@@ -1288,7 +1288,7 @@ describe('PrismaInstitutionRepository', () => {
         isGratuit(): boolean {
           return false;
         }
-        toDTO(): FraisDTO {
+        toDTOFrais(): FraisDTO {
           return {};
         }
       }

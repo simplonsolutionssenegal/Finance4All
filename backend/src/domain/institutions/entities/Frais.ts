@@ -19,7 +19,7 @@ export abstract class Frais {
   abstract readonly _typeCalculation: TypeCalculation;
   abstract describe(): string;
   abstract isGratuit(): boolean;
-  abstract toDTO(): FraisDTO;
+  abstract toDTOFrais(): FraisDTO;
 }
 
 export class FraisGratuit extends Frais {
@@ -35,8 +35,8 @@ export class FraisGratuit extends Frais {
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
-  toDTO(): FraisDTO {
-    return {}; // Objet vide = gratuit
+  toDTOFrais(): FraisDTO {
+    return {};
   }
 }
 
@@ -65,17 +65,15 @@ export class FraisFixes extends Frais {
     return description;
   }
 
-  toDTO(): FraisDTO {
+  toDTOFrais(): FraisDTO {
     const dto: FraisDTO = {};
 
-    // Montant fixe + frais de change combinés
     if (this._amount > 0 || (this._fxSurcharge && this._fxSurcharge > 0)) {
       dto.montantFixe = this._amount + (this._fxSurcharge || 0);
     }
 
-    // Taux additionnel converti en pourcentage
     if (this._rate && this._rate > 0) {
-      dto.pourcentage = this._rate * 100; // 0.005 → 0.5
+      dto.pourcentage = this._rate * 100;
     }
 
     return dto;
@@ -134,15 +132,13 @@ export class FraisPourcentage extends Frais {
     return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`.trim();
   }
 
-  toDTO(): FraisDTO {
+  toDTOFrais(): FraisDTO {
     const dto: FraisDTO = {};
 
-    // Taux converti en pourcentage
     if (this._rate > 0) {
-      dto.pourcentage = this._rate * 100; // 0.015 → 1.5
+      dto.pourcentage = this._rate * 100;
     }
 
-    // Limites
     if (this._floor && this._floor > 0) {
       dto.minimum = this._floor;
     }
