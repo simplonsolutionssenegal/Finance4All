@@ -5,6 +5,7 @@ import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObje
 import type { PrismaClient, Institution as PrismaInstitution } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import {
+  type FraisDTO,
   Frais,
   FraisFixes,
   FraisGratuit,
@@ -1276,11 +1277,19 @@ describe('PrismaInstitutionRepository', () => {
       );
     });
 
+    // Remplacez ce test dans votre fichier de test existant (ligne ~827)
+
     it('should handle unknown Frais type and default to FREE', async () => {
       class UnknownFrais extends Frais {
         readonly _typeCalculation = TypeCalculation.FREE;
         describe(): string {
           return 'Unknown frais';
+        }
+        isGratuit(): boolean {
+          return false;
+        }
+        toDTO(): FraisDTO {
+          return {};
         }
       }
       const serviceId = randomUUID();

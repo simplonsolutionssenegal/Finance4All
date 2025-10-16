@@ -187,10 +187,15 @@ describe('GetInstitutionsUseCase', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.EPARGNE,
-        frais: expect.any(FraisPourcentage),
+        frais: {
+          pourcentage: 2,
+          minimum: 50,
+          maximum: 500,
+        },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
+        isGratuit: false,
       });
     });
   });

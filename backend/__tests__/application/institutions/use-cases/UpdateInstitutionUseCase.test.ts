@@ -215,10 +215,14 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
-        frais: expect.any(FraisFixes),
+        frais: {
+          montantFixe: 200,
+          pourcentage: 1,
+        },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
+        isGratuit: false,
       });
     });
   });

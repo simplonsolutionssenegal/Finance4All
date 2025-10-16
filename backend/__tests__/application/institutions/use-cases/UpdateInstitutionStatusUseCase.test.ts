@@ -190,10 +190,11 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.CREDIT,
-        frais: expect.any(FraisGratuit),
+        frais: {},
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
+        isGratuit: true,
       });
     });
   });
