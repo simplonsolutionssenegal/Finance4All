@@ -8,9 +8,18 @@ export enum TypeCalculation {
   FIX,
 }
 
+export interface FraisDTO {
+  montantFixe?: number;
+  pourcentage?: number;
+  minimum?: number;
+  maximum?: number;
+}
+
 export abstract class Frais {
   abstract readonly _typeCalculation: TypeCalculation;
   abstract describe(): string;
+  abstract isGratuit(): boolean;
+  abstract toDTO(): FraisDTO;
 }
 
 export class FraisGratuit extends Frais {
@@ -20,8 +29,14 @@ export class FraisGratuit extends Frais {
     return 'Gratuit';
   }
 
+  isGratuit(): boolean {
+    return true;
+  }
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
+  }
+  toDTO(): FraisDTO {
+    return {}; // Objet vide = gratuit
   }
 }
 
@@ -50,6 +65,22 @@ export class FraisFixes extends Frais {
     return description;
   }
 
+  toDTO(): FraisDTO {
+    const dto: FraisDTO = {};
+
+    // Montant fixe + frais de change combinés
+    if (this._amount > 0 || (this._fxSurcharge && this._fxSurcharge > 0)) {
+      dto.montantFixe = this._amount + (this._fxSurcharge || 0);
+    }
+
+    // Taux additionnel converti en pourcentage
+    if (this._rate && this._rate > 0) {
+      dto.pourcentage = this._rate * 100; // 0.005 → 0.5
+    }
+
+    return dto;
+  }
+
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
@@ -64,6 +95,14 @@ export class FraisFixes extends Frais {
 
   get fxSurcharge(): Money | undefined {
     return this._fxSurcharge;
+  }
+
+  isGratuit(): boolean {
+    return (
+      this._amount === 0 &&
+      (!this._rate || this._rate === 0) &&
+      (!this._fxSurcharge || this._fxSurcharge === 0)
+    );
   }
 }
 
@@ -95,6 +134,26 @@ export class FraisPourcentage extends Frais {
     return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`.trim();
   }
 
+  toDTO(): FraisDTO {
+    const dto: FraisDTO = {};
+
+    // Taux converti en pourcentage
+    if (this._rate > 0) {
+      dto.pourcentage = this._rate * 100; // 0.015 → 1.5
+    }
+
+    // Limites
+    if (this._floor && this._floor > 0) {
+      dto.minimum = this._floor;
+    }
+
+    if (this._cap && this._cap > 0) {
+      dto.maximum = this._cap;
+    }
+
+    return dto;
+  }
+
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
@@ -109,5 +168,9 @@ export class FraisPourcentage extends Frais {
 
   get floor(): Money | undefined {
     return this._floor;
+  }
+
+  isGratuit(): boolean {
+    return this._rate === 0;
   }
 }

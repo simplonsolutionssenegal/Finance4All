@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
-import { type FraisFilter, type FilterOptions, EMPTY_FILTERS, getCoutType } from '@/types/Service';
+import { type FilterOptions, EMPTY_FILTERS } from '@/types/Service';
 
 interface InstitutionDetailsComponentProps {
   institutionId: string;
@@ -62,10 +62,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     }
 
     if (filters.Coût && filters.Coût.length > 0) {
-      filtered = filtered.filter(service => {
-        const coutType = getCoutType(service.frais as unknown as FraisFilter);
-        return filters.Coût.includes(coutType);
-      });
+      filtered = filtered.filter(service => filters.Coût.includes(service.isGratuit));
     }
 
     return filtered;

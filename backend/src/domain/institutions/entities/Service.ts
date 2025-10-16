@@ -1,6 +1,6 @@
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { EntityId } from '@/domain/shared/EntityId';
-import type { Frais } from '@/domain/institutions/entities/Frais';
+import { type Frais } from '@/domain/institutions/entities/Frais';
 import type { ServiceDTO } from '@/domain/institutions/value-objects/ServiceDTO';
 
 export enum TypeService {
@@ -84,10 +84,11 @@ export class Service extends DomainEntity<EntityId> {
       name: this._name,
       longName: this._longName,
       type: this._type,
-      frais: this._frais,
+      frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,
       plafonds: this._plafonds,
       infrastructureAccess: this._infrastructureAccess,
+      isGratuit: this._frais.isGratuit(),
     };
   }
 }

@@ -1,3 +1,5 @@
+import { Option } from '@/components/admin/institutions/filters/BadgeCheckboxGroup';
+
 export interface Frais {
   montantFixe?: number;
   pourcentage?: number;
@@ -32,6 +34,7 @@ export interface Service {
   institutionId: string;
   createdAt: string;
   updatedAt: string;
+  isGratuit: boolean;
 }
 
 export enum TypeService {
@@ -73,13 +76,9 @@ export const TYPE_OPTIONS = [
   { label: 'Autres services', value: TypeService.AUTRES },
 ];
 
-export const COUT_OPTIONS: { label: string; value: CoutType }[] = [
-  { value: 'Gratuit', label: 'Gratuit' },
-  { value: 'payant', label: 'Payant' },
+export type CoutType = true | false;
+
+export const COUT_OPTIONS: ReadonlyArray<Option<CoutType>> = [
+  { value: true, label: 'Gratuit' },
+  { value: false, label: 'Payant' },
 ];
-
-export type CoutType = 'Gratuit' | 'payant';
-
-export function getCoutType(frais: FraisFilter): CoutType {
-  return frais._typeCalculation === 0 ? 'Gratuit' : 'payant';
-}

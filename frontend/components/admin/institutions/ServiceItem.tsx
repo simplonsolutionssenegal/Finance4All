@@ -9,16 +9,6 @@ interface ServiceItemProps {
 }
 
 const ServiceItem = ({ service }: ServiceItemProps) => {
-  console.log(
-    'Rendering ServiceItem for service:',
-    service,
-    'Frais details:',
-    service.frais.montantFixe,
-    service.frais.pourcentage,
-    service.frais.minimum,
-    service.frais.maximum
-  );
-
   const formatFrais = () => {
     const parts = [];
     if (service.frais.montantFixe) {

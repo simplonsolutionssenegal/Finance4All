@@ -1,3 +1,4 @@
+// components/institutions/filters/BadgeCheckboxGroup.tsx
 'use client';
 
 import { Check } from 'lucide-react';
@@ -5,9 +6,10 @@ import * as React from 'react';
 
 import { Badge } from '@/components/ui/badge';
 
-export type Option<T extends string> = { value: T; label: string };
+// ⬇️ Accepter string | number | boolean
+export type Option<T extends string | number | boolean> = { value: T; label: string };
 
-interface Props<T extends string> {
+interface Props<T extends string | number | boolean> {
   options: ReadonlyArray<Option<T>>;
   values: ReadonlyArray<T>;
   onChange: (next: T[]) => void;
@@ -16,7 +18,7 @@ interface Props<T extends string> {
   className?: string;
 }
 
-export default function BadgeCheckboxGroup<T extends string>({
+export default function BadgeCheckboxGroup<T extends string | number | boolean>({
   options,
   values,
   onChange,
@@ -36,12 +38,14 @@ export default function BadgeCheckboxGroup<T extends string>({
         const selected = values.includes(opt.value);
 
         return (
-          <div key={opt.value} className='inline-flex'>
+          // ⬇️ key stringifié
+          <div key={String(opt.value)} className='inline-flex'>
             <input
               id={id}
               name={name}
               type='checkbox'
-              value={opt.value}
+              // ⬇️ la valeur d’un input HTML doit être une string
+              value={String(opt.value)}
               checked={selected}
               onChange={() => toggle(opt.value)}
               className='sr-only peer'
