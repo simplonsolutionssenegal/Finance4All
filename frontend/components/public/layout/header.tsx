@@ -9,7 +9,7 @@ export default function PublicHeader() {
             <span className='text-2xl font-bold text-teal-600'>Finance4All</span>
           </div>
           <nav className='hidden md:flex space-x-8'>
-            <Link href='/service-simulator' className='text-gray-700 hover:text-teal-600'>
+            <Link href='/simulator' className='text-gray-700 hover:text-teal-600'>
               Simulateur
             </Link>
             <a href='/comparator' className='text-gray-700 hover:text-teal-600'>

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 
-import ServiceSimulatorPage from '@/app/service-simulator/page';
+import ServiceSimulatorPage from '@/app/simulator/page';
 
 // Mock des composants
 jest.mock('@/components/service-simulator/service-simulator', () => ({
