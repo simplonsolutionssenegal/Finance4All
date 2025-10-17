@@ -88,8 +88,7 @@ describe('useSimulator', () => {
         institution: null,
         service: null,
         amount: 0,
-        duration: 0,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -161,24 +160,14 @@ describe('useSimulator', () => {
       expect(result.current.params.amount).toBe(50000);
     });
 
-    it('should update duration parameter', () => {
+    it('should update selectedPlafondIndex parameter', () => {
       const { result } = renderHook(() => useSimulator());
 
       act(() => {
-        result.current.updateParam('duration', 5);
+        result.current.updateParam('selectedPlafondIndex', 1);
       });
 
-      expect(result.current.params.duration).toBe(5);
-    });
-
-    it('should update durationUnit parameter', () => {
-      const { result } = renderHook(() => useSimulator());
-
-      act(() => {
-        result.current.updateParam('durationUnit', 'MONTHS');
-      });
-
-      expect(result.current.params.durationUnit).toBe('MONTHS');
+      expect(result.current.params.selectedPlafondIndex).toBe(1);
     });
   });
 
@@ -223,7 +212,7 @@ describe('useSimulator', () => {
         result.current.updateParam('institution', mockInstitution);
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
-        result.current.updateParam('duration', 5);
+        result.current.updateParam('selectedPlafondIndex', 1);
       });
 
       // Reset
@@ -235,8 +224,7 @@ describe('useSimulator', () => {
         institution: null,
         service: null,
         amount: 0,
-        duration: 0,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -273,7 +261,7 @@ describe('useSimulator', () => {
       act(() => {
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 100000);
-        result.current.updateParam('duration', 10);
+        result.current.updateParam('selectedPlafondIndex', 0);
       });
 
       // Attendre que l'animation démarre et se termine (300ms)
@@ -284,7 +272,7 @@ describe('useSimulator', () => {
       // Vérifier que l'estimation est calculée
       await waitFor(() => {
         expect(result.current.estimation).toBeDefined();
-        expect(result.current.estimation?.annualRate).toBeDefined();
+        expect(result.current.estimation?.serviceType).toBeDefined();
       });
     });
 
@@ -293,7 +281,7 @@ describe('useSimulator', () => {
 
       act(() => {
         result.current.updateParam('amount', 100000);
-        result.current.updateParam('duration', 10);
+        result.current.updateParam('selectedPlafondIndex', 0);
       });
 
       expect(result.current.estimation).toBeNull();
@@ -305,7 +293,7 @@ describe('useSimulator', () => {
       act(() => {
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
-        result.current.updateParam('duration', 5);
+        result.current.updateParam('selectedPlafondIndex', 0);
       });
 
       await act(async () => {
@@ -384,10 +372,10 @@ describe('useSimulator', () => {
 
       expect(result.current.params.service).toEqual(mockService);
 
-      // 3. Set amount and duration
+      // 3. Set amount and plafond
       act(() => {
         result.current.updateParam('amount', 100000);
-        result.current.updateParam('duration', 10);
+        result.current.updateParam('selectedPlafondIndex', 0);
       });
 
       // 4. Wait for estimation

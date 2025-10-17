@@ -9,10 +9,10 @@ const createMockService = (type: TypeService, frais: any = {}): Service => ({
   longName: 'Test Service Description',
   type,
   frais: {
-    pourcentage: 3.5,
-    montantFixe: 0,
-    minimum: 0,
-    maximum: 10000,
+    type: 'POURCENTAGE',
+    rate: 0.035,
+    cap: 10000,
+    floor: 0,
     ...frais,
   },
   conditionAccess: [],
@@ -30,25 +30,29 @@ describe('simulator-utils', () => {
         institution: null,
         service: null,
         amount: 100000,
-        duration: 10,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       };
 
       const result = calculateEstimation(params);
 
-      expect(result).toEqual({ annualRate: 0 });
+      expect(result).toEqual({
+        serviceType: 'Aucun service sélectionné',
+        feeDescription: 'Aucun frais',
+      });
     });
 
     describe('CREDIT type', () => {
-      const creditService = createMockService(TypeService.CREDIT, { pourcentage: 3.5 });
+      const creditService = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
 
-      it('should calculate credit estimation correctly for YEARS', () => {
+      it('should calculate credit estimation correctly', () => {
         const params: SimulationParams = {
           institution: null,
           service: creditService,
           amount: 100000,
-          duration: 10,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
@@ -56,310 +60,548 @@ describe('simulator-utils', () => {
         expect(result).toHaveProperty('monthlyPayment');
         expect(result).toHaveProperty('totalInterest');
         expect(result).toHaveProperty('totalCost');
-        expect(result).toHaveProperty('annualRate');
-        expect(result.annualRate).toBe(3.5);
-        expect(result.monthlyPayment).toBeGreaterThan(0);
-      });
-
-      it('should calculate credit estimation correctly for MONTHS', () => {
-        const params: SimulationParams = {
-          institution: null,
-          service: creditService,
-          amount: 50000,
-          duration: 24,
-          durationUnit: 'MONTHS',
-        };
-
-        const result = calculateEstimation(params);
-
-        expect(result).toHaveProperty('monthlyPayment');
+        expect(result).toHaveProperty('serviceType');
+        expect(result).toHaveProperty('feeDescription');
+        expect(result.serviceType).toBe(TypeService.CREDIT);
         expect(result.monthlyPayment).toBeGreaterThan(0);
       });
 
       it('should include service fees in credit calculation', () => {
         const serviceWithFees = createMockService(TypeService.CREDIT, {
-          pourcentage: 3.5,
-          montantFixe: 500,
+          type: 'FIX',
+          amount: 500,
+          rate: 0.035,
         });
 
         const params: SimulationParams = {
           institution: null,
           service: serviceWithFees,
           amount: 100000,
-          duration: 10,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result.monthlyPayment).toBeGreaterThan(0);
-      });
-
-      it('should handle small amounts', () => {
-        const params: SimulationParams = {
-          institution: null,
-          service: creditService,
-          amount: 1000,
-          duration: 1,
-          durationUnit: 'YEARS',
-        };
-
-        const result = calculateEstimation(params);
-        expect(result.monthlyPayment).toBeGreaterThan(0);
+        expect(result.feeDescription).toContain('3.50%');
+        expect(result.feeDescription).toContain('500');
       });
     });
 
     describe('EPARGNE type', () => {
-      const epargneService = createMockService(TypeService.EPARGNE, { pourcentage: 2.5 });
+      const epargneService = createMockService(TypeService.EPARGNE, {
+        type: 'POURCENTAGE',
+        rate: 0.025,
+      });
 
-      it('should calculate savings estimation correctly for YEARS', () => {
+      it('should calculate savings estimation correctly', () => {
         const params: SimulationParams = {
           institution: null,
           service: epargneService,
           amount: 50000,
-          duration: 5,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
 
         expect(result).toHaveProperty('finalAmount');
-        expect(result).toHaveProperty('totalInterest');
+        expect(result).toHaveProperty('totalGain');
         expect(result).toHaveProperty('annualRate');
-        expect(result.annualRate).toBe(2.5);
-        expect(result.finalAmount).toBeGreaterThan(50000);
+        expect(result).toHaveProperty('serviceType');
+        expect(result).toHaveProperty('feeDescription');
+        expect(result.serviceType).toBe(TypeService.EPARGNE);
+        expect(result.finalAmount).toBeGreaterThan(50000 + 1000); // Les frais s'ajoutent au montant
+        expect(result.annualRate).toBe(0); // Pas de taux défini dans le service
+      });
+    });
+
+    describe('PAIEMENT_MARCHAND type', () => {
+      const paiementService = createMockService(TypeService.PAIEMENT_MARCHAND, {
+        type: 'FIX',
+        amount: 100,
+        rate: 0.015,
       });
 
-      it('should calculate savings estimation correctly for MONTHS', () => {
+      it('should calculate payment fees correctly', () => {
         const params: SimulationParams = {
           institution: null,
-          service: epargneService,
+          service: paiementService,
           amount: 10000,
-          duration: 12,
-          durationUnit: 'MONTHS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
 
-        expect(result.finalAmount).toBeDefined();
-        expect(result.finalAmount).toBeGreaterThanOrEqual(10000);
+        expect(result).toHaveProperty('totalFees');
+        expect(result).toHaveProperty('netAmount');
+        expect(result).toHaveProperty('serviceType');
+        expect(result).toHaveProperty('feeDescription');
+        expect(result.serviceType).toBe(TypeService.PAIEMENT_MARCHAND);
+        expect(result.totalFees).toBeGreaterThan(0);
+        expect(result.netAmount).toBeGreaterThan(10000); // Les frais s'ajoutent au montant
+      });
+    });
+
+    describe('TRANSFERT_ARGENT type', () => {
+      const transfertService = createMockService(TypeService.TRANSFERT_ARGENT, {
+        type: 'POURCENTAGE',
+        rate: 0.02,
+        floor: 50,
+        cap: 500,
       });
 
-      it('should deduct fees from final amount', () => {
-        const serviceWithFees = createMockService(TypeService.EPARGNE, {
-          pourcentage: 2.5,
-          montantFixe: 100,
-        });
-
+      it('should calculate transfer fees with min/max limits', () => {
         const params: SimulationParams = {
           institution: null,
-          service: serviceWithFees,
-          amount: 10000,
-          duration: 1,
-          durationUnit: 'YEARS',
+          service: transfertService,
+          amount: 1000,
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
-        expect(result.finalAmount).toBeDefined();
+
+        expect(result).toHaveProperty('totalFees');
+        expect(result).toHaveProperty('netAmount');
+        expect(result.serviceType).toBe(TypeService.TRANSFERT_ARGENT);
+        expect(result.feeDescription).toContain('frais min 50');
+        expect(result.feeDescription).toContain('frais max 500');
       });
     });
 
     describe('ASSURANCE type', () => {
-      const assuranceService = createMockService(TypeService.ASSURANCE, { pourcentage: 1.5 });
+      const assuranceService = createMockService(TypeService.ASSURANCE, {
+        type: 'FIX',
+        amount: 200,
+        rate: 0.05,
+      });
 
-      it('should calculate insurance estimation correctly', () => {
+      it('should calculate insurance premium correctly', () => {
         const params: SimulationParams = {
           institution: null,
           service: assuranceService,
           amount: 100000,
-          duration: 10,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
 
-        expect(result).toHaveProperty('monthlyPayment');
-        expect(result).toHaveProperty('totalInterest');
-        expect(result).toHaveProperty('annualRate');
-        expect(result.annualRate).toBe(1.5);
-      });
-
-      it('should handle insurance for short durations', () => {
-        const params: SimulationParams = {
-          institution: null,
-          service: assuranceService,
-          amount: 50000,
-          duration: 1,
-          durationUnit: 'YEARS',
-        };
-
-        const result = calculateEstimation(params);
-        expect(result.monthlyPayment).toBeGreaterThan(0);
-      });
-    });
-
-    describe('Other service types', () => {
-      const autreService = createMockService(TypeService.PAIEMENT_MARCHAND, { pourcentage: 2 });
-
-      it('should calculate estimation for other types (default to savings)', () => {
-        const params: SimulationParams = {
-          institution: null,
-          service: autreService,
-          amount: 20000,
-          duration: 3,
-          durationUnit: 'YEARS',
-        };
-
-        const result = calculateEstimation(params);
-
-        expect(result).toHaveProperty('finalAmount');
-        expect(result).toHaveProperty('totalInterest');
+        expect(result).toHaveProperty('annualPremium');
+        expect(result).toHaveProperty('totalPremium');
+        expect(result).toHaveProperty('serviceType');
+        expect(result).toHaveProperty('feeDescription');
+        expect(result.serviceType).toBe(TypeService.ASSURANCE);
+        expect(result.annualPremium).toBeGreaterThan(0);
       });
     });
 
     describe('Service fees calculation', () => {
       it('should calculate percentage fees', () => {
         const service = createMockService(TypeService.CREDIT, {
-          pourcentage: 2,
-          montantFixe: 0,
+          type: 'POURCENTAGE',
+          rate: 0.02,
         });
 
         const params: SimulationParams = {
           institution: null,
           service,
           amount: 100000,
-          duration: 5,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result).toBeDefined();
+        expect(result.feeDescription).toContain('2%');
+      });
+
+      it('should handle service with no plafonds', () => {
+        const service = createMockService(TypeService.CREDIT, {
+          type: 'POURCENTAGE',
+          rate: 0.035,
+        });
+        // Supprimer les plafonds
+        service.plafonds = [];
+
+        const params: SimulationParams = {
+          institution: null,
+          service,
+          amount: 100000,
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result).toBeDefined();
+        expect(result.monthlyPayment).toBeGreaterThan(0);
+      });
+
+      it('should handle service with invalid plafond index', () => {
+        const service = createMockService(TypeService.CREDIT, {
+          type: 'POURCENTAGE',
+          rate: 0.035,
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service,
+          amount: 100000,
+          selectedPlafondIndex: 999, // Index invalide
+        };
+
+        const result = calculateEstimation(params);
+        expect(result).toBeDefined();
+        expect(result.monthlyPayment).toBeGreaterThan(0);
       });
 
       it('should calculate fixed fees', () => {
         const service = createMockService(TypeService.EPARGNE, {
-          pourcentage: 0,
-          montantFixe: 500,
+          type: 'FIX',
+          amount: 500,
         });
 
         const params: SimulationParams = {
           institution: null,
           service,
           amount: 50000,
-          duration: 3,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result.finalAmount).toBeDefined();
+        expect(result.feeDescription).toContain('500 F CFA');
       });
 
       it('should apply minimum fees', () => {
         const service = createMockService(TypeService.CREDIT, {
-          pourcentage: 0.1,
-          minimum: 100,
+          type: 'POURCENTAGE',
+          rate: 0.001,
+          floor: 100,
         });
 
         const params: SimulationParams = {
           institution: null,
           service,
           amount: 1000,
-          duration: 1,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result.monthlyPayment).toBeGreaterThan(0);
+        expect(result.feeDescription).toContain('frais min 100');
       });
 
       it('should apply maximum fees', () => {
         const service = createMockService(TypeService.CREDIT, {
-          pourcentage: 10,
-          maximum: 500,
+          type: 'POURCENTAGE',
+          rate: 0.1,
+          cap: 500,
         });
 
         const params: SimulationParams = {
           institution: null,
           service,
           amount: 100000,
-          duration: 5,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result.monthlyPayment).toBeGreaterThan(0);
+        expect(result.feeDescription).toContain('frais max 500');
       });
 
       it('should handle combined fixed and percentage fees', () => {
-        const service = createMockService(TypeService.CREDIT, {
-          pourcentage: 2,
-          montantFixe: 200,
+        const service = createMockService(TypeService.PAIEMENT_MARCHAND, {
+          type: 'FIX',
+          amount: 50,
+          rate: 0.015,
         });
-
-        const params: SimulationParams = {
-          institution: null,
-          service,
-          amount: 50000,
-          duration: 3,
-          durationUnit: 'YEARS',
-        };
-
-        const result = calculateEstimation(params);
-        expect(result.monthlyPayment).toBeGreaterThan(0);
-      });
-    });
-
-    describe('Default rate handling', () => {
-      it('should use default rate when no percentage in frais', () => {
-        const service = createMockService(TypeService.CREDIT, {
-          pourcentage: undefined,
-          montantFixe: 100,
-        });
-        // Supprimer le pourcentage du mock
-        delete service.frais.pourcentage;
 
         const params: SimulationParams = {
           institution: null,
           service,
           amount: 10000,
-          duration: 2,
-          durationUnit: 'YEARS',
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
-        expect(result.annualRate).toBe(3); // Taux par défaut
+        expect(result.totalFees).toBeGreaterThan(0);
+        expect(result.feeDescription).toContain('1.50%');
+        expect(result.feeDescription).toContain('50');
       });
-    });
 
-    describe('Duration conversion', () => {
-      it('should handle MONTHS duration correctly', () => {
-        const service = createMockService(TypeService.CREDIT, { pourcentage: 3 });
+      it('should handle free services', () => {
+        const service = createMockService(TypeService.DEPOT_SIMPLE, {
+          type: 'FREE',
+        });
 
         const params: SimulationParams = {
           institution: null,
           service,
+          amount: 10000,
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result.totalFees).toBe(0);
+        expect(result.feeDescription).toBe('Gratuit');
+      });
+
+      it('should use zero rate when no rate is defined in service fees', () => {
+        const epargneService = createMockService(TypeService.EPARGNE, {
+          type: 'FREE', // Pas de taux défini
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service: epargneService,
           amount: 50000,
-          duration: 12,
-          durationUnit: 'MONTHS',
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result.annualRate).toBe(0); // Pas de taux = 0%
+        expect(result.finalAmount).toBe(50000); // Montant final = montant initial (pas d'intérêt)
+      });
+
+      it('should use service rate when defined in fees', () => {
+        const creditService = createMockService(TypeService.CREDIT, {
+          type: 'POURCENTAGE',
+          rate: 0.15, // 15%
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service: creditService,
+          amount: 100000,
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
         expect(result.monthlyPayment).toBeGreaterThan(0);
+        // Le taux utilisé pour le calcul sera 15% (0.15 * 100)
       });
 
-      it('should handle YEARS duration correctly', () => {
-        const service = createMockService(TypeService.EPARGNE, { pourcentage: 2.5 });
+      it('should handle credit without interest rate (capital only)', () => {
+        const creditService = createMockService(TypeService.CREDIT, {
+          type: 'FREE', // Pas de taux d'intérêt
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service: creditService,
+          amount: 120000,
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result.monthlyPayment).toBe(10000); // 120000 / 12 mois
+        expect(result.totalInterest).toBe(0); // Pas d'intérêt
+        expect(result.totalCost).toBe(120000); // Coût total = capital seulement
+      });
+
+      it('should handle DEPOT_SIMPLE service type', () => {
+        const depotService = createMockService(TypeService.DEPOT_SIMPLE, {
+          type: 'FREE',
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service: depotService,
+          amount: 50000,
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result.totalFees).toBe(0);
+        expect(result.feeDescription).toBe('Gratuit');
+        expect(result.serviceType).toBe(TypeService.DEPOT_SIMPLE);
+      });
+
+      it('should handle AUTRES service type', () => {
+        const autresService = createMockService(TypeService.AUTRES, {
+          type: 'POURCENTAGE',
+          rate: 0.01,
+        });
+
+        const params: SimulationParams = {
+          institution: null,
+          service: autresService,
+          amount: 100000,
+          selectedPlafondIndex: 0,
+        };
+
+        const result = calculateEstimation(params);
+        expect(result).toBeDefined();
+        expect(result.serviceType).toBe(TypeService.AUTRES);
+        expect(result.feeDescription).toContain('1%');
+      });
+
+      it('should handle service with invalid plafond format', () => {
+        const service = createMockService(TypeService.CREDIT, {
+          type: 'POURCENTAGE',
+          rate: 0.035,
+        });
+        service.plafonds = ['invalid-format', '1000-50000'];
 
         const params: SimulationParams = {
           institution: null,
           service,
-          amount: 20000,
-          duration: 5,
-          durationUnit: 'YEARS',
+          amount: 100000,
+          selectedPlafondIndex: 0,
         };
 
         const result = calculateEstimation(params);
-        expect(result.finalAmount).toBeGreaterThan(20000);
+        expect(result).toBeDefined();
+        expect(result.monthlyPayment).toBeGreaterThan(0);
       });
+    });
+
+    it('should handle service with empty plafonds array', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+      service.plafonds = [];
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 100000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
+    });
+
+    it('should handle service with null plafonds', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+      service.plafonds = null as any;
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 100000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
+    });
+
+    it('should handle service with undefined plafonds', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+      service.plafonds = undefined as any;
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 100000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
+    });
+
+    it('should handle service with malformed plafond string', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+      service.plafonds = ['not-a-valid-range', '1000-50000'];
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 100000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
+    });
+
+    it('should handle service with single value plafond', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+      service.plafonds = ['50000'];
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 50000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
+    });
+
+    it('should handle service with negative amount', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: -1000,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.serviceType).toBe('crédit');
+      expect(result.monthlyPayment).toBeLessThan(0);
+    });
+
+    it('should handle service with zero amount', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 0,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.serviceType).toBe('crédit');
+      expect(result.monthlyPayment).toBe(0);
+    });
+
+    it('should handle service with very large amount', () => {
+      const service = createMockService(TypeService.CREDIT, {
+        type: 'POURCENTAGE',
+        rate: 0.035,
+      });
+
+      const params: SimulationParams = {
+        institution: null,
+        service,
+        amount: 999999999,
+        selectedPlafondIndex: 0,
+      };
+
+      const result = calculateEstimation(params);
+      expect(result).toBeDefined();
+      expect(result.monthlyPayment).toBeGreaterThan(0);
     });
   });
 });

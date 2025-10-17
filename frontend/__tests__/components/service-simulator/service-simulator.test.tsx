@@ -23,10 +23,11 @@ const mockService: Service = {
   longName: 'Test Service Description',
   type: TypeService.CREDIT,
   frais: {
-    pourcentage: 3.5,
-    montantFixe: 100,
-    minimum: 50,
-    maximum: 500,
+    type: 'POURCENTAGE' as const,
+    rate: 3.5,
+    amount: 100,
+    cap: 500,
+    floor: 50,
   },
   conditionAccess: [],
   plafonds: ['1000-100000'],
@@ -42,7 +43,7 @@ const mockInstitution: Institution = {
   description: 'Test Bank Description',
   website: 'https://testbank.com',
   geographicZones: ['Sénégal'],
-  logoUrl: '🏦',
+  logoUrl: 'https://testbank.com/logo.png',
   status: InstitutionStatus.ACTIVE,
   services: [mockService],
   createdAt: new Date().toISOString(),
@@ -55,6 +56,8 @@ const mockEstimation = {
   monthlyPayment: 1000,
   totalInterest: 5000,
   annualRate: 3.5,
+  serviceType: 'crédit',
+  feeDescription: 'Frais de traitement',
 };
 
 const defaultMockReturn = {
@@ -62,8 +65,7 @@ const defaultMockReturn = {
     institution: null,
     service: null,
     amount: 0,
-    duration: 0,
-    durationUnit: 'YEARS' as const,
+    selectedPlafondIndex: 0,
   },
   estimation: null,
   isAnimating: false,
@@ -160,7 +162,7 @@ describe('ServiceSimulator', () => {
       expect(screen.getByText('Ajustez vos paramètres')).toBeInTheDocument();
     });
 
-    it('should render amount and duration sliders', () => {
+    it('should render amount slider', () => {
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
@@ -168,7 +170,6 @@ describe('ServiceSimulator', () => {
           institution: mockInstitution,
           service: mockService,
           amount: 50000,
-          duration: 5,
         },
         getAvailableServices: jest.fn(() => [mockService]),
       });
@@ -176,7 +177,6 @@ describe('ServiceSimulator', () => {
       render(<ServiceSimulator />);
 
       expect(screen.getByText('Montant')).toBeInTheDocument();
-      expect(screen.getByText('Durée')).toBeInTheDocument();
     });
   });
 
@@ -204,6 +204,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 1200,
         totalInterest: 44000,
         annualRate: 3.5,
+        serviceType: 'crédit',
+        feeDescription: 'Frais de traitement',
       };
 
       const creditService: Service = {
@@ -227,14 +229,16 @@ describe('ServiceSimulator', () => {
       expect(screen.getByText(/1\s*200\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Mensualité estimée')).toBeInTheDocument();
       expect(screen.getByText(/44\s*000\s*F\s*CFA/)).toBeInTheDocument();
-      expect(screen.getByText('Intérêts/Prime totaux')).toBeInTheDocument();
+      expect(screen.getByText('Intérêts totaux')).toBeInTheDocument();
     });
 
     it('should display investment estimation correctly', () => {
       const investmentEstimation = {
         finalAmount: 150000,
-        totalInterest: 50000,
+        totalGain: 50000,
         annualRate: 4.5,
+        serviceType: 'autres services',
+        feeDescription: 'Frais de gestion',
       };
 
       const investmentService: Service = {
@@ -264,8 +268,10 @@ describe('ServiceSimulator', () => {
     it('should display savings estimation correctly', () => {
       const savingsEstimation = {
         finalAmount: 55000,
-        totalInterest: 5000,
+        totalGain: 5000,
         annualRate: 2.5,
+        serviceType: 'épargne',
+        feeDescription: 'Frais de gestion',
       };
 
       const savingsService: Service = {
@@ -297,6 +303,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 150,
         totalInterest: 18000,
         annualRate: 1.8,
+        serviceType: 'assurance',
+        feeDescription: 'Prime mensuelle',
       };
 
       const insuranceService: Service = {
@@ -320,7 +328,7 @@ describe('ServiceSimulator', () => {
       expect(screen.getByText(/150\s*F\s*CFA/)).toBeInTheDocument();
       expect(screen.getByText('Mensualité estimée')).toBeInTheDocument();
       expect(screen.getByText(/18\s*000\s*F\s*CFA/)).toBeInTheDocument();
-      expect(screen.getByText('Intérêts/Prime totaux')).toBeInTheDocument();
+      expect(screen.getByText('Intérêts totaux')).toBeInTheDocument();
     });
 
     it('should display annual rate correctly', () => {
@@ -338,6 +346,39 @@ describe('ServiceSimulator', () => {
       render(<ServiceSimulator />);
 
       expect(screen.getByText('3.50%')).toBeInTheDocument();
+      expect(screen.getByText('Taux annuel')).toBeInTheDocument();
+    });
+
+    it('should display insurance with annual premium correctly', () => {
+      const insuranceEstimation = {
+        annualPremium: 1800,
+        totalPremium: 5400,
+        annualRate: 3.0,
+        serviceType: 'assurance',
+        feeDescription: 'Prime annuelle',
+      };
+
+      const insuranceService: Service = {
+        ...mockService,
+        type: TypeService.ASSURANCE,
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+          service: insuranceService,
+        },
+        estimation: insuranceEstimation,
+        getAvailableServices: jest.fn(() => [insuranceService]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText(/1\s*800\s*F\s*CFA/)).toBeInTheDocument();
+      expect(screen.getAllByText('Prime annuelle')[0]).toBeInTheDocument();
+      expect(screen.getByText(/3\.00%/)).toBeInTheDocument();
       expect(screen.getByText('Taux annuel')).toBeInTheDocument();
     });
   });
@@ -430,58 +471,65 @@ describe('ServiceSimulator', () => {
     });
   });
 
-  describe('Duration Unit Selector', () => {
-    it('should render duration unit selector when product is selected', () => {
+  describe('Plafond Selector', () => {
+    const serviceWithMultiplePlafonds = {
+      ...mockService,
+      plafonds: ['1000-50000', '50000-200000', '200000-1000000'],
+    };
+
+    it('should render plafond selector when service has multiple plafonds', () => {
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
+          service: serviceWithMultiplePlafonds,
         },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithMultiplePlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      expect(screen.getByText('Années')).toBeInTheDocument();
-      expect(screen.getByText('Mois')).toBeInTheDocument();
+      expect(screen.getByText('Sélectionnez le plafond à simuler :')).toBeInTheDocument();
+      expect(screen.getByText('Plafond 1: 1000-50000')).toBeInTheDocument();
+      expect(screen.getByText('Plafond 2: 50000-200000')).toBeInTheDocument();
+      expect(screen.getByText('Plafond 3: 200000-1000000')).toBeInTheDocument();
     });
 
-    it('should show YEARS as default duration unit', () => {
+    it('should show first plafond as selected by default', () => {
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          durationUnit: 'YEARS',
+          service: serviceWithMultiplePlafonds,
+          selectedPlafondIndex: 0,
         },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithMultiplePlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      const yearsButton = screen.getByText('Années');
-      expect(yearsButton).toHaveClass('bg-white', 'text-teal-600');
+      const firstPlafondButton = screen.getByText('Plafond 1: 1000-50000');
+      expect(firstPlafondButton).toHaveClass('bg-teal-500', 'text-white');
     });
 
-    it('should show MONTHS when selected', () => {
+    it('should show selected plafond when different index is selected', () => {
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          durationUnit: 'MONTHS',
+          service: serviceWithMultiplePlafonds,
+          selectedPlafondIndex: 1,
         },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithMultiplePlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      const monthsButton = screen.getByText('Mois');
-      expect(monthsButton).toHaveClass('bg-white', 'text-teal-600');
+      const secondPlafondButton = screen.getByText('Plafond 2: 50000-200000');
+      expect(secondPlafondButton).toHaveClass('bg-teal-500', 'text-white');
     });
   });
 
@@ -524,8 +572,13 @@ describe('ServiceSimulator', () => {
     });
   });
 
-  describe('Duration Unit Conversion', () => {
-    it('should handle YEARS to MONTHS conversion', async () => {
+  describe('Plafond Selection', () => {
+    const serviceWithMultiplePlafonds = {
+      ...mockService,
+      plafonds: ['1000-50000', '50000-200000', '200000-1000000'],
+    };
+
+    it('should handle plafond selection', async () => {
       const user = userEvent.setup();
       const mockUpdateParam = jest.fn();
 
@@ -534,24 +587,23 @@ describe('ServiceSimulator', () => {
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          duration: 2, // 2 years
-          durationUnit: 'YEARS',
+          service: serviceWithMultiplePlafonds,
+          selectedPlafondIndex: 0,
         },
         updateParam: mockUpdateParam,
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithMultiplePlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      const monthsButton = screen.getByText('Mois');
-      await user.click(monthsButton);
+      const secondPlafondButton = screen.getByText('Plafond 2: 50000-200000');
+      await user.click(secondPlafondButton);
 
-      // Vérifier que updateParam a été appelé pour changer l'unité
-      expect(mockUpdateParam).toHaveBeenCalledWith('durationUnit', 'MONTHS');
+      // Vérifier que updateParam a été appelé pour changer le plafond
+      expect(mockUpdateParam).toHaveBeenCalledWith('selectedPlafondIndex', 1);
     });
 
-    it('should handle MONTHS to YEARS conversion', async () => {
+    it('should handle same plafond selection', async () => {
       const user = userEvent.setup();
       const mockUpdateParam = jest.fn();
 
@@ -560,47 +612,20 @@ describe('ServiceSimulator', () => {
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          duration: 24, // 24 months
-          durationUnit: 'MONTHS',
+          service: serviceWithMultiplePlafonds,
+          selectedPlafondIndex: 0,
         },
         updateParam: mockUpdateParam,
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithMultiplePlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      const yearsButton = screen.getByText('Années');
-      await user.click(yearsButton);
+      const firstPlafondButton = screen.getByText('Plafond 1: 1000-50000');
+      await user.click(firstPlafondButton);
 
-      // Vérifier que updateParam a été appelé pour changer l'unité
-      expect(mockUpdateParam).toHaveBeenCalledWith('durationUnit', 'YEARS');
-    });
-
-    it('should handle same unit selection without conversion', async () => {
-      const user = userEvent.setup();
-      const mockUpdateParam = jest.fn();
-
-      mockUseSimulator.mockReturnValue({
-        ...defaultMockReturn,
-        params: {
-          ...defaultMockReturn.params,
-          institution: mockInstitution,
-          service: mockService,
-          duration: 2,
-          durationUnit: 'YEARS',
-        },
-        updateParam: mockUpdateParam,
-        getAvailableServices: jest.fn(() => [mockService]),
-      });
-
-      render(<ServiceSimulator />);
-
-      const yearsButton = screen.getByText('Années');
-      await user.click(yearsButton);
-
-      // Vérifier que updateParam a été appelé même pour la même unité
-      expect(mockUpdateParam).toHaveBeenCalledWith('durationUnit', 'YEARS');
+      // Vérifier que updateParam a été appelé même pour le même plafond
+      expect(mockUpdateParam).toHaveBeenCalledWith('selectedPlafondIndex', 0);
     });
   });
 
@@ -627,49 +652,29 @@ describe('ServiceSimulator', () => {
       expect(mockUpdateParam).toBeDefined();
     });
 
-    it('should handle duration slider changes with YEARS', () => {
+    it('should handle amount slider with different plafonds', () => {
       const mockUpdateParam = jest.fn();
+      const serviceWithPlafonds = {
+        ...mockService,
+        plafonds: ['1000-50000', '50000-200000'],
+      };
 
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          duration: 5,
-          durationUnit: 'YEARS',
+          service: serviceWithPlafonds,
+          selectedPlafondIndex: 1,
         },
         updateParam: mockUpdateParam,
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithPlafonds]),
       });
 
       render(<ServiceSimulator />);
 
-      // Vérifier que le slider de durée est rendu
-      expect(screen.getByText('Durée')).toBeInTheDocument();
-      expect(mockUpdateParam).toBeDefined();
-    });
-
-    it('should handle duration slider changes with MONTHS', () => {
-      const mockUpdateParam = jest.fn();
-
-      mockUseSimulator.mockReturnValue({
-        ...defaultMockReturn,
-        params: {
-          ...defaultMockReturn.params,
-          institution: mockInstitution,
-          service: mockService,
-          duration: 36,
-          durationUnit: 'MONTHS',
-        },
-        updateParam: mockUpdateParam,
-        getAvailableServices: jest.fn(() => [mockService]),
-      });
-
-      render(<ServiceSimulator />);
-
-      // Vérifier que le slider de durée est rendu
-      expect(screen.getByText('Durée')).toBeInTheDocument();
+      // Vérifier que le slider de montant est rendu
+      expect(screen.getByText('Montant')).toBeInTheDocument();
       expect(mockUpdateParam).toBeDefined();
     });
   });
@@ -818,14 +823,14 @@ describe('ServiceSimulator', () => {
       expect(screen.getByText('Montant')).toBeInTheDocument();
     });
 
-    it('should use default duration when params.duration is 0', () => {
+    it('should use default plafond when no plafond is selected', () => {
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
           service: mockService,
-          duration: 0,
+          selectedPlafondIndex: 0,
         },
         getAvailableServices: jest.fn(() => [mockService]),
       });
@@ -833,43 +838,53 @@ describe('ServiceSimulator', () => {
       render(<ServiceSimulator />);
 
       // Le composant devrait utiliser les limites par défaut
-      expect(screen.getByText('Durée')).toBeInTheDocument();
+      expect(screen.getByText('Montant')).toBeInTheDocument();
     });
 
-    it('should handle minimum duration for MONTHS (3 months)', () => {
+    it('should handle service with single plafond', () => {
+      const serviceWithSinglePlafond = {
+        ...mockService,
+        plafonds: ['1000-100000'],
+      };
+
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          durationUnit: 'MONTHS',
+          service: serviceWithSinglePlafond,
+          selectedPlafondIndex: 0,
         },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithSinglePlafond]),
       });
 
       render(<ServiceSimulator />);
 
-      // Vérifier que le composant gère le minimum de 3 mois
-      expect(screen.getByText('Durée')).toBeInTheDocument();
+      // Vérifier que le composant gère un seul plafond
+      expect(screen.getByText('Montant')).toBeInTheDocument();
     });
 
-    it('should handle minimum duration for YEARS (1 year)', () => {
+    it('should handle service with single value plafond format', () => {
+      const singleValueService: Service = {
+        ...mockService,
+        plafonds: ['100000'],
+      };
+
       mockUseSimulator.mockReturnValue({
         ...defaultMockReturn,
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: mockService,
-          durationUnit: 'YEARS',
+          service: singleValueService,
         },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [singleValueService]),
       });
 
       render(<ServiceSimulator />);
 
-      // Vérifier que le composant gère le minimum de 1 an
-      expect(screen.getByText('Durée')).toBeInTheDocument();
+      // Vérifier que le slider fonctionne avec les limites correctes
+      const slider = screen.getByRole('slider');
+      expect(slider).toBeInTheDocument();
     });
   });
 
@@ -984,6 +999,8 @@ describe('ServiceSimulator', () => {
     it('should handle missing estimation values gracefully', () => {
       const incompleteEstimation = {
         annualRate: 3.5,
+        serviceType: 'crédit',
+        feeDescription: 'Estimation incomplète',
         // Missing other values
       };
 
@@ -1006,6 +1023,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 0,
         totalInterest: 0,
         annualRate: 0,
+        serviceType: 'crédit',
+        feeDescription: 'Aucun frais',
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1027,6 +1046,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 999999,
         totalInterest: 9999999,
         annualRate: 99.99,
+        serviceType: 'crédit',
+        feeDescription: 'Frais élevés',
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1085,6 +1106,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: -100,
         totalInterest: -500,
         annualRate: -1.5,
+        serviceType: 'crédit',
+        feeDescription: 'Montant négatif',
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1106,6 +1129,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 1234.56,
         totalInterest: 5678.9,
         annualRate: 3.75,
+        serviceType: 'crédit',
+        feeDescription: 'Frais décimaux',
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1127,6 +1152,8 @@ describe('ServiceSimulator', () => {
         monthlyPayment: 0.01,
         totalInterest: 0.05,
         annualRate: 0.01,
+        serviceType: 'crédit',
+        feeDescription: 'Montant minimal',
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1183,9 +1210,10 @@ describe('ServiceSimulator', () => {
       expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
-    it('should handle duration below minimum limit', () => {
-      const productWithHighMinDuration: Service = {
+    it('should handle plafond index out of bounds', () => {
+      const serviceWithPlafonds: Service = {
         ...mockService,
+        plafonds: ['1000-50000'],
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1193,18 +1221,19 @@ describe('ServiceSimulator', () => {
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: productWithHighMinDuration,
-          duration: 1, // Below minimum
+          service: serviceWithPlafonds,
+          selectedPlafondIndex: 5, // Out of bounds
         },
-        getAvailableServices: jest.fn(() => [productWithHighMinDuration]),
+        getAvailableServices: jest.fn(() => [serviceWithPlafonds]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
     });
 
-    it('should handle duration above maximum limit', () => {
-      const productWithLowMaxDuration: Service = {
+    it('should handle negative plafond index', () => {
+      const serviceWithPlafonds: Service = {
         ...mockService,
+        plafonds: ['1000-50000'],
       };
 
       mockUseSimulator.mockReturnValue({
@@ -1212,25 +1241,10 @@ describe('ServiceSimulator', () => {
         params: {
           ...defaultMockReturn.params,
           institution: mockInstitution,
-          service: productWithLowMaxDuration,
-          duration: 10, // Above maximum
+          service: serviceWithPlafonds,
+          selectedPlafondIndex: -1, // Negative index
         },
-        getAvailableServices: jest.fn(() => [productWithLowMaxDuration]),
-      });
-
-      expect(() => render(<ServiceSimulator />)).not.toThrow();
-    });
-
-    it('should handle edge case with 0 duration', () => {
-      mockUseSimulator.mockReturnValue({
-        ...defaultMockReturn,
-        params: {
-          ...defaultMockReturn.params,
-          institution: mockInstitution,
-          service: mockService,
-          duration: 0,
-        },
-        getAvailableServices: jest.fn(() => [mockService]),
+        getAvailableServices: jest.fn(() => [serviceWithPlafonds]),
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
@@ -1249,6 +1263,232 @@ describe('ServiceSimulator', () => {
       });
 
       expect(() => render(<ServiceSimulator />)).not.toThrow();
+    });
+  });
+
+  describe('Service with different fee types', () => {
+    it('should display service with FIX fees', () => {
+      const serviceWithFixFees = {
+        ...mockService,
+        frais: {
+          type: 'FIX' as const,
+          amount: 500,
+        },
+      };
+
+      const fixEstimation = {
+        totalFees: 500,
+        netAmount: 100500,
+        serviceType: TypeService.PAIEMENT_MARCHAND,
+        feeDescription: '500 F CFA',
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+          service: serviceWithFixFees,
+        },
+        estimation: fixEstimation,
+        getAvailableServices: jest.fn(() => [serviceWithFixFees]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getAllByText('500 F CFA')[0]).toBeInTheDocument();
+      expect(screen.getByText('Frais appliqués')).toBeInTheDocument();
+    });
+
+    it('should display service with FREE fees', () => {
+      const serviceWithFreeFees = {
+        ...mockService,
+        frais: {
+          type: 'FREE' as const,
+        },
+      };
+
+      const freeEstimation = {
+        totalFees: 0,
+        netAmount: 100000,
+        serviceType: TypeService.DEPOT_SIMPLE,
+        feeDescription: 'Gratuit',
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+          service: serviceWithFreeFees,
+        },
+        estimation: freeEstimation,
+        getAvailableServices: jest.fn(() => [serviceWithFreeFees]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getAllByText('Gratuit')[0]).toBeInTheDocument();
+      expect(screen.getByText('Frais appliqués')).toBeInTheDocument();
+    });
+
+    it('should display service with POURCENTAGE fees', () => {
+      const serviceWithPercentageFees = {
+        ...mockService,
+        frais: {
+          type: 'POURCENTAGE' as const,
+          rate: 0.025,
+        },
+      };
+
+      const percentageEstimation = {
+        totalFees: 2500,
+        netAmount: 102500,
+        serviceType: TypeService.TRANSFERT_ARGENT,
+        feeDescription: '2.50%',
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+          service: serviceWithPercentageFees,
+        },
+        estimation: percentageEstimation,
+        getAvailableServices: jest.fn(() => [serviceWithPercentageFees]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('2.50%')).toBeInTheDocument();
+      expect(screen.getByText('Frais appliqués')).toBeInTheDocument();
+    });
+  });
+
+  describe('Loading states', () => {
+    it('should display loading state when institutions are loading', () => {
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        isLoading: true,
+        institutions: [],
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Chargement des institutions...')).toBeInTheDocument();
+    });
+
+    it('should not display loading state when institutions are loaded', () => {
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        isLoading: false,
+        institutions: mockInstitutions,
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.queryByText('Chargement des institutions...')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Service icons and descriptions', () => {
+    it('should display service with emoji icon', () => {
+      const creditService = {
+        ...mockService,
+        type: TypeService.CREDIT,
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+        },
+        getAvailableServices: jest.fn(() => [creditService]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
+    });
+
+    it('should handle service without longName', () => {
+      const serviceWithoutLongName = {
+        ...mockService,
+        longName: undefined as any,
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: mockInstitution,
+        },
+        getAvailableServices: jest.fn(() => [serviceWithoutLongName]),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
+    });
+  });
+
+  describe('Institution handling', () => {
+    it('should handle institution without logoUrl', () => {
+      const institutionWithoutLogo = {
+        ...mockInstitution,
+        logoUrl: '',
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        institutions: [institutionWithoutLogo],
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Sélectionnez une institution...')).toBeInTheDocument();
+    });
+
+    it('should handle institution with empty services array', () => {
+      const institutionWithoutServices = {
+        ...mockInstitution,
+        services: [],
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: institutionWithoutServices,
+        },
+        getAvailableServices: jest.fn(() => []),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
+    });
+
+    it('should handle institution with null services', () => {
+      const institutionWithNullServices = {
+        ...mockInstitution,
+        services: null as any,
+      };
+
+      mockUseSimulator.mockReturnValue({
+        ...defaultMockReturn,
+        params: {
+          ...defaultMockReturn.params,
+          institution: institutionWithNullServices,
+        },
+        getAvailableServices: jest.fn(() => []),
+      });
+
+      render(<ServiceSimulator />);
+
+      expect(screen.getByText('Sélectionnez un service')).toBeInTheDocument();
     });
   });
 });

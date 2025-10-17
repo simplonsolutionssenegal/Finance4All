@@ -12,6 +12,11 @@ export interface Frais {
   fxSurcharge?: number;
   cap?: number;
   floor?: number;
+
+  montantFixe?: number;
+  pourcentage?: number;
+  minimum?: number;
+  maximum?: number;
 }
 
 export interface CreateServiceDto {

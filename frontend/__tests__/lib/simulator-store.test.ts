@@ -19,10 +19,11 @@ const mockService: Service = {
   longName: 'Test Service Description',
   type: TypeService.CREDIT,
   frais: {
-    pourcentage: 3.5,
-    montantFixe: 100,
-    minimum: 50,
-    maximum: 500,
+    type: 'POURCENTAGE' as const,
+    rate: 3.5,
+    amount: 100,
+    cap: 500,
+    floor: 50,
   },
   conditionAccess: [],
   plafonds: ['1000-100000'],
@@ -68,8 +69,7 @@ describe('useSimulatorStore', () => {
         institution: null,
         service: null,
         amount: 0,
-        duration: 0,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -88,7 +88,7 @@ describe('useSimulatorStore', () => {
       expect(result.current.params.institution).toEqual(mockInstitution);
       expect(result.current.params.service).toBeNull();
       expect(result.current.params.amount).toBe(0);
-      expect(result.current.params.duration).toBe(0);
+      expect(result.current.params.selectedPlafondIndex).toBe(0);
     });
 
     it('should update multiple params', () => {
@@ -98,15 +98,14 @@ describe('useSimulatorStore', () => {
         result.current.updateParam('institution', mockInstitution);
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
-        result.current.updateParam('duration', 5);
+        result.current.updateParam('selectedPlafondIndex', 1);
       });
 
       expect(result.current.params).toEqual({
         institution: mockInstitution,
         service: mockService,
         amount: 50000,
-        duration: 5,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 1,
       });
     });
 
@@ -116,6 +115,8 @@ describe('useSimulatorStore', () => {
         monthlyPayment: 1000,
         totalInterest: 5000,
         annualRate: 3.5,
+        serviceType: 'crédit',
+        feeDescription: 'Frais de traitement',
       };
 
       act(() => {
@@ -159,8 +160,12 @@ describe('useSimulatorStore', () => {
         result.current.updateParam('institution', mockInstitution);
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
-        result.current.updateParam('duration', 5);
-        result.current.setEstimation({ annualRate: 3.5 });
+        result.current.updateParam('selectedPlafondIndex', 1);
+        result.current.setEstimation({
+          annualRate: 3.5,
+          serviceType: 'crédit',
+          feeDescription: 'Frais de traitement',
+        });
         result.current.setIsAnimating(true);
       });
 
@@ -173,8 +178,7 @@ describe('useSimulatorStore', () => {
         institution: null,
         service: null,
         amount: 0,
-        duration: 0,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       });
       expect(result.current.estimation).toBeNull();
       expect(result.current.isAnimating).toBe(false);
@@ -189,7 +193,7 @@ describe('useSimulatorStore', () => {
         result.current.updateParam('institution', mockInstitution);
         result.current.updateParam('service', mockService);
         result.current.updateParam('amount', 50000);
-        result.current.updateParam('duration', 5);
+        result.current.updateParam('selectedPlafondIndex', 1);
       });
 
       // Vérifier que les données sont persistées
@@ -201,8 +205,7 @@ describe('useSimulatorStore', () => {
         institution: mockInstitution,
         service: mockService,
         amount: 50000,
-        duration: 5,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 1,
       });
     });
 
@@ -210,7 +213,11 @@ describe('useSimulatorStore', () => {
       const { result } = renderHook(() => useSimulatorStore());
 
       act(() => {
-        result.current.setEstimation({ annualRate: 3.5 });
+        result.current.setEstimation({
+          annualRate: 3.5,
+          serviceType: 'crédit',
+          feeDescription: 'Frais de traitement',
+        });
         result.current.setIsAnimating(true);
       });
 
@@ -243,8 +250,7 @@ describe('Sélecteurs', () => {
         institution: null,
         service: null,
         amount: 0,
-        duration: 0,
-        durationUnit: 'YEARS',
+        selectedPlafondIndex: 0,
       });
     });
 
@@ -268,7 +274,11 @@ describe('Sélecteurs', () => {
 
     it('should update when estimation changes', () => {
       const { result } = renderHook(() => useSimulatorEstimation());
-      const mockEstimation = { annualRate: 3.5 };
+      const mockEstimation = {
+        annualRate: 3.5,
+        serviceType: 'crédit',
+        feeDescription: 'Frais de traitement',
+      };
 
       act(() => {
         useSimulatorStore.getState().setEstimation(mockEstimation);
@@ -362,11 +372,13 @@ describe('Intégration', () => {
       result.current.updateParam('institution', mockInstitution);
       result.current.updateParam('service', mockService);
       result.current.updateParam('amount', 75000);
-      result.current.updateParam('duration', 7);
+      result.current.updateParam('selectedPlafondIndex', 1);
       result.current.setEstimation({
         monthlyPayment: 1200,
         totalInterest: 25800,
         annualRate: 3.2,
+        serviceType: 'crédit',
+        feeDescription: 'Frais de traitement',
       });
       result.current.setIsAnimating(true);
     });
@@ -375,11 +387,13 @@ describe('Intégration', () => {
     expect(result.current.params.institution).toEqual(mockInstitution);
     expect(result.current.params.service).toEqual(mockService);
     expect(result.current.params.amount).toBe(75000);
-    expect(result.current.params.duration).toBe(7);
+    expect(result.current.params.selectedPlafondIndex).toBe(1);
     expect(result.current.estimation).toEqual({
       monthlyPayment: 1200,
       totalInterest: 25800,
       annualRate: 3.2,
+      serviceType: 'crédit',
+      feeDescription: 'Frais de traitement',
     });
     expect(result.current.isAnimating).toBe(true);
   });
@@ -391,7 +405,11 @@ describe('Intégration', () => {
 
     act(() => {
       actionsHook.current.updateParam('amount', 30000);
-      actionsHook.current.setEstimation({ annualRate: 2.8 });
+      actionsHook.current.setEstimation({
+        annualRate: 2.8,
+        serviceType: 'crédit',
+        feeDescription: 'Frais de traitement',
+      });
     });
 
     expect(paramsHook.current.amount).toBe(30000);
