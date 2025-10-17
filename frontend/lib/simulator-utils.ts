@@ -32,7 +32,7 @@ const calculateServiceFees = (
 
   if (isFix) {
     // Frais fixes : montant fixe + optionnel pourcentage + frais de change
-    const amountValue = frais._amount || frais.amount || 0;
+    const amountValue = frais._amount || frais.amount || frais.montantFixe || 0;
     const rateValue = frais._rate || frais.rate || 0;
     const fxSurchargeValue = frais._fxSurcharge || frais.fxSurcharge || 0;
 
@@ -59,31 +59,32 @@ const calculateServiceFees = (
 
   if (isPercentage) {
     // Frais en pourcentage avec plafond min/max
-    const rateValue = frais._rate || frais.rate || 0;
-    const capValue = frais._cap || frais.cap;
-    const floorValue = frais._floor || frais.floor;
+    const rateValue =
+      frais._rate || frais.rate || (frais.pourcentage ? frais.pourcentage / 100 : 0);
+    const maximumValue = frais.maximum;
+    const minimumValue = frais.minimum;
 
     totalFees = amount * rateValue;
 
     // Appliquer le plafond minimum
-    if (floorValue && totalFees < floorValue) {
-      totalFees = floorValue;
+    if (minimumValue && totalFees < minimumValue) {
+      totalFees = minimumValue;
     }
 
     // Appliquer le plafond maximum
-    if (capValue && totalFees > capValue) {
-      totalFees = capValue;
+    if (maximumValue && totalFees > maximumValue) {
+      totalFees = maximumValue;
     }
 
     // Construire la description
     description = `${(rateValue * 100).toFixed(2).replace(/\.00$/, '')}%`;
 
-    if (capValue !== undefined && floorValue !== undefined) {
-      description += ` (frais min ${floorValue} et frais max ${capValue})`;
-    } else if (capValue !== undefined) {
-      description += ` (plafonné à ${capValue})`;
-    } else if (floorValue !== undefined) {
-      description += ` (frais minimum ${floorValue})`;
+    if (maximumValue !== undefined && minimumValue !== undefined) {
+      description += ` (frais min ${minimumValue} et frais max ${maximumValue})`;
+    } else if (maximumValue !== undefined) {
+      description += ` (plafonné à ${maximumValue})`;
+    } else if (minimumValue !== undefined) {
+      description += ` (frais minimum ${minimumValue})`;
     }
   }
 

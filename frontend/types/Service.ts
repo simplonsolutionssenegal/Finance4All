@@ -3,15 +3,11 @@ export interface Frais {
   _amount?: number;
   _rate?: number;
   _fxSurcharge?: number;
-  _cap?: number;
-  _floor?: number;
 
   type?: 'FREE' | 'FIX' | 'POURCENTAGE';
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
-  cap?: number;
-  floor?: number;
 
   montantFixe?: number;
   pourcentage?: number;

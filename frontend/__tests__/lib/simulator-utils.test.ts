@@ -11,8 +11,8 @@ const createMockService = (type: TypeService, frais: any = {}): Service => ({
   frais: {
     type: 'POURCENTAGE',
     rate: 0.035,
-    cap: 10000,
-    floor: 0,
+    maximum: 10000,
+    minimum: 0,
     ...frais,
   },
   conditionAccess: [],
@@ -145,8 +145,8 @@ describe('simulator-utils', () => {
       const transfertService = createMockService(TypeService.TRANSFERT_ARGENT, {
         type: 'POURCENTAGE',
         rate: 0.02,
-        floor: 50,
-        cap: 500,
+        minimum: 50,
+        maximum: 500,
       });
 
       it('should calculate transfer fees with min/max limits', () => {
@@ -272,7 +272,7 @@ describe('simulator-utils', () => {
         const service = createMockService(TypeService.CREDIT, {
           type: 'POURCENTAGE',
           rate: 0.001,
-          floor: 100,
+          minimum: 100,
         });
 
         const params: SimulationParams = {
@@ -291,7 +291,7 @@ describe('simulator-utils', () => {
         const service = createMockService(TypeService.CREDIT, {
           type: 'POURCENTAGE',
           rate: 0.1,
-          cap: 500,
+          maximum: 500,
         });
 
         const params: SimulationParams = {
