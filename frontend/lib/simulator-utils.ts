@@ -1,59 +1,93 @@
-import { convertToMonths, convertToYears } from './format-utils';
+import type { Service } from '@/types/Service';
+
 import type { SimulationParams, Estimation } from './simulator-types';
 
 /**
  * Calcule les frais réels d'un service
  * @param amount - Montant de la transaction
- * @param frais - Objet frais du service
- * @returns Montant des frais calculés
+ * @param service - Service avec ses frais
+ * @returns Objet contenant les frais calculés et la description
  */
 const calculateServiceFees = (
   amount: number,
-  frais?: { montantFixe?: number; pourcentage?: number; minimum?: number; maximum?: number }
-): number => {
-  if (!frais) return 0;
-
-  let fees = 0;
-
-  // Calculer les frais en fonction du type
-  if (frais.pourcentage) {
-    fees = (amount * frais.pourcentage) / 100;
+  service: Service
+): { totalFees: number; description: string } => {
+  if (!service.frais) {
+    return { totalFees: 0, description: 'Gratuit' };
   }
 
-  if (frais.montantFixe) {
-    fees += frais.montantFixe;
+  const frais = service.frais;
+  let totalFees = 0;
+  let description = '';
+
+  // Déterminer le type de frais
+  const typeCalculation = frais._typeCalculation;
+  const isFree = typeCalculation === 0 || frais.type === 'FREE';
+  const isPercentage = typeCalculation === 1 || frais.type === 'POURCENTAGE';
+  const isFix = typeCalculation === 2 || frais.type === 'FIX';
+
+  if (isFree) {
+    return { totalFees: 0, description: 'Gratuit' };
   }
 
-  // Appliquer le minimum
-  if (frais.minimum && fees < frais.minimum) {
-    fees = frais.minimum;
+  if (isFix) {
+    // Frais fixes : montant fixe + optionnel pourcentage + frais de change
+    const amountValue = frais._amount || frais.amount || 0;
+    const rateValue = frais._rate || frais.rate || 0;
+    const fxSurchargeValue = frais._fxSurcharge || frais.fxSurcharge || 0;
+
+    totalFees = amountValue;
+
+    if (rateValue) {
+      const percentageFees = amount * rateValue;
+      totalFees += percentageFees;
+    }
+
+    if (fxSurchargeValue) {
+      totalFees += fxSurchargeValue;
+    }
+
+    // Construire la description
+    description = `${amountValue} F CFA`;
+    if (rateValue) {
+      description += ` + ${(rateValue * 100).toFixed(2).replace(/\.00$/, '')}%`;
+    }
+    if (fxSurchargeValue) {
+      description += ` + Frais de change`;
+    }
   }
 
-  // Appliquer le maximum
-  if (frais.maximum && fees > frais.maximum) {
-    fees = frais.maximum;
+  if (isPercentage) {
+    // Frais en pourcentage avec plafond min/max
+    const rateValue = frais._rate || frais.rate || 0;
+    const capValue = frais._cap || frais.cap;
+    const floorValue = frais._floor || frais.floor;
+
+    totalFees = amount * rateValue;
+
+    // Appliquer le plafond minimum
+    if (floorValue && totalFees < floorValue) {
+      totalFees = floorValue;
+    }
+
+    // Appliquer le plafond maximum
+    if (capValue && totalFees > capValue) {
+      totalFees = capValue;
+    }
+
+    // Construire la description
+    description = `${(rateValue * 100).toFixed(2).replace(/\.00$/, '')}%`;
+
+    if (capValue !== undefined && floorValue !== undefined) {
+      description += ` (frais min ${floorValue} et frais max ${capValue})`;
+    } else if (capValue !== undefined) {
+      description += ` (plafonné à ${capValue})`;
+    } else if (floorValue !== undefined) {
+      description += ` (frais minimum ${floorValue})`;
+    }
   }
 
-  return fees;
-};
-
-/**
- * Helper function pour calculer l'estimation d'épargne (évite la duplication de code)
- */
-const calculateSavingsEstimation = (
-  amount: number,
-  durationInYears: number,
-  rate: number,
-  serviceFees: number
-): Estimation => {
-  const finalAmount = amount * Math.pow(1 + rate / 100, durationInYears) - serviceFees;
-  const totalGain = finalAmount - amount;
-
-  return {
-    finalAmount: Math.round(finalAmount),
-    totalInterest: Math.round(totalGain),
-    annualRate: rate,
-  };
+  return { totalFees: Math.round(totalFees), description };
 };
 
 /**
@@ -62,55 +96,90 @@ const calculateSavingsEstimation = (
  * @returns Estimation financière
  */
 export const calculateEstimation = (params: SimulationParams): Estimation => {
-  if (!params.service) return { annualRate: 0 };
+  if (!params.service) {
+    return {
+      serviceType: 'Aucun service sélectionné',
+      feeDescription: 'Aucun frais',
+    };
+  }
 
-  const { amount, duration, durationUnit, service } = params;
-  const durationInMonths = convertToMonths(duration, durationUnit);
-  const durationInYears = convertToYears(duration, durationUnit);
+  const { amount, service } = params;
 
   // Calculer les frais réels du service
-  const serviceFees = calculateServiceFees(amount, service.frais);
-
-  // Calculer le taux depuis les frais (pourcentage si disponible, sinon taux par défaut)
-  const rate = service.frais.pourcentage || 3;
+  const { totalFees, description } = calculateServiceFees(amount, service);
 
   // Déterminer le type de calcul selon le type de service
   const serviceTypeLower = service.type.toLowerCase();
 
+  if (
+    serviceTypeLower.includes('paiement') ||
+    serviceTypeLower.includes('transfert') ||
+    serviceTypeLower.includes('dépôt') ||
+    serviceTypeLower.includes('retrait') ||
+    serviceTypeLower.includes('wallet') ||
+    serviceTypeLower.includes('achat')
+  ) {
+    return {
+      totalFees,
+      netAmount: amount + totalFees, // Les frais s'ajoutent au montant
+      serviceType: service.type,
+      feeDescription: description,
+    };
+  }
+
+  // Services d'épargne (ajout des frais sans calcul sur la durée)
+  if (serviceTypeLower.includes('épargne') || serviceTypeLower.includes('epargne')) {
+    // Ajouter simplement les frais à l'épargne
+    const finalAmount = amount + totalFees;
+    const totalGain = totalFees; // Le gain correspond aux frais ajoutés
+
+    return {
+      finalAmount: Math.round(finalAmount),
+      totalGain: Math.round(totalGain),
+      annualRate: 0, // Pas de calcul de taux annuel
+      serviceType: service.type,
+      feeDescription: description,
+    };
+  }
+
+  // Services de crédit (ajout des frais sans calcul sur la durée)
   if (serviceTypeLower.includes('crédit') || serviceTypeLower.includes('credit')) {
-    const monthlyRate = rate / 100 / 12;
-    let monthlyPayment =
-      (amount * (monthlyRate * Math.pow(1 + monthlyRate, durationInMonths))) /
-      (Math.pow(1 + monthlyRate, durationInMonths) - 1);
-
-    // Ajouter les frais mensuels si applicables
-    const monthlyFees = serviceFees / durationInMonths;
-    monthlyPayment += monthlyFees;
-
-    const totalCost = monthlyPayment * durationInMonths;
-    const totalInterest = totalCost - amount;
+    // Ajouter simplement les frais au montant
+    const totalCost = amount + totalFees;
+    const totalInterest = totalFees; // Les intérêts correspondent aux frais ajoutés
+    const monthlyPayment = totalCost / 12; // Répartition sur 12 mois par défaut
 
     return {
       monthlyPayment: Math.round(monthlyPayment),
       totalInterest: Math.round(totalInterest),
       totalCost: Math.round(totalCost),
-      annualRate: rate,
+      serviceType: service.type,
+      feeDescription: description,
     };
-  } else if (serviceTypeLower.includes('épargne') || serviceTypeLower.includes('epargne')) {
-    // Pour l'épargne, on déduit les frais du montant final
-    return calculateSavingsEstimation(amount, durationInYears, rate, serviceFees);
-  } else if (serviceTypeLower.includes('assurance')) {
-    // Pour l'assurance, on calcule généralement une prime annuelle
-    const annualPremium = amount * (rate / 100) + serviceFees / durationInYears;
-    const totalPremium = annualPremium * durationInYears;
+  }
+
+  // Services d'assurance
+  if (serviceTypeLower.includes('assurance')) {
+    // Utiliser le taux des frais du service seulement s'il est défini
+    const isPercentage =
+      service.frais?._typeCalculation === 1 || service.frais?.type === 'POURCENTAGE';
+    const rateValue = service.frais?._rate || service.frais?.rate;
+    const annualRate = isPercentage && rateValue ? rateValue * 100 : 0; // Convertir en pourcentage pour l'affichage
+    const annualPremium = annualRate > 0 ? amount * (rateValue || 0) + totalFees : totalFees; // Utiliser le taux décimal directement
 
     return {
-      monthlyPayment: Math.round(annualPremium / 12),
-      totalInterest: Math.round(totalPremium),
-      annualRate: rate,
+      annualPremium: Math.round(annualPremium),
+      totalPremium: Math.round(annualPremium),
+      serviceType: service.type,
+      feeDescription: description,
     };
-  } else {
-    // Par défaut, calcul type épargne
-    return calculateSavingsEstimation(amount, durationInYears, rate, serviceFees);
   }
+
+  // Services divers/autres
+  return {
+    totalFees,
+    netAmount: amount + totalFees,
+    serviceType: service.type,
+    feeDescription: description,
+  };
 };

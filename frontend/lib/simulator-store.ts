@@ -1,13 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type {
-  SimulationParams,
-  Estimation,
-  Institution,
-  Service,
-  DurationUnit,
-} from './simulator-types';
+import type { SimulationParams, Estimation, Institution, Service } from './simulator-types';
 
 // Interface pour l'état du store
 interface SimulatorState {
@@ -18,10 +12,7 @@ interface SimulatorState {
   institutions: Institution[];
 
   // Actions
-  updateParam: (
-    key: keyof SimulationParams,
-    value: Institution | Service | number | DurationUnit | null
-  ) => void;
+  updateParam: (key: keyof SimulationParams, value: Institution | Service | number | null) => void;
   setEstimation: (estimation: Estimation | null) => void;
   setIsAnimating: (isAnimating: boolean) => void;
   setInstitutions: (institutions: Institution[]) => void;
@@ -33,8 +24,7 @@ const initialState = {
   institution: null,
   service: null,
   amount: 0,
-  duration: 0,
-  durationUnit: 'YEARS' as DurationUnit,
+  selectedPlafondIndex: 0,
 };
 
 // Création du store Zustand avec middleware persist

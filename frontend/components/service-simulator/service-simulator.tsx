@@ -1,21 +1,14 @@
 'use client';
 
-import { Building2, TrendingUp, Clock, Sparkles, RotateCcw, Hash, Calendar } from 'lucide-react';
+import { Building2, TrendingUp, Sparkles, RotateCcw, Hash } from 'lucide-react';
 import React, { useMemo } from 'react';
 
 import { CustomDropdown } from '@/components/custom-dropdown';
 import { Slider } from '@/components/slider';
 import { useSimulator } from '@/hooks/useSimulator';
 import type { DropdownOption } from '@/lib/dropdown-types';
-import {
-  formatCurrency,
-  formatDuration,
-  convertToMonths,
-  convertToYears,
-  validateValue,
-  calculateStep,
-} from '@/lib/format-utils';
-import type { Institution, Service, DurationUnit, Estimation } from '@/lib/simulator-types';
+import { formatCurrency, validateValue, calculateStep } from '@/lib/format-utils';
+import type { Institution, Service, Estimation } from '@/lib/simulator-types';
 
 // Icônes par type de service
 const SERVICE_ICONS: Record<string, string> = {
@@ -58,40 +51,6 @@ const createServiceOptions = (services: Service[]): DropdownOption<Service>[] =>
   });
 };
 
-// Composant pour le sélecteur d'unité de durée
-const DurationUnitSelector = ({
-  value,
-  onChange,
-}: {
-  value: DurationUnit;
-  onChange: (unit: DurationUnit) => void;
-}) => {
-  return (
-    <div className='flex bg-gray-100 rounded-lg p-1'>
-      <button
-        onClick={() => onChange('YEARS')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-          value === 'YEARS'
-            ? 'bg-white text-teal-600 shadow-sm'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        Années
-      </button>
-      <button
-        onClick={() => onChange('MONTHS')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-          value === 'MONTHS'
-            ? 'bg-white text-teal-600 shadow-sm'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        Mois
-      </button>
-    </div>
-  );
-};
-
 export function ServiceSimulator() {
   const {
     params,
@@ -104,13 +63,12 @@ export function ServiceSimulator() {
     resetSimulation,
   } = useSimulator();
 
-  // État pour le plafond sélectionné (index dans le tableau des plafonds)
-  const [selectedPlafondIndex, setSelectedPlafondIndex] = React.useState<number>(0);
-
   // Réinitialiser le plafond sélectionné quand le service change
   React.useEffect(() => {
-    setSelectedPlafondIndex(0);
-  }, [params.service?.id]);
+    if (params.service?.id) {
+      updateParam('selectedPlafondIndex', 0);
+    }
+  }, [params.service?.id, updateParam]);
 
   const institutionOptions = useMemo(() => createInstitutionOptions(institutions), [institutions]);
   const availableServices = getAvailableServices();
@@ -136,24 +94,19 @@ export function ServiceSimulator() {
   };
 
   const getLimits = () => {
-    // Limites de durée fixes
-    const durationLimits = { min: 1, max: 10 };
-
     if (!params.service?.plafonds?.length) {
       return {
         amount: { min: 1000, max: 1000000 },
-        duration: durationLimits,
       };
     }
 
     // Utiliser le plafond sélectionné (ou le premier par défaut)
     const plafondToUse =
-      params.service.plafonds[selectedPlafondIndex] || params.service.plafonds[0];
+      params.service.plafonds[params.selectedPlafondIndex] || params.service.plafonds[0];
     const amountPlafond = parsePlafond(plafondToUse);
 
     return {
       amount: amountPlafond || { min: 1000, max: 1000000 },
-      duration: durationLimits, // Toujours les limites fixes pour la durée
     };
   };
 
@@ -169,7 +122,30 @@ export function ServiceSimulator() {
     if (estimation.finalAmount) {
       return formatCurrency(estimation.finalAmount);
     }
+    if (estimation.netAmount) {
+      return formatCurrency(estimation.netAmount);
+    }
+    if (estimation.annualPremium) {
+      return formatCurrency(estimation.annualPremium);
+    }
     return '0 F CFA';
+  };
+
+  // Helper function pour obtenir le titre du montant principal
+  const getMainAmountTitle = (estimation: Estimation): string => {
+    if (estimation.monthlyPayment) {
+      return 'Mensualité estimée';
+    }
+    if (estimation.finalAmount) {
+      return 'Montant final estimé';
+    }
+    if (estimation.netAmount) {
+      return 'Montant net après frais';
+    }
+    if (estimation.annualPremium) {
+      return 'Prime annuelle';
+    }
+    return 'Montant estimé';
   };
 
   return (
@@ -293,9 +269,9 @@ export function ServiceSimulator() {
                           {params.service.plafonds.map((plafond, index) => (
                             <button
                               key={`plafond-${params.service?.id}-${plafond}`}
-                              onClick={() => setSelectedPlafondIndex(index)}
+                              onClick={() => updateParam('selectedPlafondIndex', index)}
                               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                selectedPlafondIndex === index
+                                params.selectedPlafondIndex === index
                                   ? 'bg-teal-500 text-white shadow-md'
                                   : 'bg-white text-gray-700 border border-gray-300 hover:border-teal-400'
                               }`}
@@ -341,61 +317,6 @@ export function ServiceSimulator() {
                       enableInput={true}
                       inputSuffix='F CFA'
                     />
-
-                    {/* Durée */}
-                    <div className='space-y-4'>
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-3'>
-                          <Clock className='w-5 h-5 text-teal-600' />
-                          <h4 className='text-lg font-semibold text-gray-900'>Durée</h4>
-                        </div>
-                        <DurationUnitSelector
-                          value={params.durationUnit}
-                          onChange={unit => {
-                            updateParam('durationUnit', unit);
-                            // Convertir la durée actuelle si nécessaire
-                            const currentDuration = params.duration || 1;
-                            let newDuration = currentDuration;
-
-                            if (unit === 'MONTHS' && params.durationUnit === 'YEARS') {
-                              newDuration = convertToMonths(currentDuration, 'YEARS');
-                            } else if (unit === 'YEARS' && params.durationUnit === 'MONTHS') {
-                              newDuration = convertToYears(currentDuration, 'MONTHS');
-                            }
-
-                            // Limites fixes : années (1-10), mois (3-12)
-                            const minDuration = unit === 'MONTHS' ? 3 : 1;
-                            const maxDuration = unit === 'MONTHS' ? 12 : 10;
-
-                            // Valider la durée
-                            const validatedDuration = validateValue(
-                              newDuration,
-                              minDuration,
-                              maxDuration
-                            );
-                            updateParam('duration', validatedDuration);
-                          }}
-                        />
-                      </div>
-
-                      <Slider
-                        value={params.duration || (params.durationUnit === 'MONTHS' ? 3 : 1)}
-                        onChange={value => {
-                          // Limites fixes : années (1-10), mois (3-12)
-                          const minDuration = params.durationUnit === 'MONTHS' ? 3 : 1;
-                          const maxDuration = params.durationUnit === 'MONTHS' ? 12 : 10;
-
-                          const validatedValue = validateValue(value, minDuration, maxDuration);
-                          updateParam('duration', validatedValue);
-                        }}
-                        min={params.durationUnit === 'MONTHS' ? 3 : 1}
-                        max={params.durationUnit === 'MONTHS' ? 12 : 10}
-                        step={1}
-                        label=''
-                        icon={<Calendar className='w-4 h-4' />}
-                        formatValue={value => formatDuration(value, params.durationUnit)}
-                      />
-                    </div>
                   </div>
                 </div>
               )}
@@ -418,27 +339,65 @@ export function ServiceSimulator() {
                     >
                       {formatMainAmount(estimation)}
                     </div>
-                    <div className='text-white/90 mb-4'>
-                      {estimation.monthlyPayment ? 'Mensualité estimée' : 'Montant final estimé'}
+                    <div className='text-white/90 mb-4'>{getMainAmountTitle(estimation)}</div>
+
+                    {/* Affichage des frais et montant brut sur la même ligne */}
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
+                      {/* Frais appliqués */}
+                      <div className='bg-white/20 rounded-lg p-3'>
+                        <div className='text-white/80 text-sm'>Frais appliqués</div>
+                        <div className='text-white font-semibold'>
+                          {estimation.totalFees ? formatCurrency(estimation.totalFees) : 'Gratuit'}
+                        </div>
+                        <div className='text-white/70 text-xs mt-1'>
+                          {estimation.feeDescription}
+                        </div>
+                      </div>
+
+                      {/* Montant brut (pour les paiements/transferts) */}
+                      {estimation.netAmount && (
+                        <div className='bg-white/20 rounded-lg p-3'>
+                          <div className='text-white/80 text-sm'>Montant brut</div>
+                          <div className='text-white font-semibold'>
+                            {formatCurrency(params.amount)}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
+                    {/* Autres informations selon le type de service */}
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
-                      <div className='bg-white/20 rounded-lg p-3'>
-                        <div className='text-white/80'>Taux annuel</div>
-                        <div className='text-white font-semibold'>
-                          {estimation.annualRate.toFixed(2)}%
+                      {/* Taux annuel (si applicable) */}
+                      {estimation.annualRate && (
+                        <div className='bg-white/20 rounded-lg p-3'>
+                          <div className='text-white/80'>Taux annuel</div>
+                          <div className='text-white font-semibold'>
+                            {estimation.annualRate.toFixed(2)}%
+                          </div>
                         </div>
-                      </div>
-                      <div className='bg-white/20 rounded-lg p-3'>
-                        <div className='text-white/80'>
-                          {estimation.monthlyPayment ? 'Intérêts/Prime totaux' : 'Gain estimé'}
+                      )}
+
+                      {/* Gain/Intérêts totaux (si applicable) */}
+                      {(estimation.totalGain || estimation.totalInterest) && (
+                        <div className='bg-white/20 rounded-lg p-3'>
+                          <div className='text-white/80'>
+                            {estimation.totalGain ? 'Gain estimé' : 'Intérêts totaux'}
+                          </div>
+                          <div className='text-white font-semibold'>
+                            {formatCurrency(estimation.totalGain || estimation.totalInterest || 0)}
+                          </div>
                         </div>
-                        <div className='text-white font-semibold'>
-                          {estimation.totalInterest
-                            ? formatCurrency(estimation.totalInterest)
-                            : '0 F CFA'}
+                      )}
+
+                      {/* Coût total (pour les crédits) */}
+                      {estimation.totalCost && (
+                        <div className='bg-white/20 rounded-lg p-3'>
+                          <div className='text-white/80'>Coût total</div>
+                          <div className='text-white font-semibold'>
+                            {formatCurrency(estimation.totalCost)}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

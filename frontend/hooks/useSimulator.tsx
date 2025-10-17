@@ -41,7 +41,7 @@ export function useSimulator() {
 
   // Calculer l'estimation en temps réel
   useEffect(() => {
-    if (params.service) {
+    if (params.service && params.amount > 0) {
       actions.setIsAnimating(true);
       const timer = setTimeout(() => {
         const newEstimation = calculateEstimation(params);
@@ -49,6 +49,8 @@ export function useSimulator() {
         actions.setIsAnimating(false);
       }, 300);
       return () => clearTimeout(timer);
+    } else {
+      actions.setEstimation(null);
     }
   }, [params, actions]);
 

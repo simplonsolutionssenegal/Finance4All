@@ -1,8 +1,17 @@
 export interface Frais {
-  montantFixe?: number;
-  pourcentage?: number;
-  minimum?: number;
-  maximum?: number;
+  _typeCalculation?: number;
+  _amount?: number;
+  _rate?: number;
+  _fxSurcharge?: number;
+  _cap?: number;
+  _floor?: number;
+
+  type?: 'FREE' | 'FIX' | 'POURCENTAGE';
+  amount?: number;
+  rate?: number;
+  fxSurcharge?: number;
+  cap?: number;
+  floor?: number;
 }
 
 export interface CreateServiceDto {
