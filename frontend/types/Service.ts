@@ -6,11 +6,6 @@ export interface Frais {
   minimum?: number;
   maximum?: number;
 }
-export interface FraisFilter {
-  _typeCalculation?: number;
-  _amount?: number;
-  _rate?: number;
-}
 
 export interface CreateServiceDto {
   name: string;
