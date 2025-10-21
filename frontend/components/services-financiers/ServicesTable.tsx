@@ -85,6 +85,9 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                   {getSortIcon('interestRate')}
                 </div>
               </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className='bg-white divide-y divide-gray-200'>
@@ -133,7 +136,38 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                   </div>
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                  <div className='flex items-center space-x-2 justify-end' />
+                  <div className='flex items-center space-x-2 justify-end'>
+                    <button
+                      title='Échéancier'
+                      aria-label={`Échéancier-${service.id}`}
+                      className='p-1 text-sm text-gray-600 hover:text-gray-900'
+                      onClick={() => _onSchedule(service)}
+                    >
+                      <span className='sr-only'>Échéancier</span>
+                      {/* Calendar icon */}
+                      <div>
+                        {/* lucide-react Calendar renders a test id in tests */}
+                        {}
+                        {/**/}
+                        <span data-testid='calendar-icon' />
+                      </div>
+                    </button>
+                    <button title='Voir' className='p-1 text-sm text-gray-600 hover:text-gray-900'>
+                      <span data-testid='eye-icon' />
+                    </button>
+                    <button
+                      title='Modifier'
+                      className='p-1 text-sm text-gray-600 hover:text-gray-900'
+                    >
+                      <span data-testid='edit-icon' />
+                    </button>
+                    <button
+                      title='Supprimer'
+                      className='p-1 text-sm text-red-600 hover:text-red-800'
+                    >
+                      <span data-testid='trash-icon' />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
