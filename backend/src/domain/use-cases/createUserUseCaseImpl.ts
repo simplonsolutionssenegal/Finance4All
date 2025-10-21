@@ -1,7 +1,6 @@
 import type { CreateUserUseCase } from '@/application/use-cases/CreateUserUseCase';
 import type { UserRepository } from '@/domain/repositories/UserRepository';
 import { User } from '../entities/User';
-import { randomUUID } from 'node:crypto';
 /**
  * Implémentation concrète du cas d'utilisation de création d'utilisateur
  */
@@ -17,10 +16,7 @@ export class CreateUserUseCaseImpl implements CreateUserUseCase {
       throw new Error("Format d'email invalide");
     }
 
-    const userId =
-      typeof randomUUID === 'function'
-        ? randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const userId = Date.now().toString();
     const user = new User(userId, name, email);
     return this.userRepository.save(user);
   }
