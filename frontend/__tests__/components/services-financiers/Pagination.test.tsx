@@ -8,7 +8,6 @@ const reactKeyWarningRegex = /Encountered two children with the same key|Keys sh
 let originalConsoleError: typeof console.error;
 
 beforeAll(() => {
-  // If you still have console filtering in tests, keep it; otherwise you can remove this.
   originalConsoleError = console.error;
   console.error = (...args: any[]) => {
     const firstArg = String(args[0] ?? '');
@@ -57,7 +56,6 @@ describe('Pagination component', () => {
   test('displays the correct item range and total count', () => {
     const onPageChange = jest.fn();
 
-    // Page 3 of 100 items with 10 items per page should show 21-30.
     const { unmount } = render(
       <Pagination
         currentPage={3}
@@ -68,13 +66,11 @@ describe('Pagination component', () => {
       />
     );
 
-    // Récupère le paragraphe "Affichage de ... à ... sur ... résultats"
     const affichageNode = screen.getByText(/Affichage de/i);
     const p = affichageNode.closest('p');
     if (!p) throw new Error('Paragraph "Affichage de" not found');
     const pWithin = within(p);
 
-    // use getAllByText to be tolerant if the same number appears multiple times elsewhere
     const startMatches = pWithin.getAllByText('21');
     expect(startMatches.length).toBeGreaterThanOrEqual(1);
     const endMatches = pWithin.getAllByText('30');
@@ -85,7 +81,6 @@ describe('Pagination component', () => {
 
     unmount();
 
-    // Scenario: fewer total items than itemsPerPage (end = totalItems)
     render(
       <Pagination
         currentPage={1}
@@ -100,7 +95,6 @@ describe('Pagination component', () => {
     if (!p2) throw new Error('Paragraph "Affichage de" not found (scenario 2)');
     const p2Within = within(p2);
 
-    // There may be multiple '4' occurrences (endItem and totalItems). Accept >= 1.
     const ones = p2Within.getAllByText('1');
     expect(ones.length).toBeGreaterThanOrEqual(1);
     const fours = p2Within.getAllByText('4');
@@ -111,7 +105,6 @@ describe('Pagination component', () => {
   test('previous and next buttons have correct disabled states', () => {
     const onPageChange = jest.fn();
 
-    // First page: previous should be disabled and next enabled.
     const { unmount } = render(
       <Pagination
         currentPage={1}
@@ -122,22 +115,18 @@ describe('Pagination component', () => {
       />
     );
 
-    // Mobile buttons (the ones with text 'Précédent'/'Suivant')
     const mobilePrev = screen.getByRole('button', { name: /Précédent/i });
     const mobileNext = screen.getByRole('button', { name: /Suivant/i });
     expect(mobilePrev).toBeDisabled();
     expect(mobileNext).toBeEnabled();
 
-    // Desktop navigation: locate navigation container and its buttons.
     const nav = screen.getByRole('navigation', { name: 'Pagination' });
     const navButtons = within(nav).getAllByRole('button');
-    // The first nav button is the previous icon button; last is next icon button.
     expect(navButtons[0]).toBeDisabled();
     expect(navButtons[navButtons.length - 1]).toBeEnabled();
 
     unmount();
 
-    // Last page: next should be disabled and previous enabled.
     render(
       <Pagination
         currentPage={3}
@@ -172,24 +161,19 @@ describe('Pagination component', () => {
       />
     );
 
-    // Click the previous mobile button; should call with 1.
     fireEvent.click(screen.getByRole('button', { name: /Précédent/i }));
     expect(onPageChange).toHaveBeenCalledTimes(1);
     expect(onPageChange).toHaveBeenCalledWith(1);
 
-    // Click the next mobile button; should call with 3.
     fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
     expect(onPageChange).toHaveBeenCalledTimes(2);
     expect(onPageChange).toHaveBeenCalledWith(3);
 
-    // Desktop icon buttons.
     const nav = screen.getByRole('navigation', { name: 'Pagination' });
     const navButtons = within(nav).getAllByRole('button');
-    // chevron left
     fireEvent.click(navButtons[0]);
     expect(onPageChange).toHaveBeenCalledTimes(3);
     expect(onPageChange).toHaveBeenLastCalledWith(1);
-    // chevron right
     fireEvent.click(navButtons[navButtons.length - 1]);
     expect(onPageChange).toHaveBeenCalledTimes(4);
     expect(onPageChange).toHaveBeenLastCalledWith(3);
@@ -198,7 +182,6 @@ describe('Pagination component', () => {
   test('clicking disabled previous and next buttons does not call onPageChange', () => {
     const onPageChange = jest.fn();
 
-    // On first page: previous is disabled.
     let result = render(
       <Pagination
         currentPage={1}
@@ -230,7 +213,6 @@ describe('Pagination component', () => {
 
     result.unmount();
 
-    // On last page: next is disabled.
     render(
       <Pagination
         currentPage={3}
@@ -276,7 +258,6 @@ describe('Pagination component', () => {
   test('renders ellipsis and correct page ranges when total pages exceed max', () => {
     const onPageChange = jest.fn();
 
-    // multiple scenarios, each render isolated
     let r = render(
       <Pagination
         currentPage={1}
@@ -420,7 +401,6 @@ describe('Pagination component', () => {
   test('handles edge cases where totalItems or itemsPerPage are zero', () => {
     const onPageChange = jest.fn();
 
-    // case totalItems = 0 but totalPages > 1
     render(
       <Pagination
         currentPage={1}
@@ -434,14 +414,12 @@ describe('Pagination component', () => {
     const p = affichageNode.closest('p');
     if (!p) throw new Error('Paragraph "Affichage de" not found (edge case 1)');
     const pWithin = within(p);
-    // startItem = 1, endItem = min(1*10, 0) = 0
     expect(pWithin.getAllByText('1').length).toBeGreaterThanOrEqual(1);
     expect(pWithin.getAllByText('0').length).toBeGreaterThanOrEqual(1);
     expect(pWithin.getByText(/résultats/i)).toBeInTheDocument();
 
     cleanup();
 
-    // case itemsPerPage = 0 with totalPages > 1
     render(
       <Pagination
         currentPage={1}
@@ -455,7 +433,6 @@ describe('Pagination component', () => {
     const p2 = affichageNode2.closest('p');
     if (!p2) throw new Error('Paragraph "Affichage de" not found (edge case 2)');
     const p2Within = within(p2);
-    // With itemsPerPage=0: start=1, end=min(1*0,25)=0
     expect(p2Within.getAllByText('1').length).toBeGreaterThanOrEqual(1);
     expect(p2Within.getAllByText('0').length).toBeGreaterThanOrEqual(1);
     expect(p2Within.getAllByText('25').length).toBeGreaterThanOrEqual(1);

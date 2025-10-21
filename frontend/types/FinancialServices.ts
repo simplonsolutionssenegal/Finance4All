@@ -1,4 +1,3 @@
-// Prisma TypeService enum
 export type TypeService =
   | 'PAIEMENT_MARCHAND'
   | 'ACHAT_CREDIT'
@@ -14,10 +13,8 @@ export type TypeService =
   | 'ASSURANCE'
   | 'AUTRES';
 
-// Prisma InstitutionStatus enum
 export type InstitutionStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING';
 
-// Institution model from Prisma
 export interface Institution {
   id: string;
   name: string;
@@ -30,7 +27,6 @@ export interface Institution {
   updatedAt: string;
 }
 
-// Service model from Prisma
 export interface Service {
   id: string;
   name: string;
@@ -45,16 +41,12 @@ export interface Service {
   updatedAt: string;
 }
 
-// Extended service with institution data for UI display
 export interface FinancialService extends Service {
   institution: Institution;
-  // Computed/display field for backwards compatibility
   designation: string;
-  // Institution fields duplicated for easier access
   status: InstitutionStatus;
   geographicZones: string[];
   description: string;
-  // Legacy/computed fields not in Prisma schema (may be derived from frais JSON)
   maxAmount?: number;
   minAmount?: number;
   interestRate?: number;
@@ -85,7 +77,6 @@ export interface SearchAndFilterState {
   itemsPerPage: number;
 }
 
-// API response type for institutions with nested services
 export interface InstitutionWithServices extends Institution {
   services?: Service[];
 }

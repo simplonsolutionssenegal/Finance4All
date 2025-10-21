@@ -9,7 +9,6 @@ interface ServiceFiltersProps {
   onFiltersChange: (filters: FilterOptions) => void;
   isOpen: boolean;
   onToggle: () => void;
-  // dynamic options provided by parent (ServicesDashboard)
   options?: {
     serviceTypes?: string[];
     geographicZones?: string[];

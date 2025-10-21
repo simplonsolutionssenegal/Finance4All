@@ -1,7 +1,5 @@
-// Helper functions and types for Services dashboard
 export * from './ServicesDashboard';
 
-// Data mapping function
 export function mapInstitutionsToServices(institutions: any[] = []) {
   if (!institutions || !Array.isArray(institutions)) return [];
 

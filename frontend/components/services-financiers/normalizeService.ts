@@ -18,14 +18,16 @@ export function displayLogoUrl(service: FinancialService): string | undefined {
 }
 
 export function displayGeographicZones(service: FinancialService): string[] {
-  return service.geographicZones || [];
+  const zones = (service as any)?.geographicZones;
+  if (!zones) return [];
+  if (Array.isArray(zones)) return zones;
+  return [];
 }
 
 export function displayType(service: FinancialService): string {
   return service.type || '';
 }
 
-// Map Prisma enum tokens to human-friendly French labels
 export function mapTypeToLabel(type?: FinancialService['type']): string {
   if (!type) return '';
   const map: Record<string, string> = {
@@ -58,12 +60,30 @@ export function mapStatusToLabel(status?: Institution['status']): string {
   return map[status as string] || (status as string);
 }
 
-export function displayMaxAmount(service: FinancialService): number {
-  return service.maxAmount ?? 0;
+export function displayMaxAmount(service: FinancialService): any {
+  const v = (service as any)?.maxAmount;
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') {
+    const trimmed = v.replace(/\s+/g, '');
+    if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) return v;
+    return 0;
+  }
+  return 0;
 }
 
-export function displayMinAmount(service: FinancialService): number {
-  return service.minAmount ?? 0;
+export function displayMinAmount(service: FinancialService): any {
+  const v = (service as any)?.minAmount;
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') {
+    const trimmed = v.replace(/\s+/g, '');
+    if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) return v;
+    return 0;
+  }
+  return 0;
 }
 
 const normalizeServiceHelpers = {

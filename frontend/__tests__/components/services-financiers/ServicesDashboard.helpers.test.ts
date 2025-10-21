@@ -115,7 +115,6 @@ describe('ServicesDashboard.helpers', () => {
         {
           id: 'inst-3',
           name: 'Test Bank 3',
-          // no services property
         },
       ];
 
@@ -130,7 +129,6 @@ describe('ServicesDashboard.helpers', () => {
           name: 'Test Bank',
           services: [
             {
-              // no id
               name: 'service-name',
               type: 'EPARGNE',
             },
@@ -156,7 +154,6 @@ describe('ServicesDashboard.helpers', () => {
           services: [
             {
               id: 'svc-1',
-              // minimal service object
             },
           ],
         },
@@ -270,7 +267,6 @@ describe('ServicesDashboard.helpers', () => {
     it('should handle institutions with missing properties', () => {
       const institutions = [
         {
-          // missing id
           name: 'Test Bank',
           services: [
             {

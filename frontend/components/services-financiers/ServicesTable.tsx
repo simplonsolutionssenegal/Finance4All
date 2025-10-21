@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, Calendar } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import React from 'react';
 
 import { formatCurrency, formatPercentage } from '../../lib/formatters';
@@ -21,7 +21,7 @@ interface ServicesTableProps {
 }
 
 export const ServicesTable: React.FC<ServicesTableProps> = props => {
-  const { services, searchAndFilter, onSort, onSchedule } = props;
+  const { services, searchAndFilter, onSort, onSchedule: _onSchedule } = props;
   const formatFrais = (frais: any) => {
     const parts: string[] = [];
     if (!frais) return 'Aucun frais';
@@ -85,10 +85,6 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                   {getSortIcon('interestRate')}
                 </div>
               </th>
-              {/* reimbursement column removed - not in current data model */}
-              <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className='bg-white divide-y divide-gray-200'>
@@ -136,17 +132,8 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                     {formatPercentage(service.interestRate)}
                   </div>
                 </td>
-                {/* reimbursement cell removed - no longer displayed */}
                 <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                  <div className='flex items-center space-x-2 justify-end'>
-                    <button
-                      onClick={() => onSchedule(service)}
-                      className='text-green-400 hover:text-green-600 p-1'
-                      title='Échéancier'
-                    >
-                      <Calendar className='w-4 h-4' />
-                    </button>
-                  </div>
+                  <div className='flex items-center space-x-2 justify-end' />
                 </td>
               </tr>
             ))}

@@ -1,4 +1,3 @@
-import { Calendar } from 'lucide-react';
 import React from 'react';
 
 import { formatCurrency, formatPercentage } from '../../lib/formatters';
@@ -19,7 +18,7 @@ interface ServicesGridProps {
 }
 
 export const ServicesGrid: React.FC<ServicesGridProps> = props => {
-  const { services, onSchedule } = props;
+  const { services, onSchedule: _onSchedule } = props;
   const formatFrais = (frais: any) => {
     const parts: string[] = [];
     if (!frais) return 'Aucun frais';
@@ -70,7 +69,6 @@ export const ServicesGrid: React.FC<ServicesGridProps> = props => {
                 {formatPercentage(service.interestRate)}
               </span>
             </div>
-            {/* reimbursement removed: field no longer part of current data model */}
             <div>
               <p className='text-sm font-semibold text-gray-700 mt-2'>Frais</p>
               <p className='text-sm text-gray-600'>{formatFrais(service.frais)}</p>
@@ -131,15 +129,7 @@ export const ServicesGrid: React.FC<ServicesGridProps> = props => {
               ))}
             </div>
 
-            <div className='flex items-center space-x-2'>
-              <button
-                onClick={() => onSchedule(service)}
-                className='text-green-400 hover:text-green-600 p-1'
-                title='Échéancier'
-              >
-                <Calendar className='w-4 h-4' />
-              </button>
-            </div>
+            <div className='flex items-center space-x-2' />
           </div>
         </div>
       ))}

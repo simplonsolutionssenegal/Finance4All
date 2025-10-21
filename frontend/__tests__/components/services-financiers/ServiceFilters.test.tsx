@@ -5,7 +5,6 @@ import * as React from 'react';
 import { ServiceFilters } from '@/components/services-financiers/ServiceFilters';
 import type { FilterOptions } from '@/types/FinancialServices';
 
-// Mock the Button component since it's imported
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, variant, className }: any) =>
     React.createElement('button', { onClick, className, 'data-variant': variant }, children),
@@ -41,7 +40,6 @@ describe('ServiceFilters', () => {
       render(<ServiceFilters {...defaultProps} isOpen={true} />);
       expect(screen.getByText('Filtres')).toBeInTheDocument();
       expect(screen.getByText('Types de service')).toBeInTheDocument();
-      // Component now uses pluralized heading
       expect(screen.getByText('Zones géographiques')).toBeInTheDocument();
       expect(screen.getByText('Instituts') || screen.getByText('Institut')).toBeInTheDocument();
     });
@@ -61,16 +59,12 @@ describe('ServiceFilters', () => {
       expect(screen.getByText('Crédit')).toBeInTheDocument();
       expect(screen.getByText('Autre type')).toBeInTheDocument();
 
-      // Check geographic zones
       expect(screen.getByText('Zone Géo A')).toBeInTheDocument();
       expect(screen.getByText('Zone Géo B')).toBeInTheDocument();
 
-      // Check institutions
       expect(screen.getByText('SIMPLON')).toBeInTheDocument();
       expect(screen.getByText('PAYTECH SN')).toBeInTheDocument();
       expect(screen.getByText('ODK')).toBeInTheDocument();
-
-      // Date filter removed from UI
     });
 
     it('should render action buttons', () => {
