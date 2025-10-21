@@ -1,7 +1,7 @@
 'use client';
 
 import { Minus, Plus } from 'lucide-react';
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SliderProps {
   value: number;
@@ -30,12 +30,10 @@ export function Slider({
   enableInput = false,
   inputSuffix = '',
 }: Readonly<SliderProps>) {
-  const [isDragging, setIsDragging] = useState(false);
   const [inputValue, setInputValue] = useState(value.toString());
   const [isEditing, setIsEditing] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
 
-  const percentage = ((value - min) / (max - min)) * 100;
+  const percentage = max === min ? 0 : ((value - min) / (max - min)) * 100;
 
   // Synchroniser l'input avec la valeur du slider
   useEffect(() => {
@@ -43,74 +41,6 @@ export function Slider({
       setInputValue(value.toString());
     }
   }, [value, isEditing]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    updateValue(e.clientX);
-  };
-
-  const updateValue = useCallback(
-    (clientX: number) => {
-      if (!sliderRef.current) return;
-
-      const rect = sliderRef.current.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-      const newValue = min + (percentage / 100) * (max - min);
-      const steppedValue = Math.round(newValue / step) * step;
-      const clampedValue = Math.max(min, Math.min(max, steppedValue));
-
-      onChange(clampedValue);
-    },
-    [min, max, step, onChange]
-  );
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isDragging) {
-        updateValue(e.clientX);
-      }
-    },
-    [isDragging, updateValue]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    updateValue(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      if (isDragging && e.touches[0]) {
-        updateValue(e.touches[0].clientX);
-      }
-    },
-    [isDragging, updateValue]
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Gestion des événements de souris et tactile
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   const increment = () => {
     const newValue = Math.min(max, value + step);
@@ -123,7 +53,7 @@ export function Slider({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value.replaceAll(/\D/g, '');
+    const newValue = e.target.value.replace(/\D/g, '');
     setInputValue(newValue);
 
     const numValue = Number.parseInt(newValue, 10) || 0;
@@ -205,7 +135,6 @@ export function Slider({
         />
         {/* Input invisible mais interactif */}
         <input
-          ref={sliderRef as React.RefObject<HTMLInputElement>}
           type='range'
           min={min}
           max={max}
@@ -213,8 +142,6 @@ export function Slider({
           value={value}
           onChange={e => onChange(Number(e.target.value))}
           className='absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10'
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
           tabIndex={0}
           aria-valuemin={min}
           aria-valuemax={max}

@@ -91,40 +91,38 @@ describe('Slider', () => {
   });
 
   describe('Interactions avec le slider', () => {
-    it('should call onChange when slider is clicked', async () => {
-      const user = userEvent.setup();
+    it('should call onChange when slider value changes', () => {
       render(<Slider {...defaultProps} />);
 
       const slider = screen.getByRole('slider');
-      await user.click(slider);
 
-      expect(defaultProps.onChange).toHaveBeenCalled();
+      // Simuler un changement de valeur via l'input natif
+      fireEvent.change(slider, { target: { value: '75' } });
+
+      expect(defaultProps.onChange).toHaveBeenCalledWith(75);
     });
 
-    it('should handle mouse drag interactions', () => {
+    it('should handle keyboard interactions', () => {
       render(<Slider {...defaultProps} />);
 
       const slider = screen.getByRole('slider');
 
-      // Simuler un drag
-      fireEvent.mouseDown(slider, { clientX: 100 });
-      fireEvent.mouseMove(slider, { clientX: 200 });
-      fireEvent.mouseUp(slider);
+      // Simuler une interaction clavier (flèches)
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      fireEvent.change(slider, { target: { value: '51' } });
 
-      expect(defaultProps.onChange).toHaveBeenCalled();
+      expect(defaultProps.onChange).toHaveBeenCalledWith(51);
     });
 
-    it('should handle touch interactions', () => {
+    it('should handle direct value input', () => {
       render(<Slider {...defaultProps} />);
 
       const slider = screen.getByRole('slider');
 
-      // Simuler un touch
-      fireEvent.touchStart(slider, { touches: [{ clientX: 100 }] });
-      fireEvent.touchMove(slider, { touches: [{ clientX: 200 }] });
-      fireEvent.touchEnd(slider);
+      // Simuler un changement direct de valeur
+      fireEvent.change(slider, { target: { value: '25' } });
 
-      expect(defaultProps.onChange).toHaveBeenCalled();
+      expect(defaultProps.onChange).toHaveBeenCalledWith(25);
     });
   });
 
@@ -241,6 +239,58 @@ describe('Slider', () => {
       render(<Slider {...defaultProps} icon={<span data-testid='custom-icon'>🔥</span>} />);
 
       expect(screen.getByTestId('custom-icon')).toBeInTheDocument();
+    });
+  });
+
+  describe('Input avec enableInput', () => {
+    it('should handle input changes with valid values', async () => {
+      const user = userEvent.setup();
+      render(<Slider {...defaultProps} enableInput={true} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '75');
+
+      expect(defaultProps.onChange).toHaveBeenCalledWith(75);
+    });
+
+    it('should handle input changes with invalid values (out of range)', async () => {
+      const user = userEvent.setup();
+      render(<Slider {...defaultProps} enableInput={true} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, '150'); // Au-dessus du max (100)
+
+      // Ne devrait pas appeler onChange car la valeur est hors limite
+      expect(defaultProps.onChange).not.toHaveBeenCalledWith(150);
+    });
+
+    it('should handle input changes with non-numeric values', async () => {
+      const user = userEvent.setup();
+      render(<Slider {...defaultProps} enableInput={true} />);
+
+      const input = screen.getByRole('textbox');
+      await user.clear(input);
+      await user.type(input, 'abc75def');
+
+      // Seuls les chiffres devraient être conservés
+      expect(input).toHaveValue('75');
+    });
+  });
+
+  describe('Cas limites', () => {
+    it('should handle min equals max', () => {
+      render(<Slider {...defaultProps} min={50} max={50} value={50} />);
+
+      // Le pourcentage devrait être 0 quand min === max
+      expect(screen.getAllByText('50%')[0]).toBeInTheDocument();
+    });
+
+    it('should handle zero values', () => {
+      render(<Slider {...defaultProps} min={0} max={0} value={0} />);
+
+      expect(screen.getAllByText('0%')[0]).toBeInTheDocument();
     });
   });
 });

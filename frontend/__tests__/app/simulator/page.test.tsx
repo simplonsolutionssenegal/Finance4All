@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 
-import ServiceSimulatorPage from '@/app/simulator/page';
+import ServiceSimulatorPage from '@/app/(public)/simulator/page';
 
 // Mock des composants
 jest.mock('@/components/service-simulator/service-simulator', () => ({
@@ -24,7 +24,6 @@ describe('ServiceSimulatorPage', () => {
     render(<ServiceSimulatorPage />);
 
     // Vérifier que tous les composants sont rendus
-    expect(screen.getByTestId('public-header')).toBeInTheDocument();
     expect(screen.getByTestId('service-simulator')).toBeInTheDocument();
     expect(screen.getByTestId('public-footer')).toBeInTheDocument();
   });
@@ -39,12 +38,10 @@ describe('ServiceSimulatorPage', () => {
   it('should render in the correct order', () => {
     render(<ServiceSimulatorPage />);
 
-    const header = screen.getByTestId('public-header');
     const simulator = screen.getByTestId('service-simulator');
     const footer = screen.getByTestId('public-footer');
 
     // Vérifier l'ordre des éléments
-    expect(header.compareDocumentPosition(simulator)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(simulator.compareDocumentPosition(footer)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 });
