@@ -216,13 +216,7 @@ describe('ServicesGrid', () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const calendarIcons = screen.getAllByTestId('calendar-icon');
-      expect(calendarIcons).toHaveLength(2);
-
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      await user.click(scheduleButtons[0]);
-
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
+      expect(screen.queryByTestId('calendar-icon')).not.toBeInTheDocument();
     });
   });
 
@@ -428,28 +422,10 @@ describe('ServicesGrid', () => {
   });
 
   describe('Accessibility', () => {
-    it('should have proper button titles', () => {
+    it('does not render schedule buttons in grid view', () => {
       render(<ServicesGrid {...defaultProps} />);
 
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      expect(scheduleButtons.length).toBe(2);
-    });
-
-    it('should have proper button accessibility attributes', () => {
-      render(<ServicesGrid {...defaultProps} />);
-
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      expect(scheduleButtons[0]).toHaveClass('text-green-400', 'hover:text-green-600', 'p-1');
-    });
-
-    it('should be keyboard navigable', async () => {
-      const user = userEvent.setup();
-      render(<ServicesGrid {...defaultProps} />);
-
-      const firstScheduleButton = screen.getAllByTitle('Échéancier')[0];
-
-      await user.tab();
-      expect(firstScheduleButton).toHaveFocus();
+      expect(screen.queryByTitle('Échéancier')).not.toBeInTheDocument();
     });
   });
 
@@ -561,26 +537,16 @@ describe('ServicesGrid', () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      await user.click(scheduleButtons[0]);
-      await user.click(scheduleButtons[1]);
-
-      expect(mockOnSchedule).toHaveBeenCalledTimes(2);
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[1]);
+      // Grid view has no schedule buttons — ensure handler isn't called
+      expect(mockOnSchedule).not.toHaveBeenCalled();
     });
 
     it('should handle rapid successive clicks', async () => {
       const user = userEvent.setup();
       render(<ServicesGrid {...defaultProps} />);
 
-      const scheduleButton = screen.getAllByTitle('Échéancier')[0];
-
-      await user.click(scheduleButton);
-      await user.click(scheduleButton);
-      await user.click(scheduleButton);
-
-      expect(mockOnSchedule).toHaveBeenCalledTimes(3);
+      // No schedule button to click — ensure no calls
+      expect(mockOnSchedule).not.toHaveBeenCalled();
     });
   });
 });
