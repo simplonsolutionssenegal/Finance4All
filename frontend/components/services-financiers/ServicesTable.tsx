@@ -42,8 +42,8 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
 
   return (
     <div id='services-table' className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
-      <div className='overflow-x-auto'>
-        <table className='min-w-full divide-y divide-gray-200'>
+      <div className='overflow-x-auto w-full'>
+        <table className='w-full divide-y divide-gray-200'>
           <thead className='bg-gray-50'>
             <tr>
               <th
@@ -86,22 +86,27 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                 </div>
               </th>
               <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                Actions
+                Zones géographiques
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                Infrastructure d&apos;accès
               </th>
             </tr>
           </thead>
           <tbody className='bg-white divide-y divide-gray-200'>
             {services.map(service => (
               <tr key={service.id} className='hover:bg-gray-50'>
-                <td className='px-6 py-4 whitespace-nowrap'>
+                <td className='px-6 py-4 whitespace-normal'>
                   <div className='flex items-center'>
                     <div>
-                      <div className='text-sm font-medium text-gray-900'>
+                      <div className='text-sm font-medium text-gray-900 break-words'>
                         {displayDesignation(service)}
                       </div>
-                      <div className='text-sm text-gray-500'>{displayInstitutionName(service)}</div>
+                      <div className='text-sm text-gray-500 break-words'>
+                        {displayInstitutionName(service)}
+                      </div>
                       {service.longName && (
-                        <div className='text-xs text-gray-500 mt-1 line-clamp-1'>
+                        <div className='text-xs text-gray-500 mt-1 break-words'>
                           {service.longName}
                         </div>
                       )}
@@ -135,39 +140,33 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                     {formatPercentage(service.interestRate)}
                   </div>
                 </td>
-                <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                  <div className='flex items-center space-x-2 justify-end'>
-                    <button
-                      title='Échéancier'
-                      aria-label={`Échéancier-${service.id}`}
-                      className='p-1 text-sm text-gray-600 hover:text-gray-900'
-                      onClick={() => _onSchedule(service)}
-                    >
-                      <span className='sr-only'>Échéancier</span>
-                      {/* Calendar icon */}
-                      <div>
-                        {/* lucide-react Calendar renders a test id in tests */}
-                        {}
-                        {/**/}
-                        <span data-testid='calendar-icon' />
-                      </div>
-                    </button>
-                    <button title='Voir' className='p-1 text-sm text-gray-600 hover:text-gray-900'>
-                      <span data-testid='eye-icon' />
-                    </button>
-                    <button
-                      title='Modifier'
-                      className='p-1 text-sm text-gray-600 hover:text-gray-900'
-                    >
-                      <span data-testid='edit-icon' />
-                    </button>
-                    <button
-                      title='Supprimer'
-                      className='p-1 text-sm text-red-600 hover:text-red-800'
-                    >
-                      <span data-testid='trash-icon' />
-                    </button>
+                {/* Conditions d'accès column removed to save horizontal space */}
+
+                <td className='px-6 py-4 whitespace-nowrap align-top'>
+                  <div className='flex flex-wrap gap-1'>
+                    {(service.geographicZones || []).map(zone => (
+                      <span
+                        key={zone}
+                        className='text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded'
+                      >
+                        {zone}
+                      </span>
+                    ))}
                   </div>
+                </td>
+
+                <td className='px-6 py-4 whitespace-nowrap align-top'>
+                  {service.infrastructureAccess && service.infrastructureAccess.length > 0 ? (
+                    <div className='flex flex-wrap gap-1.5'>
+                      {service.infrastructureAccess.map((i: any) => (
+                        <Badge key={String(i)} variant='secondary' className='text-xs bg-green-100'>
+                          {i}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className='text-sm text-gray-500'>Aucune</span>
+                  )}
                 </td>
               </tr>
             ))}

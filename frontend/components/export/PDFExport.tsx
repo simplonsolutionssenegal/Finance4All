@@ -19,32 +19,38 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // En-tête
+    // Header with colored bar
+    const headerHeight = 40;
+    pdf.setFillColor(20, 184, 166);
+    pdf.rect(0, 0, pageWidth, headerHeight, 'F');
     pdf.setFontSize(20);
-    pdf.setTextColor(20, 184, 166); // Teal color
-    pdf.text('Finance4ALL', 20, 30);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Finance4ALL', 20, 26);
 
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Rapport des Services Financiers', 20, 50);
+    // Title area
+    pdf.setFontSize(14);
+    pdf.setTextColor(34, 34, 34);
+    pdf.text('Rapport des Services Financiers', 20, headerHeight + 18);
 
-    // Informations générales
-    pdf.setFontSize(12);
-    pdf.text(`Date de génération: ${new Date().toLocaleDateString('fr-FR')}`, 20, 70);
-    pdf.text(`Nombre total de résultats: ${totalResults}`, 20, 85);
+    // Informations générales (muted)
+    pdf.setFontSize(10);
+    pdf.setTextColor(110, 110, 110);
+    pdf.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 70, headerHeight + 6);
+    pdf.text(`Résultats: ${totalResults}`, pageWidth - 70, headerHeight + 16);
     if (searchTerm) {
-      pdf.text(`Terme de recherche: "${searchTerm}"`, 20, 100);
+      pdf.text(`Recherche: ${searchTerm}`, pageWidth - 70, headerHeight + 26);
     }
 
-    // Ligne de séparation
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(20, 110, pageWidth - 20, 110);
+    // Separator
+    pdf.setDrawColor(220, 220, 220);
+    pdf.line(20, headerHeight + 34, pageWidth - 20, headerHeight + 34);
 
-    let yPosition = 130;
-    const lineHeight = 15;
-    const maxServicesPerPage = Math.floor((pageHeight - 150) / (lineHeight * 6));
+    let yPosition = headerHeight + 50;
+    const cardPadding = 8;
+    const cardHeight = 60; // approximate per service card
+    const maxServicesPerPage = Math.floor((pageHeight - (yPosition + 30)) / (cardHeight + 10));
 
-    services.slice(0, 20).forEach((service, index) => {
+    for (const [index, service] of services.slice(0, 20).entries()) {
       // Nouvelle page si nécessaire
       if (index > 0 && index % maxServicesPerPage === 0) {
         pdf.addPage();
@@ -56,19 +62,44 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
       pdf.setFont('helvetica', 'bold');
       pdf.text(service.designation, 20, yPosition);
 
-      // Détails du service
-      pdf.setFontSize(10);
+      // Draw a card background
+      const cardX = 20;
+      const cardWidth = pageWidth - 40;
+      pdf.setDrawColor(230, 230, 230);
+      pdf.setFillColor(250, 250, 250);
+      pdf.roundedRect(cardX, yPosition - cardPadding, cardWidth, cardHeight, 4, 4, 'F');
+
+      // Title
+      pdf.setFontSize(12);
+      pdf.setTextColor(20, 20, 20);
+      pdf.setFont('helvetica', 'bold');
+      // wrap designation if needed
+      const maxTextWidth = cardWidth - cardPadding * 2;
+      const designationLines = pdf.splitTextToSize(service.designation, maxTextWidth);
+      pdf.text(designationLines, cardX + cardPadding, yPosition + 4);
+
+      // Détails du service (muted)
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Institution: ${service.institution}`, 25, yPosition + lineHeight);
-      pdf.text(`Type: ${service.type}`, 25, yPosition + lineHeight * 2);
-      pdf.text(`Montant max: ${formatCurrency(service.maxAmount)}`, 25, yPosition + lineHeight * 3);
-      pdf.text(`Taux: ${formatPercentage(service.interestRate)}`, 25, yPosition + lineHeight * 4);
-      // reimbursement removed: not present in current data model
+      pdf.setTextColor(100, 100, 100);
+      const institutionLabel =
+        typeof service.institution === 'string'
+          ? service.institution
+          : (service.institution?.name ?? service.institutionId ?? 'N/A');
+      const maxAmountLabel = service.maxAmount == null ? '—' : formatCurrency(service.maxAmount);
+      const interestRateLabel =
+        service.interestRate == null ? '—' : formatPercentage(service.interestRate);
 
-      yPosition += lineHeight * 7;
-    });
+      const detailStartY = yPosition + 12 + designationLines.length * 6;
+      pdf.text(`Institution: ${institutionLabel}`, cardX + cardPadding, detailStartY);
+      pdf.text(`Type: ${service.type}`, cardX + cardPadding + 90, detailStartY);
+      pdf.text(`Montant max: ${maxAmountLabel}`, cardX + cardPadding, detailStartY + 8);
+      pdf.text(`Taux: ${interestRateLabel}`, cardX + cardPadding + 90, detailStartY + 8);
 
-    // Pied de page
+      yPosition += cardHeight + 12;
+    }
+
+    // Pied de page (numérotation)
     const totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);

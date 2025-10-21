@@ -150,14 +150,15 @@ describe('ServicesTable', () => {
       expect(screen.getByText('Type')).toBeInTheDocument();
       expect(screen.getByText('Montant Max.')).toBeInTheDocument();
       expect(screen.getByText('Taux')).toBeInTheDocument();
-      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Zones géographiques')).toBeInTheDocument();
+      expect(screen.getByText("Infrastructure d'accès")).toBeInTheDocument();
     });
 
     it('should render correct number of rows', () => {
       render(<ServicesTable {...defaultProps} />);
 
       const rows = screen.getAllByRole('row');
-      expect(rows).toHaveLength(3); // Header + 2 data rows
+      expect(rows).toHaveLength(3);
     });
   });
 
@@ -320,17 +321,21 @@ describe('ServicesTable', () => {
   });
 
   describe('Action buttons', () => {
-    it('should render schedule button for each service and call onSchedule when clicked', async () => {
-      const user = userEvent.setup();
+    it('should display condition access, geographic zones and infrastructure columns', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const calendarIcons = screen.getAllByTestId('calendar-icon');
-      expect(calendarIcons).toHaveLength(2);
+      // infrastructureAccess empty in mocks -> should show 'Aucune' at least once
+      const noAccessLabels = screen.getAllByText('Aucune');
+      expect(noAccessLabels.length).toBeGreaterThanOrEqual(1);
 
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      await user.click(scheduleButtons[0]);
+      // geographic zones from institutions/services should be visible
+      // Use getAllByText in case zones appear multiple times (institutions + services)
+      const zoneAGlobal = screen.getAllByText('Zone Géo A');
+      const zoneBGlobal = screen.getAllByText('Zone Géo B');
+      expect(zoneAGlobal.length).toBeGreaterThanOrEqual(1);
+      expect(zoneBGlobal.length).toBeGreaterThanOrEqual(1);
 
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
+      // infrastructureAccess empty in mocks -> 'Aucune' shown (already asserted)
     });
   });
 
@@ -418,8 +423,9 @@ describe('ServicesTable', () => {
     it('should have proper button titles', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      expect(scheduleButtons.length).toBe(2);
+      // Actions removed; ensure no schedule buttons are present
+      const scheduleButtons = screen.queryAllByTitle('Échéancier');
+      expect(scheduleButtons.length).toBe(0);
     });
 
     it('should have proper table structure', () => {
@@ -540,7 +546,7 @@ describe('ServicesTable', () => {
       render(<ServicesTable {...defaultProps} />);
 
       const table = screen.getByRole('table');
-      expect(table).toHaveClass('min-w-full', 'divide-y', 'divide-gray-200');
+      expect(table).toHaveClass('w-full', 'divide-y', 'divide-gray-200');
     });
 
     it('should apply correct header classes', () => {
@@ -641,16 +647,11 @@ describe('ServicesTable', () => {
     });
 
     it('should handle multiple button clicks', async () => {
-      const user = userEvent.setup();
       render(<ServicesTable {...defaultProps} />);
-
-      const scheduleButtons = screen.getAllByTitle('Échéancier');
-      await user.click(scheduleButtons[0]);
-      await user.click(scheduleButtons[1]);
-
-      expect(mockOnSchedule).toHaveBeenCalledTimes(2);
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[0]);
-      expect(mockOnSchedule).toHaveBeenCalledWith(mockServices[1]);
+      // No schedule buttons when actions removed
+      const scheduleButtons = screen.queryAllByTitle('Échéancier');
+      expect(scheduleButtons.length).toBe(0);
+      expect(mockOnSchedule).not.toHaveBeenCalled();
     });
   });
 
@@ -677,22 +678,11 @@ describe('ServicesTable', () => {
   });
 
   describe('Non-sortable columns', () => {
-    it('should not trigger sort on Actions column', async () => {
+    it('should not render an Actions column', async () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const actionsHeader = screen.getByText('Actions').closest('th');
-
-      // Should not have cursor-pointer class
-      expect(actionsHeader).not.toHaveClass('cursor-pointer');
-    });
-
-    it('should not trigger sort on Actions column', async () => {
-      render(<ServicesTable {...defaultProps} />);
-
-      const actionsHeader = screen.getByText('Actions').closest('th');
-
-      // Should not have cursor-pointer class
-      expect(actionsHeader).not.toHaveClass('cursor-pointer');
+      // The Actions column was removed; ensure header is not present
+      expect(screen.queryByText('Actions')).toBeNull();
     });
   });
 });

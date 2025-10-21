@@ -23,12 +23,20 @@ jest.mock('jspdf', () => {
     default: jest.fn().mockImplementation(() => ({
       internal: { pageSize: { getWidth: () => 210, getHeight: () => 295 } },
       setFontSize: jest.fn(),
+      setFillColor: jest.fn(),
       setTextColor: jest.fn(),
       text: jest.fn(),
       setFont: jest.fn(),
+      rect: jest.fn(),
+      roundedRect: jest.fn(),
       line: jest.fn(),
       addPage: jest.fn(),
       getNumberOfPages: jest.fn().mockReturnValue(1),
+      splitTextToSize: jest.fn().mockImplementation((text: any) => {
+        // return array of lines; if already an array return as-is
+        if (Array.isArray(text)) return text;
+        return String(text).split(/\n|\r\n|\r/);
+      }),
       setPage: jest.fn(),
       setDrawColor: jest.fn(),
       save: saveMock,
@@ -44,7 +52,9 @@ const mockServices = [
   {
     id: '1',
     designation: 'Epargne Plus',
-    institution: 'Bank A',
+    // institution previously a string in tests; real type is an object with name
+    institution: { id: 'bank-a', name: 'Bank A' },
+    institutionId: 'bank-a',
     type: 'Epargne',
     maxAmount: 500000,
     interestRate: 0.05,
@@ -98,6 +108,6 @@ describe('PDFExport component', () => {
       )
     );
 
-    document.body.removeChild(table);
+    table.remove();
   });
 });
