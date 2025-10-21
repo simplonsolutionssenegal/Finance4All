@@ -1,34 +1,85 @@
 'use client';
 
-import { Search, Filter, Grid3x3 as Grid3X3, List, BarChart3, GitCompare } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { Search, Filter, Grid3x3 as Grid3X3, List, BarChart3 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { ServicesChart } from '@/components/charts/ServicesCharts';
-import { ServiceComparison } from '@/components/comparaison/ServiceComparaison';
 import { PDFExport } from '@/components/export/PDFExport';
-import { PaymentSchedule } from '@/components/schedule/PaymentSchedule';
 import { Button } from '@/components/ui/button';
-import { financialServices, institutions } from '@/data/MockData';
+import { apiClient } from '@/lib/api-client';
 import type {
   FilterOptions,
   FinancialService,
   SearchAndFilterState,
+  InstitutionWithServices,
 } from '@/types/FinancialServices';
 
-import { InstitutionCard } from './InstitutionCard';
+import {
+  displayDesignation,
+  displayInstitutionName,
+  displayType,
+  mapTypeToLabel,
+} from './normalizeService';
 import { Pagination } from './Pagination';
 import { ServiceFilters } from './ServiceFilters';
 import { ServicesGrid } from './ServicesGrid';
 import { ServicesTable } from './ServicesTable';
 
+// Map institution/service API response to FinancialService used by UI
+function mapInstitutionsToServices(institutions: InstitutionWithServices[]): FinancialService[] {
+  const services: FinancialService[] = [];
+
+  institutions.forEach(inst => {
+    const instObj = {
+      id: inst.id,
+      name: inst.name,
+      description: inst.description,
+      logoUrl: inst.logoUrl,
+      status: inst.status,
+      website: inst.website,
+      geographicZones: inst.geographicZones || [],
+      createdAt: inst.createdAt,
+      updatedAt: inst.updatedAt,
+    };
+
+    (inst.services || []).forEach(s => {
+      services.push({
+        id: s.id,
+        name: s.name,
+        longName: s.longName,
+        designation: s.longName || s.name,
+        frais: s.frais || {},
+        conditionAccess: s.conditionAccess || [],
+        plafonds: s.plafonds || [],
+        infrastructureAccess: s.infrastructureAccess || [],
+        type: s.type || 'AUTRES',
+        institutionId: s.institutionId,
+        institution: instObj,
+        status: inst.status,
+        geographicZones: inst.geographicZones || [],
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        description: s.longName || inst.description,
+      });
+    });
+  });
+
+  return services;
+}
+
 // Helper predicates to keep callbacks shallow and readable
 export function matchesSearchTerm(service: FinancialService, searchTerm: string) {
-  const term = searchTerm.toLowerCase();
-  return (
-    service.designation.toLowerCase().includes(term) ||
-    service.institution.toLowerCase().includes(term) ||
-    service.type.toLowerCase().includes(term)
-  );
+  const normalize = (s: string) =>
+    s
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+
+  const term = normalize(searchTerm || '');
+  const designation = normalize(displayDesignation(service) || '');
+  const institution = normalize(displayInstitutionName(service) || '');
+  const type = normalize(mapTypeToLabel(service.type) || '');
+  return designation.includes(term) || institution.includes(term) || type.includes(term);
 }
 
 export function matchesServiceTypeFilter(
@@ -36,9 +87,11 @@ export function matchesServiceTypeFilter(
   serviceTypeFilters: FilterOptions['serviceType']
 ) {
   if (!serviceTypeFilters || serviceTypeFilters.length === 0) return true;
-  const mappedType: FilterOptions['serviceType'][number] =
-    service.type === 'Assurance' ? 'Autre type' : service.type;
-  return serviceTypeFilters.includes(mappedType);
+  const mappedType = mapTypeToLabel(service.type);
+  // Map types: Épargne and Crédit stay as-is, everything else becomes "Autre type"
+  const filterType =
+    mappedType === 'Épargne' || mappedType === 'Crédit' ? mappedType : 'Autre type';
+  return serviceTypeFilters.includes(filterType as FilterOptions['serviceType'][number]);
 }
 
 export function matchesGeographicFilter(
@@ -59,7 +112,8 @@ export function matchesInstitutFilter(
   institutFilters: FilterOptions['institut']
 ) {
   if (!institutFilters || institutFilters.length === 0) return true;
-  return institutFilters.some(institut => service.institution.includes(institut));
+  const instName = displayInstitutionName(service);
+  return institutFilters.some(institut => instName.includes(institut));
 }
 
 export const ServicesDashboard: React.FC = () => {
@@ -81,14 +135,14 @@ export const ServicesDashboard: React.FC = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line'>('bar');
-  const [showComparison, setShowComparison] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [selectedServiceForSchedule, setSelectedServiceForSchedule] =
-    useState<FinancialService | null>(null);
 
-  // Filtrage et tri des produits
+  const [institutionsData, setInstitutionsData] = useState<InstitutionWithServices[]>([]);
+  const [servicesData, setServicesData] = useState<FinancialService[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const filteredAndSortedServices = useMemo(() => {
-    let filtered = [...financialServices];
+    let filtered = [...servicesData];
 
     // Recherche par terme
     if (searchAndFilter.searchTerm) {
@@ -113,10 +167,33 @@ export const ServicesDashboard: React.FC = () => {
 
     // Tri
     filtered.sort((a, b) => {
-      const rawA: string | number = a[searchAndFilter.sortBy];
-      const rawB: string | number = b[searchAndFilter.sortBy];
-      const aValue = typeof rawA === 'string' ? rawA.toLowerCase() : rawA;
-      const bValue = typeof rawB === 'string' ? rawB.toLowerCase() : rawB;
+      let aValue: string | number = '';
+      let bValue: string | number = '';
+
+      if (searchAndFilter.sortBy === 'designation') {
+        aValue = displayDesignation(a).toLowerCase();
+        bValue = displayDesignation(b).toLowerCase();
+      } else if (searchAndFilter.sortBy === 'institution') {
+        aValue = displayInstitutionName(a).toLowerCase();
+        bValue = displayInstitutionName(b).toLowerCase();
+      } else if (searchAndFilter.sortBy === 'type') {
+        aValue = displayType(a).toLowerCase();
+        bValue = displayType(b).toLowerCase();
+      } else if (searchAndFilter.sortBy === 'name' || searchAndFilter.sortBy === 'longName') {
+        const rawA = a[searchAndFilter.sortBy];
+        const rawB = b[searchAndFilter.sortBy];
+        aValue = typeof rawA === 'string' ? rawA.toLowerCase() : '';
+        bValue = typeof rawB === 'string' ? rawB.toLowerCase() : '';
+      } else if (
+        searchAndFilter.sortBy === 'maxAmount' ||
+        searchAndFilter.sortBy === 'interestRate'
+      ) {
+        aValue = (a[searchAndFilter.sortBy] as number) ?? 0;
+        bValue = (b[searchAndFilter.sortBy] as number) ?? 0;
+      } else {
+        aValue = 0;
+        bValue = 0;
+      }
 
       if (aValue < bValue) return searchAndFilter.sortOrder === 'asc' ? -1 : 1;
       if (aValue > bValue) return searchAndFilter.sortOrder === 'asc' ? 1 : -1;
@@ -124,7 +201,69 @@ export const ServicesDashboard: React.FC = () => {
     });
 
     return filtered;
-  }, [searchAndFilter]);
+  }, [searchAndFilter, servicesData]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    function applyInstitutions(institutions: InstitutionWithServices[]) {
+      setInstitutionsData(institutions);
+      const mapped = mapInstitutionsToServices(institutions);
+      setServicesData(mapped);
+    }
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Request a larger page size so the dashboard receives more institutions (and their services).
+        // Backend defaults to limit=10 when no query params are provided. Requesting a bigger limit
+        // avoids truncating services shown in the UI.
+        const resp = await apiClient<{ data: InstitutionWithServices[] }>(
+          'institutions?page=1&limit=100',
+          'GET',
+          null
+        );
+        const institutions: InstitutionWithServices[] = resp?.data || [];
+        if (!cancelled) applyInstitutions(institutions);
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('Failed to load institutions from API', err);
+          setError((err as Error)?.message || 'Erreur lors du chargement des institutions');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Compute dynamic filter option lists from loaded data
+  const dynamicFilterOptions = useMemo(() => {
+    // Service types: map to human-friendly labels and dedupe
+    const types = Array.from(
+      new Set(servicesData.map(s => mapTypeToLabel(s.type) || displayType(s)))
+    ).filter(Boolean) as string[];
+
+    // Geographic zones: collect from institutions' geographicZones
+    const zones = Array.from(
+      new Set(institutionsData.flatMap(inst => inst.geographicZones || []))
+    ) as string[];
+
+    // Institut names
+    const instituts = Array.from(new Set(institutionsData.map(inst => inst.name))).filter(
+      Boolean
+    ) as string[];
+
+    const dates = ['Récente', 'Il y a 3 mois'];
+
+    return { serviceTypes: types, geographicZones: zones, instituts, dates };
+  }, [servicesData, institutionsData]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedServices.length / searchAndFilter.itemsPerPage);
@@ -167,19 +306,36 @@ export const ServicesDashboard: React.FC = () => {
   };
 
   const handleServiceAction = (action: string, service?: FinancialService) => {
-    console.warn(`Action ${action} sur le produit`, { service });
-
-    if (action === 'schedule' && service) {
-      setSelectedServiceForSchedule(service);
-      setShowSchedule(true);
-    }
+    console.warn(`Action ${action} sur le service`, { service });
+    // scheduling action intentionally removed; no-op
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className='p-6 flex items-center justify-center min-h-[400px]'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto' />
+          <p className='mt-4 text-gray-600'>Chargement des services financiers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className='p-6'>
+        <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+          <h3 className='text-red-800 font-semibold mb-2'>Erreur de chargement</h3>
+          <p className='text-red-600'>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='p-6 space-y-6'>
-      {/* Institution Card */}
-      <InstitutionCard institution={institutions[0]} />
-
       {/* Header Section */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0'>
         <h2 className='text-xl font-semibold text-gray-900'>Service(s) financier(s)</h2>
@@ -204,9 +360,7 @@ export const ServicesDashboard: React.FC = () => {
             Graphiques
           </Button>
 
-          <Button variant='outline' icon={GitCompare} onClick={() => setShowComparison(true)}>
-            Comparer
-          </Button>
+          {/* Comparer button removed per request */}
 
           <Button variant='outline' icon={Filter} onClick={() => setIsFilterOpen(true)}>
             Filtrer
@@ -301,42 +455,12 @@ export const ServicesDashboard: React.FC = () => {
         onFiltersChange={handleFiltersChange}
         isOpen={isFilterOpen}
         onToggle={() => setIsFilterOpen(!isFilterOpen)}
+        options={dynamicFilterOptions}
       />
 
-      {/* Service Comparison Modal */}
-      <ServiceComparison
-        services={filteredAndSortedServices}
-        isOpen={showComparison}
-        onClose={() => setShowComparison(false)}
-      />
+      {/* Service comparison feature removed */}
 
-      {/* Payment Schedule Modal */}
-      {showSchedule && selectedServiceForSchedule && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto'>
-            <div className='sticky top-0 bg-white border-b border-gray-200 p-4'>
-              <div className='flex justify-between items-center'>
-                <h2 className='text-xl font-semibold text-gray-900'>
-                  Échéancier - {selectedServiceForSchedule.designation}
-                </h2>
-                <button
-                  onClick={() => setShowSchedule(false)}
-                  className='text-gray-400 hover:text-gray-600'
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-            <div className='p-6'>
-              <PaymentSchedule
-                service={selectedServiceForSchedule}
-                amount={1000000}
-                duration={12}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Scheduling feature removed */}
     </div>
   );
 };

@@ -1,60 +1,97 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import * as React from 'react';
 
 import { ServicesGrid } from '@/components/services-financiers/ServicesGrid';
-import { formatCurrency, formatPercentage } from '@/data/MockData';
+import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import type { FinancialService } from '@/types/FinancialServices';
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
-  Eye: () => <span data-testid='eye-icon'>👁</span>,
-  CreditCard: () => <span data-testid='edit-icon'>✏️</span>,
-  Trash2: () => <span data-testid='trash-icon'>🗑️</span>,
-  Calendar: () => <span data-testid='calendar-icon'>📅</span>,
+  Eye: () => React.createElement('span', { 'data-testid': 'eye-icon' }, '👁'),
+  CreditCard: () => React.createElement('span', { 'data-testid': 'edit-icon' }, '✏️'),
+  Trash2: () => React.createElement('span', { 'data-testid': 'trash-icon' }, '🗑️'),
+  Calendar: () => React.createElement('span', { 'data-testid': 'calendar-icon' }, '📅'),
 }));
 
 // Mock Badge component
 jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, variant }: any) => (
-    <span data-testid='badge' data-variant={variant}>
-      {children}
-    </span>
-  ),
+  Badge: ({ children, variant }: any) =>
+    React.createElement('span', { 'data-testid': 'badge', 'data-variant': variant }, children),
 }));
 
 // Mock formatCurrency and formatPercentage
-jest.mock('@/data/MockData', () => ({
+jest.mock('@/lib/formatters', () => ({
   formatCurrency: jest.fn(),
   formatPercentage: jest.fn((rate: number) => `${rate}%`),
 }));
 
+const mockInstitution1 = {
+  id: 'inst-1',
+  name: 'Société Générale',
+  description: 'Banque internationale',
+  website: 'https://sg.com',
+  geographicZones: ['Zone Géo A'],
+  logoUrl: 'https://sg.com/logo.png',
+  status: 'ACTIVE' as const,
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+};
+
+const mockInstitution2 = {
+  id: 'inst-2',
+  name: 'Banque Atlantique',
+  description: 'Banque régionale',
+  website: 'https://ba.com',
+  geographicZones: ['Zone Géo A', 'Zone Géo B'],
+  logoUrl: 'https://ba.com/logo.png',
+  status: 'ACTIVE' as const,
+  createdAt: '2024-01-02',
+  updatedAt: '2024-01-02',
+};
+
 const mockServices: FinancialService[] = [
   {
     id: '1',
+    name: 'epargne-jeune',
+    longName: 'Epargne Jeune',
     designation: 'Epargne Jeune',
-    type: 'Epargne',
-    institution: 'Société Générale',
+    type: 'EPARGNE',
+    frais: {},
+    conditionAccess: [],
+    plafonds: [],
+    infrastructureAccess: [],
+    institutionId: 'inst-1',
+    institution: mockInstitution1,
     maxAmount: 1000000,
     interestRate: 5.5,
     reimbursement: 'Mensuel',
-    status: 'ACTIF',
+    status: 'ACTIVE',
     geographicZones: ['Zone Géo A'],
     createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
     description: 'Compte épargne pour les jeunes',
     minAmount: 10000,
   },
   {
     id: '2',
+    name: 'credit-immobilier',
+    longName: 'Crédit Immobilier',
     designation: 'Crédit Immobilier',
-    type: 'Crédit',
-    institution: 'Banque Atlantique',
+    type: 'CREDIT',
+    frais: {},
+    conditionAccess: [],
+    plafonds: [],
+    infrastructureAccess: [],
+    institutionId: 'inst-2',
+    institution: mockInstitution2,
     maxAmount: 50000000,
     interestRate: 7.2,
     reimbursement: 'Mensuel',
-    status: 'ACTIF',
+    status: 'ACTIVE',
     geographicZones: ['Zone Géo A', 'Zone Géo B'],
     createdAt: '2024-01-02',
+    updatedAt: '2024-01-02',
     description: "Crédit pour l'achat immobilier",
     minAmount: 5000000,
   },
@@ -115,7 +152,7 @@ describe('ServicesGrid', () => {
       const badges = screen.getAllByTestId('badge');
       expect(badges.length).toBeGreaterThan(0);
 
-      const epargneBadge = screen.getByText('Epargne');
+      const epargneBadge = screen.getByText('Épargne');
       expect(epargneBadge).toBeInTheDocument();
     });
 
@@ -149,14 +186,14 @@ describe('ServicesGrid', () => {
       expect(formatPercentage).toHaveBeenCalledWith(5.5);
     });
 
-    it('should display reimbursement information', () => {
+    it('should display interest rate and max amount (reimbursement removed)', () => {
       render(<ServicesGrid {...defaultProps} />);
 
-      const reimbursementLabels = screen.getAllByText('Remboursement:');
-      expect(reimbursementLabels.length).toBeGreaterThan(0);
+      const tauxLabels = screen.getAllByText('Taux:');
+      expect(tauxLabels.length).toBeGreaterThan(0);
 
-      const mensuelElements = screen.getAllByText('Mensuel');
-      expect(mensuelElements.length).toBeGreaterThan(0);
+      const maxAmount = screen.getAllByText(/\$1[,\s\u202F]?000[,\s\u202F]?000/);
+      expect(maxAmount.length).toBeGreaterThan(0);
     });
 
     it('should display service description', () => {
@@ -193,7 +230,7 @@ describe('ServicesGrid', () => {
     it('should use correct badge variant for Epargne type', () => {
       render(<ServicesGrid {...defaultProps} />);
 
-      const epargneBadge = screen.getByText('Epargne');
+      const epargneBadge = screen.getByText('Épargne');
       expect(epargneBadge).toHaveAttribute('data-variant', 'info');
     });
 
@@ -208,7 +245,7 @@ describe('ServicesGrid', () => {
       const servicesWithOtherType = [
         {
           ...mockServices[0],
-          type: 'Assurance' as any,
+          type: 'ASSURANCE' as const,
         },
       ];
 
@@ -317,15 +354,31 @@ describe('ServicesGrid', () => {
       const incompleteService = [
         {
           id: '1',
+          name: 'test-service',
+          longName: 'Test Service',
           designation: 'Test Service',
-          type: 'Epargne' as const,
-          institution: 'Test Bank',
+          type: 'EPARGNE' as const,
+          frais: {},
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-test',
+          institution: {
+            id: 'inst-test',
+            name: 'Test Bank',
+            description: 'Test',
+            status: 'ACTIVE' as const,
+            geographicZones: [],
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+          },
           maxAmount: 100000,
           interestRate: 5.0,
           reimbursement: 'Mensuel',
-          status: 'ACTIF' as const,
+          status: 'ACTIVE' as const,
           geographicZones: [],
           createdAt: '2024-01-01',
+          updatedAt: '2024-01-01',
           description: 'Test description',
           minAmount: 10000,
         },
@@ -335,7 +388,7 @@ describe('ServicesGrid', () => {
 
       expect(screen.getByText('Test Service')).toBeInTheDocument();
       expect(screen.getByText('Test Bank')).toBeInTheDocument();
-      expect(screen.getByText('Epargne')).toBeInTheDocument();
+      expect(screen.getByText('Épargne')).toBeInTheDocument();
     });
 
     it('should handle special characters in service data', () => {
@@ -349,7 +402,8 @@ describe('ServicesGrid', () => {
 
       render(<ServicesGrid {...defaultProps} services={specialCharService} />);
 
-      expect(screen.getByText('Service with spécial charácters & symbols!')).toBeInTheDocument();
+      // The component displays the name field, not the designation
+      expect(screen.getByText('epargne-jeune')).toBeInTheDocument();
       expect(
         screen.getByText('Description with émojis 🚀 and spécial çhârâctérs')
       ).toBeInTheDocument();
@@ -359,8 +413,7 @@ describe('ServicesGrid', () => {
       const longNameService = [
         {
           ...mockServices[0],
-          designation:
-            'This is an extremely long service designation that might cause layout issues if not handled properly by the component',
+          name: 'This is an extremely long service designation that might cause layout issues if not handled properly by the component',
         },
       ];
 
@@ -405,12 +458,12 @@ describe('ServicesGrid', () => {
       const manyServices = Array.from({ length: 100 }, (_, i) => ({
         ...mockServices[0],
         id: `service-${i}`,
-        designation: `Service ${i}`,
+        name: `service-${i}`,
       }));
 
       render(<ServicesGrid {...defaultProps} services={manyServices} />);
 
-      const cards = screen.getAllByText(/Service \d+/);
+      const cards = screen.getAllByText(/service-\d+/);
       expect(cards).toHaveLength(100);
     });
 
@@ -430,15 +483,31 @@ describe('ServicesGrid', () => {
       const malformedService = [
         {
           id: '1',
+          name: '',
+          longName: '',
           designation: '',
-          type: 'Epargne' as const,
-          institution: '',
+          type: 'EPARGNE' as const,
+          frais: {},
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: '',
+          institution: {
+            id: '',
+            name: '',
+            description: '',
+            status: 'ACTIVE' as const,
+            geographicZones: [],
+            createdAt: '',
+            updatedAt: '',
+          },
           maxAmount: 0,
           interestRate: 0,
           reimbursement: '',
-          status: 'ACTIF' as const,
+          status: 'ACTIVE' as const,
           geographicZones: [],
           createdAt: '',
+          updatedAt: '',
           description: '',
           minAmount: 0,
         },

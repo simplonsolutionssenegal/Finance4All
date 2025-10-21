@@ -9,6 +9,13 @@ interface ServiceFiltersProps {
   onFiltersChange: (filters: FilterOptions) => void;
   isOpen: boolean;
   onToggle: () => void;
+  // dynamic options provided by parent (ServicesDashboard)
+  options?: {
+    serviceTypes?: string[];
+    geographicZones?: string[];
+    instituts?: string[];
+    dates?: string[];
+  };
 }
 
 export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
@@ -16,6 +23,7 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
   onFiltersChange,
   isOpen,
   onToggle,
+  options,
 }) => {
   const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
 
@@ -24,11 +32,6 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
   }, [filters]);
 
   const handleFilterChange = (category: keyof FilterOptions, value: string) => {
-    if (category === 'date') {
-      setLocalFilters(prev => ({ ...prev, [category]: value as FilterOptions['date'] }));
-      return;
-    }
-
     const currentValues = localFilters[category] as string[];
     const newValues = currentValues.includes(value)
       ? currentValues.filter(v => v !== value)
@@ -87,7 +90,7 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
         <div className='space-y-6'>
           <div>
             <div className='flex justify-between items-center mb-4'>
-              <h4 className='font-semibold text-gray-900 text-base'>Type de produit</h4>
+              <h4 className='font-semibold text-gray-900 text-base'>Types de service</h4>
               <button
                 onClick={handleResetLocal}
                 tabIndex={-1}
@@ -98,8 +101,11 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
             </div>
 
             <div className='flex flex-wrap gap-2'>
-              {['Epargne', 'Crédit', 'Autre type'].map(type => {
-                const isSelected = localFilters.serviceType.includes(type as any);
+              {(options?.serviceTypes?.length
+                ? options.serviceTypes
+                : ['Epargne', 'Crédit', 'Autre type']
+              ).map((type: string) => {
+                const isSelected = (localFilters.serviceType as string[]).includes(type);
                 return (
                   <label
                     key={type}
@@ -128,10 +134,13 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
           </div>
 
           <div>
-            <h4 className='font-semibold text-gray-900 text-base mb-4'>Zone géographique</h4>
+            <h4 className='font-semibold text-gray-900 text-base mb-4'>Zones géographiques</h4>
             <div className='flex flex-wrap gap-2'>
-              {['Zone Géo A', 'Zone Géo B'].map(zone => {
-                const isSelected = localFilters.geographicZone.includes(zone as any);
+              {(options?.geographicZones?.length
+                ? options.geographicZones
+                : ['Zone Géo A', 'Zone Géo B']
+              ).map((zone: string) => {
+                const isSelected = (localFilters.geographicZone as string[]).includes(zone);
                 return (
                   <label
                     key={zone}
@@ -160,10 +169,13 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
           </div>
 
           <div>
-            <h4 className='font-semibold text-gray-900 text-base mb-4'>Institut</h4>
+            <h4 className='font-semibold text-gray-900 text-base mb-4'>Instituts</h4>
             <div className='flex flex-wrap gap-2'>
-              {['SIMPLON', 'PAYTECH SN', 'ODK'].map(institut => {
-                const isSelected = localFilters.institut.includes(institut as any);
+              {(options?.instituts?.length
+                ? options.instituts
+                : ['SIMPLON', 'PAYTECH SN', 'ODK']
+              ).map((institut: string) => {
+                const isSelected = (localFilters.institut as string[]).includes(institut);
                 return (
                   <label
                     key={institut}
@@ -191,38 +203,7 @@ export const ServiceFilters: React.FC<ServiceFiltersProps> = ({
             </div>
           </div>
 
-          <div>
-            <h4 className='font-semibold text-gray-900 text-base mb-4'>Date</h4>
-            <div className='flex flex-wrap gap-2'>
-              {['Récente', 'Il y a 3 mois'].map(date => {
-                const isSelected = localFilters.date === date;
-                return (
-                  <label
-                    key={date}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md border-2 font-medium text-xs transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-green-600 bg-green-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type='radio'
-                      name='date'
-                      className='sr-only'
-                      checked={isSelected}
-                      onChange={() => handleFilterChange('date', date)}
-                    />
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-green-600' : 'border-2 border-gray-300'}`}
-                    >
-                      {isSelected && <Check className='w-2.5 h-2.5 text-white stroke-[2]' />}
-                    </div>
-                    <span className='text-gray-700 text-xs'>{date}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          {/* Date filter removed */}
         </div>
 
         <div className='flex gap-3 mt-6 pt-4'>

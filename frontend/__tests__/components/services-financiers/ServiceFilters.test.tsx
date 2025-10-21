@@ -1,17 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import * as React from 'react';
 
 import { ServiceFilters } from '@/components/services-financiers/ServiceFilters';
 import type { FilterOptions } from '@/types/FinancialServices';
 
 // Mock the Button component since it's imported
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, variant, className }: any) => (
-    <button onClick={onClick} className={className} data-variant={variant}>
-      {children}
-    </button>
-  ),
+  Button: ({ children, onClick, variant, className }: any) =>
+    React.createElement('button', { onClick, className, 'data-variant': variant }, children),
 }));
 
 const mockOnFiltersChange = jest.fn();
@@ -22,7 +19,7 @@ const defaultProps = {
     serviceType: [],
     geographicZone: [],
     institut: [],
-    date: 'Récente' as const,
+    date: 'Récente' as FilterOptions['date'],
   },
   onFiltersChange: mockOnFiltersChange,
   isOpen: true,
@@ -43,10 +40,10 @@ describe('ServiceFilters', () => {
     it('should render modal when isOpen is true', () => {
       render(<ServiceFilters {...defaultProps} isOpen={true} />);
       expect(screen.getByText('Filtres')).toBeInTheDocument();
-      expect(screen.getByText('Type de produit')).toBeInTheDocument();
-      expect(screen.getByText('Zone géographique')).toBeInTheDocument();
-      expect(screen.getByText('Institut')).toBeInTheDocument();
-      expect(screen.getByText('Date')).toBeInTheDocument();
+      expect(screen.getByText('Types de service')).toBeInTheDocument();
+      // Component now uses pluralized heading
+      expect(screen.getByText('Zones géographiques')).toBeInTheDocument();
+      expect(screen.getByText('Instituts') || screen.getByText('Institut')).toBeInTheDocument();
     });
 
     it('should render close button', () => {
@@ -73,9 +70,7 @@ describe('ServiceFilters', () => {
       expect(screen.getByText('PAYTECH SN')).toBeInTheDocument();
       expect(screen.getByText('ODK')).toBeInTheDocument();
 
-      // Check dates
-      expect(screen.getByText('Récente')).toBeInTheDocument();
-      expect(screen.getByText('Il y a 3 mois')).toBeInTheDocument();
+      // Date filter removed from UI
     });
 
     it('should render action buttons', () => {
@@ -139,7 +134,7 @@ describe('ServiceFilters', () => {
         serviceType: ['Epargne'],
         geographicZone: ['Zone Géo A'],
         institut: ['SIMPLON'],
-        date: 'Récente',
+        date: 'Récente' as FilterOptions['date'],
       };
 
       render(<ServiceFilters {...defaultProps} filters={initialFilters} />);
@@ -154,36 +149,7 @@ describe('ServiceFilters', () => {
     });
   });
 
-  describe('Radio button interactions', () => {
-    it('should handle date radio button selection', async () => {
-      const user = userEvent.setup();
-      render(<ServiceFilters {...defaultProps} />);
-
-      const oldDateRadio = screen.getByRole('radio', { name: /il y a 3 mois/i });
-      await user.click(oldDateRadio);
-
-      expect(mockOnFiltersChange).not.toHaveBeenCalled(); // Should only update local state
-    });
-
-    it('should maintain only one selected date option', async () => {
-      const user = userEvent.setup();
-      render(<ServiceFilters {...defaultProps} />);
-
-      const recentRadio = screen.getByRole('radio', { name: /récente/i });
-      const oldDateRadio = screen.getByRole('radio', { name: /il y a 3 mois/i });
-
-      // Initially, "Récente" should be checked
-      expect(recentRadio).toBeChecked();
-      expect(oldDateRadio).not.toBeChecked();
-
-      // Click the old date option
-      await user.click(oldDateRadio);
-
-      // Now only old date should be checked
-      expect(recentRadio).not.toBeChecked();
-      expect(oldDateRadio).toBeChecked();
-    });
-  });
+  // Date filter removed - radio tests omitted
 
   describe('Reset functionality', () => {
     it('should reset all filters when reset button is clicked', async () => {
@@ -194,7 +160,7 @@ describe('ServiceFilters', () => {
         serviceType: ['Epargne'],
         geographicZone: ['Zone Géo A'],
         institut: ['SIMPLON'],
-        date: 'Il y a 3 mois',
+        date: 'Récente' as FilterOptions['date'],
       };
 
       render(<ServiceFilters {...defaultProps} filters={initialFilters} />);
@@ -203,14 +169,11 @@ describe('ServiceFilters', () => {
       const resetButton = screen.getByText('Réinstaller');
       await user.click(resetButton);
 
-      // All checkboxes should be unchecked and radio should be reset to default
+      // All checkboxes should be unchecked
       const epargneCheckbox = screen.getByRole('checkbox', { name: /epargne/i });
       const zoneCheckbox = screen.getByRole('checkbox', { name: /zone géo a/i });
-      const recentRadio = screen.getByRole('radio', { name: /récente/i });
-
       expect(epargneCheckbox).not.toBeChecked();
       expect(zoneCheckbox).not.toBeChecked();
-      expect(recentRadio).toBeChecked();
     });
   });
 
@@ -254,7 +217,7 @@ describe('ServiceFilters', () => {
         serviceType: ['Epargne'],
         geographicZone: ['Zone Géo A'],
         institut: ['SIMPLON'],
-        date: 'Il y a 3 mois',
+        date: 'Récente' as FilterOptions['date'],
       };
 
       render(<ServiceFilters {...defaultProps} filters={initialFilters} />);
@@ -263,12 +226,9 @@ describe('ServiceFilters', () => {
       const epargneCheckbox = screen.getByRole('checkbox', { name: /epargne/i });
       const zoneCheckbox = screen.getByRole('checkbox', { name: /zone géo a/i });
       const simplonCheckbox = screen.getByRole('checkbox', { name: /simplon/i });
-      const oldDateRadio = screen.getByRole('radio', { name: /il y a 3 mois/i });
-
       expect(epargneCheckbox).toBeChecked();
       expect(zoneCheckbox).toBeChecked();
       expect(simplonCheckbox).toBeChecked();
-      expect(oldDateRadio).toBeChecked();
     });
 
     it('should handle empty arrays in filters', () => {
@@ -276,7 +236,7 @@ describe('ServiceFilters', () => {
         serviceType: [],
         geographicZone: [],
         institut: [],
-        date: 'Récente',
+        date: 'Récente' as FilterOptions['date'],
       };
 
       render(<ServiceFilters {...defaultProps} filters={emptyFilters} />);
@@ -299,10 +259,6 @@ describe('ServiceFilters', () => {
       // Check that checkboxes have proper labels
       const epargneCheckbox = screen.getByRole('checkbox', { name: /epargne/i });
       expect(epargneCheckbox).toBeInTheDocument();
-
-      // Check that radio buttons have proper labels
-      const recentRadio = screen.getByRole('radio', { name: /récente/i });
-      expect(recentRadio).toBeInTheDocument();
     });
 
     it('should be keyboard navigable', async () => {

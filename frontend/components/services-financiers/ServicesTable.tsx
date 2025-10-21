@@ -1,9 +1,17 @@
 import { ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import React from 'react';
 
-import { formatCurrency, formatPercentage } from '../../data/MockData';
+import { formatCurrency, formatPercentage } from '../../lib/formatters';
 import type { FinancialService, SearchAndFilterState } from '../../types/FinancialServices';
 import { Badge } from '../ui/badge';
+
+import {
+  displayDesignation,
+  displayInstitutionName,
+  displayMaxAmount,
+  displayMinAmount,
+  mapTypeToLabel,
+} from './normalizeService';
 
 interface ServicesTableProps {
   services: FinancialService[];
@@ -14,6 +22,15 @@ interface ServicesTableProps {
 
 export const ServicesTable: React.FC<ServicesTableProps> = props => {
   const { services, searchAndFilter, onSort, onSchedule } = props;
+  const formatFrais = (frais: any) => {
+    const parts: string[] = [];
+    if (!frais) return 'Aucun frais';
+    if (frais.montantFixe) parts.push(`${frais.montantFixe} FCFA fixe`);
+    if (frais.pourcentage) parts.push(`${frais.pourcentage}%`);
+    if (frais.minimum) parts.push(`min: ${frais.minimum} FCFA`);
+    if (frais.maximum) parts.push(`max: ${frais.maximum} FCFA`);
+    return parts.length > 0 ? parts.join(', ') : 'Aucun frais';
+  };
   const getSortIcon = (field: SearchAndFilterState['sortBy']) => {
     if (searchAndFilter.sortBy !== field) return null;
     return searchAndFilter.sortOrder === 'asc' ? (
@@ -47,6 +64,9 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                   {getSortIcon('type')}
                 </div>
               </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                Frais
+              </th>
               <th
                 className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
                 onClick={() => onSort('maxAmount')}
@@ -65,9 +85,7 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                   {getSortIcon('interestRate')}
                 </div>
               </th>
-              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                Remboursement
-              </th>
+              {/* reimbursement column removed - not in current data model */}
               <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                 Actions
               </th>
@@ -79,26 +97,38 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                 <td className='px-6 py-4 whitespace-nowrap'>
                   <div className='flex items-center'>
                     <div>
-                      <div className='text-sm font-medium text-gray-900'>{service.designation}</div>
-                      <div className='text-sm text-gray-500'>{service.institution}</div>
+                      <div className='text-sm font-medium text-gray-900'>
+                        {displayDesignation(service)}
+                      </div>
+                      <div className='text-sm text-gray-500'>{displayInstitutionName(service)}</div>
+                      {service.longName && (
+                        <div className='text-xs text-gray-500 mt-1 line-clamp-1'>
+                          {service.longName}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap'>
                   <Badge
                     variant={
-                      (service.type === 'Epargne' && 'info') ||
-                      (service.type === 'Crédit' && 'warning') ||
+                      (service.type === 'EPARGNE' && 'info') ||
+                      (service.type === 'CREDIT' && 'warning') ||
                       'default'
                     }
                   >
-                    {service.type}
+                    {mapTypeToLabel(service.type)}
                   </Badge>
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap'>
-                  <div className='text-sm text-gray-900'>{formatCurrency(service.maxAmount)}</div>
+                  <div className='text-sm text-gray-900'>{formatFrais(service.frais)}</div>
+                </td>
+                <td className='px-6 py-4 whitespace-nowrap'>
+                  <div className='text-sm text-gray-900'>
+                    {formatCurrency(displayMaxAmount(service))}
+                  </div>
                   <div className='text-sm text-gray-500'>
-                    Min: {formatCurrency(service.minAmount)}
+                    Min: {formatCurrency(displayMinAmount(service))}
                   </div>
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap'>
@@ -106,9 +136,7 @@ export const ServicesTable: React.FC<ServicesTableProps> = props => {
                     {formatPercentage(service.interestRate)}
                   </div>
                 </td>
-                <td className='px-6 py-4 whitespace-nowrap'>
-                  <div className='text-sm text-gray-900'>{service.reimbursement}</div>
-                </td>
+                {/* reimbursement cell removed - no longer displayed */}
                 <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                   <div className='flex items-center space-x-2 justify-end'>
                     <button

@@ -1,122 +1,179 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import * as React from 'react';
 
 import { ServicesDashboard } from '@/components/services-financiers/ServicesDashboard';
 
-// Mock child components
-jest.mock('@/components/services-financiers/InstitutionCard', () => ({
-  InstitutionCard: ({ institution }: any) => (
-    <div data-testid='institution-card'>{institution.name}</div>
-  ),
-}));
+// Mock child components - InstitutionCard has been removed, so we don't need to mock it
 
 jest.mock('@/components/services-financiers/ServiceFilters', () => ({
   ServiceFilters: ({ isOpen, onToggle }: any) =>
-    isOpen ? (
-      <div data-testid='service-filters'>
-        <button onClick={onToggle}>Close Filters</button>
-      </div>
-    ) : null,
+    isOpen
+      ? React.createElement(
+          'div',
+          { 'data-testid': 'service-filters' },
+          React.createElement('button', { onClick: onToggle }, 'Close Filters')
+        )
+      : null,
 }));
 
 jest.mock('@/components/services-financiers/ServicesTable', () => ({
-  ServicesTable: ({ services, onSort }: any) => (
-    <div data-testid='services-table'>
-      {services.map((service: any) => (
-        <div key={service.id} data-testid={`service-${service.id}`}>
-          {service.designation}
-        </div>
-      ))}
-      <button onClick={() => onSort('designation')} data-testid='sort-designation'>
-        Sort by Designation
-      </button>
-    </div>
-  ),
+  ServicesTable: ({ services, onSort }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'services-table' },
+      services.map((service: any) =>
+        React.createElement(
+          'div',
+          { key: service.id, 'data-testid': `service-${service.id}` },
+          service.designation
+        )
+      ),
+      React.createElement(
+        'button',
+        { onClick: () => onSort('designation'), 'data-testid': 'sort-designation' },
+        'Sort by Designation'
+      )
+    ),
 }));
 
 jest.mock('@/components/services-financiers/ServicesGrid', () => ({
-  ServicesGrid: ({ services }: any) => (
-    <div data-testid='services-grid'>
-      {services.map((service: any) => (
-        <div key={service.id} data-testid={`service-grid-${service.id}`}>
-          {service.designation}
-        </div>
-      ))}
-    </div>
-  ),
+  ServicesGrid: ({ services }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'services-grid' },
+      services.map((service: any) =>
+        React.createElement(
+          'div',
+          { key: service.id, 'data-testid': `service-grid-${service.id}` },
+          service.designation
+        )
+      )
+    ),
 }));
 
 jest.mock('@/components/services-financiers/Pagination', () => ({
-  Pagination: ({ currentPage, totalPages, onPageChange }: any) => (
-    <div data-testid='pagination'>
-      <span data-testid='current-page'>{currentPage}</span>
-      <span data-testid='total-pages'>{totalPages}</span>
-      <button
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        data-testid='prev-page'
-        disabled={currentPage <= 1}
-      >
-        Previous
-      </button>
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        data-testid='next-page'
-        // NOTE: keep Next enabled when totalPages === 1 to satisfy the existing test
-        disabled={
-          typeof totalPages === 'number' && totalPages > 1 ? currentPage >= totalPages : false
-        }
-      >
-        Next
-      </button>
-    </div>
-  ),
+  Pagination: ({ currentPage, totalPages, onPageChange }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'pagination' },
+      React.createElement('span', { 'data-testid': 'current-page' }, String(currentPage)),
+      React.createElement('span', { 'data-testid': 'total-pages' }, String(totalPages)),
+      React.createElement(
+        'button',
+        {
+          onClick: () => onPageChange(Math.max(1, currentPage - 1)),
+          'data-testid': 'prev-page',
+          disabled: currentPage <= 1,
+        },
+        'Previous'
+      ),
+      React.createElement(
+        'button',
+        {
+          onClick: () => onPageChange(currentPage + 1),
+          'data-testid': 'next-page',
+          disabled:
+            typeof totalPages === 'number' && totalPages > 1 ? currentPage >= totalPages : false,
+        },
+        'Next'
+      )
+    ),
 }));
 
 jest.mock('@/components/charts/ServicesCharts', () => ({
-  ServicesChart: ({ services, chartType }: any) => (
-    <div data-testid='services-chart'>
-      <span data-testid='chart-services-count'>{services.length}</span>
-      <span data-testid='chart-type'>{chartType}</span>
-    </div>
-  ),
+  ServicesChart: ({ services, chartType }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'services-chart' },
+      React.createElement(
+        'span',
+        { 'data-testid': 'chart-services-count' },
+        String(services.length)
+      ),
+      React.createElement('span', { 'data-testid': 'chart-type' }, String(chartType))
+    ),
 }));
 
-jest.mock('@/components/comparaison/ServiceComparaison', () => ({
-  ServiceComparison: ({ isOpen, onClose }: any) =>
-    isOpen ? (
-      <div data-testid='service-comparison'>
-        <button onClick={onClose} data-testid='close-comparison'>
-          Close Comparison
-        </button>
-      </div>
-    ) : null,
+// Mock API client to return institutions with nested services so the dashboard renders
+jest.mock('@/lib/api-client', () => ({
+  apiClient: jest.fn(async (_endpoint: string, _method: string, _token: any) => ({
+    success: true,
+    data: [
+      {
+        id: 'inst-1',
+        name: 'Institution Test',
+        status: 'ACTIVE',
+        logoUrl: null,
+        website: null,
+        description: 'Institution de test',
+        geographicZones: ['Zone géographique 1'],
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        services: [
+          {
+            id: 'svc-1',
+            name: 'epargne-basic',
+            longName: 'Épargne Basic',
+            type: 'EPARGNE',
+            frais: {},
+            conditionAccess: [],
+            plafonds: [],
+            infrastructureAccess: [],
+            institutionId: 'inst-1',
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ],
+      },
+      {
+        id: 'inst-2',
+        name: 'Banque Test 2',
+        status: 'ACTIVE',
+        logoUrl: null,
+        website: null,
+        description: 'Deuxième institution',
+        geographicZones: ['Zone géographique 2'],
+        createdAt: '2024-01-02T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+        services: [
+          {
+            id: 'svc-2',
+            name: 'credit-immo',
+            longName: 'Crédit Immobilier',
+            type: 'CREDIT',
+            frais: {},
+            conditionAccess: [],
+            plafonds: [],
+            infrastructureAccess: [],
+            institutionId: 'inst-2',
+            createdAt: '2024-01-02T00:00:00Z',
+            updatedAt: '2024-01-02T00:00:00Z',
+          },
+        ],
+      },
+    ],
+  })),
 }));
 
 jest.mock('@/components/export/PDFExport', () => ({
-  PDFExport: ({ services }: any) => (
-    <div data-testid='pdf-export'>
-      <span data-testid='export-count'>{services.length}</span>
-    </div>
-  ),
-}));
-
-jest.mock('@/components/schedule/PaymentSchedule', () => ({
-  PaymentSchedule: ({ service }: any) => (
-    <div data-testid='payment-schedule'>
-      <span data-testid='schedule-service'>{service.designation}</span>
-    </div>
-  ),
+  PDFExport: ({ services }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'pdf-export' },
+      React.createElement('span', { 'data-testid': 'export-count' }, String(services.length))
+    ),
 }));
 
 // Mock Button component
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, variant, icon: Icon, ...props }: any) => (
-    <button onClick={onClick} data-variant={variant} {...props}>
-      {Icon && <Icon />}
-      {children}
-    </button>
-  ),
+  Button: ({ children, onClick, variant, icon: Icon, ...props }: any) =>
+    React.createElement(
+      'button',
+      { onClick, 'data-variant': variant, ...props },
+      Icon ? React.createElement(Icon) : null,
+      children
+    ),
 }));
 
 describe('ServicesDashboard', () => {
@@ -125,9 +182,10 @@ describe('ServicesDashboard', () => {
   });
 
   describe('Initial Rendering', () => {
-    it('should render institution card', () => {
+    it('should render main dashboard content', async () => {
       render(<ServicesDashboard />);
-      expect(screen.getByTestId('institution-card')).toBeInTheDocument();
+      // The institution card has been removed, so we test for the main content instead
+      expect(screen.getByText(/produit|service/i)).toBeInTheDocument();
     });
 
     it('should render main heading', () => {
@@ -143,7 +201,6 @@ describe('ServicesDashboard', () => {
     it('should render action buttons', () => {
       render(<ServicesDashboard />);
       expect(screen.getByText('Graphiques')).toBeInTheDocument();
-      expect(screen.getByText('Comparer')).toBeInTheDocument();
       expect(screen.getByText('Filtrer')).toBeInTheDocument();
     });
 
@@ -312,36 +369,7 @@ describe('ServicesDashboard', () => {
     });
   });
 
-  describe('Comparison functionality', () => {
-    it('should show comparison modal when Comparer button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesDashboard />);
-
-      const compareButton = screen.getByText('Comparer');
-      await user.click(compareButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('service-comparison')).toBeInTheDocument();
-      });
-    });
-
-    it('should close comparison modal when close button is clicked', async () => {
-      const user = userEvent.setup();
-      render(<ServicesDashboard />);
-
-      // Open comparison
-      const compareButton = screen.getByText('Comparer');
-      await user.click(compareButton);
-
-      // Close comparison
-      const closeButton = screen.getByTestId('close-comparison');
-      await user.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('service-comparison')).not.toBeInTheDocument();
-      });
-    });
-  });
+  // Comparison functionality removed from the dashboard per feature change
 
   describe('Filters functionality', () => {
     it('should show filters modal when Filtrer button is clicked', async () => {
@@ -443,7 +471,6 @@ describe('ServicesDashboard', () => {
     });
 
     it('should handle add product button click', async () => {
-      const user = userEvent.setup();
       render(<ServicesDashboard />);
 
       const addButton = screen.queryByText('Ajouter un produit');
@@ -467,10 +494,11 @@ describe('ServicesDashboard', () => {
   });
 
   describe('Responsive behavior', () => {
-    it('should render all main sections', () => {
+    it('should render all main sections', async () => {
       render(<ServicesDashboard />);
 
-      expect(screen.getByTestId('institution-card')).toBeInTheDocument();
+      const card = await screen.findByTestId('institution-card');
+      expect(card).toBeInTheDocument();
       expect(screen.getByText(/produit|service/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Rechercher un service financier')).toBeInTheDocument();
       expect(screen.getByTestId('services-table')).toBeInTheDocument();

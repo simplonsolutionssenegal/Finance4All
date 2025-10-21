@@ -28,7 +28,7 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
     return (
       <div className='bg-white rounded-lg border border-gray-200 p-6'>
         <h3 className='text-lg font-semibold text-gray-900 mb-4'>
-          Analyse des Produits Financiers
+          Analyse des Services Financiers
         </h3>
         <div className='flex items-center justify-center h-64 text-gray-500'>
           Aucun service à afficher
@@ -85,8 +85,22 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
   }, []);
 
   // Données pour graphique linéaire - Évolution des taux
+  // Données pour graphique linéaire - Évolution des taux
   const lineData: Array<{ name: string; taux: number; montant: number }> = services
-    .filter(service => service && service.designation && typeof service.interestRate === 'number')
+    .filter(
+      (
+        service
+      ): service is FinancialService & {
+        designation: string;
+        interestRate: number;
+        maxAmount: number;
+      } =>
+        Boolean(service) &&
+        typeof service.designation === 'string' &&
+        service.designation.length > 0 &&
+        typeof service.interestRate === 'number' &&
+        typeof service.maxAmount === 'number'
+    )
     .map(service => ({
       name: `${service.designation.substring(0, 10)}...`,
       taux: service.interestRate,
@@ -102,10 +116,10 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
         <Tooltip
           formatter={(value: number, name: string) => [
             name === 'avgAmount' ? `${value.toLocaleString()} FCFA` : value,
-            name === 'avgAmount' ? 'Montant moyen' : name === 'count' ? 'Nombre de produits' : name,
+            name === 'avgAmount' ? 'Montant moyen' : name === 'count' ? 'Nombre de services' : name,
           ]}
         />
-        <Bar dataKey='count' fill='#14b8a6' name='Nombre de produits' />
+        <Bar dataKey='count' fill='#14b8a6' name='Nombre de services' />
         <Bar dataKey='avgAmount' fill='#f59e0b' name='Montant moyen' />
       </BarChart>
     </ResponsiveContainer>
@@ -153,7 +167,7 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ services, chartTyp
 
   return (
     <div className='bg-white rounded-lg border border-gray-200 p-6'>
-      <h3 className='text-lg font-semibold text-gray-900 mb-4'>Analyse des Produits Financiers</h3>
+      <h3 className='text-lg font-semibold text-gray-900 mb-4'>Analyse des Services Financiers</h3>
       {chartType === 'bar' && renderBarChart()}
       {chartType === 'pie' && renderPieChart()}
       {chartType === 'line' && renderLineChart()}

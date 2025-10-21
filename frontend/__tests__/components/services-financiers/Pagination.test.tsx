@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
-import React from 'react';
+import * as React from 'react';
 import '@testing-library/jest-dom';
 
 import { Pagination } from '@/components/services-financiers/Pagination';

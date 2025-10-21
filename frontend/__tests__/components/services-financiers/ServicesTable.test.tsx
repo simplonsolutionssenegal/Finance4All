@@ -1,62 +1,99 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import * as React from 'react';
 
 import { ServicesTable } from '@/components/services-financiers/ServicesTable';
-import { formatCurrency, formatPercentage } from '@/data/MockData';
+import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import type { FinancialService, SearchAndFilterState } from '@/types/FinancialServices';
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
-  Eye: () => <span data-testid='eye-icon'>👁</span>,
-  CreditCard: () => <span data-testid='edit-icon'>✏️</span>,
-  Trash2: () => <span data-testid='trash-icon'>🗑️</span>,
-  ChevronUp: () => <span data-testid='chevron-up'>↑</span>,
-  ChevronDown: () => <span data-testid='chevron-down'>↓</span>,
-  Calendar: () => <span data-testid='calendar-icon'>📅</span>,
+  Eye: () => React.createElement('span', { 'data-testid': 'eye-icon' }, '👁'),
+  CreditCard: () => React.createElement('span', { 'data-testid': 'edit-icon' }, '✏️'),
+  Trash2: () => React.createElement('span', { 'data-testid': 'trash-icon' }, '🗑️'),
+  ChevronUp: () => React.createElement('span', { 'data-testid': 'chevron-up' }, '↑'),
+  ChevronDown: () => React.createElement('span', { 'data-testid': 'chevron-down' }, '↓'),
+  Calendar: () => React.createElement('span', { 'data-testid': 'calendar-icon' }, '📅'),
 }));
 
 // Mock Badge component
 jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, variant }: any) => (
-    <span data-testid='badge' data-variant={variant}>
-      {children}
-    </span>
-  ),
+  Badge: ({ children, variant }: any) =>
+    React.createElement('span', { 'data-testid': 'badge', 'data-variant': variant }, children),
 }));
 
 // Mock formatCurrency and formatPercentage
-jest.mock('@/data/MockData', () => ({
+jest.mock('@/lib/formatters', () => ({
   formatCurrency: jest.fn((amount: number) => `$${amount.toLocaleString()}`),
   formatPercentage: jest.fn((rate: number) => `${rate}%`),
 }));
 
+const mockInstitution1 = {
+  id: 'inst-1',
+  name: 'Société Générale',
+  description: 'Banque internationale',
+  website: 'https://sg.com',
+  geographicZones: ['Zone Géo A'],
+  logoUrl: 'https://sg.com/logo.png',
+  status: 'ACTIVE' as const,
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
+};
+
+const mockInstitution2 = {
+  id: 'inst-2',
+  name: 'Banque Atlantique',
+  description: 'Banque régionale',
+  website: 'https://ba.com',
+  geographicZones: ['Zone Géo A', 'Zone Géo B'],
+  logoUrl: 'https://ba.com/logo.png',
+  status: 'ACTIVE' as const,
+  createdAt: '2024-01-02',
+  updatedAt: '2024-01-02',
+};
+
 const mockServices: FinancialService[] = [
   {
     id: '1',
+    name: 'epargne-jeune',
+    longName: 'Epargne Jeune',
     designation: 'Epargne Jeune',
-    type: 'Epargne',
-    institution: 'Société Générale',
+    type: 'EPARGNE',
+    frais: {},
+    conditionAccess: [],
+    plafonds: [],
+    infrastructureAccess: [],
+    institutionId: 'inst-1',
+    institution: mockInstitution1,
     maxAmount: 1000000,
     interestRate: 5.5,
     reimbursement: 'Mensuel',
-    status: 'ACTIF',
+    status: 'ACTIVE',
     geographicZones: ['Zone Géo A'],
     createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
     description: 'Compte épargne pour les jeunes',
     minAmount: 10000,
   },
   {
     id: '2',
+    name: 'credit-immobilier',
+    longName: 'Crédit Immobilier',
     designation: 'Crédit Immobilier',
-    type: 'Crédit',
-    institution: 'Banque Atlantique',
+    type: 'CREDIT',
+    frais: {},
+    conditionAccess: [],
+    plafonds: [],
+    infrastructureAccess: [],
+    institutionId: 'inst-2',
+    institution: mockInstitution2,
     maxAmount: 50000000,
     interestRate: 7.2,
     reimbursement: 'Mensuel',
-    status: 'ACTIF',
+    status: 'ACTIVE',
     geographicZones: ['Zone Géo A', 'Zone Géo B'],
     createdAt: '2024-01-02',
+    updatedAt: '2024-01-02',
     description: "Crédit pour l'achat immobilier",
     minAmount: 5000000,
   },
@@ -113,7 +150,6 @@ describe('ServicesTable', () => {
       expect(screen.getByText('Type')).toBeInTheDocument();
       expect(screen.getByText('Montant Max.')).toBeInTheDocument();
       expect(screen.getByText('Taux')).toBeInTheDocument();
-      expect(screen.getByText('Remboursement')).toBeInTheDocument();
       expect(screen.getByText('Actions')).toBeInTheDocument();
     });
 
@@ -141,7 +177,7 @@ describe('ServicesTable', () => {
       const badges = screen.getAllByTestId('badge');
       expect(badges.length).toBeGreaterThan(0);
 
-      expect(screen.getByText('Epargne')).toBeInTheDocument();
+      expect(screen.getByText('Épargne')).toBeInTheDocument();
       expect(screen.getByText('Crédit')).toBeInTheDocument();
     });
 
@@ -183,11 +219,13 @@ describe('ServicesTable', () => {
       expect(formatPercentage).toHaveBeenCalledWith(7.2);
     });
 
-    it('should display reimbursement information', () => {
+    it('should display formatted max and min amounts and rates (reimbursement removed)', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const mensuelElements = screen.getAllByText('Mensuel');
-      expect(mensuelElements.length).toBeGreaterThan(0);
+      expect(screen.getByText('5.5%')).toBeInTheDocument();
+      expect(screen.getByText('7.2%')).toBeInTheDocument();
+      const rows = screen.getAllByRole('row');
+      expect(rows.length).toBeGreaterThan(1);
     });
   });
 
@@ -300,7 +338,7 @@ describe('ServicesTable', () => {
     it('should use correct badge variant for Epargne type', () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const epargneBadge = screen.getByText('Epargne');
+      const epargneBadge = screen.getByText('Épargne');
       expect(epargneBadge).toHaveAttribute('data-variant', 'info');
     });
 
@@ -315,7 +353,7 @@ describe('ServicesTable', () => {
       const servicesWithOtherType = [
         {
           ...mockServices[0],
-          type: 'Assurance' as any,
+          type: 'ASSURANCE' as const,
         },
       ];
 
@@ -461,15 +499,31 @@ describe('ServicesTable', () => {
       const malformedService = [
         {
           id: '1',
+          name: '',
+          longName: '',
           designation: '',
-          type: 'Epargne' as const,
-          institution: '',
+          type: 'EPARGNE' as const,
+          frais: {},
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: '',
+          institution: {
+            id: '',
+            name: '',
+            description: '',
+            status: 'ACTIVE' as const,
+            geographicZones: [],
+            createdAt: '',
+            updatedAt: '',
+          },
           maxAmount: 0,
           interestRate: 0,
           reimbursement: '',
-          status: 'ACTIF' as const,
+          status: 'ACTIVE' as const,
           geographicZones: [],
           createdAt: '',
+          updatedAt: '',
           description: '',
           minAmount: 0,
         },
@@ -528,6 +582,7 @@ describe('ServicesTable', () => {
       const manyServices = Array.from({ length: 100 }, (_, i) => ({
         ...mockServices[0],
         id: `service-${i}`,
+        name: `service-${i}`,
         designation: `Service ${i}`,
       }));
 
@@ -554,8 +609,7 @@ describe('ServicesTable', () => {
       const longNameService = [
         {
           ...mockServices[0],
-          designation:
-            'This is an extremely long service designation that might cause layout issues if not handled properly',
+          name: 'This is an extremely long service designation that might cause layout issues if not handled properly',
         },
       ];
 
@@ -572,8 +626,11 @@ describe('ServicesTable', () => {
       const specialCharService = [
         {
           ...mockServices[0],
-          designation: 'Service with spécial charácters & symbols!',
-          institution: 'Bank with émojis 🚀',
+          name: 'Service with spécial charácters & symbols!',
+          institution: {
+            ...mockInstitution1,
+            name: 'Bank with émojis 🚀',
+          },
         },
       ];
 
@@ -620,13 +677,13 @@ describe('ServicesTable', () => {
   });
 
   describe('Non-sortable columns', () => {
-    it('should not trigger sort on Remboursement column', async () => {
+    it('should not trigger sort on Actions column', async () => {
       render(<ServicesTable {...defaultProps} />);
 
-      const remboursementHeader = screen.getByText('Remboursement').closest('th');
+      const actionsHeader = screen.getByText('Actions').closest('th');
 
       // Should not have cursor-pointer class
-      expect(remboursementHeader).not.toHaveClass('cursor-pointer');
+      expect(actionsHeader).not.toHaveClass('cursor-pointer');
     });
 
     it('should not trigger sort on Actions column', async () => {

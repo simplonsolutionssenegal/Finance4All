@@ -110,6 +110,9 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
         skip,
         take: params.limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          services: true,
+        },
       }),
       this.prisma.institution.count(),
     ]);
@@ -117,7 +120,7 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: institutions.map(i => this.toDomain({ ...i, services: [] })),
+      data: institutions.map(i => this.toDomain(i)),
       pagination: {
         page: params.page,
         limit: params.limit,

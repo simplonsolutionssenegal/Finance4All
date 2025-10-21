@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import { Download } from 'lucide-react';
 import React from 'react';
 
-import { formatCurrency, formatPercentage } from '../../data/MockData';
+import { formatCurrency, formatPercentage } from '../../lib/formatters';
 import type { FinancialService } from '../../types/FinancialServices';
 import { Button } from '../ui/button';
 
@@ -26,7 +26,7 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
 
     pdf.setFontSize(16);
     pdf.setTextColor(0, 0, 0);
-    pdf.text('Rapport des Produits Financiers', 20, 50);
+    pdf.text('Rapport des Services Financiers', 20, 50);
 
     // Informations générales
     pdf.setFontSize(12);
@@ -51,19 +51,19 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
         yPosition = 30;
       }
 
-      // Titre du produit
+      // Titre du service
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
       pdf.text(service.designation, 20, yPosition);
 
-      // Détails du produit
+      // Détails du service
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       pdf.text(`Institution: ${service.institution}`, 25, yPosition + lineHeight);
       pdf.text(`Type: ${service.type}`, 25, yPosition + lineHeight * 2);
       pdf.text(`Montant max: ${formatCurrency(service.maxAmount)}`, 25, yPosition + lineHeight * 3);
       pdf.text(`Taux: ${formatPercentage(service.interestRate)}`, 25, yPosition + lineHeight * 4);
-      pdf.text(`Remboursement: ${service.reimbursement}`, 25, yPosition + lineHeight * 5);
+      // reimbursement removed: not present in current data model
 
       yPosition += lineHeight * 7;
     });
@@ -79,7 +79,7 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
     }
 
     // Téléchargement
-    pdf.save(`produits-financiers-${new Date().toISOString().split('T')[0]}.pdf`);
+    pdf.save(`services-financiers-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const exportTableAsPDF = async () => {
@@ -106,7 +106,7 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
 
       // En-tête
       pdf.setFontSize(16);
-      pdf.text('Finance4ALL - Produits Financiers', 20, 20);
+      pdf.text('Finance4ALL - Services Financiers', 20, 20);
       pdf.setFontSize(10);
       pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 20, 30);
 
@@ -121,7 +121,7 @@ export const PDFExport: React.FC<PDFExportProps> = ({ services, searchTerm, tota
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`tableau-produits-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`tableau-services-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error("Erreur lors de l'export PDF:", error);
       await generatePDF();

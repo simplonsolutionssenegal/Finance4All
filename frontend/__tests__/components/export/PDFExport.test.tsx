@@ -48,7 +48,6 @@ const mockServices = [
     type: 'Epargne',
     maxAmount: 500000,
     interestRate: 0.05,
-    reimbursement: 'Mensuel',
   },
 ];
 
@@ -70,8 +69,8 @@ describe('PDFExport component', () => {
 
     await waitFor(() => expect(saveMock).toHaveBeenCalled());
 
-    // Filename should match the produits-financiers-YYYY-MM-DD.pdf pattern
-    expect(saveMock.mock.calls[0][0]).toMatch(/produits-financiers-\d{4}-\d{2}-\d{2}\.pdf/);
+    // Filename should match the services-financiers-YYYY-MM-DD.pdf pattern (refactor changed naming)
+    expect(saveMock.mock.calls[0][0]).toMatch(/services-financiers-\d{4}-\d{2}-\d{2}\.pdf/);
   });
 
   it('uses html2canvas and embeds image when #services-table exists', async () => {
@@ -92,10 +91,10 @@ describe('PDFExport component', () => {
     // addImage should have been called to embed the canvas image
     expect(addImageMock).toHaveBeenCalled();
 
-    // save should be called with the table filename
+    // save should be called with the table filename (refactor changed 'produits' -> 'services' and 'tableau' -> 'tableau-services')
     await waitFor(() =>
       expect(saveMock).toHaveBeenCalledWith(
-        expect.stringMatching(/tableau-produits-\d{4}-\d{2}-\d{2}\.pdf/)
+        expect.stringMatching(/tableau-services-\d{4}-\d{2}-\d{2}\.pdf/)
       )
     );
 
