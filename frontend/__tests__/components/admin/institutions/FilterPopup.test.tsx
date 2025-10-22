@@ -3,9 +3,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { EMPTY_FILTERS, TypeService } from '@/types/Service';
-import type { FilterOptions } from '@/types/Service';
-import FilterDialog from '@/components/admin/institutions/FilterPopup';
+
+import FilterDialog, {
+  EMPTY_FILTERS,
+  FilterOptions,
+} from '@/components/admin/institutions/FilterPopup';
+import { TypeService } from '@/types/Service';
 
 describe('FilterDialog', () => {
   const mockOnChange = jest.fn();

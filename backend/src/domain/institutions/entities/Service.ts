@@ -84,11 +84,11 @@ export class Service extends DomainEntity<EntityId> {
       name: this._name,
       longName: this._longName,
       type: this._type,
-      frais: this._frais.toDTOFrais(),
+      // frais: this._frais,
+      frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,
       plafonds: this._plafonds,
       infrastructureAccess: this._infrastructureAccess,
-      isGratuit: this._frais.isGratuit(),
     };
   }
 }

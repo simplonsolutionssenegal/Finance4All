@@ -166,12 +166,14 @@ describe('GetInstitutionByIdUseCase', () => {
         longName: 'Test Service Long Name',
         type: TypeService.TRANSFERT_ARGENT,
         frais: {
+          typeCalculation: 2,
           montantFixe: 100,
+          pourcentage: undefined,
+          fraisChange: undefined,
         },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
-        isGratuit: false,
       });
     });
   });

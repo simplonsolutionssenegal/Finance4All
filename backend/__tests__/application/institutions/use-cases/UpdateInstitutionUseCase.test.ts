@@ -216,13 +216,14 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
         frais: {
+          typeCalculation: 2, // TypeCalculation.FIX
           montantFixe: 200,
-          pourcentage: 1,
+          pourcentage: 0.01, // Le taux doit être 0.01 (et non 1)
+          fraisChange: undefined,
         },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
-        isGratuit: false,
       });
     });
   });
