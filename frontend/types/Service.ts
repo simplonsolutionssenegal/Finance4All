@@ -44,7 +44,6 @@ export interface Service {
   institutionId: string;
   createdAt: string;
   updatedAt: string;
-  isGratuit: boolean;
 }
 
 export enum TypeService {
