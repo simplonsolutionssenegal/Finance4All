@@ -57,7 +57,7 @@ describe('Home Page', () => {
   it('displays compare section', () => {
     render(<Home />);
     expect(screen.getByText('Comparer selon vos besoins')).toBeInTheDocument();
-    expect(screen.getAllByText(/Service \d/)).toHaveLength(8); // 4 in services section + 4 in compare section
+    expect(screen.getAllByText(/Service \d/)).toHaveLength(4); // 4 in compare section
     expect(screen.getAllByText('En savoir plus →')).toHaveLength(4);
   });
 
@@ -78,7 +78,7 @@ describe('Home Page', () => {
 
   it('renders services icons section', () => {
     render(<Home />);
-    expect(screen.getAllByText(/Service \d/)).toHaveLength(8); // 4 in services section + 4 in compare section
+    expect(screen.getAllByText(/Service \d/)).toHaveLength(4); // 4 in compare section
   });
 
   it('has correct structure with header and footer', () => {
@@ -90,7 +90,7 @@ describe('Home Page', () => {
   it('contains all main sections', () => {
     const { container } = render(<Home />);
     const sections = container.querySelectorAll('section');
-    expect(sections).toHaveLength(8); // Hero, Trust, About, Services, Education, Compare, Testimonials, Newsletter
+    expect(sections).toHaveLength(7); // Hero, Trust, About, Education, Compare, Testimonials, Newsletter
   });
 
   it('should be a function that returns JSX', () => {

@@ -30,6 +30,7 @@ describe('PublicHeader', () => {
     render(<PublicHeader />);
 
     const navLinks = [
+      { text: 'Simulateur', href: '/simulator' },
       { text: 'Comparateur', href: '/comparator' },
       { text: 'Formation', href: '/formations' },
       { text: 'FAQ', href: '/faq' },
@@ -100,7 +101,7 @@ describe('PublicHeader', () => {
 
     const nav = screen.getByRole('navigation');
     const links = within(nav).getAllByRole('link');
-    const expectedTexts = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
+    const expectedTexts = ['Simulateur', 'Comparateur', 'Formation', 'FAQ', 'À Propos'];
 
     expectedTexts.forEach((expectedText, index) => {
       expect(links[index]).toHaveTextContent(expectedText);
@@ -120,7 +121,7 @@ describe('PublicHeader', () => {
     expect(screen.getByRole('link', { name: 'Se connecter' })).toBeInTheDocument();
 
     // All links should be accessible
-    const navLinks = ['Comparateur', 'Formation', 'FAQ', 'À Propos'];
+    const navLinks = ['Simulateur', 'Comparateur', 'Formation', 'FAQ', 'À Propos'];
 
     navLinks.forEach(linkText => {
       expect(screen.getByRole('link', { name: linkText })).toBeInTheDocument();
