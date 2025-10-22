@@ -7,6 +7,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
+import type { GetInstitutionsByServiceTypeUseCase } from '@/domain/institutions/ports/in/GetInstitutionsByServiceTypeUseCase';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
@@ -16,6 +17,7 @@ describe('InstitutionController', () => {
   let mockAddServiceUseCase: jest.Mocked<AddServiceUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
+  let mockGetInstitutionsByServiceTypeUseCase: jest.Mocked<GetInstitutionsByServiceTypeUseCase>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -45,13 +47,18 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockGetInstitutionsByServiceTypeUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
       mockUpdateInstitutionUseCase,
       mockUpdateInstitutionStatusUseCase,
       mockAddServiceUseCase,
       mockGetInstitutionsUseCase,
-      mockGetInstitutionByIdUseCase
+      mockGetInstitutionByIdUseCase,
+      mockGetInstitutionsByServiceTypeUseCase
     );
 
     mockRequest = {
@@ -578,6 +585,173 @@ describe('InstitutionController', () => {
       await controller.desactivate(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+  describe('getByServiceType', () => {
+    it('should get institutions by service type with default pagination', async () => {
+      const paginatedResult = {
+        data: [
+          {
+            id: 'inst_1',
+            name: 'Institution 1',
+            description: 'Description 1',
+            website: 'https://test1.com',
+            geographicZones: ['USD'],
+            logoUrl: 'https://test1.com/logo.png',
+            status: InstitutionStatus.ACTIVE,
+            services: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        },
+      };
+
+      mockRequest.query = { type: 'TRANSFER' };
+      mockGetInstitutionsByServiceTypeUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).toHaveBeenCalledWith({
+        type: 'TRANSFER',
+        page: 1,
+        limit: 10,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        ...paginatedResult,
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should get institutions by service type with custom pagination', async () => {
+      const paginatedResult = {
+        data: [
+          {
+            id: 'inst_2',
+            name: 'Institution 2',
+            description: 'Description 2',
+            website: 'https://test2.com',
+            geographicZones: ['EURO'],
+            logoUrl: 'https://test2.com/logo.png',
+            status: InstitutionStatus.ACTIVE,
+            services: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        pagination: {
+          page: 2,
+          limit: 5,
+          total: 10,
+          totalPages: 2,
+        },
+      };
+
+      mockRequest.query = { type: 'EXCHANGE', page: '2', limit: '5' };
+      mockGetInstitutionsByServiceTypeUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).toHaveBeenCalledWith({
+        type: 'EXCHANGE',
+        page: 2,
+        limit: 5,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        ...paginatedResult,
+      });
+    });
+
+    it('should return 400 when type parameter is missing', async () => {
+      mockRequest.query = {};
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Type de service requis',
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockRequest.query = { type: 'TRANSFER' };
+      mockGetInstitutionsByServiceTypeUseCase.execute.mockRejectedValue(error);
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).toHaveBeenCalledWith({
+        type: 'TRANSFER',
+        page: 1,
+        limit: 10,
+      });
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
+    });
+
+    it('should handle invalid pagination parameters with defaults', async () => {
+      const paginatedResult = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+
+      mockRequest.query = { type: 'PAYMENT', page: 'invalid', limit: 'invalid' };
+      mockGetInstitutionsByServiceTypeUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).toHaveBeenCalledWith({
+        type: 'PAYMENT',
+        page: 1,
+        limit: 10,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should return empty data when no institutions match service type', async () => {
+      const paginatedResult = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+
+      mockRequest.query = { type: 'UNKNOWN_TYPE' };
+      mockGetInstitutionsByServiceTypeUseCase.execute.mockResolvedValue(paginatedResult);
+
+      await controller.getByServiceType(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetInstitutionsByServiceTypeUseCase.execute).toHaveBeenCalledWith({
+        type: 'UNKNOWN_TYPE',
+        page: 1,
+        limit: 10,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        ...paginatedResult,
+      });
     });
   });
 });
