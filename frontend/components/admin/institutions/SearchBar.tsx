@@ -3,10 +3,11 @@
 import { Filter, Search } from 'lucide-react';
 import React, { useState, useEffect, type ChangeEvent } from 'react';
 
+import FilterPopup, {
+  type FilterOptions,
+  EMPTY_FILTERS,
+} from '@/components/admin/institutions/FilterPopup';
 import { Input } from '@/components/ui/input';
-import { type FilterOptions, EMPTY_FILTERS } from '@/types/Service';
-
-import FilterPopup from './FilterPopup';
 
 interface SearchBarProps {
   onSearch: (value: string) => void;

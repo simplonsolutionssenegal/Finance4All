@@ -1,3 +1,5 @@
+import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
+
 export type Money = number;
 
 export type Tranche = { min: Money; max?: Money; fee: Money };
@@ -8,18 +10,10 @@ export enum TypeCalculation {
   FIX,
 }
 
-export interface FraisDTO {
-  montantFixe?: number;
-  pourcentage?: number;
-  minimum?: number;
-  maximum?: number;
-}
-
 export abstract class Frais {
   abstract readonly _typeCalculation: TypeCalculation;
   abstract describe(): string;
-  abstract isGratuit(): boolean;
-  abstract toDTOFrais(): FraisDTO;
+  abstract toDTO(): FraisDTO;
 }
 
 export class FraisGratuit extends Frais {
@@ -29,14 +23,14 @@ export class FraisGratuit extends Frais {
     return 'Gratuit';
   }
 
-  isGratuit(): boolean {
-    return true;
-  }
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
-  toDTOFrais(): FraisDTO {
-    return {};
+
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+    };
   }
 }
 
@@ -65,20 +59,6 @@ export class FraisFixes extends Frais {
     return description;
   }
 
-  toDTOFrais(): FraisDTO {
-    const dto: FraisDTO = {};
-
-    if (this._amount > 0 || (this._fxSurcharge && this._fxSurcharge > 0)) {
-      dto.montantFixe = this._amount + (this._fxSurcharge || 0);
-    }
-
-    if (this._rate && this._rate > 0) {
-      dto.pourcentage = this._rate * 100;
-    }
-
-    return dto;
-  }
-
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
@@ -95,12 +75,13 @@ export class FraisFixes extends Frais {
     return this._fxSurcharge;
   }
 
-  isGratuit(): boolean {
-    return (
-      this._amount === 0 &&
-      (!this._rate || this._rate === 0) &&
-      (!this._fxSurcharge || this._fxSurcharge === 0)
-    );
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+      montantFixe: this._amount,
+      pourcentage: this._rate,
+      fraisChange: this._fxSurcharge,
+    };
   }
 }
 
@@ -132,24 +113,6 @@ export class FraisPourcentage extends Frais {
     return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`.trim();
   }
 
-  toDTOFrais(): FraisDTO {
-    const dto: FraisDTO = {};
-
-    if (this._rate > 0) {
-      dto.pourcentage = this._rate * 100;
-    }
-
-    if (this._floor && this._floor > 0) {
-      dto.minimum = this._floor;
-    }
-
-    if (this._cap && this._cap > 0) {
-      dto.maximum = this._cap;
-    }
-
-    return dto;
-  }
-
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
   }
@@ -166,7 +129,12 @@ export class FraisPourcentage extends Frais {
     return this._floor;
   }
 
-  isGratuit(): boolean {
-    return this._rate === 0;
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+      pourcentage: this._rate,
+      maximum: this._cap,
+      minimum: this._floor,
+    };
   }
 }

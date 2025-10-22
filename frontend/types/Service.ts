@@ -1,6 +1,7 @@
 import { Option } from '@/components/admin/institutions/filters/BadgeCheckboxGroup';
 
 export interface Frais {
+  typeCalculation: number;
   montantFixe?: number;
   pourcentage?: number;
   minimum?: number;
@@ -48,13 +49,6 @@ export enum TypeService {
   AUTRES = 'autres services',
 }
 
-export interface FilterOptions {
-  type: TypeService[];
-  Coût: CoutType[];
-}
-
-export const EMPTY_FILTERS: FilterOptions = { type: [], Coût: [] };
-
 export const TYPE_OPTIONS = [
   { label: 'Paiement marchand', value: TypeService.PAIEMENT_MARCHAND },
   { label: 'Achat de crédit', value: TypeService.ACHAT_CREDIT },
@@ -69,11 +63,4 @@ export const TYPE_OPTIONS = [
   { label: 'Crédit', value: TypeService.CREDIT },
   { label: 'Assurance', value: TypeService.ASSURANCE },
   { label: 'Autres services', value: TypeService.AUTRES },
-];
-
-export type CoutType = true | false;
-
-export const COUT_OPTIONS: ReadonlyArray<Option<CoutType>> = [
-  { value: true, label: 'Gratuit' },
-  { value: false, label: 'Payant' },
 ];

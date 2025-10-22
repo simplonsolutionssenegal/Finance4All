@@ -3,6 +3,9 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
+import { FraisPourcentage, TypeCalculation } from '@/domain/institutions/entities/Frais';
+import { randomUUID } from 'crypto';
 
 describe('GetInstitutionsUseCase', () => {
   let useCase: GetInstitutionsUseCaseImpl;
@@ -139,10 +142,6 @@ describe('GetInstitutionsUseCase', () => {
     });
 
     it('should retrieve institutions with services correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
-      const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
-      const { randomUUID } = await import('crypto');
-
       const serviceId = randomUUID();
       const mockService = new Service({
         id: EntityId.from(serviceId),
@@ -188,14 +187,14 @@ describe('GetInstitutionsUseCase', () => {
         longName: 'Test Service Long Name',
         type: TypeService.EPARGNE,
         frais: {
-          pourcentage: 2,
+          typeCalculation: TypeCalculation.POURCENTAGE,
+          pourcentage: 0.02,
           minimum: 50,
           maximum: 500,
         },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
-        isGratuit: false,
       });
     });
   });

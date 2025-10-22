@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
+import { EMPTY_FILTERS, type FilterOptions } from '@/components/admin/institutions/FilterPopup';
 import SearchBar from '@/components/admin/institutions/SearchBar';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import ServiceModal from '@/components/admin/institutions/ServiceModal';
@@ -16,7 +17,6 @@ import { Separator } from '@/components/ui/separator';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
-import { type FilterOptions, EMPTY_FILTERS } from '@/types/Service';
 
 interface InstitutionDetailsComponentProps {
   institutionId: string;
@@ -62,7 +62,10 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     }
 
     if (filters.Coût && filters.Coût.length > 0) {
-      filtered = filtered.filter(service => filters.Coût.includes(service.isGratuit));
+      filtered = filtered.filter(service => {
+        const isGratuit = service.frais?.typeCalculation === 0;
+        return filters.Coût.includes(isGratuit);
+      });
     }
 
     return filtered;

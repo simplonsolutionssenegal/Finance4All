@@ -5,6 +5,7 @@ import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { TypeService } from '@/domain/institutions/entities/Service';
+import { TypeCalculation } from '@/domain/institutions/entities/Frais';
 
 describe('AddServiceUseCaseImpl', () => {
   let useCase: AddServiceUseCaseImpl;
@@ -40,6 +41,7 @@ describe('AddServiceUseCaseImpl', () => {
 
     await expect(useCase.execute(command)).rejects.toThrow(NotFoundError);
   });
+
   it('should add a service with FraisFixes', async () => {
     const existingInstitution = new Institution({
       id: EntityId.from(institutionId),
@@ -70,8 +72,8 @@ describe('AddServiceUseCaseImpl', () => {
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
     expect(newService.name).toBe('New Service');
-    expect(newService.frais).toEqual({ montantFixe: 100 });
-    expect(newService.isGratuit).toBe(false);
+    expect(newService.frais.typeCalculation).toBe(TypeCalculation.FIX);
+    expect(newService.frais.montantFixe).toBe(100);
   });
 
   it('should add a service with FraisPourcentage', async () => {
@@ -103,8 +105,8 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toEqual({ pourcentage: 1.5 });
-    expect(newService.isGratuit).toBe(false);
+    expect(newService.frais.typeCalculation).toBe(TypeCalculation.POURCENTAGE);
+    expect(newService.frais.pourcentage).toBe(0.015);
   });
 
   it('should add a service with FraisGratuit', async () => {
@@ -136,8 +138,7 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toEqual({});
-    expect(newService.isGratuit).toBe(true);
+    expect(newService.frais.typeCalculation).toBe(TypeCalculation.FREE);
   });
 
   it('should add a service with FraisFixes and a rate', async () => {
@@ -169,8 +170,9 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toEqual({ montantFixe: 100, pourcentage: 0.5 });
-    expect(newService.isGratuit).toBe(false);
+    expect(newService.frais.typeCalculation).toBe(TypeCalculation.FIX);
+    expect(newService.frais.montantFixe).toBe(100);
+    expect(newService.frais.pourcentage).toBe(0.005);
   });
 
   it('should add a service with FraisPourcentage with min and max', async () => {
@@ -202,7 +204,9 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toEqual({ pourcentage: 1, minimum: 50, maximum: 1000 });
-    expect(newService.isGratuit).toBe(false);
+    expect(newService.frais.typeCalculation).toBe(TypeCalculation.POURCENTAGE);
+    expect(newService.frais.pourcentage).toBe(0.01);
+    expect(newService.frais.minimum).toBe(50);
+    expect(newService.frais.maximum).toBe(1000);
   });
 });

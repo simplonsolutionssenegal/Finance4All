@@ -5,7 +5,6 @@ import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObje
 import type { PrismaClient, Institution as PrismaInstitution } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import {
-  type FraisDTO,
   Frais,
   FraisFixes,
   FraisGratuit,
@@ -13,6 +12,7 @@ import {
   TypeCalculation,
 } from '@/domain/institutions/entities/Frais';
 import { Service, TypeService } from '@/domain/institutions/entities/Service';
+import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
 
 describe('PrismaInstitutionRepository', () => {
   let repository: PrismaInstitutionRepository;
@@ -1282,16 +1282,18 @@ describe('PrismaInstitutionRepository', () => {
     it('should handle unknown Frais type and default to FREE', async () => {
       class UnknownFrais extends Frais {
         readonly _typeCalculation = TypeCalculation.FREE;
+
         describe(): string {
           return 'Unknown frais';
         }
-        isGratuit(): boolean {
-          return false;
-        }
-        toDTOFrais(): FraisDTO {
-          return {};
+
+        toDTO(): FraisDTO {
+          return {
+            typeCalculation: this._typeCalculation,
+          };
         }
       }
+
       const serviceId = randomUUID();
       const service = new Service({
         id: EntityId.from(serviceId),

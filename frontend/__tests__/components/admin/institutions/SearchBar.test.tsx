@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchBar from '@/components/admin/institutions/SearchBar';
-import { EMPTY_FILTERS, FilterOptions, TypeService } from '@/types/Service';
+import { TypeService } from '@/types/Service';
+import { EMPTY_FILTERS, FilterOptions } from '@/components/admin/institutions/FilterPopup';
 
 // Mock des composants UI
 jest.mock('@/components/ui/input', () => ({

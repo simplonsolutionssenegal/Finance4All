@@ -20,14 +20,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true, // Evite les erreurs d'optimisation des images
   },
-  async rewrites() {
-    return [
-      {
-        source: '/institutions/show/:id',
-        destination: '/institutions/show?id=:id',
-      },
-    ];
-  },
 };
 
 export default nextConfig;

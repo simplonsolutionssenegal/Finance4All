@@ -139,6 +139,64 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
       });
     });
 
+    // it('should convert institution with services to DTO correctly', async () => {
+    //   const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+    //   const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+    //   const serviceId = randomUUID();
+    //   const mockService = new Service({
+    //     id: EntityId.from(serviceId),
+    //     name: 'Test Service',
+    //     longName: 'Test Service Long Name',
+    //     type: TypeService.CREDIT,
+    //     frais: new FraisGratuit(),
+    //     conditionAccess: ['Condition 1'],
+    //     plafonds: ['Plafond 1'],
+    //     infrastructureAccess: ['Infra 1'],
+    //   });
+
+    //   const institutionWithService = new Institution({
+    //     id: EntityId.from(testId),
+    //     name: 'Old Name',
+    //     description: 'Old Description',
+    //     website: UrlValueObject.from('https://old.com'),
+    //     geographicZones: ['UEMOA'],
+    //     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
+    //     status: InstitutionStatus.PENDING,
+    //     services: [mockService],
+    //   });
+
+    //   mockRepository.findById.mockResolvedValue(institutionWithService);
+
+    //   const updatedInstitutionWithService = new Institution({
+    //     id: EntityId.from(testId),
+    //     name: 'Old Name',
+    //     description: 'Old Description',
+    //     website: UrlValueObject.from('https://old.com'),
+    //     geographicZones: ['UEMOA'],
+    //     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
+    //     status: InstitutionStatus.ACTIVE,
+    //     services: [mockService],
+    //   });
+
+    //   mockRepository.update.mockResolvedValue(updatedInstitutionWithService);
+
+    //   const command = { id: testId, status: InstitutionStatus.ACTIVE };
+    //   const result = await useCase.execute(command);
+
+    //   expect(result.services).toHaveLength(1);
+    //   expect(result.services[0]).toEqual({
+    //     id: serviceId,
+    //     name: 'Test Service',
+    //     longName: 'Test Service Long Name',
+    //     type: TypeService.CREDIT,
+    //     frais: {},
+    //     conditionAccess: ['Condition 1'],
+    //     plafonds: ['Plafond 1'],
+    //     infrastructureAccess: ['Infra 1'],
+    //     isGratuit: true,
+    //   });
+    // });
     it('should convert institution with services to DTO correctly', async () => {
       const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
@@ -190,11 +248,12 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.CREDIT,
-        frais: {},
+        frais: {
+          typeCalculation: 0, // TypeCalculation.FREE
+        },
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
-        isGratuit: true,
       });
     });
   });

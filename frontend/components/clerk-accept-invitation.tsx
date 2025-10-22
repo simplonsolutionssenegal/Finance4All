@@ -61,73 +61,6 @@ export function ClerkAcceptInvitation({
   }, [formState, hasError]);
 
   // Récupérer les données de l'invitation au chargement
-  // useEffect(() => {
-  //   const fetchInvitationData = async () => {
-  //     if (!invitationId) {
-  //       setError("ID d'invitation manquant");
-  //       return;
-  //     }
-
-  //     showLoader();
-
-  //     try {
-  //       const response = await fetch('/api/get-invitation', {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //         body: JSON.stringify({
-  //           invitationId,
-  //           orgId,
-  //         }),
-  //       });
-
-  //       if (!response.ok) {
-  //         const errorText = await response.text();
-
-  //         let errorData;
-  //         try {
-  //           errorData = JSON.parse(errorText);
-  //         } catch (_e) {
-  //           errorData = { message: errorText };
-  //         }
-
-  //         throw new Error(
-  //           errorData?.message || `Erreur ${response.status}: ${response.statusText}`
-  //         );
-  //       }
-
-  //       const data = await response.json();
-
-  //       if (data.success && data.invitation) {
-  //         const { publicMetadata, emailAddress, organizationName } = data.invitation;
-
-  //         const metadata: InvitationMetadata = {
-  //           firstName: publicMetadata.firstName || '',
-  //           lastName: publicMetadata.lastName || '',
-  //           emailAddress,
-  //           organizationId: orgId,
-  //           organizationName,
-  //         };
-
-  //         setInvitationData(metadata);
-
-  //         const newInitialValues: FormValues = {
-  //           password: '',
-  //           confirmPassword: '',
-  //         };
-
-  //         setInitialValues(newInitialValues);
-  //       }
-  //     } catch (_err) {
-  //       setError("Impossible de charger les données de l'invitation");
-  //     } finally {
-  //       hideLoader();
-  //     }
-  //   };
-
-  //   fetchInvitationData();
-  // }, [invitationId, orgId]);
   useEffect(() => {
     const fetchInvitationData = async () => {
       if (!invitationId) {
@@ -140,18 +73,25 @@ export function ClerkAcceptInvitation({
       try {
         const response = await fetch('/api/get-invitation', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invitationId, orgId }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            invitationId,
+            orgId,
+          }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+
           let errorData;
           try {
             errorData = JSON.parse(errorText);
           } catch (_e) {
             errorData = { message: errorText };
           }
+
           throw new Error(
             errorData?.message || `Erreur ${response.status}: ${response.statusText}`
           );
@@ -162,15 +102,22 @@ export function ClerkAcceptInvitation({
         if (data.success && data.invitation) {
           const { publicMetadata, emailAddress, organizationName } = data.invitation;
 
-          setInvitationData({
+          const metadata: InvitationMetadata = {
             firstName: publicMetadata.firstName || '',
             lastName: publicMetadata.lastName || '',
             emailAddress,
             organizationId: orgId,
             organizationName,
-          });
+          };
 
-          setInitialValues({ password: '', confirmPassword: '' });
+          setInvitationData(metadata);
+
+          const newInitialValues: FormValues = {
+            password: '',
+            confirmPassword: '',
+          };
+
+          setInitialValues(newInitialValues);
         }
       } catch (_err) {
         setError("Impossible de charger les données de l'invitation");
@@ -180,7 +127,7 @@ export function ClerkAcceptInvitation({
     };
 
     fetchInvitationData();
-  }, [invitationId, orgId, showLoader, hideLoader]);
+  }, [invitationId, orgId]);
 
   // Validation des mots de passe
   const validatePasswords = useCallback(() => {

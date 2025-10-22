@@ -3,6 +3,10 @@
 
 import * as React from 'react';
 
+import BadgeCheckboxGroup, {
+  type Option,
+} from '@/components/admin/institutions/filters/BadgeCheckboxGroup';
+import FilterSection from '@/components/admin/institutions/filters/FilterSection';
 import {
   Dialog,
   DialogContent,
@@ -11,17 +15,21 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import {
-  type CoutType,
-  type FilterOptions,
-  type TypeService,
-  COUT_OPTIONS,
-  EMPTY_FILTERS,
-  TYPE_OPTIONS,
-} from '@/types/Service';
+import { type TypeService, TYPE_OPTIONS } from '@/types/Service';
 
-import BadgeCheckboxGroup from './filters/BadgeCheckboxGroup';
-import FilterSection from './filters/FilterSection';
+export interface FilterOptions {
+  type: TypeService[];
+  Coût: CoutType[];
+}
+
+export const EMPTY_FILTERS: FilterOptions = { type: [], Coût: [] };
+
+export type CoutType = true | false;
+
+export const COUT_OPTIONS: ReadonlyArray<Option<CoutType>> = [
+  { value: true, label: 'Gratuit' },
+  { value: false, label: 'Payant' },
+];
 
 type Props = {
   isOpen: boolean;

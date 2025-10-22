@@ -1,4 +1,4 @@
-import type { FraisDTO } from '@/domain/institutions/entities/Frais';
+import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
 import type { TypeService } from '@/domain/institutions/entities/Service';
 
 export interface ServiceDTO {
@@ -10,5 +10,4 @@ export interface ServiceDTO {
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
-  isGratuit: boolean; // NOUVELLE PROPRIÉTÉ
 }

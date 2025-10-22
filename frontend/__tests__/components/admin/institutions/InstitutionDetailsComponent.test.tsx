@@ -8,7 +8,7 @@ import SearchBar from '@/components/admin/institutions/SearchBar';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
-import { EMPTY_FILTERS } from '@/types/Service';
+import { EMPTY_FILTERS } from '@/components/admin/institutions/FilterPopup';
 
 const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
