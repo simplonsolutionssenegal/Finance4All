@@ -1,5 +1,3 @@
-import { Option } from '@/components/admin/institutions/filters/BadgeCheckboxGroup';
-
 export interface Frais {
   typeCalculation?: number;
   montantFixe?: number;
