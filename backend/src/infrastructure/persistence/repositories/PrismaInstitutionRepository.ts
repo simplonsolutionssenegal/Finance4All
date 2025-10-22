@@ -130,6 +130,56 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     };
   }
 
+  async findByServiceType(
+    type: string,
+    params: PaginationParams
+  ): Promise<PaginatedResult<Institution>> {
+    const skip = (params.page - 1) * params.limit;
+
+    const [institutions, total] = await Promise.all([
+      this.prisma.institution.findMany({
+        skip,
+        take: params.limit,
+        where: {
+          services: {
+            some: {
+              type: type as PrismaTypeService,
+            },
+          },
+        },
+        include: {
+          services: {
+            where: {
+              type: type as PrismaTypeService, // <- Filtrer les services ici
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.institution.count({
+        where: {
+          services: {
+            some: {
+              type: type as PrismaTypeService,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / params.limit);
+
+    return {
+      data: institutions.map(i => this.toDomain(i)),
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total,
+        totalPages,
+      },
+    };
+  }
+
   private toDomain(prismaInstitution: InstitutionWithServices): Institution {
     const services = prismaInstitution.services?.map(s => this.mapServiceToDomain(s)) || [];
 

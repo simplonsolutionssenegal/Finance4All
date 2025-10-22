@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
+import { useGetInstitutionsByServiceType } from '@/hooks/institution/useGetInstitutionsByServiceType';
 import type { Frais, Service } from '@/types/Service';
 
 import { Badge } from '../ui/badge';
@@ -19,20 +20,69 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+import PartenaireInstitutions from './PartenaireInstitutions';
+
 type ServiceRow = Service & {
   institutionName: string;
   institutionLogo?: string;
 };
 
+const SERVICE_TYPES = [
+  // { value: 'ALL', label: 'Tous les services' },
+  { value: 'PAIEMENT_MARCHAND', label: 'Paiement marchand' },
+  { value: 'ACHAT_CREDIT', label: 'Achat de crédit' },
+  { value: 'PAIEMENT_FACTURES', label: 'Paiement de factures' },
+  { value: 'DEPOT_SIMPLE', label: 'Dépôts simples' },
+  { value: 'DEPOT_RETRAIT_SIMPLE', label: 'Dépôts et retraits simples' },
+  { value: 'RETRAIT_SIMPLE', label: 'Retraits simples' },
+  { value: 'TRANSFERT_ARGENT', label: "Transferts d'argent" },
+  { value: 'BANQUE_WALLET', label: 'Banque vers wallet' },
+  { value: 'WALLET_BANQUE', label: 'Wallet vers banque' },
+  { value: 'EPARGNE', label: 'Épargne' },
+  { value: 'CREDIT', label: 'Crédit' },
+  { value: 'ASSURANCE', label: 'Assurance' },
+  { value: 'AUTRES', label: 'Autres services' },
+];
+
 const ServiceListComparison = () => {
   const { showLoader, hideLoader } = useLoader();
   const [currentServicePage, setCurrentServicePage] = useState(1);
+  const [selectedType, setSelectedType] = useState('');
   const servicesPerPage = 12;
 
-  const { institutions, isLoading, isError, error, refetch } = useGetInstitutions({
+  // Requête pour tous les services
+  const {
+    institutions: allInstitutions,
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
+    error: errorAll,
+    refetch: refetchAll,
+  } = useGetInstitutions({
     page: 1,
     limit: 100,
   });
+
+  // Requête pour les services filtrés
+  const {
+    institutions: filteredInstitutions,
+    isLoading: isLoadingFiltered,
+    isError: isErrorFiltered,
+    error: errorFiltered,
+    refetch: refetchFiltered,
+  } = useGetInstitutionsByServiceType({
+    type: selectedType === 'ALL' ? '' : selectedType,
+    page: 1,
+    limit: 100,
+  });
+
+  // Déterminer quelles données utiliser
+  const institutions = selectedType === '' ? allInstitutions : filteredInstitutions;
+  const isLoading = selectedType === '' ? isLoadingAll : isLoadingFiltered;
+  const isError = selectedType === '' ? isErrorAll : isErrorFiltered;
+  const error = selectedType === '' ? errorAll : errorFiltered;
+  const refetch = selectedType === '' ? refetchAll : refetchFiltered;
 
   useEffect(() => {
     if (isLoading) {
@@ -65,6 +115,11 @@ const ServiceListComparison = () => {
   const handlePageChange = (page: number) => {
     setCurrentServicePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleTypeChange = (value: string) => {
+    setSelectedType(value);
+    setCurrentServicePage(1); // Réinitialiser à la page 1
   };
 
   const formatMontant = (montant: number) => {
@@ -161,7 +216,7 @@ const ServiceListComparison = () => {
       return (
         <div className='flex flex-col justify-center items-center py-12 gap-4'>
           <p className='text-red-500 text-center'>
-            Erreur lors du chargement des services finances: {error?.message}
+            Erreur lors du chargement des services: {error?.message}
           </p>
           <Button onClick={() => refetch()} variant='outline'>
             Réessayer
@@ -171,7 +226,13 @@ const ServiceListComparison = () => {
     }
 
     if (allServices.length === 0) {
-      return <div className='text-center py-12 text-gray-500'>Aucun service disponible</div>;
+      return (
+        <div className='text-center py-12 text-gray-500'>
+          {selectedType === 'ALL'
+            ? 'Aucun service disponible'
+            : `Aucun service de type "${SERVICE_TYPES.find(t => t.value === selectedType)?.label}" disponible`}
+        </div>
+      );
     }
 
     return (
@@ -257,6 +318,28 @@ const ServiceListComparison = () => {
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
       <h2 className='text-3xl font-bold text-center mb-8'>Comparaison des Services Financiers</h2>
 
+      {/* Filtre par type de service */}
+      <div className='mb-6 flex justify-between items-center'>
+        <div className='flex flex-col items-start gap-1'>
+          <label className='text-sm font-medium text-gray-700'>Filtrer par type:</label>
+          <Select value={selectedType} onValueChange={handleTypeChange}>
+            <SelectTrigger className='w-[280px]'>
+              <SelectValue placeholder='Sélectionner un type' />
+            </SelectTrigger>
+            <SelectContent className='bg-teal-500'>
+              {SERVICE_TYPES.map(type => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className='text-sm text-gray-600'>
+          {totalServices} service{totalServices > 1 ? 's' : ''} trouvé{totalServices > 1 ? 's' : ''}
+        </div>
+      </div>
+
       {renderServicesList()}
 
       {totalPages > 1 && (
@@ -283,38 +366,17 @@ const ServiceListComparison = () => {
             </PaginationContent>
           </Pagination>
           <div className='text-center mt-4 text-sm text-gray-600'>
-            Page {currentServicePage} sur {totalPages} ({totalServices} services au total)
+            Page {currentServicePage} sur {totalPages}
           </div>
         </div>
       )}
 
-      <section className='py-16'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <h2 className='text-3xl font-bold text-center mb-12'>Les finances partenaires</h2>
-          <div className='grid grid-cols-4 md:grid-cols-8 gap-6 mb-8'>
-            {institutions.map(institution => (
-              <div
-                key={institution.id}
-                className='relative w-20 h-12 rounded-md border-1 border-gray-700 bg-white'
-              >
-                <Image
-                  src={institution.logoUrl || '/placeholder-logo.png'}
-                  alt={institution.name}
-                  fill
-                  className='object-contain p-1' // p-1 pour un peu d'air
-                  sizes='80px' // taille de rendu (w-20 = 80px)
-                  priority={false}
-                />
-              </div>
-            ))}
-          </div>
-          <div className='text-center'>
-            <button className='border-b-2 border-gray-800 text-gray-800 font-semibold pb-1 hover:border-teal-500 hover:text-teal-500'>
-              Afficher plus
-            </button>
-          </div>
-        </div>
-      </section>
+      <PartenaireInstitutions
+        institutions={institutions}
+        title='Les finances partenaires'
+        initialDisplayCount={8}
+        incrementCount={8}
+      />
     </div>
   );
 };

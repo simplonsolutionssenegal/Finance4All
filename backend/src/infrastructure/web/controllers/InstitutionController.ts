@@ -6,6 +6,7 @@ import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/Up
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
+import type { GetInstitutionsByServiceTypeUseCase } from '@/domain/institutions/ports/in/GetInstitutionsByServiceTypeUseCase';
 
 export class InstitutionController {
   constructor(
@@ -14,7 +15,8 @@ export class InstitutionController {
     private readonly updateInstitutionStatusUseCase: UpdateInstitutionStatusUseCase,
     private readonly addServiceUseCase: AddServiceUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
-    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
+    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase,
+    private readonly getInstitutionsByServiceTypeUseCase: GetInstitutionsByServiceTypeUseCase
   ) {}
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -109,6 +111,35 @@ export class InstitutionController {
       res.status(200).json({
         success: true,
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getByServiceType(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { type } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      if (!type) {
+        res.status(400).json({
+          success: false,
+          message: 'Type de service requis',
+        });
+        return;
+      }
+
+      const result = await this.getInstitutionsByServiceTypeUseCase.execute({
+        type: type as string,
+        page,
+        limit,
+      });
+
+      res.status(200).json({
+        success: true,
+        ...result,
       });
     } catch (error) {
       next(error);

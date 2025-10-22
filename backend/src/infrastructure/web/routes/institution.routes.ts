@@ -22,10 +22,17 @@ export const InstitutionRoutes = (): Router => {
     activate: controller.activate.bind(controller),
     desactivate: controller.desactivate.bind(controller),
     getAll: controller.getAll.bind(controller),
+    getByServiceType: controller.getByServiceType.bind(controller),
     getById: controller.getById.bind(controller),
   };
 
   router.get('/', validatePagination, handleValidationErrors, boundController.getAll);
+  router.get(
+    '/by-service-type',
+    validatePagination,
+    handleValidationErrors,
+    boundController.getByServiceType
+  );
   router.get('/:id', validateInstitutionId, handleValidationErrors, boundController.getById);
   router.post('/', validateCreateInstitution, handleValidationErrors, boundController.create);
   router.put('/:id', validateUpdateInstitution, handleValidationErrors, boundController.update);

@@ -20,6 +20,8 @@ import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports
 import { UpdateInstitutionStatusUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionStatusUseCase';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
 import { AddServiceUseCaseImpl } from '@/application/institutions/use-cases/AddServiceUseCaseImpl';
+import type { GetInstitutionsByServiceTypeUseCase } from '@/domain/institutions/ports/in/GetInstitutionsByServiceTypeUseCase';
+import { GetInstitutionsByServiceTypeUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionsByServiceTypeUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -28,6 +30,7 @@ export const TYPES = {
   AddServiceUseCase: Symbol.for('AddServiceUseCase'),
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
+  GetInstitutionsByServiceTypeUseCase: Symbol.for('GetInstitutionsByServiceTypeUseCase'),
 
   // Ports Out (External Services)
   InstitutionRepository: Symbol.for('InstitutionRepository'),
@@ -111,6 +114,14 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<GetInstitutionsByServiceTypeUseCase>(TYPES.GetInstitutionsByServiceTypeUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new GetInstitutionsByServiceTypeUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // Bind controllers
 container
   .bind<InstitutionController>(TYPES.InstitutionController)
@@ -128,13 +139,18 @@ container
       TYPES.GetInstitutionByIdUseCase
     );
 
+    const InstitutionServiceByType = context.get<GetInstitutionsByServiceTypeUseCase>(
+      TYPES.GetInstitutionsByServiceTypeUseCase
+    );
+
     return new InstitutionController(
       createUseCase,
       updateUseCase,
       updateStatusUseCase,
       addServiceUseCase,
       getInstitutionsUseCase,
-      getInstitutionByIdUseCase
+      getInstitutionByIdUseCase,
+      InstitutionServiceByType
     );
   })
   .inSingletonScope();

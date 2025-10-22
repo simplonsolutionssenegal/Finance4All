@@ -7,4 +7,5 @@ export interface InstitutionRepository {
   findById(id: string): Promise<Institution | null>;
   findByName(name: string): Promise<Institution[]>;
   findAll(params: PaginationParams): Promise<PaginatedResult<Institution>>;
+  findByServiceType(type: string, params: PaginationParams): Promise<PaginatedResult<Institution>>;
 }
