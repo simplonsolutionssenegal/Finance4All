@@ -1,5 +1,16 @@
 export interface Frais {
   typeCalculation?: number;
+
+  _typeCalculation?: number;
+  _amount?: number;
+  _rate?: number;
+  _fxSurcharge?: number;
+
+  type?: 'FREE' | 'FIX' | 'POURCENTAGE';
+  amount?: number;
+  rate?: number;
+  fxSurcharge?: number;
+
   montantFixe?: number;
   pourcentage?: number;
   minimum?: number;

@@ -92,38 +92,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services Icons Section */}
-      <section className='py-16 bg-teal-600'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='grid grid-cols-2 lg:grid-cols-4 gap-8'>
-            <div className='text-center text-white'>
-              <div className='w-16 h-16 bg-white bg-opacity-20 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                <span className='text-2xl'>📊</span>
-              </div>
-              <p className='text-sm'>Service 1</p>
-            </div>
-            <div className='text-center text-white'>
-              <div className='w-16 h-16 bg-white bg-opacity-20 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                <span className='text-2xl'>📈</span>
-              </div>
-              <p className='text-sm'>Service 2</p>
-            </div>
-            <div className='text-center text-white'>
-              <div className='w-16 h-16 bg-white bg-opacity-20 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                <span className='text-2xl'>🛡️</span>
-              </div>
-              <p className='text-sm'>Service 3</p>
-            </div>
-            <div className='text-center text-white'>
-              <div className='w-16 h-16 bg-white bg-opacity-20 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                <span className='text-2xl'>👤</span>
-              </div>
-              <p className='text-sm'>Service 4</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Education Section */}
       <section className='py-20 bg-white'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
