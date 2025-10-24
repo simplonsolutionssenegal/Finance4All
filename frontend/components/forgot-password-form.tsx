@@ -1,181 +1,107 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Mail, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useMemo, useEffect } from 'react';
 
 import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Label } from '@/components/ui/label';
-import { useForgotPassword } from '@/hooks/useForgotPassword';
-import { useFormState } from '@/hooks/useFormState';
-import { validateEmail, validatePassword, validateOTPCode } from '@/lib/validation';
-
-interface ForgotPasswordFormValues extends Record<string, unknown> {
-  email: string;
-  password: string;
-  code: string;
-}
+import {
+  useForgotPassword,
+  type ForgotPasswordFormValues,
+} from '@/hooks/forgot-password/useForgotPassword';
 
 export function ForgotPasswordForm() {
-  const [step, setStep] = useState(1);
-
   const initialValues: ForgotPasswordFormValues = {
     email: '',
     password: '',
     code: '',
   };
 
-  const { formState, updateField, setFieldError, resetForm, hasError, getError } =
-    useFormState(initialValues);
-
-  const { isLoading, error, success, successMessage, sendResetLink, resetPassword, resetState } =
-    useForgotPassword();
+  const {
+    formState,
+    hasError,
+    getError,
+    isFormValid,
+    step,
+    setStep,
+    isLoading,
+    error,
+    success,
+    successMessage,
+    handleEmailChange,
+    handlePasswordChange,
+    handleCodeChange,
+    handleSendResetLink,
+    handleResetPassword,
+    handleResetForm,
+    handlePreviousStep,
+  } = useForgotPassword(initialValues);
 
   useEffect(() => {
     return () => {
-      resetState();
+      handlePreviousStep();
     };
-  }, [resetState]);
+  }, [handlePreviousStep]);
 
   // Gérer le passage à l'étape 2 quand l'envoi réussit
   useEffect(() => {
     if (success && step === 1) {
       setStep(2);
     }
-  }, [success, step]);
-
-  const isFormValid = useMemo(() => {
-    if (step === 1) {
-      return (formState.values.email as string).trim() !== '' && !hasError('email');
-    }
-    return (
-      (formState.values.password as string).trim() !== '' &&
-      (formState.values.code as string).trim() !== '' &&
-      !hasError('password') &&
-      !hasError('code')
-    );
-  }, [formState, step, hasError]);
+  }, [success, step, setStep]);
 
   const buttonText = useMemo(() => {
     if (isLoading) {
       return step === 1 ? 'Envoi en cours...' : 'Réinitialisation en cours...';
     }
     if (success) {
-      return step === 1 ? 'Lien envoyé !' : 'Mot de passe réinitialisé !';
+      return step === 1 ? 'Lien envoyé !' : 'Réinitialiser le mot de passe';
     }
     return step === 1 ? 'Envoyer le lien de réinitialisation' : 'Réinitialiser le mot de passe';
   }, [isLoading, success, step]);
 
-  const handleEmailChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateField('email', e.target.value);
-      if (error) {
-        resetState();
-      }
-    },
-    [updateField, error, resetState]
-  );
-
-  const handlePasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateField('password', e.target.value);
-      if (error) {
-        resetState();
-      }
-    },
-    [updateField, error, resetState]
-  );
-
-  const handleCodeChange = useCallback(
-    (value: string) => {
-      updateField('code', value);
-      if (error) {
-        resetState();
-      }
-    },
-    [updateField, error, resetState]
-  );
-
-  const handleSendResetLink = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      const emailValidationError = validateEmail(formState.values.email as string);
-      if (emailValidationError) {
-        setFieldError('email', emailValidationError);
-        return;
-      }
-
-      try {
-        await sendResetLink(formState.values.email as string);
-      } catch (error) {
-        console.error("Erreur lors de l'envoi:", error);
-      }
-    },
-    [formState.values.email, sendResetLink, setFieldError]
-  );
-
-  const handleResetPassword = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      const passwordValidationError = validatePassword(formState.values.password as string);
-      if (passwordValidationError) {
-        setFieldError('password', passwordValidationError);
-        return;
-      }
-
-      const codeValidationError = validateOTPCode(formState.values.code as string);
-      if (codeValidationError) {
-        setFieldError('code', codeValidationError);
-        return;
-      }
-
-      await resetPassword(formState.values.password as string, formState.values.code as string);
-    },
-    [formState.values.password, formState.values.code, resetPassword, setFieldError]
-  );
-
-  const handleResetForm = useCallback(() => {
-    resetForm();
-    resetState();
-    setStep(1);
-  }, [resetForm, resetState]);
-
   return (
-    <div className='max-w-md w-full mx-auto'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-neutral-500 mb-2'>Mot de passe oublié</h1>
-        <p className='text-neutral-400 text-sm'>
-          Entrez votre adresse e-mail pour recevoir un lien de réinitialisation sécurisé
+    <div className='w-full'>
+      <div className='mb-6'>
+        <h1 className='text-2xl font-semibold text-foreground mb-2 text-gray-700'>
+          Mot de passe oublié ?
+        </h1>
+        <p className='text-muted-foreground text-sm text-gray-500'>
+          Entrez votre email pour réinitialiser
         </p>
       </div>
 
       {step === 1 ? (
-        <form onSubmit={handleSendResetLink} className='space-y-6' noValidate>
+        <form onSubmit={handleSendResetLink} className='space-y-5' noValidate>
           <div className='space-y-2'>
-            <Label htmlFor='email' className='text-neutral-500 font-medium'>
-              Email*
+            <Label htmlFor='email' className='text-foreground font-medium text-gray-700'>
+              Email
             </Label>
-            <Input
-              id='email'
-              type='email'
-              placeholder='Votre email'
-              value={formState.values.email as string}
-              onChange={handleEmailChange}
-              className={`w-full h-12 ${
-                hasError('email')
-                  ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                  : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
-              }`}
-              disabled={isLoading}
-              autoComplete='email'
-              maxLength={254}
-              required
-              aria-invalid={hasError('email')}
-              aria-describedby={hasError('email') ? 'email-error' : undefined}
-            />
+            <div className='relative'>
+              <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
+              <Input
+                id='email'
+                type='email'
+                placeholder='amadou@example.com'
+                value={formState.values.email as string}
+                onChange={handleEmailChange}
+                className={`w-full h-12 pl-10 bg-gray-50 border-gray-200 rounded-lg focus-visible:ring-primary-200 ${
+                  hasError('email')
+                    ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }`}
+                disabled={isLoading}
+                autoComplete='email'
+                maxLength={254}
+                required
+                aria-invalid={hasError('email')}
+                aria-describedby={hasError('email') ? 'email-error' : undefined}
+              />
+            </div>
             {hasError('email') && (
               <div
                 id='email-error'
@@ -213,15 +139,24 @@ export function ForgotPasswordForm() {
           <Button
             type='submit'
             disabled={isLoading || success || !isFormValid}
-            className='w-full h-12 bg-primary-300 hover:bg-primary-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+            className='w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
           >
             {buttonText}
+            <ArrowRight className='h-4 w-4' />
           </Button>
 
-          <p className='text-sm text-neutral-400 text-center'>
-            Assurez-vous de vérifier vos courriers indésirables si vous ne recevez pas notre e-mail
-            dans quelques minutes.
-          </p>
+          <div className='my-6'>
+            <hr className='border-gray-100' />
+          </div>
+
+          <div className='text-center'>
+            <Link
+              href='/login'
+              className='text-sm text-primary-200 font-semibold hover:text-primary-300/80 font-medium cursor-pointer transition-colors'
+            >
+              Retour à la connexion
+            </Link>
+          </div>
 
           {success && (
             <div className='mt-4 text-center'>
@@ -236,20 +171,20 @@ export function ForgotPasswordForm() {
           )}
         </form>
       ) : (
-        <form onSubmit={handleResetPassword} className='space-y-6' noValidate>
+        <form onSubmit={handleResetPassword} className='space-y-5' noValidate>
           <div className='space-y-2'>
-            <Label htmlFor='password' className='text-neutral-500 font-medium'>
-              Nouveau mot de passe*
+            <Label htmlFor='password' className='text-foreground font-medium text-gray-700'>
+              Nouveau mot de passe
             </Label>
             <PasswordInput
               id='password'
-              placeholder='Votre nouveau mot de passe'
+              placeholder='••••••••'
               value={formState.values.password as string}
               onChange={handlePasswordChange}
-              className={`w-full h-12 ${
+              className={`w-full h-12 bg-gray-50 border-gray-200 rounded-lg focus-visible:ring-primary-200 ${
                 hasError('password')
                   ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                  : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
+                  : ''
               }`}
               disabled={isLoading}
               autoComplete='new-password'
@@ -272,8 +207,8 @@ export function ForgotPasswordForm() {
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='code' className='text-neutral-500 font-medium'>
-              Code de réinitialisation*
+            <Label htmlFor='code' className='text-foreground font-medium text-gray-700'>
+              Code de réinitialisation
             </Label>
             <InputOTP
               value={formState.values.code as string}
@@ -286,7 +221,7 @@ export function ForgotPasswordForm() {
                   <InputOTPSlot
                     key={`otp-slot-${index}`}
                     index={index}
-                    className='h-14 text-base w-full border rounded-md border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
+                    className='h-12 text-base w-full border rounded-lg bg-gray-50 border-gray-200 focus-visible:border-primary-200 focus-visible:ring-primary-200'
                   />
                 ))}
               </InputOTPGroup>
@@ -312,25 +247,28 @@ export function ForgotPasswordForm() {
           <Button
             type='submit'
             disabled={isLoading || !isFormValid}
-            className='w-full h-12 bg-primary-300 hover:bg-primary-300 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+            className='w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
           >
             {buttonText}
+            <ArrowRight className='h-4 w-4' />
           </Button>
         </form>
       )}
 
       {step === 2 && (
-        <div className='mt-8 text-center'>
-          <button
-            onClick={() => {
-              resetState();
-              setStep(1);
-            }}
-            className='text-primary-200 hover:text-primary-300 text-sm font-medium transition-colors'
-          >
-            ← Précédent
-          </button>
-        </div>
+        <>
+          <div className='my-6'>
+            <hr className='border-gray-100' />
+          </div>
+          <div className='text-center'>
+            <button
+              onClick={handlePreviousStep}
+              className='text-primary-200 hover:text-primary-300 text-sm font-medium transition-colors'
+            >
+              ← Précédent
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
