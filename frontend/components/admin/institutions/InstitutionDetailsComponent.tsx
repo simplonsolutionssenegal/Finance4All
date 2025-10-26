@@ -150,8 +150,8 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     switch (status) {
       case InstitutionStatus.ACTIVE:
         return (
-          <Badge className='bg-green-300/30 py-1 rounded-xl flex items-center gap-2'>
-            <div className='h-4 w-4 rounded-full bg-green-500/80' />
+          <Badge className='bg-green-300/30  rounded-xl flex items-center gap-2'>
+            <div className='h-3 w-3 rounded-full bg-green-500/80' />
             Actif
           </Badge>
         );
@@ -230,10 +230,17 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
           <div>
             <h1 className='text-3xl font-bold text-gray-900'>{institution.name}</h1>
             <div className='mt-2 flex flex-wrap items-center gap-2'>
-              <Badge variant='secondary' className='bg-gray-800 text-white'>
+              <Badge
+                variant='outline'
+                className='bg-white text-gray-900 border border-gray-200 rounded-xl'
+              >
                 Mobile Money
               </Badge>
-              <Badge variant='secondary' className='bg-emerald-700/80 text-white'>
+              <div className='flex items-center gap-3'>{renderStatusChip(institution.status)}</div>
+              <Badge
+                variant='outline'
+                className='bg-white text-gray-900 border border-gray-200 rounded-xl'
+              >
                 Sénégal et Cameroun
               </Badge>
             </div>
@@ -274,9 +281,11 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
           <TabsContent value='details' className='mt-4'>
             <div className='rounded-2xl bg-white p-4 sm:p-6 shadow-md'>
+              <div className='mb-4'>
+                <InfoBlock title='Description' value={institution.description || '—'} />
+              </div>
               <div className='grid gap-6 md:grid-cols-2'>
                 <div className='space-y-3'>
-                  <InfoBlock title='Description' value={institution.description || '—'} />
                   <InfoRow Icon={Globe} label='Site web' value={institution.website} href />
                   <InfoRow Icon={Phone} label='Téléphone' value='+221 33 869 60 00' />
                   <InfoRow Icon={User} label='Personne de contact' value='Amadou Diallo' />
@@ -302,7 +311,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
                   </Badge>
                 ))}
               </div>
-              <Separator className='border border-gray-300 my-4' />
+              <Separator className='border border-gray-200 my-4' />
               <div className='rounded-xl p-4 bg-gray-50 mt-2 grid gap-4 sm:grid-cols-3'>
                 <Stat label='Services' value={serviceCount.toString()} />
                 <Stat label='Créée le' value={formatDate(institution.createdAt)} />
@@ -311,9 +320,9 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
               <Separator className='border border-gray-300 my-2' />
               <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-3'>
+                {/* <div className='flex items-center gap-3'>
                   {renderStatusChip(institution.status)}
-                </div>
+                </div> */}
 
                 <div className='flex gap-3'>
                   {institution.status === InstitutionStatus.PENDING && (

@@ -64,7 +64,7 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
       <div className=' overflow-hidden'>
         <Table>
           <TableHeader>
-            <TableRow className='bg-gray-50 '>
+            <TableRow className='bg-gray-50 border-b border-gray-200'>
               <TableHead className='w-[35%] min-w-[200px] ps-4'>Service</TableHead>
               <TableHead className='w-[15%] min-w-[100px]'>Type</TableHead>
               <TableHead className='w-[20%] min-w-[140px]'>Montants</TableHead>
