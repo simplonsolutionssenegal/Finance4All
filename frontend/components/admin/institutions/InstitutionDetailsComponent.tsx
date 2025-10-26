@@ -80,9 +80,9 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
   const Stat = ({ label, value }: { readonly label: string; readonly value: string }) => {
     return (
-      <div className='rounded-xl border border-gray-200 p-4 bg-gray-50'>
+      <div className=''>
         <p className='text-xs text-gray-500'>{label}</p>
-        <p className='mt-1 text-xl font-semibold text-gray-900'>{value}</p>
+        <p className='mt-1 text-xl text-gray-900'>{value}</p>
       </div>
     );
   };
@@ -302,13 +302,14 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
                   </Badge>
                 ))}
               </div>
-              <div className='mt-8 grid gap-4 sm:grid-cols-3'>
+              <Separator className='border border-gray-300 my-4' />
+              <div className='rounded-xl p-4 bg-gray-50 mt-2 grid gap-4 sm:grid-cols-3'>
                 <Stat label='Services' value={serviceCount.toString()} />
                 <Stat label='Créée le' value={formatDate(institution.createdAt)} />
                 <Stat label='Mise à jour' value={formatDate(institution.updatedAt)} />
               </div>
 
-              <Separator className='border border-gray-300 my-10' />
+              <Separator className='border border-gray-300 my-2' />
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-3'>
                   {renderStatusChip(institution.status)}

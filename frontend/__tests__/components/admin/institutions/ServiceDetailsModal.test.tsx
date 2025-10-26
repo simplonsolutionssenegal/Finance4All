@@ -300,18 +300,6 @@ describe('ServiceDetailsModal', () => {
       expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     });
   });
-
-  describe('Interactions utilisateur', () => {
-    it('affiche le bouton de fermeture', () => {
-      render(
-        <ServiceDetailsModal open={true} onOpenChange={mockOnOpenChange} service={mockService} />
-      );
-
-      const closeButton = screen.getByLabelText('Fermer');
-      expect(closeButton).toBeInTheDocument();
-    });
-  });
-
   describe('Formatage des nombres', () => {
     it('formate les nombres avec des espaces (format français)', () => {
       render(

@@ -98,7 +98,7 @@ const NumberField = ({ field, label, placeholder = '0', step, isCreating }: Numb
         type='number'
         step={step}
         placeholder={placeholder}
-        className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
+        className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/20 focus:border-cyan-500'
         {...field}
         value={field.value || ''}
         onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
@@ -141,7 +141,7 @@ const ArrayField = ({
         value={inputValue}
         onChange={e => onInputChange(e.target.value)}
         placeholder={placeholder}
-        className='flex-1 w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
+        className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/20 focus:border-cyan-500'
         disabled={isCreating}
         onKeyDown={e => {
           if (e.key === 'Enter') {
@@ -276,7 +276,7 @@ const ServiceModal = ({
                   <FormControl>
                     <Input
                       placeholder='Ex: Transfert'
-                      className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
+                      className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/20 focus:border-cyan-500'
                       {...field}
                       disabled={isCreating}
                     />
@@ -294,15 +294,7 @@ const ServiceModal = ({
                   <FormControl>
                     <Textarea
                       placeholder="Ex: Transfert d'argent"
-                      className='
-            w-full min-h-15 px-4 py-3 rounded-lg
-            bg-[#E9ECEF]
-            border border-gray-200
-            text-gray-800 placeholder:text-gray-500
-            focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30
-            focus:border-[#00BBA7]
-            resize-none
-          '
+                      className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/20 focus:border-cyan-500'
                       {...field}
                       disabled={isCreating}
                     />
@@ -330,7 +322,7 @@ const ServiceModal = ({
         border border-transparent hover:border-gray-200
         text-sm text-gray-700
         placeholder:text-gray-500
-        focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400
+        focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-cyan-500
         shadow-sm'
                         >
                           <SelectValue placeholder='Sélectionner un type' />
@@ -360,7 +352,7 @@ const ServiceModal = ({
                       disabled={isCreating}
                     >
                       <FormControl>
-                        <SelectTrigger className=' h-9 px-4  w-full rounded-lg bg-[#E9ECEF] border border-transparent hover:border-gray-200 text-sm text-gray-700 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 shadow-sm'>
+                        <SelectTrigger className=' h-9 px-4  w-full rounded-lg bg-[#E9ECEF] border border-transparent hover:border-gray-200 text-sm text-gray-700 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-cyan-500 shadow-sm'>
                           <SelectValue placeholder='Type frais' className='text-gray-100' />
                         </SelectTrigger>
                       </FormControl>
@@ -486,7 +478,7 @@ const ServiceModal = ({
               <Button
                 type='submit'
                 disabled={isCreating || !form.formState.isValid}
-                className='bg-cyan-400 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'
+                className='bg-cyan-500 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'
               >
                 {isCreating ? 'Enregistrement...' : 'Enregistrer'}
               </Button>
