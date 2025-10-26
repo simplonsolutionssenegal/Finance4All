@@ -4,7 +4,7 @@ import { useSimulator } from '@/hooks/useSimulator';
 import { useSimulatorStore } from '@/lib/simulator-store';
 import type { Institution, Service } from '@/lib/simulator-types';
 import { InstitutionStatus } from '@/types/Institution';
-import { TypeService } from '@/types/Service';
+import { TypeCalculation, TypeService } from '@/types/Service';
 
 // Mock du hook useGetInstitutions
 jest.mock('@/hooks/institution/useGetInstitutions', () => ({
@@ -27,6 +27,7 @@ const mockService: Service = {
   name: 'Test Service',
   longName: 'Test Service Description',
   type: TypeService.CREDIT,
+  typeFrais: TypeCalculation.FIX,
   frais: {
     pourcentage: 3.5,
     montantFixe: 100,
