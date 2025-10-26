@@ -265,7 +265,9 @@ describe('CreateInstitutionUseCaseImpl', () => {
     });
 
     it('should convert institution with services to DTO correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const testUuid = randomUUID();

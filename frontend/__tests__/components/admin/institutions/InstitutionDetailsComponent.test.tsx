@@ -289,6 +289,7 @@ describe('InstitutionDetailsComponent', () => {
             longName: 'Service 1 Long Name',
             type: TypeService.PAIEMENT_MARCHAND,
             frais: { montantFixe: 100 },
+            typeFrais: TypeCalculation.FIX,
             conditionAccess: ['Condition 1'],
             plafonds: ['Plafond 1'],
             infrastructureAccess: ['Infra 1'],

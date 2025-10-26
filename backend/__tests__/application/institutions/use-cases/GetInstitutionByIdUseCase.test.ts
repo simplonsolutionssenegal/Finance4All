@@ -140,7 +140,9 @@ describe('GetInstitutionByIdUseCase', () => {
     });
 
     it('should return institution with services correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
       const { randomUUID } = await import('crypto');
 
