@@ -1,6 +1,6 @@
 import type { SimulationParams } from '@/lib/simulator-types';
 import { calculateEstimation } from '@/lib/simulator-utils';
-import { TypeService, type Service } from '@/types/Service';
+import { TypeCalculation, TypeService, type Service } from '@/types/Service';
 
 // Mock data pour les tests
 const createMockService = (type: TypeService, frais: any = {}): Service => ({
