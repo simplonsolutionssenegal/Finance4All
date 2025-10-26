@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgePercent, Info, MapPin, Network, Shield, X, Wallet } from 'lucide-react';
+import { BadgePercent, Info, MapPin, Network, Shield, Wallet } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import type { Service } from '@/types/Service';
@@ -107,15 +106,6 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
                   </Pill>
                 </div>
               </div>
-
-              <DialogClose asChild>
-                <button
-                  aria-label='Fermer'
-                  className='inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-500 shadow hover:text-gray-700'
-                >
-                  <X className='h-4 w-4' />
-                </button>
-              </DialogClose>
             </div>
           </DialogHeader>
           <Separator className='border-gray-100' />
