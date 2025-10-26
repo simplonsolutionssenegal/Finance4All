@@ -11,9 +11,9 @@ import {
   FraisFixes,
   FraisGratuit,
   FraisPourcentage,
-  TypeCalculation,
+  TypeCalculation as FraisTypeCalculation,
 } from '@/domain/institutions/entities/Frais';
-import { Service, TypeService } from '@/domain/institutions/entities/Service';
+import { Service, TypeService, TypeCalculation } from '@/domain/institutions/entities/Service';
 
 describe('PrismaInstitutionRepository', () => {
   let repository: PrismaInstitutionRepository;
@@ -401,6 +401,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.AUTRES,
+        typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -425,6 +426,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: 'AUTRES',
+        typeFrais: 'FREE',
         frais: { type: 'FREE' },
         conditionAccess: [],
         plafonds: [],
@@ -458,7 +460,7 @@ describe('PrismaInstitutionRepository', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             services: {
-              create: [], // Should be empty
+              create: [],
             },
           }),
         })
@@ -544,6 +546,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100, 0.02, 50),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -579,6 +582,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Test Service',
             longName: 'Test Service Long Name',
             type: 'PAIEMENT_MARCHAND',
+            typeFrais: 'FIX',
             frais: { type: 'FIX', amount: 100, rate: 0.02, fxSurcharge: 50 },
             conditionAccess: ['Condition 1'],
             plafonds: ['Plafond 1'],
@@ -597,6 +601,7 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('Test Service');
       expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.FIX);
     });
 
     it('should save institution with FraisPourcentage service', async () => {
@@ -631,6 +636,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Test Service',
             longName: 'Test Service Long Name',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.02, cap: 500, floor: 50 },
             conditionAccess: [],
             plafonds: [],
@@ -649,6 +655,7 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisPourcentage);
       expect(result.services[0].type).toBe(TypeService.EPARGNE);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.POURCENTAGE);
     });
 
     it('should save institution with FraisGratuit service', async () => {
@@ -683,6 +690,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Free Service',
             longName: 'Free Service Long Name',
             type: 'CREDIT',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -701,6 +709,7 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
       expect(result.services[0].type).toBe(TypeService.CREDIT);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should handle service with null/undefined frais', async () => {
@@ -735,6 +744,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long Name',
             type: 'AUTRES',
+            typeFrais: null,
             frais: null,
             conditionAccess: [],
             plafonds: [],
@@ -751,6 +761,7 @@ describe('PrismaInstitutionRepository', () => {
       const result = await repository.save(institution);
 
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should update institution with new services', async () => {
@@ -760,6 +771,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'New Service',
         longName: 'New Service Long Name',
         type: TypeService.TRANSFERT_ARGENT,
+        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(150),
         conditionAccess: [],
         plafonds: [],
@@ -808,6 +820,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'New Service',
             longName: 'New Service Long Name',
             type: 'TRANSFERT_ARGENT',
+            typeFrais: 'FIX',
             frais: { type: 'FIX', amount: 150 },
             conditionAccess: [],
             plafonds: [],
@@ -839,6 +852,7 @@ describe('PrismaInstitutionRepository', () => {
                 id: serviceId,
                 name: 'New Service',
                 type: 'TRANSFERT_ARGENT',
+                typeFrais: 'FIX',
               }),
             ]),
           },
@@ -848,6 +862,7 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('New Service');
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.FIX);
     });
 
     it('should map all TypeService values correctly from Prisma to Domain', async () => {
@@ -901,6 +916,7 @@ describe('PrismaInstitutionRepository', () => {
               name: 'Service',
               longName: 'Service Long',
               type: serviceTypeMapping[serviceType],
+              typeFrais: 'FREE',
               frais: { type: 'FREE' },
               conditionAccess: [],
               plafonds: [],
@@ -951,6 +967,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'PAIEMENT_MARCHAND',
+            typeFrais: 'FIX',
             frais: { type: 'FIX', amount: 100 },
             conditionAccess: [],
             plafonds: [],
@@ -1001,6 +1018,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.015 },
             conditionAccess: [],
             plafonds: [],
@@ -1027,6 +1045,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Free Service',
         longName: 'Free Service Long Name',
         type: TypeService.AUTRES,
+        typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1075,6 +1094,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Free Service',
             longName: 'Free Service Long Name',
             type: 'AUTRES',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -1093,6 +1113,7 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should update institution with FraisPourcentage service', async () => {
@@ -1102,6 +1123,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Percent Service',
         longName: 'Percent Service Long Name',
         type: TypeService.EPARGNE,
+        typeFrais: TypeCalculation.POURCENTAGE,
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -1150,6 +1172,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Percent Service',
             longName: 'Percent Service Long Name',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.03, cap: 1000, floor: 100 },
             conditionAccess: [],
             plafonds: [],
@@ -1168,6 +1191,7 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisPourcentage);
+      expect(result.services[0].typeFrais).toBe(TypeCalculation.POURCENTAGE);
     });
 
     it('should handle invalid FraisData types', async () => {
@@ -1185,7 +1209,6 @@ describe('PrismaInstitutionRepository', () => {
         services: [],
       });
 
-      // Test with FIX type but no amount
       const prismaInstitution1: any = {
         id: testUuid1,
         name: 'Test',
@@ -1202,7 +1225,8 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'AUTRES',
-            frais: { type: 'FIX' }, // Missing amount
+            typeFrais: 'FIX',
+            frais: { type: 'FIX' },
             conditionAccess: [],
             plafonds: [],
             infrastructureAccess: [],
@@ -1218,13 +1242,13 @@ describe('PrismaInstitutionRepository', () => {
       const result1 = await repository.save(institution);
       expect(result1.services[0].frais).toBeInstanceOf(FraisGratuit);
 
-      // Test with POURCENTAGE type but no rate
       const prismaInstitution2: any = {
         ...prismaInstitution1,
         services: [
           {
             ...prismaInstitution1.services[0],
-            frais: { type: 'POURCENTAGE' }, // Missing rate
+            typeFrais: 'POURCENTAGE',
+            frais: { type: 'POURCENTAGE' },
           },
         ],
       };
@@ -1253,6 +1277,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Unknown Service',
             longName: 'Unknown Service Long Name',
             type: 'UNKNOWN_TYPE',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -1276,7 +1301,8 @@ describe('PrismaInstitutionRepository', () => {
         id: EntityId.from(serviceId),
         name: 'New Service',
         longName: 'New Service Long Name',
-        type: 'UNKNOWN_TYPE' as TypeService, // Force unknown type
+        type: 'UNKNOWN_TYPE' as TypeService,
+        typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1327,17 +1353,26 @@ describe('PrismaInstitutionRepository', () => {
 
     it('should handle unknown Frais type and default to FREE', async () => {
       class UnknownFrais extends Frais {
-        readonly _typeCalculation = TypeCalculation.FREE;
+        readonly _typeCalculation = FraisTypeCalculation.FREE;
+
         describe(): string {
           return 'Unknown frais';
         }
+
+        toDTO() {
+          return {
+            typeCalculation: this._typeCalculation,
+          };
+        }
       }
+
       const serviceId = randomUUID();
       const service = new Service({
         id: EntityId.from(serviceId),
         name: 'New Service',
         longName: 'New Service Long Name',
         type: TypeService.AUTRES,
+        typeFrais: TypeCalculation.FREE,
         frais: new UnknownFrais(),
         conditionAccess: [],
         plafonds: [],
@@ -1386,6 +1421,64 @@ describe('PrismaInstitutionRepository', () => {
           }),
         })
       );
+    });
+
+    it('should map all TypeCalculation values correctly', async () => {
+      const typeCalculationMapping: Record<TypeCalculation, string> = {
+        [TypeCalculation.FREE]: 'FREE',
+        [TypeCalculation.FIX]: 'FIX',
+        [TypeCalculation.POURCENTAGE]: 'POURCENTAGE',
+      };
+
+      const calculationTypes = Object.values(TypeCalculation);
+
+      for (const calculationType of calculationTypes) {
+        const serviceId = randomUUID();
+        const institution = new Institution({
+          id: EntityId.from(testUuid1),
+          name: 'Test',
+          description: 'Test',
+          website: UrlValueObject.from(null),
+          geographicZones: [],
+          logoUrl: UrlValueObject.from(null),
+          status: InstitutionStatus.ACTIVE,
+          services: [],
+        });
+
+        const prismaInstitution: any = {
+          id: testUuid1,
+          name: 'Test',
+          description: 'Test',
+          website: null,
+          geographicZones: [],
+          logoUrl: null,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          services: [
+            {
+              id: serviceId,
+              name: 'Service',
+              longName: 'Service Long',
+              type: 'AUTRES',
+              typeFrais: typeCalculationMapping[calculationType],
+              frais: { type: typeCalculationMapping[calculationType] },
+              conditionAccess: [],
+              plafonds: [],
+              infrastructureAccess: [],
+              institutionId: testUuid1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ],
+        };
+
+        (mockPrisma.institution.create as jest.Mock).mockResolvedValue(prismaInstitution);
+
+        const result = await repository.save(institution);
+
+        expect(result.services[0].typeFrais).toBe(calculationType);
+      }
     });
   });
 });

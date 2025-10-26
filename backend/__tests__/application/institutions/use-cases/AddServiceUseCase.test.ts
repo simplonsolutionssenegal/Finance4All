@@ -4,8 +4,8 @@ import { Institution, InstitutionStatus } from '@/domain/institutions/entities/I
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
-import { TypeService } from '@/domain/institutions/entities/Service';
-import { FraisFixes, FraisGratuit, FraisPourcentage } from '@/domain/institutions/entities/Frais';
+import { TypeService, TypeCalculation } from '@/domain/institutions/entities/Service';
+import { TypeCalculation as FraisTypeCalculation } from '@/domain/institutions/entities/Frais';
 import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
 import { Country } from '@/domain/institutions/value-objects/Country';
 
@@ -35,6 +35,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.FIX,
       frais: { montantFixe: 100 },
       conditionAccess: [],
       plafonds: [],
@@ -65,6 +66,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.FIX,
       frais: { montantFixe: 100 },
       conditionAccess: [],
       plafonds: [],
@@ -76,8 +78,9 @@ describe('AddServiceUseCaseImpl', () => {
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
     expect(newService.name).toBe('New Service');
-    expect(newService.frais).toBeInstanceOf(FraisFixes);
-    expect((newService.frais as FraisFixes).amount).toBe(100);
+    expect(newService.typeFrais).toBe(TypeCalculation.FIX);
+    expect(newService.frais.typeCalculation).toBe(FraisTypeCalculation.FIX);
+    expect(newService.frais.montantFixe).toBe(100);
   });
 
   it('should add a service with FraisPourcentage', async () => {
@@ -101,6 +104,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.POURCENTAGE,
       frais: { pourcentage: 1.5 },
       conditionAccess: [],
       plafonds: [],
@@ -111,8 +115,9 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toBeInstanceOf(FraisPourcentage);
-    expect((newService.frais as FraisPourcentage).rate).toBe(0.015);
+    expect(newService.typeFrais).toBe(TypeCalculation.POURCENTAGE);
+    expect(newService.frais.typeCalculation).toBe(FraisTypeCalculation.POURCENTAGE);
+    expect(newService.frais.pourcentage).toBe(0.015);
   });
 
   it('should add a service with FraisGratuit', async () => {
@@ -136,6 +141,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.FREE,
       frais: {},
       conditionAccess: [],
       plafonds: [],
@@ -146,7 +152,8 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toBeInstanceOf(FraisGratuit);
+    expect(newService.typeFrais).toBe(TypeCalculation.FREE);
+    expect(newService.frais.typeCalculation).toBe(FraisTypeCalculation.FREE);
   });
 
   it('should add a service with FraisFixes and a rate', async () => {
@@ -170,6 +177,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.FIX,
       frais: { montantFixe: 100, pourcentage: 0.5 },
       conditionAccess: [],
       plafonds: [],
@@ -180,9 +188,10 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toBeInstanceOf(FraisFixes);
-    expect((newService.frais as FraisFixes).amount).toBe(100);
-    expect((newService.frais as FraisFixes).rate).toBe(0.005);
+    expect(newService.typeFrais).toBe(TypeCalculation.FIX);
+    expect(newService.frais.typeCalculation).toBe(FraisTypeCalculation.FIX);
+    expect(newService.frais.montantFixe).toBe(100);
+    expect(newService.frais.pourcentage).toBe(0.005);
   });
 
   it('should add a service with FraisPourcentage with min and max', async () => {
@@ -206,6 +215,7 @@ describe('AddServiceUseCaseImpl', () => {
       name: 'New Service',
       longName: 'New Service Long Name',
       type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.POURCENTAGE,
       frais: { pourcentage: 1, minimum: 50, maximum: 1000 },
       conditionAccess: [],
       plafonds: [],
@@ -216,9 +226,70 @@ describe('AddServiceUseCaseImpl', () => {
 
     expect(result.services).toHaveLength(1);
     const newService = result.services[0];
-    expect(newService.frais).toBeInstanceOf(FraisPourcentage);
-    expect((newService.frais as FraisPourcentage).rate).toBe(0.01);
-    expect((newService.frais as FraisPourcentage).floor).toBe(50);
-    expect((newService.frais as FraisPourcentage).cap).toBe(1000);
+    expect(newService.typeFrais).toBe(TypeCalculation.POURCENTAGE);
+    expect(newService.frais.typeCalculation).toBe(FraisTypeCalculation.POURCENTAGE);
+    expect(newService.frais.pourcentage).toBe(0.01);
+    expect(newService.frais.minimum).toBe(50);
+    expect(newService.frais.maximum).toBe(1000);
+  });
+
+  it('should throw error when montantFixe is missing for FIX type', async () => {
+    const existingInstitution = new Institution({
+      id: EntityId.from(institutionId),
+      name: 'Test Institution',
+      description: 'Test Description',
+      website: UrlValueObject.from('https://test.com'),
+      geographicZones: ['UEMOA'],
+      logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
+      status: InstitutionStatus.ACTIVE,
+      services: [],
+    });
+    mockRepository.findById.mockResolvedValue(existingInstitution);
+
+    const command = {
+      idInstitution: institutionId,
+      name: 'New Service',
+      longName: 'New Service Long Name',
+      type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.FIX,
+      frais: {},
+      conditionAccess: [],
+      plafonds: [],
+      infrastructureAccess: [],
+    };
+
+    await expect(useCase.execute(command)).rejects.toThrow(
+      'Le montant fixe est requis pour les frais fixes'
+    );
+  });
+
+  it('should throw error when pourcentage is missing for POURCENTAGE type', async () => {
+    const existingInstitution = new Institution({
+      id: EntityId.from(institutionId),
+      name: 'Test Institution',
+      description: 'Test Description',
+      website: UrlValueObject.from('https://test.com'),
+      geographicZones: ['UEMOA'],
+      logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
+      status: InstitutionStatus.ACTIVE,
+      services: [],
+    });
+    mockRepository.findById.mockResolvedValue(existingInstitution);
+
+    const command = {
+      idInstitution: institutionId,
+      name: 'New Service',
+      longName: 'New Service Long Name',
+      type: TypeService.PAIEMENT_MARCHAND,
+      typeFrais: TypeCalculation.POURCENTAGE,
+      frais: {},
+      conditionAccess: [],
+      plafonds: [],
+      infrastructureAccess: [],
+    };
+
+    await expect(useCase.execute(command)).rejects.toThrow(
+      'Le pourcentage est requis pour les frais en pourcentage'
+    );
   });
 });

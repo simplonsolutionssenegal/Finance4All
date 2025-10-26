@@ -29,7 +29,7 @@ model Institution {
 }
 
 model Service {
-  id                   String      @id @default(uuid())
+  id                   String          @id @default(uuid())
   name                 String
   longName             String
   type                 TypeService
@@ -37,6 +37,7 @@ model Service {
   conditionAccess      String[]
   plafonds             String[]
   infrastructureAccess String[]
+  typeFrais            TypeCalculation?
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onUpdate: Cascade)

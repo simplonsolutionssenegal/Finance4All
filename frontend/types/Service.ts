@@ -20,6 +20,7 @@ export interface CreateServiceDto {
   longName: string;
   type: TypeService;
   frais: Frais;
+  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -31,6 +32,7 @@ export interface Service {
   longName: string;
   type: TypeService;
   frais: Frais;
+  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -53,4 +55,10 @@ export enum TypeService {
   CREDIT = 'crédit',
   ASSURANCE = 'assurance',
   AUTRES = 'autres services',
+}
+
+export enum TypeCalculation {
+  FREE = 'fee',
+  POURCENTAGE = 'pourcentage',
+  FIX = 'fix',
 }

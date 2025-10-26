@@ -265,7 +265,9 @@ describe('CreateInstitutionUseCaseImpl', () => {
     });
 
     it('should convert institution with services to DTO correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const testUuid = randomUUID();
@@ -277,6 +279,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -302,16 +305,18 @@ describe('CreateInstitutionUseCaseImpl', () => {
 
       expect(result).toHaveProperty('services');
       expect(result.services).toHaveLength(1);
-      expect(result.services[0]).toEqual({
+      expect(result.services[0]).toMatchObject({
         id: serviceUuid,
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        frais: expect.any(FraisFixes),
+        typeFrais: TypeCalculation.FIX,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
       });
+      expect(result.services[0].frais).toHaveProperty('typeCalculation');
+      expect(result.services[0].frais).toHaveProperty('montantFixe', 100);
     });
   });
 });

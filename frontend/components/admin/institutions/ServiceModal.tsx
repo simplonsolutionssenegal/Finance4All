@@ -8,7 +8,13 @@ import { z } from 'zod';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -25,13 +31,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService, type CreateServiceDto } from '@/types/Service';
+import { TypeCalculation, TypeService, type CreateServiceDto } from '@/types/Service';
 
 interface ServiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   institutionId: string;
+  institutionName: string;
   refresh: () => void;
 }
 
@@ -56,6 +64,7 @@ const serviceSchema = z.object({
     ],
     'Le type de service doit être valide'
   ),
+  typeFrais: z.enum([TypeCalculation.FREE, TypeCalculation.POURCENTAGE, TypeCalculation.FIX]),
   frais: z.object({
     montantFixe: z.number().optional(),
     pourcentage: z.number().min(0).max(100).optional(),
@@ -89,7 +98,7 @@ const NumberField = ({ field, label, placeholder = '0', step, isCreating }: Numb
         type='number'
         step={step}
         placeholder={placeholder}
-        className='w-full px-4 py-3 border border-gray-200 rounded-lg'
+        className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
         {...field}
         value={field.value || ''}
         onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
@@ -132,7 +141,7 @@ const ArrayField = ({
         value={inputValue}
         onChange={e => onInputChange(e.target.value)}
         placeholder={placeholder}
-        className='flex-1'
+        className='flex-1 w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
         disabled={isCreating}
         onKeyDown={e => {
           if (e.key === 'Enter') {
@@ -169,7 +178,13 @@ const ArrayField = ({
   </FormItem>
 );
 
-const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceModalProps) => {
+const ServiceModal = ({
+  open,
+  onOpenChange,
+  institutionId,
+  institutionName,
+  refresh,
+}: ServiceModalProps) => {
   const { createService, isCreating } = useCreateService({
     onSuccess: () => {
       refresh();
@@ -188,6 +203,7 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
       name: '',
       longName: '',
       type: undefined,
+      typeFrais: undefined,
       frais: {
         montantFixe: undefined,
         pourcentage: undefined,
@@ -243,78 +259,124 @@ const ServiceModal = ({ open, onOpenChange, institutionId, refresh }: ServiceMod
     >
       <DialogContent className='max-w-2xl bg-white max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle className='text-xl font-bold text-gray-900'>
-            Ajouter un service financier
-          </DialogTitle>
+          <DialogTitle className='text-xl font-bold text-gray-900'>Nouveau service</DialogTitle>
+          <DialogDescription className='text-sm text-gray-600 mb-1'>
+            Créer un nouveau service financier pour {institutionName}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <div className='grid grid-cols-2 gap-4'>
-              <FormField
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom court</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='Ex: Transfert'
-                        className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                        {...field}
-                        disabled={isCreating}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='longName'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: Transfert d'argent"
-                        className='w-full px-4 py-3 border border-gray-200 rounded-lg'
-                        {...field}
-                        disabled={isCreating}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name='type'
+              name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type de service</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isCreating}>
-                    <FormControl>
-                      <SelectTrigger className='w-full px-4 py-3 border border-gray-200 rounded-lg'>
-                        <SelectValue placeholder='Sélectionner un type' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className='bg-white'>
-                      {Object.entries(TypeService).map(([key, value]) => (
-                        <SelectItem key={key} value={value}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Nom du service *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder='Ex: Transfert'
+                      className=' w-full px-4 py-3 rounded-lg bg-[#E9ECEF] border border-gray-200 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30 focus:border-[#00BBA7]'
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='longName'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description * </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Ex: Transfert d'argent"
+                      className='
+            w-full min-h-15 px-4 py-3 rounded-lg
+            bg-[#E9ECEF]
+            border border-gray-200
+            text-gray-800 placeholder:text-gray-500
+            focus-visible:ring-2 focus-visible:ring-[#00BBA7]/30
+            focus:border-[#00BBA7]
+            resize-none
+          '
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='type'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type de service * </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isCreating}
+                    >
+                      <FormControl>
+                        <SelectTrigger
+                          className='h-9 px-4 w-full rounded-lg bg-[#E9ECEF]
+        border border-transparent hover:border-gray-200
+        text-sm text-gray-700
+        placeholder:text-gray-500
+        focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400
+        shadow-sm'
+                        >
+                          <SelectValue placeholder='Sélectionner un type' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className='bg-white'>
+                        {Object.entries(TypeService).map(([key, value]) => (
+                          <SelectItem key={key} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='typeFrais'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type de Frais * </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isCreating}
+                    >
+                      <FormControl>
+                        <SelectTrigger className=' h-9 px-4  w-full rounded-lg bg-[#E9ECEF] border border-transparent hover:border-gray-200 text-sm text-gray-700 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 shadow-sm'>
+                          <SelectValue placeholder='Type frais' className='text-gray-100' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className='bg-white'>
+                        {Object.entries(TypeCalculation).map(([key, value]) => (
+                          <SelectItem key={key} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className='space-y-2'>
               <FormLabel>Frais</FormLabel>
               <div className='grid grid-cols-2 gap-4'>

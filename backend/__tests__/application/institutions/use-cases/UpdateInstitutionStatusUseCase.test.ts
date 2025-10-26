@@ -148,7 +148,9 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
     });
 
     it('should convert institution with services to DTO correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const serviceId = randomUUID();
@@ -157,6 +159,7 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.CREDIT,
+        typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -197,16 +200,17 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
       const result = await useCase.execute(command);
 
       expect(result.services).toHaveLength(1);
-      expect(result.services[0]).toEqual({
+      expect(result.services[0]).toMatchObject({
         id: serviceId,
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.CREDIT,
-        frais: expect.any(FraisGratuit),
+        typeFrais: TypeCalculation.FREE,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
       });
+      expect(result.services[0].frais).toHaveProperty('typeCalculation');
     });
   });
 });

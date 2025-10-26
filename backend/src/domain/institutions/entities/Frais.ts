@@ -1,3 +1,5 @@
+import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
+
 export type Money = number;
 
 export type Tranche = { min: Money; max?: Money; fee: Money };
@@ -11,6 +13,7 @@ export enum TypeCalculation {
 export abstract class Frais {
   abstract readonly _typeCalculation: TypeCalculation;
   abstract describe(): string;
+  abstract toDTO(): FraisDTO;
 }
 
 export class FraisGratuit extends Frais {
@@ -22,6 +25,12 @@ export class FraisGratuit extends Frais {
 
   get typeCalculation(): TypeCalculation {
     return this._typeCalculation;
+  }
+
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+    };
   }
 }
 
@@ -64,6 +73,15 @@ export class FraisFixes extends Frais {
 
   get fxSurcharge(): Money | undefined {
     return this._fxSurcharge;
+  }
+
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+      montantFixe: this._amount,
+      pourcentage: this._rate,
+      fraisChange: this._fxSurcharge,
+    };
   }
 }
 
@@ -109,5 +127,14 @@ export class FraisPourcentage extends Frais {
 
   get floor(): Money | undefined {
     return this._floor;
+  }
+
+  toDTO(): FraisDTO {
+    return {
+      typeCalculation: this._typeCalculation,
+      pourcentage: this._rate,
+      maximum: this._cap,
+      minimum: this._floor,
+    };
   }
 }

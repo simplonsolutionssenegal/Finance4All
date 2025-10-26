@@ -1,6 +1,6 @@
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { EntityId } from '@/domain/shared/EntityId';
-import type { Frais } from '@/domain/institutions/entities/Frais';
+import { type Frais } from '@/domain/institutions/entities/Frais';
 import type { ServiceDTO } from '@/domain/institutions/value-objects/ServiceDTO';
 
 export enum TypeService {
@@ -19,12 +19,19 @@ export enum TypeService {
   AUTRES = 'autres services',
 }
 
+export enum TypeCalculation {
+  FREE = 'fee',
+  POURCENTAGE = 'pourcentage',
+  FIX = 'fix',
+}
+
 interface SerciceProps {
   id: EntityId;
   name: string;
   longName: string;
   type: TypeService;
   frais: Frais;
+  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -34,6 +41,7 @@ export class Service extends DomainEntity<EntityId> {
   private _name: string;
   private _longName: string;
   private _type: TypeService;
+  private _typeFrais: TypeCalculation;
   private _frais: Frais;
   private _conditionAccess: string[];
   private _plafonds: string[];
@@ -44,6 +52,7 @@ export class Service extends DomainEntity<EntityId> {
     this._name = service.name;
     this._longName = service.longName;
     this._type = service.type;
+    this._typeFrais = service.typeFrais;
     this._frais = service.frais;
     this._conditionAccess = service.conditionAccess;
     this._plafonds = service.plafonds;
@@ -78,13 +87,19 @@ export class Service extends DomainEntity<EntityId> {
     return this._infrastructureAccess;
   }
 
+  get typeFrais(): TypeCalculation {
+    // Ajout
+    return this._typeFrais;
+  }
+
   public toDTO(): ServiceDTO {
     return {
       id: this.id.getValue(),
       name: this._name,
       longName: this._longName,
       type: this._type,
-      frais: this._frais,
+      typeFrais: this._typeFrais,
+      frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,
       plafonds: this._plafonds,
       infrastructureAccess: this._infrastructureAccess,

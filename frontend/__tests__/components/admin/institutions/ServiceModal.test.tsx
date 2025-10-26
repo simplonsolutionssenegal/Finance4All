@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import ServiceModal from '@/components/admin/institutions/ServiceModal';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService } from '@/types/Service';
+import { TypeService, TypeCalculation } from '@/types/Service';
 
 // Mock hasPointerCapture for JSDOM
 HTMLElement.prototype.hasPointerCapture = jest.fn(() => false);
@@ -55,17 +55,22 @@ jest.mock('@/components/ui/dialog', () => ({
   DialogTitle: ({ children, ...props }: { children: React.ReactNode }) => (
     <div {...props}>{children}</div>
   ),
+  DialogDescription: ({ children, ...props }: { children: React.ReactNode }) => (
+    <div {...props}>{children}</div>
+  ),
 }));
 
 // Mock Select components
 jest.mock('@/components/ui/select', () => ({
-  Select: ({ children, onValueChange, value }: any) => (
+  Select: ({ children, onValueChange, value, disabled }: any) => (
     <div data-testid='select-wrapper'>
       {children}
       <select
         data-testid='select-trigger'
         onChange={e => onValueChange?.(e.target.value)}
         value={value}
+        disabled={disabled}
+        aria-label='Select option'
       >
         <option value=''>Select...</option>
       </select>
@@ -75,6 +80,11 @@ jest.mock('@/components/ui/select', () => ({
   SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
   SelectTrigger: ({ children, className }: any) => <div className={className}>{children}</div>,
   SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
+}));
+
+// Mock Textarea
+jest.mock('@/components/ui/textarea', () => ({
+  Textarea: ({ ...props }: any) => <textarea {...props} />,
 }));
 
 const queryClient = new QueryClient();
@@ -104,6 +114,7 @@ describe('ServiceModal', () => {
         open={open}
         onOpenChange={mockOnOpenChange}
         institutionId='inst-123'
+        institutionName='Test Institution'
         refresh={mockRefresh}
       />,
       {
@@ -119,12 +130,20 @@ describe('ServiceModal', () => {
   });
 
   describe('Rendering', () => {
+    it('renders modal title and description', () => {
+      setup();
+      expect(screen.getByText('Nouveau service')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Créer un nouveau service financier pour Test Institution/i)
+      ).toBeInTheDocument();
+    });
+
     it('renders all form fields and disabled submit button initially', () => {
       setup();
-      expect(screen.getByText('Ajouter un service financier')).toBeInTheDocument();
-      expect(screen.getByLabelText(/Nom court/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Nom complet/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Nom du service/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
       expect(screen.getByText(/Type de service/i)).toBeInTheDocument();
+      expect(screen.getByText(/Type de Frais/i)).toBeInTheDocument();
       expect(screen.getByText('Frais')).toBeInTheDocument();
       expect(screen.getByText(/Conditions d'accès/i)).toBeInTheDocument();
       expect(screen.getByText(/Plafonds/i)).toBeInTheDocument();
@@ -154,11 +173,18 @@ describe('ServiceModal', () => {
   });
 
   describe('Form Input Handling', () => {
-    it('allows typing in name fields', async () => {
+    it('allows typing in name field', async () => {
       const { user } = setup();
-      const nameInput = screen.getByLabelText(/Nom court/i);
+      const nameInput = screen.getByLabelText(/Nom du service/i);
       await user.type(nameInput, 'Test Service');
       expect(nameInput).toHaveValue('Test Service');
+    });
+
+    it('allows typing in description field (textarea)', async () => {
+      const { user } = setup();
+      const descriptionInput = screen.getByLabelText(/Description/i);
+      await user.type(descriptionInput, 'Test Description');
+      expect(descriptionInput).toHaveValue('Test Description');
     });
 
     it('handles montantFixe input with value conversion', async () => {
@@ -256,16 +282,10 @@ describe('ServiceModal', () => {
     it('does not remove condition when creating', async () => {
       setup(true, true);
 
-      // Manually add a condition to the form
       const conditionInput = screen.getByPlaceholderText('Ajouter une condition');
-      fireEvent.change(conditionInput, { target: { value: 'Test Condition' } });
 
-      const badge = screen.queryByText('Test Condition');
-      if (badge) {
-        await userEvent.click(badge);
-        // Badge should still be there because isCreating is true
-        expect(screen.getByText('Test Condition')).toBeInTheDocument();
-      }
+      // The input should be disabled when creating
+      expect(conditionInput).toBeDisabled();
     });
   });
 
@@ -346,17 +366,17 @@ describe('ServiceModal', () => {
       const { user } = setup();
 
       // Fill all required fields
-      await user.type(screen.getByLabelText(/Nom court/i), 'Test Service');
-      await user.type(screen.getByLabelText(/Nom complet/i), 'Test Service Long Name');
+      await user.type(screen.getByLabelText(/Nom du service/i), 'Test Service');
+      await user.type(screen.getByLabelText(/Description/i), 'Test Service Long Name');
 
-      // Try to set the select value
-      const selectElement = screen.getByTestId('select-trigger') as HTMLSelectElement;
-      fireEvent.change(selectElement, { target: { value: TypeService.PAIEMENT_MARCHAND } });
+      // Try to set the select values
+      const selectElements = screen.getAllByTestId('select-trigger') as HTMLSelectElement[];
+      fireEvent.change(selectElements[0], { target: { value: TypeService.PAIEMENT_MARCHAND } });
+      fireEvent.change(selectElements[1], { target: { value: TypeCalculation.FIX } });
 
-      // Find the form and try submitting even if button is disabled
+      // Find the form and try submitting
       const formElement = screen.getByRole('button', { name: /Enregistrer/i }).closest('form');
       if (formElement) {
-        // Submit the form with the data
         await act(async () => {
           const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
           Object.defineProperty(submitEvent, 'target', {
@@ -372,7 +392,7 @@ describe('ServiceModal', () => {
   describe('Modal Behavior', () => {
     it('closes modal and resets form when cancel is clicked', async () => {
       const { user } = setup();
-      await user.type(screen.getByLabelText(/Nom court/i), 'Test Service');
+      await user.type(screen.getByLabelText(/Nom du service/i), 'Test Service');
       await user.click(screen.getByRole('button', { name: /Annuler/i }));
       expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
@@ -381,8 +401,8 @@ describe('ServiceModal', () => {
       const { user } = setup();
 
       // Fill in some data
-      await user.type(screen.getByLabelText(/Nom court/i), 'Test Service');
-      expect(screen.getByLabelText(/Nom court/i)).toHaveValue('Test Service');
+      await user.type(screen.getByLabelText(/Nom du service/i), 'Test Service');
+      expect(screen.getByLabelText(/Nom du service/i)).toHaveValue('Test Service');
 
       // Close the dialog using the mock close button
       await user.click(screen.getByTestId('dialog-close'));
@@ -402,6 +422,7 @@ describe('ServiceModal', () => {
             open={false}
             onOpenChange={mockOnOpenChange}
             institutionId='inst-123'
+            institutionName='Test Institution'
             refresh={mockRefresh}
           />
         </QueryClientProvider>
@@ -411,7 +432,6 @@ describe('ServiceModal', () => {
     it('does not close modal when creating', async () => {
       setup(true, true);
 
-      // Try to close modal by clicking outside (simulated by onOpenChange)
       const dialog = screen.getByRole('dialog');
       expect(dialog).toBeInTheDocument();
     });
@@ -434,7 +454,7 @@ describe('ServiceModal', () => {
     it('disables form when creating', () => {
       setup(true, true);
       expect(screen.getByRole('button', { name: /Enregistrement.../i })).toBeDisabled();
-      expect(screen.getByLabelText(/Nom court/i)).toBeDisabled();
+      expect(screen.getByLabelText(/Nom du service/i)).toBeDisabled();
     });
 
     it('has correct cancel button text', () => {
@@ -455,6 +475,33 @@ describe('ServiceModal', () => {
     it('disables cancel button when creating', () => {
       setup(true, true);
       expect(screen.getByRole('button', { name: /Annuler/i })).toBeDisabled();
+    });
+  });
+
+  describe('Select Fields', () => {
+    it('renders Type de service select with placeholder', () => {
+      setup();
+      expect(screen.getByText('Sélectionner un type')).toBeInTheDocument();
+    });
+
+    it('renders Type de Frais select with placeholder', () => {
+      setup();
+      expect(screen.getByText('Type frais')).toBeInTheDocument();
+    });
+
+    it('disables selects when creating', () => {
+      setup(true, true);
+      const selectElements = screen.getAllByTestId('select-trigger') as HTMLSelectElement[];
+      selectElements.forEach(select => {
+        expect(select).toBeDisabled();
+      });
+    });
+  });
+
+  describe('Institution Name Display', () => {
+    it('displays institution name in description', () => {
+      setup();
+      expect(screen.getByText(/Test Institution/i)).toBeInTheDocument();
     });
   });
 });

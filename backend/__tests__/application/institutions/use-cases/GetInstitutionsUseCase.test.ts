@@ -147,7 +147,9 @@ describe('GetInstitutionsUseCase', () => {
     });
 
     it('should retrieve institutions with services correctly', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
       const { randomUUID } = await import('crypto');
 
@@ -157,6 +159,7 @@ describe('GetInstitutionsUseCase', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.EPARGNE,
+        typeFrais: TypeCalculation.POURCENTAGE,
         frais: new FraisPourcentage(0.02, 500, 50),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -192,16 +195,20 @@ describe('GetInstitutionsUseCase', () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].services).toHaveLength(1);
-      expect(result.data[0].services[0]).toEqual({
+      expect(result.data[0].services[0]).toMatchObject({
         id: serviceId,
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.EPARGNE,
-        frais: expect.any(FraisPourcentage),
+        typeFrais: TypeCalculation.POURCENTAGE,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
       });
+      expect(result.data[0].services[0].frais).toHaveProperty('typeCalculation');
+      expect(result.data[0].services[0].frais).toHaveProperty('pourcentage', 0.02);
+      expect(result.data[0].services[0].frais).toHaveProperty('maximum', 500);
+      expect(result.data[0].services[0].frais).toHaveProperty('minimum', 50);
     });
   });
 });

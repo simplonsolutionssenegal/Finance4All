@@ -1,31 +1,50 @@
 'use client';
 
-import { ArrowLeft, Plus } from 'lucide-react';
+import {
+  type LucideIcon,
+  ArrowLeft,
+  Edit,
+  Plus,
+  Building2,
+  Settings,
+  Mail,
+  Phone,
+  User,
+  MapPin,
+  Globe,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
-import ServiceItem from '@/components/admin/institutions/ServiceItem';
+import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
+import ServiceList from '@/components/admin/institutions/ServiceList';
 import ServiceModal from '@/components/admin/institutions/ServiceModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
+import type { Service } from '@/types/Service';
 
-interface InstitutionDetailsComponentProps {
+type InstitutionDetailsComponentProps = {
   institutionId: string;
-}
+};
 
 const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsComponentProps) => {
   const { showLoader, hideLoader } = useLoader();
   const { institution, isLoading, isError, error, refetch } = useGetInstitution(institutionId);
-  const [showUpdateStateModal, setShowUpdateStateModal] = useState<boolean>(false);
+
+  const [showUpdateStateModal, setShowUpdateStateModal] = useState(false);
   const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
-  const [showServiceModal, setShowServiceModal] = useState<boolean>(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+
+  const [openServiceDetails, setOpenServiceDetails] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -34,8 +53,100 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
       hideLoader();
     }
   }, [isLoading, showLoader, hideLoader]);
+  const serviceCount = institution?.services?.length ?? 0;
 
-  const renderStatus = (status: InstitutionStatus) => {
+  const handleViewService = (service: Service) => {
+    setSelectedService(service);
+    setOpenServiceDetails(true);
+  };
+
+  const handleEditService = (service: Service) => {
+    console.warn('Modifier le service:', service);
+  };
+
+  const handleDeleteService = (service: Service) => {
+    console.warn('Supprimer le service:', service);
+  };
+
+  // Fonctions utilitaires
+  const formatDate = (d?: string) => {
+    if (!d) return '—';
+    try {
+      return new Intl.DateTimeFormat('fr-FR').format(new Date(d));
+    } catch {
+      return d;
+    }
+  };
+
+  const Stat = ({ label, value }: { readonly label: string; readonly value: string }) => {
+    return (
+      <div className='rounded-xl border border-gray-200 p-4 bg-gray-50'>
+        <p className='text-xs text-gray-500'>{label}</p>
+        <p className='mt-1 text-xl font-semibold text-gray-900'>{value}</p>
+      </div>
+    );
+  };
+
+  const InfoBlock = ({ title, value }: { readonly title: string; readonly value?: string }) => {
+    return (
+      <div>
+        <Label className='font-semibold'>{title}</Label>
+        <p className='mt-2 text-sm break-words'>{value || '—'}</p>
+      </div>
+    );
+  };
+
+  const InfoRow = ({
+    Icon,
+    label,
+    value,
+    href,
+  }: {
+    readonly Icon: LucideIcon;
+    readonly label: string;
+    readonly value?: string;
+    readonly href?: boolean;
+  }) => {
+    return (
+      <div className='space-y-1'>
+        <div className='flex items-center gap-2'>
+          <Icon className='h-4 w-4 text-gray-500' />
+          <Label className='text-sm text-gray-500'>{label}</Label>
+        </div>
+        {href && value ? (
+          <a
+            href={value}
+            target='_blank'
+            rel='noreferrer'
+            className='block text-sm text-cyan-700 hover:underline break-words'
+          >
+            {value}
+          </a>
+        ) : (
+          <p className='text-sm text-gray-900 break-words'>{value || '—'}</p>
+        )}
+      </div>
+    );
+  };
+
+  if (isError) {
+    return (
+      <div className='px-10 py-20'>
+        <div className='flex flex-col items-center justify-center gap-4'>
+          <p className='text-red-500 text-center text-lg'>
+            Erreur lors du chargement de l&apos;institution: {error?.message}
+          </p>
+          <Link href='/institutions'>
+            <Button variant='outline'>Retour à la liste</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!institution) return null;
+
+  const renderStatusChip = (status: InstitutionStatus) => {
     switch (status) {
       case InstitutionStatus.ACTIVE:
         return (
@@ -63,7 +174,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     }
   };
 
-  const activationButton = () => (
+  const activationButton = (
     <Button
       onClick={() => {
         setNewStatus(InstitutionStatus.ACTIVE);
@@ -74,7 +185,8 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
       ACTIVER
     </Button>
   );
-  const desactivationButton = () => (
+
+  const desactivationButton = (
     <Button
       onClick={() => {
         setNewStatus(InstitutionStatus.INACTIVE);
@@ -86,114 +198,159 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     </Button>
   );
 
-  if (isError) {
-    return (
-      <div className='px-10 py-20'>
-        <div className='flex flex-col items-center justify-center gap-4'>
-          <p className='text-red-500 text-center text-lg'>
-            Erreur lors du chargement de l&apos;institution: {error?.message}
-          </p>
-          <Link href='/institutions'>
-            <Button variant='outline'>Retour à la liste</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!institution) {
-    return null;
-  }
-
   return (
-    <div className='px-10 py-6'>
-      <div className='mb-6'>
+    <div className='px-6 md:px-10 py-6'>
+      <div className='mb-4'>
         <Link
           href='/institutions'
           className='flex items-center gap-2 text-gray-600 hover:text-gray-900'
         >
-          <ArrowLeft className='w-5 h-5' />
-          <span>Retour à la liste</span>
+          <ArrowLeft className='w-5 h-5' /> <span>Retour aux Institutions</span>
         </Link>
       </div>
 
-      <div className='flex gap-6'>
-        <div className='p-2 border-2 border-gray-200 rounded-2xl h-32 w-32 overflow-hidden flex items-center justify-center bg-gray-50'>
-          {institution.logoUrl ? (
-            <Image
-              src={institution.logoUrl}
-              alt={`Logo de ${institution.name}`}
-              width={500}
-              height={500}
-            />
-          ) : (
-            <div className='text-gray-400 text-4xl font-bold'>
-              {institution.name.charAt(0).toUpperCase()}
+      <div className='flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start'>
+        <div className='flex items-center gap-4'>
+          <div className='p-2 border-2 border-gray-200 rounded-2xl h-16 w-16 sm:h-20 sm:w-20 overflow-hidden flex items-center justify-center bg-gray-50'>
+            {institution.logoUrl ? (
+              <Image
+                src={institution.logoUrl}
+                alt={`Logo ${institution.name}`}
+                width={80}
+                height={80}
+                className='object-contain'
+              />
+            ) : (
+              <div className='text-gray-400 text-3xl font-bold'>
+                {institution.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900'>{institution.name}</h1>
+            <div className='mt-2 flex flex-wrap items-center gap-2'>
+              <Badge variant='secondary' className='bg-gray-800 text-white'>
+                Mobile Money
+              </Badge>
+              <Badge variant='secondary' className='bg-emerald-700/80 text-white'>
+                Sénégal et Cameroun
+              </Badge>
             </div>
-          )}
+          </div>
         </div>
-        <div className='flex-col flex-1 space-y-2'>
-          <div className='flex flex-1 justify-between'>
-            <div className='flex'>
-              <Label className='text-3xl font-bold text-black'>{institution.name}</Label>
-            </div>
-            <div className='flex gap-4'>
-              {institution.status === InstitutionStatus.PENDING && (
-                <>
-                  {desactivationButton()}
-                  {activationButton()}
-                </>
-              )}
-              {institution.status === InstitutionStatus.ACTIVE && <>{desactivationButton()}</>}
-              {institution.status === InstitutionStatus.INACTIVE && <>{activationButton()}</>}
-            </div>
-          </div>
-          <div className='flex flex-1 gap-4 items-center'>
-            {renderStatus(institution.status)}
-            <Badge className='bg-[#6CB9C642] p-2 rounded-xl'>
-              <Link href={institution.website}>{institution.website}</Link>
-            </Badge>
-          </div>
-          <div className='flex flex-1 flex-col gap-2'>
-            <Label className='font-semibold'>Description :</Label>
-            <p className='text-gray-700'>{institution.description}</p>
-          </div>
-          <div className='flex flex-1 flex-col gap-2'>
-            <Label className='font-semibold'>Zones géographiques :</Label>
-            <div className='flex gap-2 flex-wrap'>
-              {institution.geographicZones.map(zone => (
-                <Badge key={zone} className='bg-blue-300/40 p-2 rounded-xl'>
-                  {zone}
-                </Badge>
-              ))}
-            </div>
-          </div>
+
+        <div className='flex items-center gap-3'>
+          <Button variant='outline' className='gap-2 bg-[#6EC1E4] text-white hover:bg-customBlue'>
+            <Edit className='w-5 h-5' />
+            Modifier
+          </Button>
         </div>
       </div>
 
-      <Separator className='border border-gray-300 my-10' />
+      <div className='mt-4'>
+        <Tabs defaultValue='details' className='w-full'>
+          <TabsList className='w-full justify-start overflow-x-auto bg-[#E9ECEF] p-1 rounded-full gap-1'>
+            <TabsTrigger
+              value='details'
+              className='group inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-normal
+               text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
+               data-[state=active]:text-gray-900 transition'
+            >
+              <Building2 className='h-4 w-4 text-gray-600 group-data-[state=active]:text-gray-900' />
+              Détails de l&apos;institution
+            </TabsTrigger>
 
-      <div>
-        <div className='flex justify-between items-center mb-6'>
-          <h2 className='text-2xl font-bold text-gray-900'>Services Financiers</h2>
-          <Button
-            onClick={() => setShowServiceModal(true)}
-            className='bg-cyan-400 text-white hover:bg-cyan-500 flex items-center gap-2'
-          >
-            <Plus className='w-4 h-4' />
-            Ajouter un service
-          </Button>
-        </div>
+            <TabsTrigger
+              value='services'
+              className='group inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-normal
+               text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
+               data-[state=active]:text-gray-900 transition'
+            >
+              <Settings className='h-4 w-4 text-gray-600 group-data-[state=active]:text-gray-900' />
+              Services ({serviceCount})
+            </TabsTrigger>
+          </TabsList>
 
-        {institution.services && institution.services.length > 0 ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {institution.services.map(service => (
-              <ServiceItem key={service.id} service={service} />
-            ))}
-          </div>
-        ) : (
-          <p className='text-gray-500 text-center py-8'>Aucun service financier pour le moment.</p>
-        )}
+          <TabsContent value='details' className='mt-4'>
+            <div className='rounded-2xl bg-white p-4 sm:p-6 shadow-md'>
+              <div className='grid gap-6 md:grid-cols-2'>
+                <div className='space-y-3'>
+                  <InfoBlock title='Description' value={institution.description || '—'} />
+                  <InfoRow Icon={Globe} label='Site web' value={institution.website} href />
+                  <InfoRow Icon={Phone} label='Téléphone' value='+221 33 869 60 00' />
+                  <InfoRow Icon={User} label='Personne de contact' value='Amadou Diallo' />
+                </div>
+
+                <div className='space-y-3'>
+                  <InfoRow Icon={Mail} label='Email' value='contact@orangemoney.sn' />
+                  <InfoRow Icon={MapPin} label='Adresse' value='Dakar, Sénégal' />
+                  <InfoRow Icon={Phone} label='Téléphone du contact' value='+221 77 123 45 67' />
+                </div>
+              </div>
+              <div className='mt-3 flex flex-wrap gap-2'>
+                {institution.geographicZones?.map(zone => (
+                  <Badge
+                    key={zone}
+                    variant='outline'
+                    className='inline-flex items-center gap-1.5
+                 border border-[#EAEAEA] bg-white text-gray-800
+                rounded-xl px-2 py-1'
+                  >
+                    <MapPin className='h-3.5 w-3.5 text-gray-600' aria-hidden='true' />
+                    <span className='leading-none'>{zone}</span>
+                  </Badge>
+                ))}
+              </div>
+              <div className='mt-8 grid gap-4 sm:grid-cols-3'>
+                <Stat label='Services' value={serviceCount.toString()} />
+                <Stat label='Créée le' value={formatDate(institution.createdAt)} />
+                <Stat label='Mise à jour' value={formatDate(institution.updatedAt)} />
+              </div>
+
+              <Separator className='border border-gray-300 my-10' />
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-3'>
+                  {renderStatusChip(institution.status)}
+                </div>
+
+                <div className='flex gap-3'>
+                  {institution.status === InstitutionStatus.PENDING && (
+                    <>
+                      {desactivationButton}
+                      {activationButton}
+                    </>
+                  )}
+                  {institution.status === InstitutionStatus.ACTIVE && desactivationButton}
+                  {institution.status === InstitutionStatus.INACTIVE && activationButton}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value='services' className='mt-4'>
+            <div className='flex items-center justify-between my-4'>
+              <h2 className='font-poppins text-base font-normal leading-6 tracking-normal text-[#37415199]'>
+                Gérez les services financiers proposés par {institution.name}
+              </h2>
+              <Button
+                onClick={() => setShowServiceModal(true)}
+                className='bg-cyan-500 text-white hover:bg-cyan-600 gap-2'
+              >
+                <Plus className='w-4 h-4' />
+                Nouveau service
+              </Button>
+            </div>
+            <div className='rounded-2xl bg-white shadow-md'>
+              <ServiceList
+                services={institution.services || []}
+                onView={handleViewService}
+                onEdit={handleEditService}
+                onDelete={handleDeleteService}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ConfirmUpdateStatusModal
@@ -203,12 +360,18 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         institution={institution}
         status={newStatus}
       />
-
       <ServiceModal
         open={showServiceModal}
         onOpenChange={setShowServiceModal}
         institutionId={institutionId}
+        institutionName={institution.name}
         refresh={() => refetch()}
+      />
+
+      <ServiceDetailsModal
+        open={openServiceDetails}
+        onOpenChange={setOpenServiceDetails}
+        service={selectedService}
       />
     </div>
   );

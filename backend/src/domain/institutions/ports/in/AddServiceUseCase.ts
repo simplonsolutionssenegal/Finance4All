@@ -1,6 +1,6 @@
 import type { UseCase } from '@/domain/shared/UseCase';
 import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
-import type { TypeService } from '@/domain/institutions/entities/Service';
+import type { TypeCalculation, TypeService } from '@/domain/institutions/entities/Service';
 
 export interface FraisDTO {
   montantFixe?: number;
@@ -14,6 +14,7 @@ export interface AddServiceCommand {
   name: string;
   longName: string;
   type: TypeService;
+  typeFrais: TypeCalculation;
   frais: FraisDTO;
   conditionAccess: string[];
   plafonds: string[];

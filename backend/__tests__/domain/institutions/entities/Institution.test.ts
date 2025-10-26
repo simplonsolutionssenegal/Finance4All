@@ -145,6 +145,25 @@ describe('Institution', () => {
       expect(institution.operatesInZone('USD')).toBe(true);
       expect(institution.operatesInZone('GBP')).toBe(false);
     });
+
+    it('should not add duplicate geographic zones', () => {
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        services: [],
+      });
+
+      institution.addGeographicZone('EURO');
+      institution.addGeographicZone('EURO');
+
+      expect(institution.geographicZones.length).toBe(1);
+      expect(institution.geographicZones).toEqual(['EURO']);
+    });
   });
 
   describe('update methods', () => {
@@ -201,6 +220,27 @@ describe('Institution', () => {
 
       expect(institution.logoUrl.getValue()).toBe('https://new-logo.com');
     });
+
+    it('should update updatedAt timestamp on modifications', () => {
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        services: [],
+      });
+
+      const initialUpdatedAt = institution.updatedAt;
+
+      // Wait a bit to ensure timestamp difference
+      setTimeout(() => {
+        institution.updateName('New Name');
+        expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(initialUpdatedAt.getTime());
+      }, 10);
+    });
   });
 
   describe('getters', () => {
@@ -223,7 +263,9 @@ describe('Institution', () => {
 
   describe('services management', () => {
     it('should add service to institution', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const institution = createTestInstitution({
@@ -235,6 +277,7 @@ describe('Institution', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -250,7 +293,9 @@ describe('Institution', () => {
     });
 
     it('should remove service from institution', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
 
       const service1 = new Service({
@@ -258,6 +303,7 @@ describe('Institution', () => {
         name: 'Service 1',
         longName: 'Service 1 Long Name',
         type: TypeService.TRANSFERT_ARGENT,
+        typeFrais: TypeCalculation.POURCENTAGE,
         frais: new FraisPourcentage(0.02, 500, 50),
         conditionAccess: [],
         plafonds: [],
@@ -269,6 +315,7 @@ describe('Institution', () => {
         name: 'Service 2',
         longName: 'Service 2 Long Name',
         type: TypeService.EPARGNE,
+        typeFrais: TypeCalculation.POURCENTAGE,
         frais: new FraisPourcentage(0.01),
         conditionAccess: [],
         plafonds: [],
@@ -290,7 +337,9 @@ describe('Institution', () => {
     });
 
     it('should return services array from Set', async () => {
-      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const service = new Service({
@@ -298,6 +347,7 @@ describe('Institution', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.ASSURANCE,
+        typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -314,6 +364,147 @@ describe('Institution', () => {
       expect(Array.isArray(services)).toBe(true);
       expect(services).toHaveLength(1);
       expect(services[0]).toBe(service);
+    });
+
+    it('should not add duplicate services', async () => {
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
+      const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+      const service = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.CREDIT,
+        typeFrais: TypeCalculation.FREE,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        services: [],
+      });
+
+      institution.addService(service);
+      institution.addService(service);
+
+      expect(institution.services).toHaveLength(1);
+    });
+
+    it('should handle multiple services with different types', async () => {
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
+      const { FraisGratuit, FraisFixes, FraisPourcentage } = await import(
+        '@/domain/institutions/entities/Frais'
+      );
+
+      const service1 = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Free Service',
+        longName: 'Free Service Long Name',
+        type: TypeService.DEPOT_SIMPLE,
+        typeFrais: TypeCalculation.FREE,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const service2 = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Fixed Fee Service',
+        longName: 'Fixed Fee Service Long Name',
+        type: TypeService.RETRAIT_SIMPLE,
+        typeFrais: TypeCalculation.FIX,
+        frais: new FraisFixes(50),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const service3 = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Percentage Service',
+        longName: 'Percentage Service Long Name',
+        type: TypeService.TRANSFERT_ARGENT,
+        typeFrais: TypeCalculation.POURCENTAGE,
+        frais: new FraisPourcentage(0.015, 1000, 50),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        services: [service1, service2, service3],
+      });
+
+      expect(institution.services).toHaveLength(3);
+      expect(institution.services[0].typeFrais).toBe(TypeCalculation.FREE);
+      expect(institution.services[1].typeFrais).toBe(TypeCalculation.FIX);
+      expect(institution.services[2].typeFrais).toBe(TypeCalculation.POURCENTAGE);
+    });
+  });
+
+  describe('toDTO', () => {
+    it('should convert institution to DTO with all fields', async () => {
+      const { Service, TypeService, TypeCalculation } = await import(
+        '@/domain/institutions/entities/Service'
+      );
+      const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+      const service = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.AUTRES,
+        typeFrais: TypeCalculation.FREE,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition'],
+        plafonds: ['Plafond'],
+        infrastructureAccess: ['Infra'],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from('https://test.com'),
+        geographicZones: ['EURO', 'USD'],
+        logoUrl: UrlValueObject.from('https://test.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        services: [service],
+      });
+
+      const dto = institution.toDTO();
+
+      expect(dto.id).toBe(testUuid);
+      expect(dto.name).toBe('Test Institution');
+      expect(dto.description).toBe('Test Description');
+      expect(dto.website).toBe('https://test.com');
+      expect(dto.geographicZones).toEqual(['EURO', 'USD']);
+      expect(dto.logoUrl).toBe('https://test.com/logo.png');
+      expect(dto.status).toBe(InstitutionStatus.ACTIVE);
+      expect(dto.services).toHaveLength(1);
+      expect(dto.services[0].id).toBe(service.id.getValue());
+      expect(dto.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
   });
 });
