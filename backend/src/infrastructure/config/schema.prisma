@@ -11,6 +11,7 @@ model User {
   id    String @id
   name  String
   email String @unique
+  phoneNumber String? @unique
 }
 
 model Institution {
