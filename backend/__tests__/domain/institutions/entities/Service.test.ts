@@ -156,7 +156,7 @@ describe('Service', () => {
     });
 
     it('should have correct enum values', () => {
-      expect(TypeCalculation.FREE).toBe('fee');
+      expect(TypeCalculation.FREE).toBe('free');
       expect(TypeCalculation.FIX).toBe('fix');
       expect(TypeCalculation.POURCENTAGE).toBe('pourcentage');
     });

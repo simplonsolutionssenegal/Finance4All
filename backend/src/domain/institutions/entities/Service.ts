@@ -20,7 +20,7 @@ export enum TypeService {
 }
 
 export enum TypeCalculation {
-  FREE = 'fee',
+  FREE = 'free',
   POURCENTAGE = 'pourcentage',
   FIX = 'fix',
 }
