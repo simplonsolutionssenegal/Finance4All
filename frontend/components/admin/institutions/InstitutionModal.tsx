@@ -9,7 +9,13 @@ import { z } from 'zod';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -66,6 +72,7 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
       geographicZones: [],
       logoUrl: '',
     },
+    mode: 'onChange',
   });
 
   useEffect(() => {
@@ -109,6 +116,7 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const logoUrl = form.watch('logoUrl');
+  const sanitizedLogoUrl = typeof logoUrl === 'string' ? logoUrl.trim() : logoUrl;
   const selectedZones = form.watch('geographicZones');
 
   const filteredZones = availableZones.filter(
@@ -126,189 +134,225 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
 
   const isSubmitting = isCreating || isUpdating;
 
+  let submitLabel = 'Enregistrer';
+  if (isSubmitting) submitLabel = 'Enregistrement…';
+  else if (isEditMode) submitLabel = 'Modifier';
+
   return (
     <Dialog
       open={open}
-      onOpenChange={open => {
+      onOpenChange={o => {
         if (!isSubmitting) {
-          onOpenChange(open);
-          if (!open) form.reset();
+          onOpenChange(o);
+          if (!o) form.reset();
         }
       }}
     >
-      <DialogContent className='max-w-md bg-white'>
-        <DialogHeader>
-          <DialogTitle className='text-xl font-bold text-gray-900'>
-            {isEditMode ? "Modifier l'institut" : 'Ajouter un institut'}
+      <DialogContent
+        className='
+          w-[92vw] sm:w-auto
+          sm:max-w-[540px] md:max-w-[560px]
+          p-0 bg-white/95 backdrop-blur
+          rounded-xl shadow-2xl border border-gray-200
+          max-h-[85vh] overflow-y-auto
+        '
+      >
+        <DialogHeader className='items-start p-5 pb-3 border-b border-gray-100'>
+          <DialogTitle className='text-[16px] font-semibold text-gray-900'>
+            {isEditMode ? "Modifier l'institution" : 'Nouvelle institution'}
           </DialogTitle>
+          <p className='text-[13px] text-gray-500'>
+            Modifiez les informations de l’institution financière
+          </p>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom de l&apos;institut</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='Société générale'
-                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name='description'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={4}
-                      placeholder="Description de l'institution..."
-                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name='website'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Site web</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='https://www.institut.sn'
-                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name='geographicZones'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Zones géographiques couvertes</FormLabel>
-                  <div ref={dropdownRef} className='relative'>
-                    <div className='relative'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='p-5 pt-4 space-y-5'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='name'
+                render={({ field }) => (
+                  <FormItem className='col-span-1 md:col-span-2'>
+                    <FormLabel className='text-sm text-gray-700'>Nom de l’institution *</FormLabel>
+                    <FormControl>
                       <Input
-                        type='text'
-                        value={searchZone}
-                        onChange={e => {
-                          setSearchZone(e.target.value);
-                          setIsDropdownOpen(true);
-                        }}
-                        onFocus={() => setIsDropdownOpen(true)}
-                        placeholder='Rechercher une zone...'
-                        className='w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        placeholder='Ex : Orange Money'
+                        className='h-10 rounded-lg border-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                        {...field}
                         disabled={isSubmitting}
                       />
-                      <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='description'
+                render={({ field }) => (
+                  <FormItem className='col-span-1 md:col-span-2'>
+                    <FormLabel className='text-sm text-gray-700'>Description *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={3}
+                        placeholder='Description de l’institution…'
+                        className='rounded-lg border-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none'
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='website'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-sm text-gray-700'>Site web</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='https://www.institution.sn'
+                        className='h-10 rounded-lg border-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='logoUrl'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-sm text-gray-700'>Logo (URL)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='url'
+                        placeholder='https://exemple.com/logo.png'
+                        className='h-10 rounded-lg border-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='geographicZones'
+                render={({ field }) => (
+                  <FormItem className='col-span-1 md:col-span-2'>
+                    <FormLabel className='text-sm text-gray-700'>
+                      Zones géographiques couvertes *
+                    </FormLabel>
+                    <div ref={dropdownRef} className='relative'>
+                      <div className='relative'>
+                        <Input
+                          type='text'
+                          value={searchZone}
+                          onChange={e => {
+                            setSearchZone(e.target.value);
+                            setIsDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsDropdownOpen(true)}
+                          placeholder='Rechercher une zone…'
+                          className='h-10 pr-9 rounded-lg border-gray-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                          disabled={isSubmitting}
+                        />
+                        <ChevronDown className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none' />
+                      </div>
+
+                      {isDropdownOpen && filteredZones.length > 0 && (
+                        <div className='absolute z-10 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl max-h-56 overflow-y-auto'>
+                          {filteredZones.map(zone => (
+                            <button
+                              key={zone}
+                              type='button'
+                              onClick={() => {
+                                field.onChange([...(field.value || []), zone]);
+                                setSearchZone('');
+                                setIsDropdownOpen(false);
+                              }}
+                              className='w-full text-left px-4 py-2.5 hover:bg-gray-50'
+                            >
+                              {zone}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {isDropdownOpen && filteredZones.length > 0 && (
-                      <div className='absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto'>
-                        {filteredZones.map(zone => (
-                          <Button
+
+                    {selectedZones.length > 0 && (
+                      <div className='flex flex-wrap gap-2 mt-3'>
+                        {selectedZones.map(zone => (
+                          <Badge
                             key={zone}
-                            onClick={() => {
-                              field.onChange([...(field.value || []), zone]);
-                              setSearchZone('');
-                              setIsDropdownOpen(false);
-                            }}
-                            className='w-full justify-start'
+                            variant='secondary'
+                            className='gap-1 rounded-full px-3 py-1.5 bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200 cursor-pointer'
+                            onClick={() =>
+                              !isSubmitting &&
+                              field.onChange((field.value || []).filter(z => z !== zone))
+                            }
                           >
                             {zone}
-                          </Button>
+                            <X className='w-3.5 h-3.5' />
+                          </Badge>
                         ))}
                       </div>
                     )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {sanitizedLogoUrl && form.formState.errors.logoUrl?.type !== 'invalid_string' && (
+                <div className='col-span-1 md:col-span-2'>
+                  <div className='rounded-lg border border-gray-200 bg-gray-50 p-4'>
+                    <p className='text-xs text-gray-500 mb-2'>Aperçu du logo</p>
+                    <div className='flex items-center justify-center'>
+                      <Image
+                        src={sanitizedLogoUrl}
+                        alt='Aperçu du logo'
+                        width={500}
+                        height={500}
+                        className='max-h-24 max-w-full object-contain'
+                      />
+                    </div>
                   </div>
-                  {selectedZones.length > 0 && (
-                    <div className='flex flex-wrap gap-2 mt-3'>
-                      {selectedZones.map(zone => (
-                        <Badge
-                          key={zone}
-                          variant='default'
-                          className='bg-gray-400/30 p-2 cursor-pointer hover:bg-gray-500'
-                          onClick={() =>
-                            !isSubmitting &&
-                            field.onChange((field.value || []).filter(z => z !== zone))
-                          }
-                        >
-                          {zone}
-                          <X className='w-3.5 h-3.5' />
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
+                </div>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name='logoUrl'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo (URL)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='url'
-                      placeholder='https://exemple.com/logo.png'
-                      {...field}
-                      disabled={isSubmitting}
-                      className='w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  {logoUrl && form.formState.errors.logoUrl?.type !== 'invalid_string' && (
-                    <div className='mt-3 p-4 border border-gray-200 rounded-lg bg-gray-50'>
-                      <p className='text-xs text-gray-500 mb-2'>Aperçu du logo :</p>
-                      <div className='flex items-center justify-center'>
-                        <Image
-                          src={logoUrl}
-                          alt='Aperçu du logo'
-                          width={500}
-                          height={500}
-                          className='max-h-24 max-w-full object-contain'
-                        />
-                      </div>
-                    </div>
-                  )}
-                </FormItem>
-              )}
-            />
-
-            <div className='flex justify-end pt-4'>
-              <Button
-                type='submit'
-                disabled={isSubmitting || !form.formState.isValid}
-                className='bg-cyan-400 text-white hover:bg-cyan-500 px-8 py-3 rounded-xl'
-              >
-                {isSubmitting ? 'Enregistrement...' : isEditMode ? 'Modifier' : 'Enregistrer'}
-              </Button>
             </div>
+
+            <DialogFooter className='sticky -m-5 mt-2 p-5 pt-3 border-t border-gray-100 bg-white rounded-b-xl'>
+              <div className='flex w-full justify-end gap-2.5'>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  className='h-10 px-4 rounded-lg'
+                  onClick={() => !isSubmitting && onOpenChange(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={isSubmitting || !form.formState.isValid}
+                  className='h-10 px-5 rounded-lg text-white hover:opacity-90'
+                  style={{ backgroundColor: 'var(--primary-200)' }}
+                >
+                  {submitLabel}
+                </Button>
+              </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>
