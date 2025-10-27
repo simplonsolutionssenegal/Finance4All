@@ -235,7 +235,11 @@ export function useRegister(initialValues: RegisterFormValues): UseRegisterRetur
         }
       } catch (err: unknown) {
         console.error('Erreur de vérification:', err);
-        setVerificationError('Erreur lors de la vérification. Veuillez réessayer.');
+        const errorMessage =
+          err instanceof Error ? err.message : "Une erreur inconnue s'est produite";
+        setVerificationError(
+          `Erreur lors de la vérification: ${errorMessage}. Veuillez réessayer.`
+        );
       } finally {
         setIsVerifying(false);
       }
@@ -248,8 +252,13 @@ export function useRegister(initialValues: RegisterFormValues): UseRegisterRetur
 
     try {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-    } catch (err) {
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Une erreur inconnue s'est produite";
       console.error("Erreur lors de l'envoi du nouveau code:", err);
+      setVerificationError(
+        `Erreur lors de l'envoi du nouveau code: ${errorMessage}. Veuillez réessayer.`
+      );
     }
   }, [isLoaded, signUp]);
 
