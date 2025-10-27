@@ -21,6 +21,13 @@ import { UpdateInstitutionStatusUseCaseImpl } from '@/application/institutions/u
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
 import { AddServiceUseCaseImpl } from '@/application/institutions/use-cases/AddServiceUseCaseImpl';
 
+// Beneficiary imports
+import { BeneficiaryController } from '@/infrastructure/web/controllers/BeneficiaryController';
+import { PrismaUserRepository } from '@/infrastructure/persistence/repositories/PrismaUserRepository';
+import type { UserRepository } from '@/domain/repositories/UserRepository';
+import type { CreateBeneficiaryUseCase } from '@/application/use-cases/CreateBeneficiaryUseCase';
+import { CreateBeneficiaryCaseImpl } from '@/domain/use-cases/createBeneficiaryCaseImpl';
+
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
@@ -37,6 +44,11 @@ export const TYPES = {
 
   // Controllers
   InstitutionController: Symbol.for('InstitutionController'),
+
+  // Beneficiary
+  CreateBeneficiaryUseCase: Symbol.for('CreateBeneficiaryUseCase'),
+  UserRepository: Symbol.for('UserRepository'),
+  BeneficiaryController: Symbol.for('BeneficiaryController'),
 };
 
 const container = new Container();
@@ -49,6 +61,15 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaInstitutionRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+// Bind User Repository
+container
+  .bind<UserRepository>(TYPES.UserRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaUserRepository(prismaClient);
   })
   .inSingletonScope();
 
@@ -111,6 +132,15 @@ container
   })
   .inSingletonScope();
 
+// Bind Beneficiary Use Case
+container
+  .bind<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<UserRepository>(TYPES.UserRepository);
+    return new CreateBeneficiaryCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // Bind controllers
 container
   .bind<InstitutionController>(TYPES.InstitutionController)
@@ -136,6 +166,17 @@ container
       getInstitutionsUseCase,
       getInstitutionByIdUseCase
     );
+  })
+  .inSingletonScope();
+
+// Bind Beneficiary Controller
+container
+  .bind<BeneficiaryController>(TYPES.BeneficiaryController)
+  .toDynamicValue(context => {
+    const createBeneficiaryUseCase = context.get<CreateBeneficiaryUseCase>(
+      TYPES.CreateBeneficiaryUseCase
+    );
+    return new BeneficiaryController(createBeneficiaryUseCase);
   })
   .inSingletonScope();
 
