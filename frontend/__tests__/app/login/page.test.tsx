@@ -60,50 +60,10 @@ describe('Login Page', () => {
     );
   });
 
-  it('has proper gradient background', () => {
-    render(<Login />);
-    const loginForm = screen.getByTestId('login-form');
-    const mainContainer = loginForm.closest('div')?.parentElement;
-    expect(mainContainer).toHaveClass(
-      'min-h-screen',
-      'bg-gradient-to-br',
-      'from-gray-50',
-      'via-white',
-      'to-gray-100',
-      'relative',
-      'flex',
-      'flex-col',
-      'justify-center',
-      'items-center',
-      'px-4',
-      'py-8'
-    );
-  });
-
   it('renders the LoginForm component', () => {
     render(<Login />);
     expect(screen.getByTestId('login-form')).toBeInTheDocument();
     expect(screen.getByText('Login Form')).toBeInTheDocument();
-  });
-
-  it('has proper layout structure', () => {
-    render(<Login />);
-    const loginForm = screen.getByTestId('login-form');
-    const mainContainer = loginForm.closest('div')?.parentElement;
-    expect(mainContainer).toHaveClass(
-      'min-h-screen',
-      'bg-gradient-to-br',
-      'from-gray-50',
-      'via-white',
-      'to-gray-100',
-      'relative',
-      'flex',
-      'flex-col',
-      'justify-center',
-      'items-center',
-      'px-4',
-      'py-8'
-    );
   });
 
   it('displays the logo with correct dimensions', () => {

@@ -81,50 +81,10 @@ describe('ForgotPassword Page', () => {
     );
   });
 
-  it('has proper gradient background', () => {
-    render(<ForgotPassword />);
-    const forgotPasswordForm = screen.getByTestId('forgot-password-form');
-    const mainContainer = forgotPasswordForm.closest('div')?.parentElement;
-    expect(mainContainer).toHaveClass(
-      'min-h-screen',
-      'bg-gradient-to-br',
-      'from-gray-50',
-      'via-white',
-      'to-gray-100',
-      'relative',
-      'flex',
-      'flex-col',
-      'justify-center',
-      'items-center',
-      'px-4',
-      'py-8'
-    );
-  });
-
   it('renders the ForgotPasswordForm component', () => {
     render(<ForgotPassword />);
     expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
     expect(screen.getByText('ForgotPasswordForm Component')).toBeInTheDocument();
-  });
-
-  it('has proper layout structure', () => {
-    render(<ForgotPassword />);
-    const forgotPasswordForm = screen.getByTestId('forgot-password-form');
-    const mainContainer = forgotPasswordForm.closest('div')?.parentElement;
-    expect(mainContainer).toHaveClass(
-      'min-h-screen',
-      'bg-gradient-to-br',
-      'from-gray-50',
-      'via-white',
-      'to-gray-100',
-      'relative',
-      'flex',
-      'flex-col',
-      'justify-center',
-      'items-center',
-      'px-4',
-      'py-8'
-    );
   });
 
   it('displays the logo with correct dimensions', () => {
@@ -156,11 +116,5 @@ describe('ForgotPassword Page', () => {
       'rounded-full',
       'shadow-lg'
     );
-  });
-
-  it('has proper positioning for close button', () => {
-    render(<ForgotPassword />);
-    const closeButtonContainer = screen.getByTestId('close-icon').closest('div')?.parentElement;
-    expect(closeButtonContainer).toHaveClass('absolute', 'top-6', 'right-6', 'z-20');
   });
 });

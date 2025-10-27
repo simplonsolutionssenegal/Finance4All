@@ -183,16 +183,19 @@ describe('CreateBeneficiaryCaseImpl', () => {
       mockUserRepository.save.mockResolvedValue(expectedUser);
 
       // Act & Assert
-      for (const email of validEmails) {
-        await expect(
-          createBeneficiaryCase.execute(
-            validData.clerkUserId,
-            validData.name,
-            email,
-            validData.phoneNumber
-          )
-        ).resolves.toBeDefined();
-      }
+      const promises = validEmails.map(email =>
+        createBeneficiaryCase.execute(
+          validData.clerkUserId,
+          validData.name,
+          email,
+          validData.phoneNumber
+        )
+      );
+
+      const results = await Promise.all(promises);
+      results.forEach(result => {
+        expect(result).toBeDefined();
+      });
     });
   });
 });

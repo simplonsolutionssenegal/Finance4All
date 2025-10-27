@@ -10,7 +10,9 @@ jest.mock('@clerk/nextjs', () => ({
 
 jest.mock('@tanstack/react-query', () => ({
   useMutation: jest.fn(),
-  useQueryClient: jest.fn(),
+  useQueryClient: jest.fn(() => ({
+    invalidateQueries: jest.fn(),
+  })),
 }));
 
 jest.mock('sonner', () => ({
@@ -80,8 +82,6 @@ describe('useCreateBeneficiary', () => {
       const mockToken = 'mock-token';
       mockGetToken.mockResolvedValue(mockToken);
 
-      const { result } = renderHook(() => useCreateBeneficiary());
-
       const beneficiaryData = {
         clerkUserId: 'clerk_123',
         name: 'John Doe',
@@ -89,7 +89,15 @@ describe('useCreateBeneficiary', () => {
         phoneNumber: '+221771234567',
       };
 
-      await result.current.mutateAsync(beneficiaryData);
+      // Render the hook to ensure useMutation is called
+      renderHook(() => useCreateBeneficiary());
+
+      // Mock the mutation function to actually call the real implementation
+      const { useMutation } = require('@tanstack/react-query');
+      const mutationConfig = useMutation.mock.calls[0][0];
+      const mutationFn = mutationConfig.mutationFn;
+
+      await mutationFn(beneficiaryData);
 
       expect(mockGetToken).toHaveBeenCalled();
     });
@@ -152,8 +160,6 @@ describe('useCreateBeneficiary', () => {
       const mockToken = 'mock-token';
       mockGetToken.mockResolvedValue(mockToken);
 
-      const { result } = renderHook(() => useCreateBeneficiary());
-
       const beneficiaryData = {
         clerkUserId: 'clerk_123',
         name: 'John Doe',
@@ -161,7 +167,15 @@ describe('useCreateBeneficiary', () => {
         phoneNumber: '+221771234567',
       };
 
-      await result.current.mutateAsync(beneficiaryData);
+      // Render the hook to ensure useMutation is called
+      renderHook(() => useCreateBeneficiary());
+
+      // Mock the mutation function to actually call the real implementation
+      const { useMutation } = require('@tanstack/react-query');
+      const mutationConfig = useMutation.mock.calls[0][0];
+      const mutationFn = mutationConfig.mutationFn;
+
+      await mutationFn(beneficiaryData);
 
       expect(apiClient).toHaveBeenCalledWith(
         'api/v1/beneficiaries',
