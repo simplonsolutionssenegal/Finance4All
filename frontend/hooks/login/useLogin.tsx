@@ -28,7 +28,7 @@ interface UseLoginReturn {
 
   // Handlers
   handleFieldChange: (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleLogin: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleLogin: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
 export function useLogin(initialValues: LoginFormValues): UseLoginReturn {
