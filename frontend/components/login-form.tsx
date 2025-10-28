@@ -3,9 +3,8 @@
 import { Phone, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+import { InputField, SubmitButton } from '@/components/auth/FormComponents';
 import { PasswordInput } from '@/components/password-input';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin, type LoginFormValues } from '@/hooks/login/useLogin';
 
@@ -35,42 +34,21 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleLogin} className='space-y-5' noValidate>
-        <div className='space-y-2'>
-          <Label htmlFor='email' className='text-foreground font-medium text-gray-700'>
-            Email
-          </Label>
-          <div className='relative'>
-            <Phone className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
-            <Input
-              id='email'
-              type='email'
-              placeholder='Votre email'
-              value={formState.values.email as string}
-              onChange={handleFieldChange('email')}
-              className={`w-full h-12 pl-10 bg-gray-50 border-gray-200 rounded-lg focus-visible:ring-primary-200 ${
-                hasError('email')
-                  ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                  : ''
-              }`}
-              disabled={isLoading}
-              autoComplete='email'
-              maxLength={254}
-              required
-              aria-invalid={hasError('email')}
-              aria-describedby={hasError('email') ? 'email-error' : undefined}
-            />
-          </div>
-          {hasError('email') && (
-            <div
-              id='email-error'
-              className='text-red-500 text-sm font-medium'
-              role='alert'
-              aria-live='polite'
-            >
-              {getError('email')}
-            </div>
-          )}
-        </div>
+        <InputField
+          id='email'
+          label='Email'
+          type='email'
+          placeholder='Votre email'
+          value={formState.values.email as string}
+          onChange={handleFieldChange('email')}
+          hasError={hasError('email')}
+          errorMessage={getError('email')}
+          disabled={isLoading}
+          autoComplete='email'
+          maxLength={254}
+          required
+          icon={Phone}
+        />
 
         <div className='space-y-2'>
           <Label htmlFor='password' className='text-foreground font-medium text-gray-700'>
@@ -125,14 +103,10 @@ export function LoginForm() {
           </div>
         )}
 
-        <Button
-          type='submit'
-          disabled={isLoading || !isFormValid || !isLoaded}
-          className='w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
-        >
+        <SubmitButton isLoading={isLoading} disabled={!isFormValid || !isLoaded}>
           {isLoading ? 'Connexion en cours...' : 'Se connecter'}
           <ArrowRight className='h-4 w-4' />
-        </Button>
+        </SubmitButton>
       </form>
 
       <div className='my-6'>

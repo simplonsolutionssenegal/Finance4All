@@ -39,8 +39,8 @@ interface UseForgotPasswordReturn {
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleCodeChange: (value: string) => void;
-  handleSendResetLink: (e: React.FormEvent) => void;
-  handleResetPassword: (e: React.FormEvent) => void;
+  handleSendResetLink: (e: React.FormEvent) => Promise<void>;
+  handleResetPassword: (e: React.FormEvent) => Promise<void>;
   handleResetForm: () => void;
   handlePreviousStep: () => void;
 }
