@@ -73,12 +73,34 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
     }
   };
 
+  // Gestionnaire pour le clavier (Escape)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center p-4'>
-      {/* Backdrop */}
-      <div className='absolute inset-0 bg-black/50' onClick={handleClose} />
+    <div
+      className='fixed inset-0 z-50 flex items-center justify-center p-4'
+      onKeyDown={handleKeyDown}
+    >
+      {/* Backdrop - Accessible */}
+      <div
+        className='absolute inset-0 bg-black/50'
+        onClick={handleClose}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClose();
+          }
+        }}
+        role='button'
+        tabIndex={0}
+        aria-label='Fermer le dialog'
+      />
 
       {/* Modal - Hauteur réduite */}
       <div className='relative bg-white rounded-2xl shadow-2xl w-full max-w-lg'>
@@ -88,6 +110,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
             onClick={handleClose}
             disabled={isSubmitting}
             className='absolute top-4 right-6 p-1 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50'
+            aria-label='Fermer'
           >
             <X size={24} className='text-gray-400' />
           </button>
