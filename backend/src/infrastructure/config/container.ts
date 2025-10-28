@@ -20,6 +20,14 @@ import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports
 import { UpdateInstitutionStatusUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionStatusUseCase';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
 import { AddServiceUseCaseImpl } from '@/application/institutions/use-cases/AddServiceUseCaseImpl';
+import { ModuleController } from '../web/controllers/ModuleFormationController';
+
+import type { GetModulesUseCase } from '@/domain/formations/ports/in/GetModulesUseCase';
+import type { CreateModuleUseCase } from '@/domain/formations/ports/in/CreateModuleUseCase';
+import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
+import { GetModulesUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCase';
+import { CreateModuleUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCase';
+import { PrismaModuleFormationRepository } from '../persistence/repositories/PrismaModuleFormationRepository';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -37,6 +45,12 @@ export const TYPES = {
 
   // Controllers
   InstitutionController: Symbol.for('InstitutionController'),
+
+  // ========== Modules de formation ==========
+  CreateModuleUseCase: Symbol.for('CreateModuleUseCase'),
+  GetModulesUseCase: Symbol.for('GetModulesUseCase'),
+  ModuleRepository: Symbol.for('ModuleRepository'),
+  ModuleController: Symbol.for('ModuleController'),
 };
 
 const container = new Container();
@@ -49,6 +63,14 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaInstitutionRepository(prismaClient);
+  })
+  .inSingletonScope();
+// ========== modules de formation repositories ==========
+container
+  .bind<ModuleRepository>(TYPES.ModuleRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaModuleFormationRepository(prismaClient);
   })
   .inSingletonScope();
 
@@ -111,6 +133,23 @@ container
   })
   .inSingletonScope();
 
+// ========== 🆕 MODULES USE CASES ==========
+container
+  .bind<CreateModuleUseCase>(TYPES.CreateModuleUseCase)
+  .toDynamicValue(context => {
+    const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    return new CreateModuleUseCaseImpl(moduleRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetModulesUseCase>(TYPES.GetModulesUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    return new GetModulesUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // Bind controllers
 container
   .bind<InstitutionController>(TYPES.InstitutionController)
@@ -136,6 +175,17 @@ container
       getInstitutionsUseCase,
       getInstitutionByIdUseCase
     );
+  })
+  .inSingletonScope();
+
+// ========== modules de formation controllers ==========
+container
+  .bind<ModuleController>(TYPES.ModuleController)
+  .toDynamicValue(context => {
+    const createModuleUseCase = context.get<CreateModuleUseCase>(TYPES.CreateModuleUseCase);
+    const getModulesUseCase = context.get<GetModulesUseCase>(TYPES.GetModulesUseCase);
+
+    return new ModuleController(createModuleUseCase, getModulesUseCase);
   })
   .inSingletonScope();
 

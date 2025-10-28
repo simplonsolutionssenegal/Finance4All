@@ -124,7 +124,7 @@ describe('Sidebar', () => {
     );
     expect(screen.getByRole('link', { name: /cours & formations/i })).toHaveAttribute(
       'href',
-      '/formations'
+      '/modules'
     );
     expect(screen.getByRole('link', { name: /utilisateurs/i })).toHaveAttribute('href', '/users');
     expect(screen.getByRole('link', { name: /notifications/i })).toHaveAttribute(
