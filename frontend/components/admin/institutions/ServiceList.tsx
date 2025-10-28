@@ -39,9 +39,12 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
     }
   };
 
-  const formatAmountRange = (s: Service) => {
-    const min = s.frais?.minimum;
-    const max = s.frais?.maximum;
+  const formatAmountRange = (service: Service) => {
+    if (service.frais?.montantFixe) {
+      return `${formatNumber(service.frais.montantFixe)} FCFA (FIX)`;
+    }
+    const min = service.frais?.minimum;
+    const max = service.frais?.maximum;
     if (min && max) return `${formatNumber(min)} - ${formatNumber(max)} FCFA`;
     if (min) return `≥ ${formatNumber(min)} FCFA`;
     if (max) return `≤ ${formatNumber(max)} FCFA`;
@@ -49,14 +52,16 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
   };
 
   const formatFrais = (service: Service) => {
-    const parts = [];
     if (service.frais?.montantFixe) {
-      parts.push(`${formatNumber(service.frais.montantFixe)} FCFA`);
+      if (service.frais?.pourcentage) {
+        return `${service.frais.pourcentage}%`;
+      }
+      return '—';
     }
     if (service.frais?.pourcentage) {
-      parts.push(`${service.frais.pourcentage}%`);
+      return `${service.frais.pourcentage}%`;
     }
-    return parts.length > 0 ? parts.join(' + ') : 'Gratuit';
+    return 'Gratuit';
   };
 
   return (
@@ -65,11 +70,11 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
         <Table>
           <TableHeader>
             <TableRow className='bg-gray-50 border-b border-gray-200'>
-              <TableHead className='w-[35%] min-w-[200px] ps-4'>Service</TableHead>
+              <TableHead className='w-[40%] min-w-[200px] ps-4'>Service</TableHead>
               <TableHead className='w-[15%] min-w-[100px]'>Type</TableHead>
-              <TableHead className='w-[20%] min-w-[140px]'>Montants</TableHead>
-              <TableHead className='w-[20%] min-w-[120px]'>Frais</TableHead>
-              <TableHead className='w-[10%] min-w-[80px] text-right pr-4'>Actions</TableHead>
+              <TableHead className='w-[30%] min-w-[140px]'>Montants</TableHead>
+              <TableHead className='w-[10%] min-w-[120px]'>Frais</TableHead>
+              <TableHead className='w-[5%] min-w-[80px] text-right pr-4'>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -98,7 +103,7 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
                   <TableCell className='py-2 text-sm text-gray-700'>
                     <div className='flex flex-col gap-0.5'>{formatFrais(service)}</div>
                   </TableCell>
-                  <TableCell className='py-3 text-right pr-4'>
+                  <TableCell className='py-2 text-right pr-4'>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant='ghost' size='sm' className='h-8 w-8 p-0'>

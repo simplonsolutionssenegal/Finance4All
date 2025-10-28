@@ -149,10 +149,9 @@ describe('ServiceList', () => {
       render(<ServiceList services={[mockServiceWithoutOptionalFields]} />);
 
       expect(screen.getByText('Service Simple')).toBeInTheDocument();
-      // The longName span should not be rendered when longName is empty
       const serviceCell = screen.getByText('Service Simple').closest('td');
       const spans = serviceCell?.querySelectorAll('span');
-      expect(spans?.length).toBe(1); // Only the name span, no longName span
+      expect(spans?.length).toBe(1);
     });
 
     it('renders service type in badge', () => {
@@ -172,8 +171,18 @@ describe('ServiceList', () => {
   });
 
   describe('Amount Range Formatting', () => {
-    it('formats amount range with both min and max', () => {
+    it('formats montant fixe in amount column with (FIX) indicator', () => {
       render(<ServiceList services={[mockService]} />);
+      // Le montant fixe s'affiche maintenant dans la colonne Montants
+      expect(screen.getByText(/500 FCFA \(FIX\)/)).toBeInTheDocument();
+    });
+
+    it('formats amount range with both min and max when no montant fixe', () => {
+      const service = {
+        ...mockService,
+        frais: { minimum: 100, maximum: 50000 },
+      };
+      render(<ServiceList services={[service]} />);
       expect(screen.getByText(/100 - 50 000 FCFA/)).toBeInTheDocument();
     });
 
@@ -202,18 +211,25 @@ describe('ServiceList', () => {
   });
 
   describe('Fees Formatting', () => {
-    it('formats fees with montantFixe and pourcentage', () => {
+    it('displays pourcentage in fees column when montantFixe exists', () => {
       render(<ServiceList services={[mockService]} />);
-      expect(screen.getByText('500 FCFA + 2.5%')).toBeInTheDocument();
+      // Le pourcentage s'affiche dans la colonne Frais
+      expect(screen.getByText('2.5%')).toBeInTheDocument();
+      // Le montant fixe est dans la colonne Montants
+      expect(screen.getByText(/500 FCFA \(FIX\)/)).toBeInTheDocument();
     });
 
-    it('formats fees with only montantFixe', () => {
+    it('displays dash in fees column when only montantFixe without pourcentage', () => {
       const service = {
         ...mockService,
         frais: { montantFixe: 1000 },
       };
       render(<ServiceList services={[service]} />);
-      expect(screen.getByText('1 000 FCFA')).toBeInTheDocument();
+      // Le montant fixe est dans la colonne Montants
+      expect(screen.getByText(/1 000 FCFA \(FIX\)/)).toBeInTheDocument();
+      // Dash dans la colonne Frais
+      const fraisCell = screen.getAllByText('—');
+      expect(fraisCell.length).toBeGreaterThan(0);
     });
 
     it('formats fees with only pourcentage', () => {
@@ -236,7 +252,7 @@ describe('ServiceList', () => {
         frais: { montantFixe: 1000000 },
       };
       render(<ServiceList services={[service]} />);
-      expect(screen.getByText(/1 000 000 FCFA/)).toBeInTheDocument();
+      expect(screen.getByText(/1 000 000 FCFA \(FIX\)/)).toBeInTheDocument();
     });
   });
 
@@ -360,7 +376,6 @@ describe('ServiceList', () => {
       render(<ServiceList services={services} />);
 
       const rows = screen.getAllByRole('row');
-      // +1 for header row
       expect(rows).toHaveLength(services.length + 1);
     });
 
@@ -401,8 +416,6 @@ describe('ServiceList', () => {
       };
       render(<ServiceList services={[service]} />);
 
-      // When formatNumber fails, it catches the error and returns String(n)
-      // So NaN will be displayed as "Gratuit" since it's falsy
       expect(screen.getByText('Gratuit')).toBeInTheDocument();
     });
 
