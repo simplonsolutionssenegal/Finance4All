@@ -1,6 +1,6 @@
 // frontend/src/lib/constants/module-constants.ts
 
-import { DifficultyLevel, Thematic } from '@/types/modules/module';
+import { DifficultyLevel, ModuleStatus, Thematic } from '@/types/modules/module';
 
 export const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
   [DifficultyLevel.BEGINNER]: 'Débutant',
@@ -40,4 +40,14 @@ export const THEMATIC_ICONS: Record<Thematic, string> = {
   [Thematic.ENTREPRENEURSHIP]: '💼',
   [Thematic.TAXATION]: '📊',
   [Thematic.INSURANCE]: '🛡️',
+};
+export const MODULE_STATUS_LABELS: Record<ModuleStatus, string> = {
+  [ModuleStatus.DRAFT]: 'Brouillon',
+  [ModuleStatus.PUBLISHED]: 'Publié',
+  [ModuleStatus.ARCHIVED]: 'Archivé',
+};
+export const MODULE_STATUS_COLORS: Record<ModuleStatus, string> = {
+  [ModuleStatus.DRAFT]: 'bg-gray-100 text-gray-700',
+  [ModuleStatus.PUBLISHED]: 'bg-green-100 text-green-700',
+  [ModuleStatus.ARCHIVED]: 'bg-orange-100 text-orange-700',
 };

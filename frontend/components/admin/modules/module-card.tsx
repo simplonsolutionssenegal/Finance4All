@@ -48,7 +48,7 @@ export default function ModuleCard({ module }: ModuleCardProps) {
   return (
     <div className='bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 group'>
       {/* Image */}
-      <div className='relative h-48 w-full overflow-hidden bg-gradient-to-br from-red-100 to-pink-100'>
+      <div className='relative h-48 w-full overflow-hidden bg-primary-300 group-hover:bg-primary-200  from-red-100 to-pink-100'>
         {module.imageUrl ? (
           <Image
             src={module.imageUrl}
@@ -154,7 +154,7 @@ export default function ModuleCard({ module }: ModuleCardProps) {
             {DIFFICULTY_LABELS[module.difficultyLevel]}
           </span>
           <span className='px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full'>
-            Publié
+            {module.status}
           </span>
         </div>
 
