@@ -59,4 +59,3 @@ export enum TypeService {
   ASSURANCE = 'assurance',
   AUTRES = 'autres services',
 }
-

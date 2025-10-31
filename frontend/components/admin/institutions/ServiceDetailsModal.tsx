@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
+import Chip from '@/components/admin/institutions/Chip';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -28,14 +29,6 @@ type Props = {
   service?: Service | null;
 };
 
-// ✅ Composant Pill extrait en dehors
-const Pill = ({ children }: { children: React.ReactNode }) => (
-  <span className='inline-flex items-center rounded-full bg-[#F8F9FA] px-3 py-1 text-xs font-medium text-gray-700'>
-    {children}
-  </span>
-);
-
-// ✅ Composant ChipList extrait en dehors
 type ChipListProps = {
   items?: string[];
   variant?: 'outline' | 'secondary';
@@ -60,6 +53,29 @@ const ChipList = ({ items, variant = 'outline', icon: Icon }: ChipListProps) =>
     <p className='text-sm text-gray-500'>—</p>
   );
 
+type FeeKind = 'GRATUIT' | 'FIXE' | 'POURCENTAGE';
+
+const getFeeKind = (s: Service): FeeKind => {
+  const f = s.frais || {};
+  const hasPct = (f.pourcentage ?? 0) > 0;
+  const hasFix = (f.montantFixe ?? 0) > 0;
+  if (hasPct) return 'POURCENTAGE';
+  if (hasFix) return 'FIXE';
+  return 'GRATUIT';
+};
+
+const feeKindLabel: Record<FeeKind, string> = {
+  GRATUIT: 'Gratuit',
+  FIXE: 'Frais fixe',
+  POURCENTAGE: 'Pourcentage',
+};
+
+const feeKindBadgeClass: Record<FeeKind, string> = {
+  GRATUIT: 'bg-green-50 text-green-700 border border-green-200',
+  FIXE: 'bg-amber-50 text-amber-700 border border-amber-200',
+  POURCENTAGE: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+};
+
 const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, service }) => {
   if (!service) return null;
 
@@ -73,16 +89,11 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
 
   const amountRange = (s: Service) => {
     const { montantMin, montantMax } = s;
-
     if (montantMin != null && montantMax != null && montantMin > 0 && montantMax > 0) {
       return `${fmt(montantMin)} – ${fmt(montantMax)} FCFA`;
     }
-    if (montantMin != null && montantMin > 0) {
-      return `≥ ${fmt(montantMin)} FCFA`;
-    }
-    if (montantMax != null && montantMax > 0) {
-      return `≤ ${fmt(montantMax)} FCFA`;
-    }
+    if (montantMin != null && montantMin > 0) return `≥ ${fmt(montantMin)} FCFA`;
+    if (montantMax != null && montantMax > 0) return `≤ ${fmt(montantMax)} FCFA`;
     return 'Non spécifié';
   };
 
@@ -96,10 +107,11 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
     return parts.length ? parts.join(' · ') : 'Aucun frais';
   };
 
+  const feeKind = getFeeKind(service);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-2xl rounded-2xl p-0 overflow-hidden'>
-        {/* Header */}
         <div className='relative bg-gradient-to-r from-[#00BBA7]/10 to-teal-50'>
           <DialogHeader className='px-6 py-5'>
             <div className='flex items-start justify-between gap-4'>
@@ -113,14 +125,15 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
                   </DialogDescription>
                 )}
                 <div className='mt-3 flex flex-wrap items-center gap-2'>
-                  <Pill>
+                  <Chip className='bg-[#F8F9FA] text-gray-700' variant='default'>
                     <Wallet className='mr-1.5 h-3.5 w-3.5' />
                     {service.type}
-                  </Pill>
-                  <Pill>
+                  </Chip>
+
+                  <Chip className='bg-[#F8F9FA] text-gray-700' variant='default'>
                     <BadgePercent className='mr-1.5 h-3.5 w-3.5' />
-                    {fraisText(service)}
-                  </Pill>
+                    {feeKindLabel[feeKind]}
+                  </Chip>
                 </div>
               </div>
             </div>
@@ -132,15 +145,22 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
           <div className='grid gap-4 sm:grid-cols-3'>
             <div className='rounded-xl border border-gray-200 bg-[#F8F9FA] p-4'>
               <p className='text-xs text-gray-500'>Type de frais</p>
-              <p className='mt-1 text-sm text-gray-900'>{service.typeFrais || 'Non défini'}</p>
+              <div className='mt-1'>
+                <Badge className={`${feeKindBadgeClass[feeKind]} rounded-xl`}>
+                  {feeKindLabel[feeKind]}
+                </Badge>
+              </div>
+              <p className='mt-2 text-xs text-gray-900'>{fraisText(service)}</p>
             </div>
+
             <div className='rounded-xl border border-gray-200 bg-[#F8F9FA] p-4'>
               <p className='text-xs text-gray-500'>Montants autorisés</p>
-              <p className='mt-1 text-sm font-semibold text-gray-900'>{amountRange(service)}</p>
+              <p className='mt-1 text-xs font-semibold text-gray-900'>{amountRange(service)}</p>
             </div>
+
             <div className='rounded-xl border border-gray-200 bg-[#F8F9FA] p-4'>
               <p className='text-xs text-gray-500'>Frais appliqués</p>
-              <p className='mt-1 text-sm text-gray-900'>{fraisText(service)}</p>
+              <p className='mt-1 text-xs text-gray-900'>{fraisText(service)}</p>
             </div>
           </div>
 
