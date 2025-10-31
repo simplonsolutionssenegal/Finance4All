@@ -35,6 +35,57 @@ type InstitutionDetailsComponentProps = {
   institutionId: string;
 };
 
+const Stat = ({ label, value }: { readonly label: string; readonly value: string }) => {
+  return (
+    <div className=''>
+      <p className='text-xs text-gray-500'>{label}</p>
+      <p className='mt-1 text-xl text-gray-900'>{value}</p>
+    </div>
+  );
+};
+
+const InfoBlock = ({ title, value }: { readonly title: string; readonly value?: string }) => {
+  return (
+    <div>
+      <Label className='font-semibold'>{title}</Label>
+      <p className='mt-2 text-sm break-words'>{value || '—'}</p>
+    </div>
+  );
+};
+
+const InfoRow = ({
+  Icon,
+  label,
+  value,
+  href,
+}: {
+  readonly Icon: LucideIcon;
+  readonly label: string;
+  readonly value?: string;
+  readonly href?: boolean;
+}) => {
+  return (
+    <div className='space-y-1'>
+      <div className='flex items-center gap-2'>
+        <Icon className='h-4 w-4 text-gray-500' />
+        <Label className='text-sm text-gray-500'>{label}</Label>
+      </div>
+      {href && value ? (
+        <a
+          href={value}
+          target='_blank'
+          rel='noreferrer'
+          className='block text-sm text-cyan-700 hover:underline break-words'
+        >
+          {value}
+        </a>
+      ) : (
+        <p className='text-sm text-gray-900 break-words'>{value || '—'}</p>
+      )}
+    </div>
+  );
+};
+
 const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsComponentProps) => {
   const { showLoader, hideLoader } = useLoader();
   const { institution, isLoading, isError, error, refetch } = useGetInstitution(institutionId);
@@ -76,57 +127,6 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
     } catch {
       return d;
     }
-  };
-
-  const Stat = ({ label, value }: { readonly label: string; readonly value: string }) => {
-    return (
-      <div className=''>
-        <p className='text-xs text-gray-500'>{label}</p>
-        <p className='mt-1 text-xl text-gray-900'>{value}</p>
-      </div>
-    );
-  };
-
-  const InfoBlock = ({ title, value }: { readonly title: string; readonly value?: string }) => {
-    return (
-      <div>
-        <Label className='font-semibold'>{title}</Label>
-        <p className='mt-2 text-sm break-words'>{value || '—'}</p>
-      </div>
-    );
-  };
-
-  const InfoRow = ({
-    Icon,
-    label,
-    value,
-    href,
-  }: {
-    readonly Icon: LucideIcon;
-    readonly label: string;
-    readonly value?: string;
-    readonly href?: boolean;
-  }) => {
-    return (
-      <div className='space-y-1'>
-        <div className='flex items-center gap-2'>
-          <Icon className='h-4 w-4 text-gray-500' />
-          <Label className='text-sm text-gray-500'>{label}</Label>
-        </div>
-        {href && value ? (
-          <a
-            href={value}
-            target='_blank'
-            rel='noreferrer'
-            className='block text-sm text-cyan-700 hover:underline break-words'
-          >
-            {value}
-          </a>
-        ) : (
-          <p className='text-sm text-gray-900 break-words'>{value || '—'}</p>
-        )}
-      </div>
-    );
   };
 
   if (isError) {

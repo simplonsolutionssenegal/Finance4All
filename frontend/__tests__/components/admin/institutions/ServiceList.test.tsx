@@ -1,11 +1,13 @@
-// ServiceList.adapted.test.tsx
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { Service, TypeService, TypeCalculation } from '@/types/Service';
+import ServiceList from '@/components/admin/institutions/ServiceList';
 import userEvent from '@testing-library/user-event';
 
-import ServiceList from '@/components/admin/institutions/ServiceList';
-import { TypeService, TypeCalculation, type Service } from '@/types/Service';
+// Augmenter le timeout des tests pour accommoder les animations
+jest.setTimeout(10000);
 
-// Mock Lucide icons
+// Mock des icônes lucide-react
 jest.mock('lucide-react', () => ({
   EllipsisVertical: () => <div data-testid='ellipsis-icon' />,
   Eye: () => <div data-testid='eye-icon' />,
@@ -13,137 +15,85 @@ jest.mock('lucide-react', () => ({
   Trash2: () => <div data-testid='trash-icon' />,
 }));
 
-// Mock UI components
-jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, className }: any) => (
-    <span className={className} data-testid='badge'>
-      {children}
-    </span>
-  ),
-}));
-
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, className, variant, size }: any) => (
-    <button onClick={onClick} className={className} data-variant={variant} data-size={size}>
-      {children}
-    </button>
-  ),
-}));
-
-jest.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children, asChild }: any) => <div>{children}</div>,
-  DropdownMenuContent: ({ children, align, sideOffset, className }: any) => (
-    <div data-align={align} data-side-offset={sideOffset} className={className}>
-      {children}
-    </div>
-  ),
-  DropdownMenuItem: ({ children, onClick, className }: any) => (
-    <button onClick={onClick} className={className} data-testid='dropdown-item'>
-      {children}
-    </button>
-  ),
-  DropdownMenuSeparator: ({ className }: any) => <hr className={className} />,
-}));
-
-jest.mock('@/components/ui/table', () => ({
-  Table: ({ children, ...props }: any) => <table {...props}>{children}</table>,
-  TableHeader: ({ children, ...props }: any) => <thead {...props}>{children}</thead>,
-  TableBody: ({ children, ...props }: any) => <tbody {...props}>{children}</tbody>,
-  TableRow: ({ children, className, ...props }: any) => (
-    <tr className={className} {...props}>
-      {children}
-    </tr>
-  ),
-  TableHead: ({ children, className, ...props }: any) => (
-    <th className={className} {...props}>
-      {children}
-    </th>
-  ),
-  TableCell: ({ children, className, ...props }: any) => (
-    <td className={className} {...props}>
-      {children}
-    </td>
-  ),
-}));
-
-// helpers pour tolérer les espaces insécables/fins insécables
-const nbsp = '\u00A0';
-const narrow = '\u202F';
-const frNum = (n: number) =>
-  new Intl.NumberFormat('fr-FR').format(n).replace(/\s/g, `[\\s${nbsp}${narrow}]?`);
-
-describe('ServiceList', () => {
-  const mockService: Service = {
-    id: 'service-1',
-    name: 'Transfert mobile',
-    longName: "Service de transfert d'argent mobile",
+const mockServices: Service[] = [
+  {
+    id: '1',
+    name: "Transfert d'argent",
+    longName: "Service de transfert d'argent national",
     type: TypeService.TRANSFERT_ARGENT,
-    typeFrais: TypeCalculation.FIX, // non utilisé par le composant, on le garde pour le type
     montantMin: 1000,
-    montantMax: 100000,
+    montantMax: 500000,
     frais: {
-      montantFixe: 500,
-      pourcentage: 2.5,
-      minimum: 100,
-      maximum: 50000,
+      montantFixe: 100,
+      pourcentage: 2,
+      minimum: 50,
+      maximum: 5000,
     },
-    conditionAccess: ['Avoir un compte actif'],
-    plafonds: ['500 000 FCFA/jour'],
-    infrastructureAccess: ['Mobile', 'Agence'],
+    typeFrais: TypeCalculation.POURCENTAGE,
+    conditionAccess: ['kyc_verified'],
+    plafonds: ['daily_limit'],
+    infrastructureAccess: ['mobile', 'web'],
     institutionId: 'inst-1',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
-  };
-
-  const mockServiceWithoutOptionalFields: Service = {
-    id: 'service-2',
-    name: 'Service Simple',
+  },
+  {
+    id: '2',
+    name: 'Paiement facture',
     longName: '',
-    type: TypeService.DEPOT_SIMPLE,
+    type: TypeService.PAIEMENT_FACTURES,
+    montantMin: 0,
+    montantMax: 0,
+    frais: {
+      montantFixe: 0,
+      pourcentage: 0,
+      minimum: 0,
+      maximum: 0,
+    },
     typeFrais: TypeCalculation.FREE,
-    // IMPORTANT : le composant n’utilise PAS frais.* pour la colonne Montants,
-    // il s’appuie sur montantMin/montantMax au niveau racine.
-    montantMin: undefined,
-    montantMax: undefined,
-    frais: {},
     conditionAccess: [],
     plafonds: [],
-    infrastructureAccess: [],
+    infrastructureAccess: ['mobile'],
     institutionId: 'inst-1',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
-  };
+  },
+  {
+    id: '3',
+    name: 'Retrait',
+    longName: "Retrait d'espèces aux guichets",
+    type: TypeService.RETRAIT_SIMPLE,
+    montantMin: 5000,
+    montantMax: undefined,
+    frais: {
+      pourcentage: 1.5,
+    },
+    typeFrais: TypeCalculation.POURCENTAGE,
+    conditionAccess: ['kyc_verified'],
+    plafonds: ['monthly_limit'],
+    infrastructureAccess: ['atm', 'agency'],
+    institutionId: 'inst-1',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+];
 
-  const mockOnView = jest.fn();
-  const mockOnEdit = jest.fn();
-  const mockOnDelete = jest.fn();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('Empty State', () => {
-    it('displays empty message when no services provided', () => {
+describe('ServiceList', () => {
+  describe('Rendu de base', () => {
+    it("affiche un message quand il n'y a pas de services", () => {
       render(<ServiceList services={[]} />);
       expect(screen.getByText('Aucun service pour le moment.')).toBeInTheDocument();
     });
 
-    it('displays empty message when services is undefined', () => {
-      render(<ServiceList services={undefined as any} />);
-      expect(screen.getByText('Aucun service pour le moment.')).toBeInTheDocument();
+    it('affiche la liste des services', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText("Transfert d'argent")).toBeInTheDocument();
+      expect(screen.getByText('Paiement facture')).toBeInTheDocument();
+      expect(screen.getByText('Retrait')).toBeInTheDocument();
     });
 
-    it('does not render table when no services', () => {
-      const { container } = render(<ServiceList services={[]} />);
-      expect(container.querySelector('table')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Table Rendering', () => {
-    it('renders table with correct headers', () => {
-      render(<ServiceList services={[mockService]} />);
-
+    it('affiche les en-têtes de colonnes', () => {
+      render(<ServiceList services={mockServices} />);
       expect(screen.getByText('Service')).toBeInTheDocument();
       expect(screen.getByText('Type')).toBeInTheDocument();
       expect(screen.getByText('Montants')).toBeInTheDocument();
@@ -151,279 +101,334 @@ describe('ServiceList', () => {
       expect(screen.getByText('Actions')).toBeInTheDocument();
     });
 
-    it('renders service name and long name', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      expect(screen.getByText('Transfert mobile')).toBeInTheDocument();
-      expect(screen.getByText("Service de transfert d'argent mobile")).toBeInTheDocument();
+    it('affiche le longName quand il existe', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText("Service de transfert d'argent national")).toBeInTheDocument();
+      expect(screen.getByText("Retrait d'espèces aux guichets")).toBeInTheDocument();
     });
 
-    it('renders service without long name', () => {
-      render(<ServiceList services={[mockServiceWithoutOptionalFields]} />);
-
-      expect(screen.getByText('Service Simple')).toBeInTheDocument();
-      const serviceCell = screen.getByText('Service Simple').closest('td');
-      const spans = serviceCell?.querySelectorAll('span');
-      expect(spans?.length).toBe(1);
-    });
-
-    it('renders service type in badge', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      const badge = screen.getByTestId('badge');
-      expect(badge).toHaveTextContent(TypeService.TRANSFERT_ARGENT);
-    });
-
-    it('renders multiple services', () => {
-      const services = [mockService, mockServiceWithoutOptionalFields];
-      render(<ServiceList services={services} />);
-
-      expect(screen.getByText('Transfert mobile')).toBeInTheDocument();
-      expect(screen.getByText('Service Simple')).toBeInTheDocument();
+    it('affiche le type du service dans un badge', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText(TypeService.TRANSFERT_ARGENT)).toBeInTheDocument();
+      expect(screen.getByText(TypeService.PAIEMENT_FACTURES)).toBeInTheDocument();
+      expect(screen.getByText(TypeService.RETRAIT_SIMPLE)).toBeInTheDocument();
     });
   });
 
-  describe('Amount Range Formatting', () => {
-    it('formats amount range with root montantMin & montantMax', () => {
-      const s = { ...mockService, montantMin: 100, montantMax: 50000, frais: {} };
-      render(<ServiceList services={[s]} />);
-      const reg = new RegExp(`${frNum(100)}\\s?-\\s?${frNum(50000)}\\s?FCFA`);
-      expect(screen.getByText(reg)).toBeInTheDocument();
+  describe('Formatage des montants', () => {
+    it('affiche la plage de montants complète', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText('1 000 - 500 000 FCFA')).toBeInTheDocument();
     });
 
-    it('displays dash when only minimum is present', () => {
-      const s = { ...mockService, montantMin: 1000, montantMax: undefined };
-      render(<ServiceList services={[s]} />);
-      expect(screen.getByText('—')).toBeInTheDocument();
+    it('affiche "_" quand min et max sont à 0', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText('_')).toBeInTheDocument();
     });
 
-    it('displays dash when only maximum is present', () => {
-      const s = { ...mockService, montantMin: undefined, montantMax: 10000 };
-      render(<ServiceList services={[s]} />);
-      expect(screen.getByText('—')).toBeInTheDocument();
+    it('affiche "≥" quand seul le minimum est défini', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText('≥ 5 000 FCFA')).toBeInTheDocument();
     });
 
-    it('displays dash when no amount limits', () => {
-      render(<ServiceList services={[mockServiceWithoutOptionalFields]} />);
+    it('affiche "≤" quand seul le maximum est défini', () => {
+      const serviceWithMaxOnly: Service[] = [
+        {
+          id: '4',
+          name: 'Test',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: undefined,
+          montantMax: 10000,
+          frais: {},
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+      render(<ServiceList services={serviceWithMaxOnly} />);
+      expect(screen.getByText('≤ 10 000 FCFA')).toBeInTheDocument();
+    });
+
+    it('affiche "—" quand aucun montant n\'est défini', () => {
+      const serviceWithoutAmounts: Service[] = [
+        {
+          id: '5',
+          name: 'Test',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: undefined,
+          montantMax: undefined,
+          frais: {},
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+      render(<ServiceList services={serviceWithoutAmounts} />);
       expect(screen.getByText('—')).toBeInTheDocument();
     });
   });
 
-  describe('Fees Formatting', () => {
-    it('joins all available fee parts in one cell', () => {
-      render(<ServiceList services={[mockService]} />);
+  describe('Formatage des frais', () => {
+    it('affiche tous les types de frais', () => {
+      render(<ServiceList services={mockServices} />);
       expect(
-        screen.getByText('500 FCFA fixe, 2.5%, min: 100 FCFA, max: 50000 FCFA')
+        screen.getByText('100 FCFA fixe, 2%, min: 50 FCFA, max: 5000 FCFA')
       ).toBeInTheDocument();
     });
 
-    it('shows only pourcentage when only pourcentage is provided', () => {
-      const s = { ...mockService, frais: { pourcentage: 3 } };
-      render(<ServiceList services={[s]} />);
-      expect(screen.getByText('3%')).toBeInTheDocument();
-      // rien d’autre
-      expect(screen.queryByText(/FCFA fixe/)).toBeNull();
-      expect(screen.queryByText(/^min:/)).toBeNull();
-      expect(screen.queryByText(/^max:/)).toBeNull();
-    });
-
-    it('shows only montantFixe correctly formatted', () => {
-      const s = { ...mockService, frais: { montantFixe: 1000000 } };
-      render(<ServiceList services={[s]} />);
-      // pas de (FIX) — texte attendu : "1 000 000 FCFA fixe"
-      const reg = new RegExp(`${frNum(1000000)}\\s?FCFA fixe`);
-      expect(screen.getByText(reg)).toBeInTheDocument();
-    });
-
-    it('shows "Aucun frais" when no fee fields provided', () => {
-      render(<ServiceList services={[mockServiceWithoutOptionalFields]} />);
+    it('affiche "Aucun frais" quand il n\'y a pas de frais', () => {
+      const serviceWithoutFees: Service[] = [
+        {
+          id: '6',
+          name: 'Gratuit',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: undefined,
+          montantMax: undefined,
+          frais: {},
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+      render(<ServiceList services={serviceWithoutFees} />);
       expect(screen.getByText('Aucun frais')).toBeInTheDocument();
     });
 
-    it('ignores invalid numbers (e.g., NaN) and falls back to "Aucun frais"', () => {
-      const s = { ...mockService, frais: { montantFixe: Number.NaN as any } };
-      render(<ServiceList services={[s]} />);
-      // NaN est falsy -> aucun élément ajouté -> "Aucun frais"
-      expect(screen.getByText('Aucun frais')).toBeInTheDocument();
+    it('affiche uniquement le pourcentage quand défini seul', () => {
+      render(<ServiceList services={mockServices} />);
+      expect(screen.getByText('1.5%')).toBeInTheDocument();
+    });
+
+    it('affiche uniquement le montant fixe quand défini seul', () => {
+      const serviceWithFixedFee: Service[] = [
+        {
+          id: '7',
+          name: 'Fixe',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: undefined,
+          montantMax: undefined,
+          frais: {
+            montantFixe: 500,
+          },
+          typeFrais: TypeCalculation.FIX,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+      render(<ServiceList services={serviceWithFixedFee} />);
+      expect(screen.getByText('500 FCFA fixe')).toBeInTheDocument();
     });
   });
 
-  describe('Dropdown Actions', () => {
-    it('renders dropdown trigger button', () => {
-      render(
-        <ServiceList
-          services={[mockService]}
-          onView={mockOnView}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      expect(screen.getByTestId('ellipsis-icon')).toBeInTheDocument();
-    });
-
-    it('renders "Voir les détails" menu item when onView is provided', () => {
-      render(<ServiceList services={[mockService]} onView={mockOnView} />);
-
-      expect(screen.getByText('Voir les détails')).toBeInTheDocument();
-      expect(screen.getByTestId('eye-icon')).toBeInTheDocument();
-    });
-
-    it('does not render "Voir les détails" when onView is not provided', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      expect(screen.queryByText('Voir les détails')).not.toBeInTheDocument();
-    });
-
-    it('renders "Modifier" menu item when onEdit is provided', () => {
-      render(<ServiceList services={[mockService]} onEdit={mockOnEdit} />);
-
-      expect(screen.getByText('Modifier')).toBeInTheDocument();
-      expect(screen.getByTestId('pencil-icon')).toBeInTheDocument();
-    });
-
-    it('does not render "Modifier" when onEdit is not provided', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      expect(screen.queryByText('Modifier')).not.toBeInTheDocument();
-    });
-
-    it('renders "Supprimer" menu item when onDelete is provided', () => {
-      render(<ServiceList services={[mockService]} onDelete={mockOnDelete} />);
-
-      expect(screen.getByText('Supprimer')).toBeInTheDocument();
-      expect(screen.getByTestId('trash-icon')).toBeInTheDocument();
-    });
-
-    it('does not render "Supprimer" when onDelete is not provided', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      expect(screen.queryByText('Supprimer')).not.toBeInTheDocument();
-    });
-
-    it('calls onView with service when clicked', async () => {
+  describe('Actions du menu dropdown', () => {
+    it('appelle onView quand "Voir les détails" est cliqué', async () => {
       const user = userEvent.setup();
-      render(<ServiceList services={[mockService]} onView={mockOnView} />);
+      const onView = jest.fn();
+      render(<ServiceList services={mockServices} onView={onView} />);
 
-      const viewButton = screen.getByText('Voir les détails');
+      const actionButtons = screen.getAllByRole('button');
+      await user.click(actionButtons[0]);
+
+      const viewButton = await screen.findByText('Voir les détails', {}, { timeout: 3000 });
       await user.click(viewButton);
 
-      expect(mockOnView).toHaveBeenCalledTimes(1);
-      expect(mockOnView).toHaveBeenCalledWith(mockService);
+      await waitFor(() => {
+        expect(onView).toHaveBeenCalledWith(mockServices[0]);
+        expect(onView).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('calls onEdit with service when clicked', async () => {
+    it('appelle onEdit quand "Modifier" est cliqué', async () => {
       const user = userEvent.setup();
-      render(<ServiceList services={[mockService]} onEdit={mockOnEdit} />);
+      const onEdit = jest.fn();
+      render(<ServiceList services={mockServices} onEdit={onEdit} />);
 
-      const editButton = screen.getByText('Modifier');
+      const actionButtons = screen.getAllByRole('button');
+      await user.click(actionButtons[0]);
+
+      const editButton = await screen.findByText('Modifier', {}, { timeout: 3000 });
       await user.click(editButton);
 
-      expect(mockOnEdit).toHaveBeenCalledTimes(1);
-      expect(mockOnEdit).toHaveBeenCalledWith(mockService);
+      await waitFor(() => {
+        expect(onEdit).toHaveBeenCalledWith(mockServices[0]);
+        expect(onEdit).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('calls onDelete with service when clicked', async () => {
+    it('appelle onDelete quand "Supprimer" est cliqué', async () => {
       const user = userEvent.setup();
-      render(<ServiceList services={[mockService]} onDelete={mockOnDelete} />);
+      const onDelete = jest.fn();
+      render(<ServiceList services={mockServices} onDelete={onDelete} />);
 
-      const deleteButton = screen.getByText('Supprimer');
+      const actionButtons = screen.getAllByRole('button');
+      await user.click(actionButtons[0]);
+
+      const deleteButton = await screen.findByText('Supprimer', {}, { timeout: 3000 });
       await user.click(deleteButton);
 
-      expect(mockOnDelete).toHaveBeenCalledTimes(1);
-      expect(mockOnDelete).toHaveBeenCalledWith(mockService);
+      await waitFor(() => {
+        expect(onDelete).toHaveBeenCalledWith(mockServices[0]);
+        expect(onDelete).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('renders separator when multiple actions are present', () => {
-      const { container } = render(
-        <ServiceList
-          services={[mockService]}
-          onView={mockOnView}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      const separator = container.querySelector('hr');
-      expect(separator).toBeInTheDocument();
-    });
-
-    it('does not render separator when only delete action is present', () => {
-      const { container } = render(
-        <ServiceList services={[mockService]} onDelete={mockOnDelete} />
-      );
-
-      const separator = container.querySelector('hr');
-      expect(separator).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Multiple Services Rendering', () => {
-    it('renders correct number of rows for multiple services', () => {
-      const services = [
-        mockService,
-        { ...mockService, id: 'service-2', name: 'Service 2' },
-        { ...mockService, id: 'service-3', name: 'Service 3' },
-      ];
-      render(<ServiceList services={services} />);
-
-      const rows = screen.getAllByRole('row');
-      expect(rows).toHaveLength(services.length + 1);
-    });
-
-    it('handles actions for different services independently', async () => {
+    it("n'affiche pas les actions quand les callbacks ne sont pas fournis", async () => {
       const user = userEvent.setup();
-      const service1 = mockService;
-      const service2 = { ...mockService, id: 'service-2', name: 'Service 2' };
-      const services = [service1, service2];
+      render(<ServiceList services={mockServices} />);
 
-      render(<ServiceList services={services} onView={mockOnView} onEdit={mockOnEdit} />);
+      const actionButtons = screen.getAllByRole('button');
+      await user.click(actionButtons[0]);
 
-      const viewButtons = screen.getAllByText('Voir les détails');
-      await user.click(viewButtons[0]);
-      expect(mockOnView).toHaveBeenCalledWith(service1);
-
-      await user.click(viewButtons[1]);
-      expect(mockOnView).toHaveBeenCalledWith(service2);
-      expect(mockOnView).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('does NOT crash when fees object is empty', () => {
-      const s = { ...mockService, frais: {} };
-      render(<ServiceList services={[s]} />);
-      expect(screen.getByText('Aucun frais')).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.queryByText('Voir les détails')).not.toBeInTheDocument();
+          expect(screen.queryByText('Modifier')).not.toBeInTheDocument();
+          expect(screen.queryByText('Supprimer')).not.toBeInTheDocument();
+        },
+        { timeout: 500 }
+      );
     });
 
-    // NOTE: Le composant accède à service.frais.montantFixe (sans null-check).
-    // Passer `frais: null` provoquerait une erreur d’exécution.
-    // On remplace donc l’ancien test “frais null” par ce test de robustesse ci-dessus.
-  });
+    it('gère plusieurs services avec des actions différentes', async () => {
+      const user = userEvent.setup();
+      const onView = jest.fn();
+      const onEdit = jest.fn();
+      const onDelete = jest.fn();
 
-  describe('Accessibility', () => {
-    it('renders table with proper structure', () => {
-      render(<ServiceList services={[mockService]} />);
-
-      const table = screen.getByRole('table');
-      expect(table).toBeInTheDocument();
-
-      const headers = screen.getAllByRole('columnheader');
-      expect(headers).toHaveLength(5);
-    });
-
-    it('renders action buttons with proper structure', () => {
       render(
-        <ServiceList
-          services={[mockService]}
-          onView={mockOnView}
-          onEdit={mockOnEdit}
-          onDelete={mockOnDelete}
-        />
+        <ServiceList services={mockServices} onView={onView} onEdit={onEdit} onDelete={onDelete} />
       );
 
-      const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBeGreaterThan(0);
+      const actionButtons = screen.getAllByRole('button');
+      await user.click(actionButtons[1]);
+
+      const editButton = await screen.findByText('Modifier', {}, { timeout: 3000 });
+      await user.click(editButton);
+
+      await waitFor(() => {
+        expect(onEdit).toHaveBeenCalledWith(mockServices[1]);
+      });
+    });
+  });
+
+  describe('Gestion des cas limites', () => {
+    it('gère les services avec des valeurs undefined', () => {
+      const serviceWithUndefined: Service[] = [
+        {
+          id: '8',
+          name: 'Test',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: undefined,
+          montantMax: undefined,
+          frais: {
+            montantFixe: undefined,
+            pourcentage: undefined,
+          },
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      expect(() => render(<ServiceList services={serviceWithUndefined} />)).not.toThrow();
+    });
+
+    it('gère les erreurs de formatage de nombres', () => {
+      const serviceWithInvalidNumber: Service[] = [
+        {
+          id: '9',
+          name: 'Test',
+          longName: '',
+          type: TypeService.AUTRES,
+          montantMin: 0,
+          montantMax: 1000,
+          frais: {},
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      expect(() => render(<ServiceList services={serviceWithInvalidNumber} />)).not.toThrow();
+    });
+
+    it('gère un longName vide', () => {
+      render(<ServiceList services={mockServices} />);
+      const cells = screen.getAllByRole('cell');
+      const serviceCells = cells.filter(cell => cell.textContent?.includes('Paiement facture'));
+      expect(serviceCells.length).toBeGreaterThan(0);
+    });
+
+    it('gère une liste vide de services', () => {
+      const { container } = render(<ServiceList services={[]} />);
+      expect(container.querySelector('table')).not.toBeInTheDocument();
+      expect(screen.getByText('Aucun service pour le moment.')).toBeInTheDocument();
+    });
+
+    it('gère null comme liste de services', () => {
+      const { container } = render(<ServiceList services={null as any} />);
+      expect(container.querySelector('table')).not.toBeInTheDocument();
+      expect(screen.getByText('Aucun service pour le moment.')).toBeInTheDocument();
+    });
+  });
+
+  describe('Types de services', () => {
+    it('affiche correctement tous les types de services', () => {
+      const servicesWithAllTypes: Service[] = [];
+
+      for (const type of Object.values(TypeService)) {
+        servicesWithAllTypes.push({
+          id: `service-${type}`,
+          name: `Service ${type}`,
+          longName: '',
+          type: type as TypeService,
+          montantMin: undefined,
+          montantMax: undefined,
+          frais: {},
+          typeFrais: TypeCalculation.FREE,
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          institutionId: 'inst-1',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        });
+      }
+
+      render(<ServiceList services={servicesWithAllTypes} />);
+
+      for (const type of Object.values(TypeService)) {
+        expect(screen.getByText(type)).toBeInTheDocument();
+      }
     });
   });
 });

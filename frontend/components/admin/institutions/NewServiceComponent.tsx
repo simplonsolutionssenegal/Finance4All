@@ -83,10 +83,26 @@ type FeeOptionProps = {
   title: string;
   description?: string;
 };
+
 const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' ');
 
 type NewServiceComponentProps = {
   institutionId: string;
+};
+const FeeOption = ({ id, value, title, description }: FeeOptionProps) => {
+  return (
+    <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
+      <RadioGroupItem
+        id={id}
+        value={value}
+        className='h-3 w-3 rounded-full border-1 border-[#5AB6DB] data-[state=checked]:bg-[#5AB6DB] data-[state=checked]:border-[#5AB6DB] data-[state=checked]:text-[#5AB6DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2'
+      />
+      <Label htmlFor={id} className='cursor-pointer flex-1'>
+        <div className='font-medium'>{title}</div>
+        {description && <div className='text-xs text-gray-500'>{description}</div>}
+      </Label>
+    </div>
+  );
 };
 
 const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
@@ -168,20 +184,8 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
     { label: 'Frais', baseIcon: Coins },
   ];
 
-  const FeeOption = ({ id, value, title, description }: FeeOptionProps) => {
-    return (
-      <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
-        <RadioGroupItem
-          id={id}
-          value={value}
-          className='h-3 w-3 rounded-full border-1 border-[#5AB6DB] data-[state=checked]:bg-[#5AB6DB] data-[state=checked]:border-[#5AB6DB] data-[state=checked]:text-[#5AB6DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2'
-        />
-        <Label htmlFor={id} className='cursor-pointer flex-1'>
-          <div className='font-medium'>{title}</div>
-          {description && <div className='text-xs text-gray-500'>{description}</div>}
-        </Label>
-      </div>
-    );
+  const getStepClassName = (stepNumber: number) => {
+    return step === stepNumber ? 'space-y-4' : 'hidden';
   };
 
   return (
@@ -239,7 +243,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='rounded-2xl'>
-            <div className={step !== 0 ? 'hidden' : 'space-y-4'}>
+            <div className={getStepClassName(0)}>
               <FormField
                 control={form.control}
                 name='name'
@@ -392,7 +396,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               </div>
             </div>
 
-            <div className={step !== 1 ? 'hidden' : 'space-y-6'}>
+            <div className={getStepClassName(1)}>
               <FormField
                 control={form.control}
                 name='typeFrais'

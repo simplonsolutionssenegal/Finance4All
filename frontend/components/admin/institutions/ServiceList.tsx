@@ -42,7 +42,14 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
   const formatAmountRange = (service: Service) => {
     const min = service.montantMin;
     const max = service.montantMax;
-    if (min && max) return `${formatNumber(min)} - ${formatNumber(max)} FCFA`;
+    const hasMin = min !== null && min !== undefined;
+    const hasMax = max !== null && max !== undefined;
+    if (hasMin && hasMax) {
+      if (min === 0 && max === 0) return '_';
+      return `${formatNumber(min)} - ${formatNumber(max)} FCFA`;
+    }
+    if (hasMin) return `≥ ${formatNumber(min)} FCFA`;
+    if (hasMax) return `≤ ${formatNumber(max)} FCFA`;
     return '—';
   };
 
