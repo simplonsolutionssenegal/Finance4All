@@ -158,6 +158,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       name: prismaService.name,
       longName: prismaService.longName,
       type: this.mapPrismaTypeToTypeService(prismaService.type),
+      montantMin: prismaService.montantMin ?? 0,
+      montantMax: prismaService.montantMax ?? 0,
       typeFrais: this.mapPrismaTypeCalculationToDomain(prismaService.typeFrais ?? 'FREE'),
       frais: this.mapFraisToDomain(prismaService.frais as FraisData),
       conditionAccess: prismaService.conditionAccess,
@@ -202,6 +204,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       name: service.name,
       longName: service.longName,
       type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
+      montantMin: service.montantMin,
+      montantMax: service.montantMax,
       typeFrais: this.mapTypeCalculationToPrisma(service.typeFrais) as PrismaTypeCalculation, // Cast explicite
       frais: this.mapFraisToPrisma(service.frais),
       conditionAccess: service.conditionAccess,

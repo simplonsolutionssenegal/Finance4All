@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
 import ServiceList from '@/components/admin/institutions/ServiceList';
-import ServiceModal from '@/components/admin/institutions/ServiceModal';
 import InstitutionDetailsComponent from '@/components/admin/institutions/InstitutionDetailsComponent';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
@@ -86,11 +85,6 @@ jest.mock('@/hooks/institution/useGetInstitution');
 
 // Mock modals and components
 jest.mock('@/components/admin/institutions/ConfirmUpdateStatusModal', () => ({
-  __esModule: true,
-  default: jest.fn(() => null),
-}));
-
-jest.mock('@/components/admin/institutions/ServiceModal', () => ({
   __esModule: true,
   default: jest.fn(() => null),
 }));
@@ -176,7 +170,6 @@ describe('InstitutionDetailsComponent', () => {
   describe('Status Badge', () => {
     it('renders active status correctly', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Actif')).toBeInTheDocument();
     });
 
@@ -188,9 +181,7 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Inactif')).toBeInTheDocument();
     });
 
@@ -202,9 +193,7 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('En attente')).toBeInTheDocument();
     });
   });
@@ -218,16 +207,13 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('REJETER')).toBeInTheDocument();
       expect(screen.getByText('ACTIVER')).toBeInTheDocument();
     });
 
     it('displays reject button for active status', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('REJETER')).toBeInTheDocument();
     });
 
@@ -239,9 +225,7 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('ACTIVER')).toBeInTheDocument();
     });
   });
@@ -255,9 +239,7 @@ describe('InstitutionDetailsComponent', () => {
         error: { message: 'Failed to load institution' },
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText(/Erreur lors du chargement de l'institution/)).toBeInTheDocument();
       expect(screen.getByText(/Failed to load institution/)).toBeInTheDocument();
     });
@@ -270,9 +252,7 @@ describe('InstitutionDetailsComponent', () => {
         error: { message: 'Network error' },
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       const backButton = screen.getByText('Retour à la liste');
       expect(backButton).toBeInTheDocument();
     });
@@ -287,9 +267,7 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       const { container } = render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(container.firstChild).toBeNull();
     });
   });
@@ -297,7 +275,6 @@ describe('InstitutionDetailsComponent', () => {
   describe('Tabs Navigation', () => {
     it('displays tabs for details and services', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText("Détails de l'institution")).toBeInTheDocument();
       expect(screen.getByText('Services (0)')).toBeInTheDocument();
     });
@@ -332,7 +309,6 @@ describe('InstitutionDetailsComponent', () => {
       });
 
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Services (1)')).toBeInTheDocument();
     });
   });
@@ -340,18 +316,20 @@ describe('InstitutionDetailsComponent', () => {
   describe('Services Section', () => {
     it('displays "Nouveau service" button', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Nouveau service')).toBeInTheDocument();
     });
 
-    it('opens service modal when "Nouveau service" is clicked', async () => {
+    // ✅ Nouveau test: on vérifie la navigation (href) au lieu d’ouvrir une modal
+    it('navigates to new service page when "Nouveau service" is clicked', async () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-      const addButton = screen.getByText('Nouveau service');
-      await userEvent.click(addButton);
+      const text = screen.getByText('Nouveau service');
+      const link = text.closest('a');
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/institutions/1/service/new');
 
-      const lastCall = (ServiceModal as jest.Mock).mock.calls.slice(-1)[0];
-      expect(lastCall[0].open).toBe(true);
+      // On peut cliquer sans autre assertion (la nav est du ressort de Next.js)
+      await userEvent.click(link as HTMLAnchorElement);
     });
 
     it('passes correct props to ServiceList', () => {
@@ -393,7 +371,6 @@ describe('InstitutionDetailsComponent', () => {
   describe('Geographic Zones', () => {
     it('displays all geographic zones', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('UEMOA')).toBeInTheDocument();
       expect(screen.getByText('CEMAC')).toBeInTheDocument();
     });
@@ -406,9 +383,7 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('UEMOA')).toBeInTheDocument();
       expect(screen.queryByText('CEMAC')).not.toBeInTheDocument();
     });
@@ -433,15 +408,12 @@ describe('InstitutionDetailsComponent', () => {
         error: null,
         refetch: mockRefetch,
       });
-
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(mockShowLoader).toHaveBeenCalled();
     });
 
     it('hides loader when not loading', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(mockHideLoader).toHaveBeenCalled();
     });
   });
@@ -532,14 +504,12 @@ describe('InstitutionDetailsComponent', () => {
   describe('Static Content', () => {
     it('displays static badges correctly', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Mobile Money')).toBeInTheDocument();
       expect(screen.getByText('Sénégal et Cameroun')).toBeInTheDocument();
     });
 
     it('displays modify button', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Modifier')).toBeInTheDocument();
     });
   });
@@ -547,14 +517,12 @@ describe('InstitutionDetailsComponent', () => {
   describe('Date Formatting', () => {
     it('formats dates correctly in stats', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       const dates = screen.getAllByText('01/01/2024');
       expect(dates).toHaveLength(2); // createdAt and updatedAt
     });
 
     it('displays creation and update labels', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-
       expect(screen.getByText('Créée le')).toBeInTheDocument();
       expect(screen.getByText('Mise à jour')).toBeInTheDocument();
     });

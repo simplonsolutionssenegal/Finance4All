@@ -199,7 +199,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
   );
 
   return (
-    <div className='px-6 md:px-10 py-6'>
+    <>
       <div className='mb-4'>
         <Link
           href='/institutions'
@@ -343,13 +343,19 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
               <h2 className='font-poppins text-base font-normal leading-6 tracking-normal text-[#37415199]'>
                 Gérez les services financiers proposés par {institution.name}
               </h2>
-              <Button
+              {/* <Button
                 onClick={() => setShowServiceModal(true)}
                 className='bg-cyan-500 text-white hover:bg-cyan-600 gap-2'
               >
                 <Plus className='w-4 h-4' />
                 Nouveau service
-              </Button>
+              </Button> */}
+              <Link href={`/institutions/${institutionId}/service/new`}>
+                <Button className='bg-cyan-500 text-white hover:bg-cyan-600 gap-2'>
+                  <Plus className='w-4 h-4' />
+                  Nouveau service
+                </Button>
+              </Link>
             </div>
             <div className='rounded-2xl bg-white shadow-md'>
               <ServiceList
@@ -383,7 +389,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         onOpenChange={setOpenServiceDetails}
         service={selectedService}
       />
-    </div>
+    </>
   );
 };
 

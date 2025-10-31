@@ -40,28 +40,27 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
   };
 
   const formatAmountRange = (service: Service) => {
-    if (service.frais?.montantFixe) {
-      return `${formatNumber(service.frais.montantFixe)} FCFA (FIX)`;
-    }
-    const min = service.frais?.minimum;
-    const max = service.frais?.maximum;
+    const min = service.montantMin;
+    const max = service.montantMax;
     if (min && max) return `${formatNumber(min)} - ${formatNumber(max)} FCFA`;
-    if (min) return `≥ ${formatNumber(min)} FCFA`;
-    if (max) return `≤ ${formatNumber(max)} FCFA`;
     return '—';
   };
 
   const formatFrais = (service: Service) => {
-    if (service.frais?.montantFixe) {
-      if (service.frais?.pourcentage) {
-        return `${service.frais.pourcentage}%`;
-      }
-      return '—';
+    const parts = [];
+    if (service.frais.montantFixe) {
+      parts.push(`${service.frais.montantFixe} FCFA fixe`);
     }
-    if (service.frais?.pourcentage) {
-      return `${service.frais.pourcentage}%`;
+    if (service.frais.pourcentage) {
+      parts.push(`${service.frais.pourcentage}%`);
     }
-    return 'Gratuit';
+    if (service.frais.minimum) {
+      parts.push(`min: ${service.frais.minimum} FCFA`);
+    }
+    if (service.frais.maximum) {
+      parts.push(`max: ${service.frais.maximum} FCFA`);
+    }
+    return parts.length > 0 ? parts.join(', ') : 'Aucun frais';
   };
 
   return (

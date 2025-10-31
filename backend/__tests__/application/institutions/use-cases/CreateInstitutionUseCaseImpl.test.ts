@@ -279,6 +279,8 @@ describe('CreateInstitutionUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        montantMin: 100000,
+        montantMax: 100000,
         typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],

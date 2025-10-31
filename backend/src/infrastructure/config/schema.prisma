@@ -38,6 +38,8 @@ model Service {
   plafonds             String[]
   infrastructureAccess String[]
   typeFrais            TypeCalculation?
+  montantMin           Float?         
+  montantMax           Float? 
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onUpdate: Cascade)

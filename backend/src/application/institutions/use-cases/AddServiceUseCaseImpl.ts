@@ -32,6 +32,8 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
       name: command.name,
       longName: command.longName,
       type: command.type,
+      montantMin: command.montantMin,
+      montantMax: command.montantMax,
       typeFrais: command.typeFrais,
       frais,
       conditionAccess: command.conditionAccess,

@@ -159,6 +159,8 @@ describe('GetInstitutionsUseCase', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.EPARGNE,
+        montantMin: 100000,
+        montantMax: 100000,
         typeFrais: TypeCalculation.POURCENTAGE,
         frais: new FraisPourcentage(0.02, 500, 50),
         conditionAccess: ['Condition 1'],

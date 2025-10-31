@@ -19,6 +19,8 @@ export interface CreateServiceDto {
   name: string;
   longName: string;
   type: TypeService;
+  montantMin?: number;
+  montantMax?: number;
   frais: Frais;
   typeFrais: TypeCalculation;
   conditionAccess: string[];
@@ -31,6 +33,8 @@ export interface Service {
   name: string;
   longName: string;
   type: TypeService;
+  montantMin?: number;
+  montantMax?: number;
   frais: Frais;
   typeFrais: TypeCalculation;
   conditionAccess: string[];

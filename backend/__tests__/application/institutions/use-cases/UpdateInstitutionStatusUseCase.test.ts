@@ -159,6 +159,8 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.CREDIT,
+        montantMin: 100000,
+        montantMax: 100000,
         typeFrais: TypeCalculation.FREE,
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],

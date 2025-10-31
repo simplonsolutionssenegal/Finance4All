@@ -7,6 +7,8 @@ export interface ServiceDTO {
   longName: string;
   type: TypeService;
   typeFrais: TypeCalculation;
+  montantMin: number;
+  montantMax: number;
   frais: FraisDTO;
   conditionAccess: string[];
   plafonds: string[];

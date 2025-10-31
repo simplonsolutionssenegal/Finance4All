@@ -191,6 +191,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
+        montantMin: 100000,
+        montantMax: 100000,
         typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(200, 0.01),
         conditionAccess: ['Condition 1'],

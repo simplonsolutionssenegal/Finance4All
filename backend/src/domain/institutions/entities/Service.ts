@@ -31,6 +31,8 @@ interface SerciceProps {
   longName: string;
   type: TypeService;
   frais: Frais;
+  montantMin: number;
+  montantMax: number;
   typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
@@ -41,6 +43,8 @@ export class Service extends DomainEntity<EntityId> {
   private _name: string;
   private _longName: string;
   private _type: TypeService;
+  private _montantMin: number;
+  private _montantMax: number;
   private _typeFrais: TypeCalculation;
   private _frais: Frais;
   private _conditionAccess: string[];
@@ -52,6 +56,8 @@ export class Service extends DomainEntity<EntityId> {
     this._name = service.name;
     this._longName = service.longName;
     this._type = service.type;
+    this._montantMin = service.montantMin;
+    this._montantMax = service.montantMax;
     this._typeFrais = service.typeFrais;
     this._frais = service.frais;
     this._conditionAccess = service.conditionAccess;
@@ -82,13 +88,19 @@ export class Service extends DomainEntity<EntityId> {
   get plafonds(): string[] {
     return this._plafonds;
   }
+  get montantMin(): number {
+    return this._montantMin;
+  }
+
+  get montantMax(): number {
+    return this._montantMax;
+  }
 
   get infrastructureAccess(): string[] {
     return this._infrastructureAccess;
   }
 
   get typeFrais(): TypeCalculation {
-    // Ajout
     return this._typeFrais;
   }
 
@@ -98,6 +110,8 @@ export class Service extends DomainEntity<EntityId> {
       name: this._name,
       longName: this._longName,
       type: this._type,
+      montantMin: this._montantMin,
+      montantMax: this._montantMax,
       typeFrais: this._typeFrais,
       frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,

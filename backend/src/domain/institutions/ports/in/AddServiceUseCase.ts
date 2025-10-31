@@ -14,6 +14,8 @@ export interface AddServiceCommand {
   name: string;
   longName: string;
   type: TypeService;
+  montantMin: number;
+  montantMax: number;
   typeFrais: TypeCalculation;
   frais: FraisDTO;
   conditionAccess: string[];
