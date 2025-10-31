@@ -79,9 +79,17 @@ type ServiceFormData = z.infer<typeof serviceSchema>;
 
 type FeeOptionProps = {
   id: string;
-  value: TypeCalculation; // string enum attendu par RadioGroup
+  value: TypeCalculation;
   title: string;
   description?: string;
+};
+
+type TagInputFieldProps = {
+  label: string;
+  placeholder: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  disabled?: boolean;
 };
 
 const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' ');
@@ -89,6 +97,7 @@ const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' 
 type NewServiceComponentProps = {
   institutionId: string;
 };
+
 const FeeOption = ({ id, value, title, description }: FeeOptionProps) => {
   return (
     <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
@@ -105,16 +114,82 @@ const FeeOption = ({ id, value, title, description }: FeeOptionProps) => {
   );
 };
 
+const TagInputField = ({
+  label,
+  placeholder,
+  value,
+  onChange,
+  disabled = false,
+}: TagInputFieldProps) => {
+  const [input, setInput] = useState('');
+
+  const handleAdd = () => {
+    if (input.trim()) {
+      onChange([...value, input.trim()]);
+      setInput('');
+    }
+  };
+
+  const handleRemove = (index: number) => {
+    if (!disabled) {
+      onChange(value.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  return (
+    <>
+      <FormLabel>{label}</FormLabel>
+      <div className='flex gap-2'>
+        <Input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder={placeholder}
+          className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
+          disabled={disabled}
+          onKeyDown={handleKeyDown}
+        />
+        <Button
+          type='button'
+          onClick={handleAdd}
+          disabled={disabled || !input.trim()}
+          className='bg-cyan-400 hover:bg-cyan-500'
+        >
+          <Plus className='w-4 h-4' />
+        </Button>
+      </div>
+      {value.length > 0 && (
+        <div className='flex flex-wrap gap-2 mt-2'>
+          {value.map((item, index) => (
+            <Badge
+              key={item}
+              variant='secondary'
+              className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
+              onClick={() => handleRemove(index)}
+            >
+              {item}
+              <X className='w-3 h-3 ml-1' />
+            </Badge>
+          ))}
+        </div>
+      )}
+      <FormMessage className='text-xs text-red-600' />
+    </>
+  );
+};
+
 const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(0);
   const [isStep1Valid, setIsStep1Valid] = useState(false);
-
-  const [conditionInput, setConditionInput] = useState('');
-  const [plafondInput, setPlafondInput] = useState('');
-  const [infrastructureInput, setInfrastructureInput] = useState('');
 
   const { createService, isCreating } = useCreateService({
     onSuccess: () => {
@@ -499,7 +574,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     )}
 
                     {typeFrais === TypeCalculation.POURCENTAGE && (
-                      <>
+                      <div className='grid grid-cols-2 gap-4'>
                         <FormField
                           control={form.control}
                           name='frais.minimum'
@@ -557,7 +632,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                             </FormItem>
                           )}
                         />
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -568,57 +643,13 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 name='conditionAccess'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Conditions d&apos;accès</FormLabel>
-                    <div className='flex gap-2'>
-                      <Input
-                        value={conditionInput}
-                        onChange={e => setConditionInput(e.target.value)}
-                        placeholder='Ajouter une condition'
-                        className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
-                        disabled={isCreating}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (conditionInput.trim()) {
-                              field.onChange([...field.value, conditionInput.trim()]);
-                              setConditionInput('');
-                            }
-                          }
-                        }}
-                      />
-                      <Button
-                        type='button'
-                        onClick={() => {
-                          if (conditionInput.trim()) {
-                            field.onChange([...field.value, conditionInput.trim()]);
-                            setConditionInput('');
-                          }
-                        }}
-                        disabled={isCreating || !conditionInput.trim()}
-                        className='bg-cyan-400 hover:bg-cyan-500'
-                      >
-                        <Plus className='w-4 h-4' />
-                      </Button>
-                    </div>
-                    {field.value.length > 0 && (
-                      <div className='flex flex-wrap gap-2 mt-2'>
-                        {field.value.map((item, index) => (
-                          <Badge
-                            key={item}
-                            variant='secondary'
-                            className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                            onClick={() =>
-                              !isCreating &&
-                              field.onChange(field.value.filter((_, i) => i !== index))
-                            }
-                          >
-                            {item}
-                            <X className='w-3 h-3 ml-1' />
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <FormMessage className='text-xs text-red-600' />
+                    <TagInputField
+                      label="Conditions d'accès"
+                      placeholder='Ajouter une condition'
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isCreating}
+                    />
                   </FormItem>
                 )}
               />
@@ -628,57 +659,13 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 name='plafonds'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Plafonds</FormLabel>
-                    <div className='flex gap-2'>
-                      <Input
-                        value={plafondInput}
-                        onChange={e => setPlafondInput(e.target.value)}
-                        placeholder='Ex: 500 000 FCFA/jour'
-                        className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
-                        disabled={isCreating}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (plafondInput.trim()) {
-                              field.onChange([...field.value, plafondInput.trim()]);
-                              setPlafondInput('');
-                            }
-                          }
-                        }}
-                      />
-                      <Button
-                        type='button'
-                        onClick={() => {
-                          if (plafondInput.trim()) {
-                            field.onChange([...field.value, plafondInput.trim()]);
-                            setPlafondInput('');
-                          }
-                        }}
-                        disabled={isCreating || !plafondInput.trim()}
-                        className='bg-cyan-400 hover:bg-cyan-500'
-                      >
-                        <Plus className='w-4 h-4' />
-                      </Button>
-                    </div>
-                    {field.value.length > 0 && (
-                      <div className='flex flex-wrap gap-2 mt-2'>
-                        {field.value.map((item, index) => (
-                          <Badge
-                            key={item}
-                            variant='secondary'
-                            className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                            onClick={() =>
-                              !isCreating &&
-                              field.onChange(field.value.filter((_, i) => i !== index))
-                            }
-                          >
-                            {item}
-                            <X className='w-3 h-3 ml-1' />
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <FormMessage className='text-xs text-red-600' />
+                    <TagInputField
+                      label='Plafonds'
+                      placeholder='Ex: 500 000 FCFA/jour'
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isCreating}
+                    />
                   </FormItem>
                 )}
               />
@@ -688,57 +675,13 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 name='infrastructureAccess'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Infrastructure d&apos;accès</FormLabel>
-                    <div className='flex gap-2'>
-                      <Input
-                        value={infrastructureInput}
-                        onChange={e => setInfrastructureInput(e.target.value)}
-                        placeholder='Ex: Agence, GAB, Mobile'
-                        className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
-                        disabled={isCreating}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (infrastructureInput.trim()) {
-                              field.onChange([...field.value, infrastructureInput.trim()]);
-                              setInfrastructureInput('');
-                            }
-                          }
-                        }}
-                      />
-                      <Button
-                        type='button'
-                        onClick={() => {
-                          if (infrastructureInput.trim()) {
-                            field.onChange([...field.value, infrastructureInput.trim()]);
-                            setInfrastructureInput('');
-                          }
-                        }}
-                        disabled={isCreating || !infrastructureInput.trim()}
-                        className='bg-cyan-400 hover:bg-cyan-500'
-                      >
-                        <Plus className='w-4 h-4' />
-                      </Button>
-                    </div>
-                    {field.value.length > 0 && (
-                      <div className='flex flex-wrap gap-2 mt-2'>
-                        {field.value.map((item, index) => (
-                          <Badge
-                            key={item}
-                            variant='secondary'
-                            className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-                            onClick={() =>
-                              !isCreating &&
-                              field.onChange(field.value.filter((_, i) => i !== index))
-                            }
-                          >
-                            {item}
-                            <X className='w-3 h-3 ml-1' />
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <FormMessage className='text-xs text-red-600' />
+                    <TagInputField
+                      label="Infrastructure d'accès"
+                      placeholder='Ex: Agence, GAB, Mobile'
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isCreating}
+                    />
                   </FormItem>
                 )}
               />
