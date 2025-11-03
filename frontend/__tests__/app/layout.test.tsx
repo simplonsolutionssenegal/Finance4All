@@ -9,13 +9,13 @@ jest.mock('@/contexts/app-provider', () => ({
   ),
 }));
 
-// Mock next/font/google
-jest.mock('next/font/google', () => ({
-  Geist: () => ({
-    variable: 'font-geist-sans-mock',
-  }),
-  Geist_Mono: () => ({
-    variable: 'font-geist-mono-mock',
+// Mock next/font/local
+jest.mock('next/font/local', () => ({
+  __esModule: true,
+  default: () => ({
+    variable: '__font_barlow_variable__',
+    className: '__font_barlow_class__',
+    style: {},
   }),
 }));
 
@@ -34,7 +34,7 @@ describe('RootLayout', () => {
 
     // Check for body classes
     const body = document.querySelector('body');
-    expect(body).toHaveClass('font-geist-sans-mock', 'font-geist-mono-mock', 'antialiased');
+    expect(body).toHaveClass('__font_barlow_variable__', 'antialiased');
   });
 
   it('should have correct metadata', () => {

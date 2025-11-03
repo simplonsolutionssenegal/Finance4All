@@ -18,10 +18,20 @@ const config: Config = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          '50': 'var(--primary-50)',
+          '100': 'var(--primary-100)',
+          '200': 'var(--primary-200)',
+          '300': 'var(--primary-300)',
+          '400': 'var(--primary-400)',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+          '50': 'var(--secondary-50)',
+          '100': 'var(--secondary-100)',
+          '200': 'var(--secondary-200)',
+          '300': 'var(--secondary-300)',
+          '400': 'var(--secondary-400)',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -64,25 +74,18 @@ const config: Config = {
           '4': 'hsl(43, 74%, 66%)',
           '5': 'hsl(27, 87%, 67%)',
         },
-        // Palette de couleurs personnalisées - Finance4All bleu
-        brand: {
-          '50': 'var(--primary-50)',
-          '100': 'var(--primary-100)',
-          '200': 'var(--primary-200)',
-          '300': 'var(--primary-300)',
-          '400': 'var(--primary-400)',
-        },
-        // Palette de couleurs personnalisées - Finance4All gris/noir
-        neutral: {
-          '400': 'var(--neutral-400)',
-          '500': 'var(--neutral-500)',
-          '600': 'var(--neutral-600)',
-          '700': 'var(--neutral-700)',
+        // Palette tertiary
+        tertiary: {
+          '50': 'var(--tertiary-50)',
+          '100': 'var(--tertiary-100)',
+          '200': 'var(--tertiary-200)',
+          '300': 'var(--tertiary-300)',
+          '400': 'var(--tertiary-400)',
         },
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        sans: ['var(--font-barlow)', 'system-ui', 'sans-serif'],
+        mono: ['monospace'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1rem' }],

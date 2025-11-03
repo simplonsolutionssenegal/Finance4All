@@ -2,65 +2,71 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 206 43% 23%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 206 43% 23%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 210 40% 98%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 98%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 98%;
-  --accent-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 206 43% 23%;
+  --primary: 185 53% 54%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 206 43% 23%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 215 9% 90%;
+  --muted-foreground: 215 9% 42%;
+  --accent: 185 53% 90%;
+  --accent-foreground: 185 53% 54%;
   --destructive: 0 72.22% 50.59%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 217.2 91.2% 59.8%;
+  --border: 215 9% 85%;
+  --input: 215 9% 85%;
+  --ring: 185 53% 54%;
   --radius: 0.5rem;
 
-  --primary-50: #e7f3f6;
-  --primary-100: #a7d5dd;
-  --primary-200: #6cb9c6;
-  --primary-300: #258e90;
-  --primary-400: #134b4c;
+  --primary-50: #e0f7fa;
+  --primary-100: #b2eef5;
+  --primary-200: #81e6f0;
+  --primary-300: #46bcc9;
+  --primary-400: #0097a7;
 
-  --neutral-400: #6b6c74;
-  --neutral-500: #494a50;
-  --neutral-600: #2a2a2e;
-  --neutral-700: #000000;
+  --secondary-50: #e8ecf0;
+  --secondary-100: #c5d0d9;
+  --secondary-200: #9fb3c0;
+  --secondary-300: #1e344b;
+  --secondary-400: #142a40;
+
+  --tertiary-50: #f3f4f5;
+  --tertiary-100: #d0d2d5;
+  --tertiary-200: #aeb1b6;
+  --tertiary-300: #616874;
+  --tertiary-400: #4a4e5a;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --background: 206 43% 23%;
+  --foreground: 0 0% 100%;
+  --card: 206 43% 23%;
+  --card-foreground: 0 0% 100%;
+  --popover: 206 43% 23%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 185 53% 64%;
+  --primary-foreground: 206 43% 23%;
+  --secondary: 215 9% 42%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 215 9% 30%;
+  --muted-foreground: 215 9% 65%;
+  --accent: 185 53% 30%;
+  --accent-foreground: 185 53% 64%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 217.2 91.2% 59.8%;
+  --border: 215 9% 30%;
+  --input: 215 9% 30%;
+  --ring: 185 53% 64%;
 }
 
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-barlow);
 
   --color-primary-50: var(--primary-50);
   --color-primary-100: var(--primary-100);
@@ -68,14 +74,21 @@
   --color-primary-300: var(--primary-300);
   --color-primary-400: var(--primary-400);
 
-  --color-neutral-400: var(--neutral-400);
-  --color-neutral-500: var(--neutral-500);
-  --color-neutral-600: var(--neutral-600);
-  --color-neutral-700: var(--neutral-700);
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+
+  --color-tertiary-50: var(--tertiary-50);
+  --color-tertiary-100: var(--tertiary-100);
+  --color-tertiary-200: var(--tertiary-200);
+  --color-tertiary-300: var(--tertiary-300);
+  --color-tertiary-400: var(--tertiary-400);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-barlow), system-ui, sans-serif;
 }
