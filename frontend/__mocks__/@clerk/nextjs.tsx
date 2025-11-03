@@ -43,6 +43,21 @@ export const useOrganizationList = () => ({
   organizationList: [],
 });
 
+// Auth hooks used by social auth
+export const useSignIn = () => ({
+  isLoaded: true,
+  signIn: {
+    authenticateWithRedirect: jest.fn().mockResolvedValue(undefined),
+  },
+});
+
+export const useSignUp = () => ({
+  isLoaded: true,
+  signUp: {
+    authenticateWithRedirect: jest.fn().mockResolvedValue(undefined),
+  },
+});
+
 // Components
 export const SignInButton = ({ children }: { children?: ReactNode }) => (
   <button type='button'>{children ?? 'Sign in'}</button>

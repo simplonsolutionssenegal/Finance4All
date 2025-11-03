@@ -23,16 +23,10 @@ export default function createApp(): Express {
     })
   );
 
+  app.use('/api', clerkMiddleware());
+
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
-
-  // Route publique
-  app.use(
-    `/api/${process.env.API_VERSION ?? 'v1'}/beneficiaries`,
-    require('./routes/beneficiary.routes').BeneficiaryRoutes()
-  );
-
-  app.use('/api', clerkMiddleware());
 
   if (process.env.NODE_ENV === 'development') {
     app.use((req: Request, _res: Response, next: NextFunction) => {

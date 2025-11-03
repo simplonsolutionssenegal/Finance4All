@@ -1,491 +1,335 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type React from 'react';
 
 import { LoginForm } from '@/components/login-form';
 
-// Mock Clerk hooks
-const mockSignIn = {
-  create: jest.fn(),
-};
-const mockSetActive = jest.fn();
-const mockUseSignIn = jest.fn();
+const InputFieldMock = jest.fn(
+  ({
+    id,
+    label,
+    placeholder,
+    value,
+    onChange,
+    hasError,
+    errorMessage,
+    disabled,
+  }: {
+    id: string;
+    label: string;
+    placeholder: string;
+    value: string;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    hasError: boolean;
+    errorMessage?: string;
+    disabled: boolean;
+  }) => (
+    <div data-testid={`input-field-${id}`}>
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        aria-invalid={hasError ? 'true' : 'false'}
+        aria-describedby={hasError ? `${id}-error` : undefined}
+      />
+      {hasError && errorMessage ? (
+        <span id={`${id}-error`} role='alert'>
+          {errorMessage}
+        </span>
+      ) : null}
+    </div>
+  )
+);
 
-jest.mock('@clerk/nextjs', () => ({
-  useSignIn: () => mockUseSignIn(),
-}));
-
-// Mock Next.js router
-const mockPush = jest.fn();
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
-}));
-
-// Mock UI components
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, disabled, onClick, type, className }: any) => (
-    <button
-      data-testid='button'
-      disabled={disabled}
-      onClick={onClick}
-      type={type}
-      className={className}
-    >
-      {children}
+const SubmitButtonMock = jest.fn(
+  ({
+    children,
+    disabled,
+    isLoading,
+  }: {
+    children: React.ReactNode;
+    disabled: boolean;
+    isLoading: boolean;
+  }) => (
+    <button data-testid='submit-button' type='submit' disabled={disabled}>
+      {isLoading ? 'Loading…' : children}
     </button>
-  ),
+  )
+);
+
+const OtpVerificationCardMock = jest.fn(
+  ({
+    title,
+    email,
+    code,
+    onCodeChange,
+    onSubmit,
+    onBack,
+    onResend,
+    submitLabel,
+    loadingLabel,
+    isSubmitting,
+    errorMessage,
+    codeError,
+  }: {
+    title: string;
+    email: string;
+    code: string;
+    onCodeChange: (value: string) => void;
+    onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+    onBack: () => void;
+    onResend: () => void;
+    submitLabel: string;
+    loadingLabel: string;
+    isSubmitting: boolean;
+    errorMessage?: string | null;
+    codeError?: string | null;
+  }) => (
+    <div data-testid='otp-card'>
+      <h2>{title}</h2>
+      <p>{email}</p>
+      {errorMessage && (
+        <div role='alert' data-testid='otp-error'>
+          {errorMessage}
+        </div>
+      )}
+      {codeError && (
+        <div role='alert' data-testid='otp-code-error'>
+          {codeError}
+        </div>
+      )}
+      <input
+        data-testid='otp-input'
+        value={code}
+        onChange={event => onCodeChange(event.target.value)}
+      />
+      <button
+        data-testid='otp-submit'
+        onClick={() =>
+          onSubmit({ preventDefault: jest.fn() } as unknown as React.FormEvent<HTMLFormElement>)
+        }
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? loadingLabel : submitLabel}
+      </button>
+      <button data-testid='otp-resend' onClick={onResend}>
+        resend
+      </button>
+      <button data-testid='otp-back' onClick={onBack}>
+        back
+      </button>
+    </div>
+  )
+);
+
+jest.mock('@/components/auth/FormComponents', () => ({
+  InputField: (props: any) => InputFieldMock(props),
+  SubmitButton: (props: any) => SubmitButtonMock(props),
 }));
 
-jest.mock('@/components/ui/input', () => ({
-  Input: ({ value, onChange, disabled, type, placeholder, className, id, ...props }: any) => (
-    <input
-      data-testid='input'
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      type={type}
-      placeholder={placeholder}
-      className={className}
-      id={id}
-      {...props}
-    />
-  ),
+jest.mock('@/components/auth/OtpVerificationCard', () => ({
+  OtpVerificationCard: (props: any) => OtpVerificationCardMock(props),
 }));
 
-jest.mock('@/components/ui/label', () => ({
-  Label: ({ children, htmlFor, className }: any) => (
-    <label data-testid='label' htmlFor={htmlFor} className={className}>
-      {children}
-    </label>
-  ),
-}));
-
-jest.mock('@/components/password-input', () => ({
-  PasswordInput: ({ value, onChange, disabled, placeholder, className, id, ...props }: any) => (
-    <input
-      data-testid='password-input'
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      placeholder={placeholder}
-      className={className}
-      id={id}
-      type='password'
-      {...props}
-    />
-  ),
-}));
-
-// Mock useLogin hook
 jest.mock('@/hooks/login/useLogin', () => ({
   useLogin: jest.fn(),
 }));
 
 const { useLogin } = require('@/hooks/login/useLogin');
 
-// Mock console.error to avoid noise in tests
-const originalConsoleError = console.error;
-
-beforeEach(() => {
-  console.error = jest.fn();
-  jest.clearAllMocks();
-
-  // Default mock implementations
-  mockUseSignIn.mockReturnValue({
-    isLoaded: true,
-    signIn: mockSignIn,
-    setActive: mockSetActive,
-  });
-
-  (useLogin as jest.Mock).mockReturnValue({
+function buildUseLoginReturn(overrides: any = {}) {
+  const base = {
     formState: {
       values: {
         email: '',
-        password: '',
+        code: '',
       },
       errors: {},
     },
-    updateField: jest.fn(),
     hasError: jest.fn(() => false),
     getError: jest.fn(() => ''),
     isFormValid: true,
     isLoading: false,
     error: null,
     isLoaded: true,
-    handleFieldChange: jest.fn(),
-    handleLogin: jest.fn(),
-  });
-});
+    success: false,
+    successMessage: null,
+    step: 1,
+    setStep: jest.fn(),
+    handleFieldChange: jest.fn(() => jest.fn()),
+    handleCodeChange: jest.fn(),
+    handleSendOTP: jest.fn(),
+    handleVerifyOTP: jest.fn(),
+    handlePreviousStep: jest.fn(),
+    handleResendCode: jest.fn(),
+  };
 
-afterEach(() => {
-  console.error = originalConsoleError;
+  const merged = {
+    ...base,
+    ...overrides,
+  };
+
+  if (overrides.formState) {
+    merged.formState = {
+      values: {
+        ...base.formState.values,
+        ...(overrides.formState.values ?? {}),
+      },
+      errors: {
+        ...base.formState.errors,
+        ...(overrides.formState.errors ?? {}),
+      },
+    };
+  }
+
+  return merged;
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (useLogin as jest.Mock).mockReturnValue(buildUseLoginReturn());
 });
 
 describe('LoginForm', () => {
-  describe('Rendering', () => {
-    it('renders the form with all elements', () => {
-      render(<LoginForm />);
+  it('renders the email step by default', () => {
+    render(<LoginForm />);
 
-      expect(screen.getByText('Bienvenue !')).toBeInTheDocument();
-      expect(screen.getByText('Connectez-vous pour continuer')).toBeInTheDocument();
-      expect(screen.getByText('Email')).toBeInTheDocument();
-      expect(screen.getByText('Mot de passe')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Se connecter' })).toBeInTheDocument();
-    });
-
-    it('renders email input with correct attributes', () => {
-      render(<LoginForm />);
-
-      const emailInput = screen.getByPlaceholderText('Votre email');
-      expect(emailInput).toBeInTheDocument();
-      expect(emailInput).toHaveAttribute('type', 'email');
-      expect(emailInput).toHaveAttribute('id', 'email');
-      expect(emailInput).toHaveAttribute('maxLength', '254');
-      expect(emailInput).toHaveAttribute('autoComplete', 'email');
-      expect(emailInput).toBeRequired();
-    });
-
-    it('renders password input with correct attributes', () => {
-      render(<LoginForm />);
-
-      const passwordInput = screen.getByPlaceholderText('••••••••');
-      expect(passwordInput).toBeInTheDocument();
-      expect(passwordInput).toHaveAttribute('type', 'password');
-      expect(passwordInput).toHaveAttribute('id', 'password');
-      expect(passwordInput).toHaveAttribute('maxLength', '128');
-      expect(passwordInput).toHaveAttribute('minLength', '8');
-      expect(passwordInput).toHaveAttribute('autoComplete', 'current-password');
-      expect(passwordInput).toBeRequired();
-    });
-
-    it('renders phone icon in email input', () => {
-      render(<LoginForm />);
-      // The icon should be present in the email input container
-      const emailContainer = screen.getByPlaceholderText('Votre email').closest('div');
-      expect(emailContainer).toHaveClass('relative');
-    });
-
-    it('renders forgot password link', () => {
-      render(<LoginForm />);
-      expect(screen.getByText('Mot de passe oublié ?')).toBeInTheDocument();
-    });
-
-    it('renders create account link', () => {
-      render(<LoginForm />);
-      expect(screen.getByText('Pas encore de compte ?')).toBeInTheDocument();
-      expect(screen.getByText('Créer un compte')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Bienvenue !')).toBeInTheDocument();
+    expect(screen.getByText('Connectez-vous avec votre adresse email')).toBeInTheDocument();
+    expect(InputFieldMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'email',
+        label: 'Adresse email',
+        placeholder: 'votre@email.com',
+        type: 'email',
+      })
+    );
+    expect(screen.getByText('Recevoir le code OTP')).toBeInTheDocument();
   });
 
-  describe('Input Handling', () => {
-    it('calls handleFieldChange when email changes', () => {
-      const mockHandleFieldChange = jest.fn();
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: mockHandleFieldChange,
-        handleLogin: jest.fn(),
-      });
+  it('submits the email form via handleSendOTP', () => {
+    const handleSendOTP = jest.fn();
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
+        handleSendOTP,
+      })
+    );
 
-      render(<LoginForm />);
+    render(<LoginForm />);
 
-      const emailInput = screen.getByPlaceholderText('Votre email');
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    const submitButton = screen.getByTestId('submit-button');
+    const form = submitButton.closest('form');
+    expect(form).not.toBeNull();
+    if (form) {
+      fireEvent.submit(form);
+    }
 
-      expect(mockHandleFieldChange).toHaveBeenCalledWith('email');
-    });
-
-    it('calls handleFieldChange when password changes', () => {
-      const mockHandleFieldChange = jest.fn();
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: mockHandleFieldChange,
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      const passwordInput = screen.getByPlaceholderText('••••••••');
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-
-      expect(mockHandleFieldChange).toHaveBeenCalledWith('password');
-    });
+    expect(handleSendOTP).toHaveBeenCalledTimes(1);
   });
 
-  describe('Form Validation', () => {
-    it('shows email error when hasError returns true', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn((field: string) => field === 'email'),
-        getError: jest.fn((field: string) => (field === 'email' ? 'Email invalide' : '')),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
+  it('displays success feedback after sending the code', () => {
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
+        success: true,
+        successMessage: 'Un code a été envoyé.',
+      })
+    );
 
-      render(<LoginForm />);
+    render(<LoginForm />);
 
-      expect(screen.getByText('Email invalide')).toBeInTheDocument();
-      expect(screen.getByText('Email invalide')).toHaveAttribute('role', 'alert');
-    });
-
-    it('shows password error when hasError returns true', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn((field: string) => field === 'password'),
-        getError: jest.fn((field: string) =>
-          field === 'password' ? 'Mot de passe trop court' : ''
-        ),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      expect(screen.getByText('Mot de passe trop court')).toBeInTheDocument();
-      expect(screen.getByText('Mot de passe trop court')).toHaveAttribute('role', 'alert');
-    });
-
-    it('applies error styles to email input when hasError is true', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn((field: string) => field === 'email'),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      const emailInput = screen.getByPlaceholderText('Votre email');
-      expect(emailInput.className).toContain('border-red-500');
-    });
-
-    it('applies error styles to password input when hasError is true', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn((field: string) => field === 'password'),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      const passwordInput = screen.getByPlaceholderText('••••••••');
-      expect(passwordInput.className).toContain('border-red-500');
-    });
+    expect(screen.getByText('Un code a été envoyé.')).toBeInTheDocument();
   });
 
-  describe('Form Submission', () => {
-    it('calls handleLogin when form is submitted', () => {
-      const mockHandleLogin = jest.fn();
-      (useLogin as jest.Mock).mockReturnValue({
+  it('shows an error message when present', () => {
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
+        error: 'Adresse email inconnue.',
+      })
+    );
+
+    render(<LoginForm />);
+
+    expect(screen.getByText('Adresse email inconnue.')).toBeInTheDocument();
+  });
+
+  it('renders the OTP verification step when step equals 2', () => {
+    const handleVerifyOTP = jest.fn();
+    const handleResendCode = jest.fn();
+    const handlePreviousStep = jest.fn();
+    const handleCodeChange = jest.fn();
+
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
+        step: 2,
         formState: {
-          values: { email: 'test@example.com', password: 'password123' },
-          errors: {},
+          values: {
+            email: 'user@example.com',
+            code: '123456',
+          },
         },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: mockHandleLogin,
-      });
+        handleVerifyOTP,
+        handleResendCode,
+        handlePreviousStep,
+        handleCodeChange,
+      })
+    );
 
-      render(<LoginForm />);
+    render(<LoginForm />);
 
-      const form = screen.getByRole('button', { name: 'Se connecter' }).closest('form');
-      if (form) fireEvent.submit(form);
+    expect(OtpVerificationCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'user@example.com',
+        code: '123456',
+        submitLabel: 'Se connecter',
+        loadingLabel: 'Vérification...',
+      })
+    );
 
-      expect(mockHandleLogin).toHaveBeenCalled();
-    });
+    fireEvent.change(screen.getByTestId('otp-input'), { target: { value: '654321' } });
+    expect(handleCodeChange).toHaveBeenCalledWith('654321');
 
-    it('shows loading state during submission', () => {
-      (useLogin as jest.Mock).mockReturnValue({
+    fireEvent.click(screen.getByTestId('otp-submit'));
+    expect(handleVerifyOTP).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('otp-resend'));
+    expect(handleResendCode).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('otp-back'));
+    expect(handlePreviousStep).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays code validation errors in the OTP step', () => {
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
+        step: 2,
         formState: {
-          values: { email: '', password: '' },
-          errors: {},
+          values: {
+            email: 'user@example.com',
+            code: '',
+          },
         },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: true,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
+        hasError: jest.fn((field: string) => field === 'code'),
+        getError: jest.fn(() => 'Le code est requis.'),
+      })
+    );
 
-      render(<LoginForm />);
+    render(<LoginForm />);
 
-      expect(screen.getByRole('button', { name: 'Connexion en cours...' })).toBeInTheDocument();
-    });
+    const otpProps = OtpVerificationCardMock.mock.calls[0][0];
+    expect(otpProps.codeError).toBe('Le code est requis.');
+  });
 
-    it('disables inputs during loading', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: true,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      expect(screen.getByPlaceholderText('Votre email')).toBeDisabled();
-      expect(screen.getByPlaceholderText('••••••••')).toBeDisabled();
-    });
-
-    it('shows error message when error is present', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
-        isFormValid: true,
-        isLoading: false,
-        error: 'Email ou mot de passe incorrect.',
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      expect(screen.getByText('Email ou mot de passe incorrect.')).toBeInTheDocument();
-    });
-
-    it('disables button when form is invalid', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn(() => false),
-        getError: jest.fn(() => ''),
+  it('disables the submit button when the form is invalid', () => {
+    (useLogin as jest.Mock).mockReturnValue(
+      buildUseLoginReturn({
         isFormValid: false,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
+      })
+    );
 
-      render(<LoginForm />);
+    render(<LoginForm />);
 
-      const submitButton = screen.getByRole('button', { name: 'Se connecter' });
-      expect(submitButton).toBeDisabled();
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('has proper ARIA attributes for error states', () => {
-      (useLogin as jest.Mock).mockReturnValue({
-        formState: {
-          values: { email: '', password: '' },
-          errors: {},
-        },
-        updateField: jest.fn(),
-        hasError: jest.fn((field: string) => field === 'email'),
-        getError: jest.fn((field: string) => (field === 'email' ? 'Email invalide' : '')),
-        isFormValid: true,
-        isLoading: false,
-        error: null,
-        isLoaded: true,
-        handleFieldChange: jest.fn(),
-        handleLogin: jest.fn(),
-      });
-
-      render(<LoginForm />);
-
-      const emailInput = screen.getByPlaceholderText('Votre email');
-      expect(emailInput).toHaveAttribute('aria-invalid', 'true');
-      expect(emailInput).toHaveAttribute('aria-describedby', 'email-error');
-
-      const errorMessage = screen.getByText('Email invalide');
-      expect(errorMessage).toHaveAttribute('id', 'email-error');
-      expect(errorMessage).toHaveAttribute('role', 'alert');
-      expect(errorMessage).toHaveAttribute('aria-live', 'polite');
-    });
-
-    it('has proper form structure', () => {
-      render(<LoginForm />);
-
-      const form = screen.getByRole('button', { name: 'Se connecter' }).closest('form');
-      expect(form).toHaveAttribute('noValidate');
-
-      const emailLabel = screen.getByText('Email');
-      expect(emailLabel).toHaveAttribute('for', 'email');
-
-      const passwordLabel = screen.getByText('Mot de passe');
-      expect(passwordLabel).toHaveAttribute('for', 'password');
-    });
+    expect(screen.getByTestId('submit-button')).toBeDisabled();
   });
 });

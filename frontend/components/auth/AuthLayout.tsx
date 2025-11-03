@@ -37,9 +37,9 @@ export function AuthLayout({ children, backHref = '/' }: AuthLayoutProps) {
             priority
           />
         </div>
-        <div className='inline-flex items-center px-4 py-2 gap-2 bg-primary-200/10 border border-primary-200/20 rounded-full'>
-          <Sparkles className='h-4 w-4 text-primary-200' />
-          <span className='text-primary-200 text-sm font-medium'>
+        <div className='inline-flex items-center px-4 py-2 gap-2 bg-primary-300/10 border border-primary-200/20 rounded-full'>
+          <Sparkles className='h-4 w-4 text-primary-300' />
+          <span className='text-primary-300 text-sm font-medium'>
             Plateforme d&apos;inclusion financière
           </span>
         </div>

@@ -1,7 +1,88 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Phone } from 'lucide-react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Mail, Phone } from 'lucide-react';
 
-import { InputField, ErrorMessage, SubmitButton } from '@/components/auth/FormComponents';
+import { ErrorMessage, InputField, SubmitButton } from '@/components/auth/FormComponents';
+
+describe('InputField', () => {
+  it('renders label and input with provided props', () => {
+    const handleChange = jest.fn();
+
+    render(
+      <InputField
+        id='email'
+        label='Adresse email'
+        type='email'
+        placeholder='exemple@email.com'
+        value=''
+        onChange={handleChange}
+      />
+    );
+
+    const input = screen.getByLabelText('Adresse email');
+    expect(input).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'user@example.com' } });
+    expect(handleChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies error state with aria attributes and renders message', () => {
+    render(
+      <InputField
+        id='email'
+        label='Adresse email'
+        value=''
+        onChange={jest.fn()}
+        hasError
+        errorMessage='Adresse invalide'
+      />
+    );
+
+    const input = screen.getByLabelText('Adresse email');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'email-error');
+    expect(screen.getByText('Adresse invalide')).toBeInTheDocument();
+  });
+
+  it('renders the icon when provided', () => {
+    render(
+      <InputField id='email' label='Adresse email' value='' onChange={jest.fn()} icon={Mail} />
+    );
+
+    const icon = screen.getByLabelText('Adresse email').parentElement?.querySelector('svg');
+    expect(icon).toBeInTheDocument();
+  });
+});
+
+describe('ErrorMessage', () => {
+  it('renders with alert semantics', () => {
+    render(<ErrorMessage id='field-error' message='Erreur' />);
+
+    const message = screen.getByText('Erreur');
+    expect(message).toHaveAttribute('role', 'alert');
+    expect(message).toHaveAttribute('aria-live', 'polite');
+  });
+});
+
+describe('SubmitButton', () => {
+  it('disables the button when loading', () => {
+    render(
+      <SubmitButton isLoading disabled={false}>
+        Envoyer
+      </SubmitButton>
+    );
+
+    expect(screen.getByRole('button', { name: 'Envoyer' })).toBeDisabled();
+  });
+
+  it('disables the button when disabled prop is true', () => {
+    render(
+      <SubmitButton isLoading={false} disabled>
+        Envoyer
+      </SubmitButton>
+    );
+
+    expect(screen.getByRole('button', { name: 'Envoyer' })).toBeDisabled();
+  });
+});
 
 describe('FormComponents', () => {
   describe('InputField', () => {

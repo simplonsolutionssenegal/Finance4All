@@ -1,4 +1,12 @@
-import { validateEmail, validatePassword, validateOTPCode } from '@/lib/validation';
+import {
+  validateEmail,
+  validatePassword,
+  validateOTPCode,
+  validateFirstName,
+  validateLastName,
+  validatePhone,
+  validateBeneficiaryField,
+} from '@/lib/validation';
 
 describe('validation utilities', () => {
   describe('validateEmail', () => {
@@ -106,6 +114,138 @@ describe('validation utilities', () => {
     it('should use custom minLength parameter', () => {
       expect(validateOTPCode('1234', 4)).toBe('');
       expect(validateOTPCode('123', 4)).toBe('Le code doit contenir au moins 4 caractères.');
+    });
+  });
+
+  describe('validateFirstName', () => {
+    it('should return empty string for valid first name', () => {
+      const validNames = ['John', 'Marie-Claire', 'Jean-Pierre', 'Amadou', 'José', 'François'];
+      validNames.forEach(name => {
+        expect(validateFirstName(name)).toBe('');
+      });
+    });
+
+    it('should return error for empty first name', () => {
+      expect(validateFirstName('')).toBe('Le prénom est requis.');
+      expect(validateFirstName('   ')).toBe('Le prénom est requis.');
+    });
+
+    it('should return error for first name too short', () => {
+      expect(validateFirstName('A')).toBe('Le prénom doit contenir au moins 2 caractères.');
+    });
+
+    it('should return error for first name too long', () => {
+      const longName = 'A'.repeat(51);
+      expect(validateFirstName(longName)).toBe('Le prénom ne peut pas dépasser 50 caractères.');
+    });
+
+    it('should return error for first name with invalid characters', () => {
+      const invalidNames = ['John123', 'John@Doe', 'John_Doe', 'John.Doe'];
+      invalidNames.forEach(name => {
+        expect(validateFirstName(name)).toBe(
+          'Le prénom ne peut contenir que des lettres, espaces, tirets et apostrophes.'
+        );
+      });
+    });
+  });
+
+  describe('validateLastName', () => {
+    it('should return empty string for valid last name', () => {
+      const validNames = ['Doe', 'Smith-Jones', "O'Brien", 'Diallo', 'García', 'Van Der Berg'];
+      validNames.forEach(name => {
+        expect(validateLastName(name)).toBe('');
+      });
+    });
+
+    it('should return error for empty last name', () => {
+      expect(validateLastName('')).toBe('Le nom est requis.');
+      expect(validateLastName('   ')).toBe('Le nom est requis.');
+    });
+
+    it('should return error for last name too short', () => {
+      expect(validateLastName('D')).toBe('Le nom doit contenir au moins 2 caractères.');
+    });
+
+    it('should return error for last name too long', () => {
+      const longName = 'D'.repeat(51);
+      expect(validateLastName(longName)).toBe('Le nom ne peut pas dépasser 50 caractères.');
+    });
+
+    it('should return error for last name with invalid characters', () => {
+      const invalidNames = ['Doe123', 'Doe@Smith', 'Doe_Smith', 'Doe.Smith'];
+      invalidNames.forEach(name => {
+        expect(validateLastName(name)).toBe(
+          'Le nom ne peut contenir que des lettres, espaces, tirets et apostrophes.'
+        );
+      });
+    });
+  });
+
+  describe('validatePhone', () => {
+    it('should return empty string for valid phone numbers', () => {
+      const validPhones = [
+        '+221771234567',
+        '+22370112233',
+        '+33612345678',
+        '+12345678901',
+        '+221 77 123 4567',
+        '+223-701-122-33',
+      ];
+      validPhones.forEach(phone => {
+        expect(validatePhone(phone)).toBe('');
+      });
+    });
+
+    it('should return error for empty phone', () => {
+      expect(validatePhone('')).toBe('Le numéro de téléphone est requis.');
+      expect(validatePhone('   ')).toBe('Le numéro de téléphone est requis.');
+    });
+
+    it('should return error for phone without + prefix', () => {
+      expect(validatePhone('221771234567')).toBe(
+        'Le numéro doit commencer par + suivi du code pays (ex: +22370112233).'
+      );
+    });
+
+    it('should return error for invalid phone format', () => {
+      const invalidPhones = [
+        '+22177abc123',
+        '+221',
+        '+22177',
+        '+abc123456789',
+        '+0123456789', // starts with 0 after +
+      ];
+      invalidPhones.forEach(phone => {
+        expect(validatePhone(phone)).toBe(
+          'Numéro de téléphone invalide (format international requis).'
+        );
+      });
+    });
+  });
+
+  describe('validateBeneficiaryField', () => {
+    it('should validate firstName field', () => {
+      expect(validateBeneficiaryField('firstName', 'John')).toBe('');
+      expect(validateBeneficiaryField('firstName', '')).toBe('Le prénom est requis.');
+    });
+
+    it('should validate lastName field', () => {
+      expect(validateBeneficiaryField('lastName', 'Doe')).toBe('');
+      expect(validateBeneficiaryField('lastName', '')).toBe('Le nom est requis.');
+    });
+
+    it('should validate phone field', () => {
+      expect(validateBeneficiaryField('phone', '+221771234567')).toBe('');
+      expect(validateBeneficiaryField('phone', '')).toBe('Le numéro de téléphone est requis.');
+    });
+
+    it('should validate email field', () => {
+      expect(validateBeneficiaryField('email', 'test@example.com')).toBe('');
+      expect(validateBeneficiaryField('email', '')).toBe("L'adresse email est requise.");
+    });
+
+    it('should return empty string for unknown field', () => {
+      expect(validateBeneficiaryField('unknown', 'value')).toBe('');
     });
   });
 });

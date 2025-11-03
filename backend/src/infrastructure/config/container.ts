@@ -30,7 +30,6 @@ import { PrismaModuleFormationRepository } from '../persistence/repositories/Pri
 import { CreateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCaseImpl';
 import { GetModulesFormationUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCaseImpl';
 
-
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
