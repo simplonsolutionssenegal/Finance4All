@@ -84,8 +84,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        sans: ['var(--font-barlow)', 'system-ui', 'sans-serif'],
+        mono: ['monospace'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1rem' }],
