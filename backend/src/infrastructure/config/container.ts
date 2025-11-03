@@ -24,9 +24,8 @@ import { AddServiceUseCaseImpl } from '@/application/institutions/use-cases/AddS
 // Beneficiary imports
 import { BeneficiaryController } from '@/infrastructure/web/controllers/BeneficiaryController';
 import { PrismaUserRepository } from '@/infrastructure/persistence/repositories/PrismaUserRepository';
-import type { UserRepository } from '@/domain/repositories/UserRepository';
-import type { CreateBeneficiaryUseCase } from '@/application/use-cases/CreateBeneficiaryUseCase';
-import { CreateBeneficiaryCaseImpl } from '@/domain/use-cases/createBeneficiaryCaseImpl';
+import type { CreateBeneficiaryUseCase } from '@/domain/use-cases/CreateBeneficiaryUseCase';
+import { CreateBeneficiaryUseCaseImpl } from '@/application/use-cases/CreateBeneficiaryUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -66,7 +65,7 @@ container
 
 // Bind User Repository
 container
-  .bind<UserRepository>(TYPES.UserRepository)
+  .bind<PrismaUserRepository>(TYPES.UserRepository)
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaUserRepository(prismaClient);
@@ -135,10 +134,7 @@ container
 // Bind Beneficiary Use Case
 container
   .bind<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase)
-  .toDynamicValue(context => {
-    const repository = context.get<UserRepository>(TYPES.UserRepository);
-    return new CreateBeneficiaryCaseImpl(repository);
-  })
+  .to(CreateBeneficiaryUseCaseImpl)
   .inSingletonScope();
 
 // Bind controllers

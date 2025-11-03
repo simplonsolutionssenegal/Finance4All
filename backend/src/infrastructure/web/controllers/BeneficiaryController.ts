@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { CreateBeneficiaryUseCase } from '@/application/use-cases/CreateBeneficiaryUseCase';
+import type { CreateBeneficiaryUseCase } from '@/domain/use-cases/CreateBeneficiaryUseCase';
 import { logger } from '@/infrastructure/utils/logger';
 
 export class BeneficiaryController {

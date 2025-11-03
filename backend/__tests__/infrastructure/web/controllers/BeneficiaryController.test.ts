@@ -1,5 +1,5 @@
 import { BeneficiaryController } from '@/infrastructure/web/controllers/BeneficiaryController';
-import type { CreateBeneficiaryUseCase } from '@/application/use-cases/CreateBeneficiaryUseCase';
+import type { CreateBeneficiaryUseCase } from '@/domain/use-cases/CreateBeneficiaryUseCase';
 import type { Request, Response, NextFunction } from 'express';
 import { User } from '@/domain/entities/User';
 
@@ -134,7 +134,7 @@ describe('BeneficiaryController', () => {
     it('should handle use case validation error', async () => {
       // Arrange
       const validationError = new Error(
-        "L'ID Clerk, le nom, l'email et le numéro de téléphone sont requis"
+        "L'ID utilisateur, le nom, l'email et le numéro de téléphone sont requis"
       );
       mockCreateBeneficiaryUseCase.execute.mockRejectedValue(validationError);
 

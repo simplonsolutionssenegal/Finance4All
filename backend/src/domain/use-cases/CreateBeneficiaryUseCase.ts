@@ -1,4 +1,4 @@
-import type { User } from '../../domain/entities/User';
+import type { User } from '../entities/User';
 
 /**
  * Interface pour le cas d'utilisation de création de bénéficiaire
@@ -7,11 +7,11 @@ import type { User } from '../../domain/entities/User';
 export interface CreateBeneficiaryUseCase {
   /**
    * Exécute la création d'un bénéficiaire
-   * @param clerkUserId - L'ID de l'utilisateur créé dans Clerk
+   * @param userId - L'ID de l'utilisateur
    * @param name - Le nom de l'bénéficiaire
    * @param email - L'email de l'bénéficiaire
    * @param phoneNumber - Le numéro de téléphone de l'bénéficiaire
    * @returns Une promesse contenant le bénéficiaire créé
    */
-  execute(clerkUserId: string, name: string, email: string, phoneNumber: string): Promise<User>;
+  execute(userId: string, name: string, email: string, phoneNumber: string): Promise<User>;
 }

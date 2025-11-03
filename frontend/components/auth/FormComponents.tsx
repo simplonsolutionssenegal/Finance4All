@@ -101,7 +101,7 @@ export function SubmitButton({
     <button
       type='submit'
       disabled={isLoading || disabled}
-      className={`w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2 ${className}`}
+      className={`w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2 ${className}`}
     >
       {children}
     </button>

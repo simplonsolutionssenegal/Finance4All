@@ -278,7 +278,7 @@ export function RegisterForm() {
             <Button
               type='submit'
               disabled={isLoading || !isFormValid || !isLoaded}
-              className='w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
+              className='w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
             >
               {isLoading ? 'Création en cours...' : 'Créer mon compte'}
               <ArrowRight className='h-4 w-4' />
@@ -294,7 +294,7 @@ export function RegisterForm() {
               Déjà un compte ?{' '}
               <Link
                 href='/login'
-                className='text-primary-200 font-semibold hover:text-primary-300/80 font-medium cursor-pointer transition-colors'
+                className='text-primary-300 font-semibold hover:text-primary-300/80 font-medium cursor-pointer transition-colors'
               >
                 Se connecter
               </Link>
@@ -303,14 +303,14 @@ export function RegisterForm() {
               En vous inscrivant, vous acceptez les{' '}
               <Link
                 href='/terms'
-                className='text-primary-200 hover:text-primary-300/80 transition-colors'
+                className='text-primary-300 hover:text-primary-300/80 transition-colors'
               >
                 Conditions Générales
               </Link>{' '}
               et la{' '}
               <Link
                 href='/privacy'
-                className='text-primary-200 hover:text-primary-300/80 transition-colors'
+                className='text-primary-300 hover:text-primary-300/80 transition-colors'
               >
                 Politique de confidentialité
               </Link>
@@ -354,7 +354,7 @@ export function RegisterForm() {
           <Button
             type='submit'
             disabled={!verificationCode.trim() || isVerifying}
-            className='w-full h-12 bg-primary-200 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
+            className='w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
           >
             {isVerifying ? (
               <div className='flex items-center space-x-2'>

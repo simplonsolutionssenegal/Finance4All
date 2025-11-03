@@ -75,7 +75,7 @@ export function LoginForm() {
           <div className='flex justify-end'>
             <Link
               href='/forgot-password'
-              className='text-sm text-primary-200 cursor-pointer hover:text-primary-300/80 transition-colors text-gray-700'
+              className='text-sm text-primary-300 cursor-pointer hover:text-primary-300/80 transition-colors text-gray-700'
             >
               Mot de passe oublié ?
             </Link>
@@ -118,7 +118,7 @@ export function LoginForm() {
           Pas encore de compte ?{' '}
           <Link
             href='/register'
-            className='text-primary-200 font-semibold hover:text-primary-300/80 font-medium cursor-pointer transition-colors'
+            className='text-primary-300 font-semibold hover:text-primary-300/80 font-medium cursor-pointer transition-colors'
           >
             Créer un compte
           </Link>

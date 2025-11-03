@@ -1,14 +1,25 @@
+'use client';
+
 import { Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
+import { usePathname } from 'next/navigation';
+import type React from 'react';
 
-interface AuthLayoutProps {
+interface AuthFormsLayoutProps {
   children: React.ReactNode;
-  backHref?: string;
 }
 
-export function AuthLayout({ children, backHref = '/' }: AuthLayoutProps) {
+export default function AuthFormsLayout({ children }: AuthFormsLayoutProps) {
+  const pathname = usePathname();
+
+  // Déterminer le backHref selon la route actuelle
+  const getBackHref = () => {
+    if (pathname?.includes('/forgot-password')) return '/login';
+    if (pathname?.includes('/register')) return '/login';
+    return '/';
+  };
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 relative flex flex-col justify-center items-center px-4 py-8'>
       {/* Gradient */}
@@ -18,7 +29,7 @@ export function AuthLayout({ children, backHref = '/' }: AuthLayoutProps) {
       {/* Close Button */}
       <div className='absolute top-6 right-6 z-20'>
         <Link
-          href={backHref}
+          href={getBackHref()}
           className='w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/20 flex items-center justify-center hover:bg-white/90 transition-colors'
         >
           <X className='h-5 w-5 text-gray-600' />

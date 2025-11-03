@@ -4,13 +4,23 @@ import {
 } from '@/infrastructure/web/validators/beneficiary.validator';
 import type { Request, Response, NextFunction } from 'express';
 
+// Mock express-validator
+const mockValidationResult = jest.fn();
+jest.mock('express-validator', () => {
+  const actual = jest.requireActual('express-validator');
+  return {
+    ...actual,
+    validationResult: (req: any) => mockValidationResult(req),
+  };
+});
+
 describe('beneficiary.validator', () => {
-  let _mockRequest: Partial<Request>;
-  let _mockResponse: Partial<Response>;
-  let _mockNext: jest.MockedFunction<NextFunction>;
+  let mockRequest: Partial<Request>;
+  let mockResponse: Partial<Response>;
+  let mockNext: jest.MockedFunction<NextFunction>;
 
   beforeEach(() => {
-    _mockRequest = {
+    mockRequest = {
       body: {
         clerkUserId: 'clerk_123',
         name: 'John Doe',
@@ -19,12 +29,13 @@ describe('beneficiary.validator', () => {
       },
     };
 
-    _mockResponse = {
+    mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
     };
 
-    _mockNext = jest.fn();
+    mockNext = jest.fn();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -52,28 +63,69 @@ describe('beneficiary.validator', () => {
     it('should accept request, response, and next parameters', () => {
       expect(handleValidationErrors.length).toBe(3);
     });
+
+    it('should call next when there are no validation errors', () => {
+      const mockResult = {
+        isEmpty: jest.fn(() => true),
+        array: jest.fn(() => []),
+      };
+
+      mockValidationResult.mockReturnValue(mockResult);
+
+      handleValidationErrors(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext as NextFunction
+      );
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when there are validation errors', () => {
+      const mockErrors = [
+        { field: 'email', message: 'Invalid email format' },
+        { field: 'phoneNumber', message: 'Invalid phone number' },
+      ];
+
+      const mockResult = {
+        isEmpty: jest.fn(() => false),
+        array: jest.fn(() => mockErrors),
+      };
+
+      mockValidationResult.mockReturnValue(mockResult);
+
+      handleValidationErrors(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext as NextFunction
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        errors: mockErrors,
+        message: 'Données invalides',
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
   });
 
   describe('Integration tests', () => {
     it('should validate complete valid beneficiary data', () => {
-      // This would be tested with actual express-validator middleware
-      // For now, we verify the structure
       expect(validateCreateBeneficiary).toBeDefined();
       expect(Array.isArray(validateCreateBeneficiary)).toBe(true);
     });
 
     it('should reject invalid email format', () => {
-      // This would be tested with actual express-validator middleware
       expect(validateCreateBeneficiary).toBeDefined();
     });
 
     it('should reject invalid phone number format', () => {
-      // This would be tested with actual express-validator middleware
       expect(validateCreateBeneficiary).toBeDefined();
     });
 
     it('should reject empty required fields', () => {
-      // This would be tested with actual express-validator middleware
       expect(validateCreateBeneficiary).toBeDefined();
     });
   });
