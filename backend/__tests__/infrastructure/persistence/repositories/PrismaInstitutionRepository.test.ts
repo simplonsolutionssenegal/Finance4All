@@ -13,7 +13,7 @@ import {
   FraisPourcentage,
   TypeCalculation as FraisTypeCalculation,
 } from '@/domain/institutions/entities/Frais';
-import { Service, TypeService, TypeCalculation } from '@/domain/institutions/entities/Service';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
 
 describe('PrismaInstitutionRepository', () => {
   let repository: PrismaInstitutionRepository;
@@ -403,7 +403,7 @@ describe('PrismaInstitutionRepository', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -550,7 +550,7 @@ describe('PrismaInstitutionRepository', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais: new FraisFixes(100, 0.02, 50),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -605,7 +605,6 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('Test Service');
       expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.FIX);
     });
 
     it('should save institution with FraisPourcentage service', async () => {
@@ -659,7 +658,6 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisPourcentage);
       expect(result.services[0].type).toBe(TypeService.EPARGNE);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.POURCENTAGE);
     });
 
     it('should save institution with FraisGratuit service', async () => {
@@ -713,7 +711,6 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
       expect(result.services[0].type).toBe(TypeService.CREDIT);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should handle service with null/undefined frais', async () => {
@@ -765,7 +762,6 @@ describe('PrismaInstitutionRepository', () => {
       const result = await repository.save(institution);
 
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should update institution with new services', async () => {
@@ -777,7 +773,6 @@ describe('PrismaInstitutionRepository', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(150),
         conditionAccess: [],
         plafonds: [],
@@ -848,27 +843,23 @@ describe('PrismaInstitutionRepository', () => {
         include: { services: true },
       });
 
-      expect(mockPrisma.institution.update).toHaveBeenCalledWith({
-        where: { id: testUuid1 },
-        data: expect.objectContaining({
-          name: 'Updated Name',
-          services: {
-            create: expect.arrayContaining([
-              expect.objectContaining({
-                id: serviceId,
-                name: 'New Service',
-                type: 'TRANSFERT_ARGENT',
-                typeFrais: 'FIX',
-              }),
-            ]),
-          },
-        }),
-        include: { services: true },
-      });
+      // Vérification simplifiée : on vérifie juste les parties importantes
+      const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
+
+      expect(updateCall.where).toEqual({ id: testUuid1 });
+      expect(updateCall.data.name).toBe('Updated Name');
+      expect(updateCall.data.description).toBe('Updated Description');
+      expect(updateCall.data.status).toBe('ACTIVE');
+      expect(updateCall.data.services.create).toHaveLength(1);
+      expect(updateCall.data.services.create[0].id).toBe(serviceId);
+      expect(updateCall.data.services.create[0].name).toBe('New Service');
+      expect(updateCall.data.services.create[0].type).toBe('TRANSFERT_ARGENT');
+      expect(updateCall.data.services.create[0].frais.type).toBe('FIX');
+      expect(updateCall.data.services.create[0].frais.amount).toBe(150);
+      expect(updateCall.include).toEqual({ services: true });
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('New Service');
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.FIX);
     });
 
     it('should map all TypeService values correctly from Prisma to Domain', async () => {
@@ -1053,7 +1044,7 @@ describe('PrismaInstitutionRepository', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1121,7 +1112,6 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
 
     it('should update institution with FraisPourcentage service', async () => {
@@ -1133,7 +1123,7 @@ describe('PrismaInstitutionRepository', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -1201,7 +1191,6 @@ describe('PrismaInstitutionRepository', () => {
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisPourcentage);
-      expect(result.services[0].typeFrais).toBe(TypeCalculation.POURCENTAGE);
     });
 
     it('should handle invalid FraisData types', async () => {
@@ -1314,7 +1303,7 @@ describe('PrismaInstitutionRepository', () => {
         type: 'UNKNOWN_TYPE' as TypeService,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1384,7 +1373,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'New Service',
         longName: 'New Service Long Name',
         type: TypeService.AUTRES,
-        typeFrais: TypeCalculation.FREE,
+
         montantMin: 100000,
         montantMax: 100000,
         frais: new UnknownFrais(),
@@ -1435,64 +1424,6 @@ describe('PrismaInstitutionRepository', () => {
           }),
         })
       );
-    });
-
-    it('should map all TypeCalculation values correctly', async () => {
-      const typeCalculationMapping: Record<TypeCalculation, string> = {
-        [TypeCalculation.FREE]: 'FREE',
-        [TypeCalculation.FIX]: 'FIX',
-        [TypeCalculation.POURCENTAGE]: 'POURCENTAGE',
-      };
-
-      const calculationTypes = Object.values(TypeCalculation);
-
-      for (const calculationType of calculationTypes) {
-        const serviceId = randomUUID();
-        const institution = new Institution({
-          id: EntityId.from(testUuid1),
-          name: 'Test',
-          description: 'Test',
-          website: UrlValueObject.from(null),
-          geographicZones: [],
-          logoUrl: UrlValueObject.from(null),
-          status: InstitutionStatus.ACTIVE,
-          services: [],
-        });
-
-        const prismaInstitution: any = {
-          id: testUuid1,
-          name: 'Test',
-          description: 'Test',
-          website: null,
-          geographicZones: [],
-          logoUrl: null,
-          status: 'ACTIVE',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          services: [
-            {
-              id: serviceId,
-              name: 'Service',
-              longName: 'Service Long',
-              type: 'AUTRES',
-              typeFrais: typeCalculationMapping[calculationType],
-              frais: { type: typeCalculationMapping[calculationType] },
-              conditionAccess: [],
-              plafonds: [],
-              infrastructureAccess: [],
-              institutionId: testUuid1,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          ],
-        };
-
-        (mockPrisma.institution.create as jest.Mock).mockResolvedValue(prismaInstitution);
-
-        const result = await repository.save(institution);
-
-        expect(result.services[0].typeFrais).toBe(calculationType);
-      }
     });
   });
 });

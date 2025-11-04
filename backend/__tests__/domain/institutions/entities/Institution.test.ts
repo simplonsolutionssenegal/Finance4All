@@ -263,9 +263,7 @@ describe('Institution', () => {
 
   describe('services management', () => {
     it('should add service to institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const institution = createTestInstitution({
@@ -279,7 +277,7 @@ describe('Institution', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -295,9 +293,7 @@ describe('Institution', () => {
     });
 
     it('should remove service from institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
 
       const service1 = new Service({
@@ -307,7 +303,7 @@ describe('Institution', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais: new FraisPourcentage(0.02, 500, 50),
         conditionAccess: [],
         plafonds: [],
@@ -321,7 +317,7 @@ describe('Institution', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais: new FraisPourcentage(0.01),
         conditionAccess: [],
         plafonds: [],
@@ -343,9 +339,7 @@ describe('Institution', () => {
     });
 
     it('should return services array from Set', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const service = new Service({
@@ -355,7 +349,7 @@ describe('Institution', () => {
         type: TypeService.ASSURANCE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -375,9 +369,7 @@ describe('Institution', () => {
     });
 
     it('should not add duplicate services', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const service = new Service({
@@ -387,7 +379,7 @@ describe('Institution', () => {
         type: TypeService.CREDIT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -410,80 +402,11 @@ describe('Institution', () => {
 
       expect(institution.services).toHaveLength(1);
     });
-
-    it('should handle multiple services with different types', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
-      const { FraisGratuit, FraisFixes, FraisPourcentage } = await import(
-        '@/domain/institutions/entities/Frais'
-      );
-
-      const service1 = new Service({
-        id: EntityId.from(randomUUID()),
-        name: 'Free Service',
-        longName: 'Free Service Long Name',
-        type: TypeService.DEPOT_SIMPLE,
-        typeFrais: TypeCalculation.FREE,
-        montantMin: 100000,
-        montantMax: 100000,
-        frais: new FraisGratuit(),
-        conditionAccess: [],
-        plafonds: [],
-        infrastructureAccess: [],
-      });
-
-      const service2 = new Service({
-        id: EntityId.from(randomUUID()),
-        name: 'Fixed Fee Service',
-        longName: 'Fixed Fee Service Long Name',
-        type: TypeService.RETRAIT_SIMPLE,
-        montantMin: 100000,
-        montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
-        frais: new FraisFixes(50),
-        conditionAccess: [],
-        plafonds: [],
-        infrastructureAccess: [],
-      });
-
-      const service3 = new Service({
-        id: EntityId.from(randomUUID()),
-        name: 'Percentage Service',
-        longName: 'Percentage Service Long Name',
-        type: TypeService.TRANSFERT_ARGENT,
-        montantMin: 100000,
-        montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
-        frais: new FraisPourcentage(0.015, 1000, 50),
-        conditionAccess: [],
-        plafonds: [],
-        infrastructureAccess: [],
-      });
-
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
-        status: InstitutionStatus.ACTIVE,
-        services: [service1, service2, service3],
-      });
-
-      expect(institution.services).toHaveLength(3);
-      expect(institution.services[0].typeFrais).toBe(TypeCalculation.FREE);
-      expect(institution.services[1].typeFrais).toBe(TypeCalculation.FIX);
-      expect(institution.services[2].typeFrais).toBe(TypeCalculation.POURCENTAGE);
-    });
   });
 
   describe('toDTO', () => {
     it('should convert institution to DTO with all fields', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const service = new Service({
@@ -493,7 +416,7 @@ describe('Institution', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: ['Condition'],
         plafonds: ['Plafond'],
@@ -522,7 +445,6 @@ describe('Institution', () => {
       expect(dto.status).toBe(InstitutionStatus.ACTIVE);
       expect(dto.services).toHaveLength(1);
       expect(dto.services[0].id).toBe(service.id.getValue());
-      expect(dto.services[0].typeFrais).toBe(TypeCalculation.FREE);
     });
   });
 });

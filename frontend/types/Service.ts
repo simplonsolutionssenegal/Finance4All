@@ -22,7 +22,6 @@ export interface CreateServiceDto {
   montantMin?: number;
   montantMax?: number;
   frais: Frais;
-  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -36,7 +35,6 @@ export interface Service {
   montantMin?: number;
   montantMax?: number;
   frais: Frais;
-  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -59,10 +57,4 @@ export enum TypeService {
   CREDIT = 'crédit',
   ASSURANCE = 'assurance',
   AUTRES = 'autres services',
-}
-
-export enum TypeCalculation {
-  FREE = 'free',
-  POURCENTAGE = 'pourcentage',
-  FIX = 'fix',
 }

@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService, TypeCalculation } from '@/types/Service';
+import { TypeService } from '@/types/Service';
 import NewServiceComponent from '@/components/admin/institutions/NewServiceComponent';
 
 // Mock des dépendances
@@ -54,10 +54,8 @@ describe('NewServiceComponent', () => {
   const mockCreateService = jest.fn();
 
   const institutionId = 'test-institution-123';
-  // variable partagée pour capturer onSuccess dans certains tests
   let capturedOnSuccess: ((...args: any[]) => void) | undefined;
 
-  // implémentation réutilisable de createService qui invoque capturedOnSuccess si défini
   const createServiceImpl = (_args: any) => {
     if (typeof capturedOnSuccess === 'function') {
       capturedOnSuccess();
@@ -219,7 +217,6 @@ describe('NewServiceComponent', () => {
         target: { value: 'Service de transfert' },
       });
 
-      // Ouvrir le select avec pointerDown (requis par Radix UI)
       const selectTrigger = screen.getByRole('combobox');
       fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
 
@@ -305,8 +302,6 @@ describe('NewServiceComponent', () => {
         ).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
-      fireEvent.change(screen.getByLabelText(/montant minimum/i), { target: { value: '0' } });
-      fireEvent.change(screen.getByLabelText(/montant maximum/i), { target: { value: '100000' } });
       fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
 
       // Étape 2 - Pourcentage
@@ -316,21 +311,35 @@ describe('NewServiceComponent', () => {
 
       await waitFor(() => expect(screen.getByLabelText(/pourcentage \(%\)/i)).toBeInTheDocument());
 
+      // Remplir tous les champs requis pour le type POURCENTAGE
       fireEvent.change(screen.getByLabelText(/pourcentage \(%\)/i), { target: { value: '2.5' } });
-      // Minimum (FCFA) and Maximum (FCFA)
-      // cibler précisément les labels 'Minimum (FCFA)' et 'Maximum (FCFA)' de la configuration des frais
-      const minInput = screen.getByLabelText<HTMLInputElement>(/^Minimum \(FCFA\)$/i);
-      const maxInput = screen.getByLabelText<HTMLInputElement>(/^Maximum \(FCFA\)$/i);
+
+      // Cibler les champs Minimum et Maximum spécifiques à la configuration des frais
+      const feeConfigInputs = screen.getAllByRole('spinbutton');
+      // Filtrer pour obtenir uniquement les champs de la section "Configuration des frais"
+      const pourcentageInput = screen.getByLabelText(/pourcentage \(%\)/i);
+      const pourcentageIndex = feeConfigInputs.indexOf(pourcentageInput as HTMLInputElement);
+
+      // Les champs minimum et maximum sont après le champ pourcentage dans la configuration
+      const minInput = feeConfigInputs[pourcentageIndex + 1];
+      const maxInput = feeConfigInputs[pourcentageIndex + 2];
+
       fireEvent.change(minInput, { target: { value: '50' } });
       fireEvent.change(maxInput, { target: { value: '500' } });
 
-      fireEvent.click(screen.getByRole('button', { name: /créer le service/i }));
+      // Attendre que le bouton soit activé
+      const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      await waitFor(() => expect(submitButton).toBeEnabled());
+
+      fireEvent.click(submitButton);
 
       await waitFor(() => {
         expect(mockCreateService).toHaveBeenCalledWith({
           institutionId,
           serviceData: expect.objectContaining({
-            typeFrais: TypeCalculation.POURCENTAGE,
+            name: 'Transfert P',
+            longName: 'Desc P',
+            type: TypeService.TRANSFERT_ARGENT,
             frais: expect.objectContaining({
               pourcentage: 2.5,
               minimum: 50,
@@ -361,7 +370,6 @@ describe('NewServiceComponent', () => {
 
       await waitFor(() => {
         expect(screen.getByLabelText(/pourcentage \(%\)/i)).toBeInTheDocument();
-        // Utiliser getAllByLabelText car il y a "Montant minimum" et "Minimum (FCFA)"
         const minimumInputs = screen.getAllByLabelText(/minimum/i);
         expect(minimumInputs.length).toBeGreaterThan(0);
         const maximumInputs = screen.getAllByLabelText(/maximum/i);
@@ -456,6 +464,9 @@ describe('NewServiceComponent', () => {
       await waitFor(() => {
         const montantFixeInput = screen.getByLabelText(/montant fixe \(fcfa\)/i);
         fireEvent.change(montantFixeInput, { target: { value: '500' } });
+
+        const pourcentageInput = screen.getByLabelText(/pourcentage \(%\)/i);
+        fireEvent.change(pourcentageInput, { target: { value: '0' } });
       });
 
       const submitButton = screen.getByRole('button', { name: /créer le service/i });
@@ -468,9 +479,12 @@ describe('NewServiceComponent', () => {
             name: 'Transfert Mobile',
             longName: 'Service de transfert mobile',
             type: TypeService.TRANSFERT_ARGENT,
-            typeFrais: TypeCalculation.FIX,
             montantMin: 1000,
             montantMax: 500000,
+            frais: expect.objectContaining({
+              montantFixe: 500,
+              pourcentage: 0,
+            }),
           }),
         });
       });
@@ -491,28 +505,26 @@ describe('NewServiceComponent', () => {
 
   describe('Comportements additionnels', () => {
     it('devrait réinitialiser les champs de frais quand le type GRATUIT est sélectionné', async () => {
-      await (async function setupStep2Local() {
-        render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
+      render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
 
-        // Remplir l'étape 1
-        fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
-          target: { value: 'Transfert' },
-        });
-        fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
-          target: { value: 'Service de transfert' },
-        });
-        const selectTrigger = screen.getByRole('combobox');
-        fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
-        await waitFor(() => {
-          expect(
-            screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
-          ).toBeInTheDocument();
-        });
-        fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
-        fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
-        const headerAfterContinue2 = await screen.findByText(/type de frais/i);
-        expect(headerAfterContinue2).toBeInTheDocument();
-      })();
+      // Remplir l'étape 1
+      fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
+        target: { value: 'Transfert' },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
+        target: { value: 'Service de transfert' },
+      });
+      const selectTrigger = screen.getByRole('combobox');
+      fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
+      fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
+      const headerAfterContinue2 = await screen.findByText(/type de frais/i);
+      expect(headerAfterContinue2).toBeInTheDocument();
 
       // Sélectionner pourcentage et renseigner des valeurs
       const percentOption = screen.getByLabelText(/frais en pourcentage/i);
@@ -522,27 +534,18 @@ describe('NewServiceComponent', () => {
       expect(pourcentageInput).toBeInTheDocument();
       fireEvent.change(pourcentageInput, { target: { value: '10' } });
 
-      // Saisir min et max
-      const minimum = screen.getAllByLabelText(/minimum/i)[0];
-      const maximum = screen.getAllByLabelText(/maximum/i)[0];
-      fireEvent.change(minimum, { target: { value: '100' } });
-      fireEvent.change(maximum, { target: { value: '1000' } });
-
       // Maintenant sélectionner Gratuit
       const freeOption = screen.getByLabelText(/gratuit/i);
       fireEvent.click(freeOption);
 
-      // Les champs de configuration des frais doivent disparaître / être réinitialisés
+      // Les champs de configuration des frais doivent disparaître
       await waitFor(() => {
         expect(screen.queryByLabelText(/pourcentage \(%\)/i)).not.toBeInTheDocument();
-        // minimum/maximum spécifiques aux frais (labels exacts)
-        expect(screen.queryByLabelText(/^Minimum \(FCFA\)$/i)).not.toBeInTheDocument();
-        expect(screen.queryByLabelText(/^Maximum \(FCFA\)$/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/configuration des frais/i)).not.toBeInTheDocument();
       });
     });
 
     it('devrait masquer la configuration des frais pour le type GRATUIT', async () => {
-      // Réutilisation du même flux pour aller à l'étape 2
       render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
 
       fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
@@ -568,13 +571,11 @@ describe('NewServiceComponent', () => {
       fireEvent.click(freeOption);
 
       await waitFor(() => {
-        // Le bloc "Configuration des frais" ne doit pas être affiché
         expect(screen.queryByText(/configuration des frais/i)).not.toBeInTheDocument();
       });
     });
 
     it('devrait rediriger après création (simuler onSuccess)', async () => {
-      // mockImplementation qui capture onSuccess et utilise l'implémentation réutilisable createServiceImpl
       (useCreateService as jest.Mock).mockImplementation(({ onSuccess }: any) => {
         capturedOnSuccess = onSuccess;
         return {
@@ -615,12 +616,10 @@ describe('NewServiceComponent', () => {
       fireEvent.click(screen.getByLabelText(/gratuit/i));
 
       const submitButton = screen.getByRole('button', { name: /créer le service/i });
-      // S'assurer que le bouton est bien activé avant de cliquer
       await waitFor(() => expect(submitButton).toBeEnabled());
 
       fireEvent.click(submitButton);
 
-      // router.push doit avoir été appelé par l'onSuccess
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith(`/institutions/${institutionId}`);
       });

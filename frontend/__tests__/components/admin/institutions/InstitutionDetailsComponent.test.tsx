@@ -4,12 +4,12 @@ import userEvent from '@testing-library/user-event';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
-import ServiceList from '@/components/admin/institutions/ServiceList';
 import InstitutionDetailsComponent from '@/components/admin/institutions/InstitutionDetailsComponent';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
 import { InstitutionStatus } from '@/types/Institution';
-import { TypeService, TypeCalculation } from '@/types/Service';
+import { TypeService } from '@/types/Service';
+import ServiceItem from '@/components/admin/institutions/ServiceItem';
 
 const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -94,7 +94,7 @@ jest.mock('@/components/admin/institutions/ServiceDetailsModal', () => ({
   default: jest.fn(() => null),
 }));
 
-jest.mock('@/components/admin/institutions/ServiceList', () => ({
+jest.mock('@/components/admin/institutions/ServiceItem', () => ({
   __esModule: true,
   default: jest.fn(() => <div>Service List Mock</div>),
 }));
@@ -289,7 +289,6 @@ describe('InstitutionDetailsComponent', () => {
             longName: 'Service 1 Long Name',
             type: TypeService.PAIEMENT_MARCHAND,
             frais: { montantFixe: 100 },
-            typeFrais: TypeCalculation.FIX,
             conditionAccess: ['Condition 1'],
             plafonds: ['Plafond 1'],
             infrastructureAccess: ['Infra 1'],
@@ -332,7 +331,7 @@ describe('InstitutionDetailsComponent', () => {
       await userEvent.click(link as HTMLAnchorElement);
     });
 
-    it('passes correct props to ServiceList', () => {
+    it('passes correct props to ServiceItem', () => {
       const mockServices = [
         {
           id: 'svc-1',
@@ -340,7 +339,6 @@ describe('InstitutionDetailsComponent', () => {
           longName: 'Service 1 Long Name',
           type: TypeService.PAIEMENT_MARCHAND,
           frais: { montantFixe: 100 },
-          typeFrais: TypeCalculation.FIX,
           conditionAccess: ['Condition 1'],
           plafonds: ['Plafond 1'],
           infrastructureAccess: ['Infra 1'],
@@ -360,7 +358,7 @@ describe('InstitutionDetailsComponent', () => {
 
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-      const lastCall = (ServiceList as jest.Mock).mock.calls.slice(-1)[0];
+      const lastCall = (ServiceItem as jest.Mock).mock.calls.slice(-1)[0];
       expect(lastCall[0].services).toEqual(mockServices);
       expect(lastCall[0].onView).toBeDefined();
       expect(lastCall[0].onEdit).toBeDefined();

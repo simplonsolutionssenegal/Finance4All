@@ -265,9 +265,7 @@ describe('CreateInstitutionUseCaseImpl', () => {
     });
 
     it('should convert institution with services to DTO correctly', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const testUuid = randomUUID();
@@ -281,7 +279,6 @@ describe('CreateInstitutionUseCaseImpl', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -312,7 +309,6 @@ describe('CreateInstitutionUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        typeFrais: TypeCalculation.FIX,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],

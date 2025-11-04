@@ -1,7 +1,7 @@
 import { Institution } from '@/domain/institutions/entities/Institution';
 // eslint-disable-next-line no-duplicate-imports
 import type { InstitutionStatus } from '@/domain/institutions/entities/Institution';
-import { Service, TypeCalculation, TypeService } from '@/domain/institutions/entities/Service';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
 import {
   FraisGratuit,
   FraisFixes,
@@ -160,7 +160,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       type: this.mapPrismaTypeToTypeService(prismaService.type),
       montantMin: prismaService.montantMin ?? 0,
       montantMax: prismaService.montantMax ?? 0,
-      typeFrais: this.mapPrismaTypeCalculationToDomain(prismaService.typeFrais ?? 'FREE'),
       frais: this.mapFraisToDomain(prismaService.frais as FraisData),
       conditionAccess: prismaService.conditionAccess,
       plafonds: prismaService.plafonds,
@@ -206,30 +205,11 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
       montantMin: service.montantMin,
       montantMax: service.montantMax,
-      typeFrais: this.mapTypeCalculationToPrisma(service.typeFrais) as PrismaTypeCalculation, // Cast explicite
       frais: this.mapFraisToPrisma(service.frais),
       conditionAccess: service.conditionAccess,
       plafonds: service.plafonds,
       infrastructureAccess: service.infrastructureAccess,
     };
-  }
-
-  private mapPrismaTypeCalculationToDomain(prismaType: string): TypeCalculation {
-    const typeMap: Record<string, TypeCalculation> = {
-      FREE: TypeCalculation.FREE,
-      POURCENTAGE: TypeCalculation.POURCENTAGE,
-      FIX: TypeCalculation.FIX,
-    };
-    return typeMap[prismaType] || TypeCalculation.FREE;
-  }
-
-  private mapTypeCalculationToPrisma(type: TypeCalculation): string {
-    const typeMap: Record<TypeCalculation, string> = {
-      [TypeCalculation.FREE]: 'FREE',
-      [TypeCalculation.POURCENTAGE]: 'POURCENTAGE',
-      [TypeCalculation.FIX]: 'FIX',
-    };
-    return typeMap[type] || 'FREE';
   }
 
   private mapTypeServiceToPrismaType(type: TypeService): string {

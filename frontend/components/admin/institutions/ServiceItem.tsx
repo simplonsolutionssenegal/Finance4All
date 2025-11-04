@@ -19,14 +19,14 @@ import {
 } from '@/components/ui/table';
 import type { Service } from '@/types/Service';
 
-type ServiceListProps = {
+type ServiceItemProps = {
   services: Service[];
   onView?: (service: Service) => void;
   onEdit?: (service: Service) => void;
   onDelete?: (service: Service) => void;
 };
 
-const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) => {
+const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) => {
   if (!services || services.length === 0) {
     return <div className='text-center text-gray-500 py-10'>Aucun service pour le moment.</div>;
   }
@@ -171,4 +171,4 @@ const ServiceList = ({ services, onView, onEdit, onDelete }: ServiceListProps) =
   );
 };
 
-export default ServiceList;
+export default ServiceItem;

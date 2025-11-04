@@ -180,9 +180,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
     });
 
     it('should preserve existing services when updating institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const serviceId = randomUUID();
@@ -193,7 +191,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         type: TypeService.ASSURANCE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais: new FraisFixes(200, 0.01),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -238,7 +236,6 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
-        typeFrais: TypeCalculation.FIX,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],

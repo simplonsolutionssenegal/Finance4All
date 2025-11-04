@@ -31,12 +31,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService, TypeCalculation, type CreateServiceDto } from '@/types/Service';
+import { TypeService, type CreateServiceDto } from '@/types/Service';
 
 const serviceSchema = z
   .object({
-    name: z.string().min(2, '*Le nom doit contenir au moins 2 caractères'),
-    longName: z.string().min(2, '*La description doit contenir au moins 2 caractères'),
+    name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères *'),
+    longName: z.string().min(2, 'La description doit contenir au moins 2 caractères *'),
     type: z.enum(
       [
         TypeService.PAIEMENT_MARCHAND,
@@ -55,17 +55,20 @@ const serviceSchema = z
       ],
       { message: '* Veuillez sélectionner un type de service' }
     ),
-    typeFrais: z.enum([TypeCalculation.FREE, TypeCalculation.POURCENTAGE, TypeCalculation.FIX], {
-      message: '* Veuillez sélectionner un type de frais',
-    }),
     montantMin: z.number().min(0, 'Doit être ≥ 0').optional(),
     montantMax: z.number().min(0, 'Doit être ≥ 0').optional(),
-    frais: z.object({
-      montantFixe: z.number().optional(),
-      pourcentage: z.number().min(0).max(100).optional(),
-      minimum: z.number().optional(),
-      maximum: z.number().optional(),
+
+    feeTypeUI: z.enum(['FREE', 'FIX', 'POURCENTAGE'], {
+      message: '* Veuillez sélectionner un type de frais',
     }),
+
+    frais: z.object({
+      montantFixe: z.number().min(0, 'Doit être ≥ 0').optional(),
+      pourcentage: z.number().min(0, 'Doit être ≥ 0').max(100, 'Doit être ≤ 100').optional(),
+      minimum: z.number().min(0, 'Doit être ≥ 0').optional(),
+      maximum: z.number().min(0, 'Doit être ≥ 0').optional(),
+    }),
+
     conditionAccess: z.array(z.string()),
     plafonds: z.array(z.string()),
     infrastructureAccess: z.array(z.string()),
@@ -73,16 +76,82 @@ const serviceSchema = z
   .refine(v => v.montantMin == null || v.montantMax == null || v.montantMin <= v.montantMax, {
     message: 'montantMin doit être ≤ montantMax',
     path: ['montantMax'],
+  })
+  .superRefine((v, ctx) => {
+    if (v.feeTypeUI === 'FREE') {
+      const anyFee =
+        v.frais.montantFixe != null ||
+        v.frais.pourcentage != null ||
+        v.frais.minimum != null ||
+        v.frais.maximum != null;
+
+      if (anyFee) {
+        ctx.addIssue({
+          code: 'custom',
+          message: "Le service est gratuit : n'indiquez aucun frais.",
+          path: ['frais'],
+        });
+      }
+      return;
+    }
+
+    if (v.feeTypeUI === 'FIX') {
+      if (v.frais.montantFixe == null || Number.isNaN(v.frais.montantFixe)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ montant Fixe est obligatoire *',
+          path: ['frais', 'montantFixe'],
+        });
+      }
+      if (v.frais.pourcentage == null || Number.isNaN(v.frais.pourcentage)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ pourcentage est obligatoire *',
+          path: ['frais', 'pourcentage'],
+        });
+      }
+      return;
+    }
+
+    if (v.feeTypeUI === 'POURCENTAGE') {
+      if (v.frais.pourcentage == null || Number.isNaN(v.frais.pourcentage)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ pourcentage est obligatoire *',
+          path: ['frais', 'pourcentage'],
+        });
+      }
+      if (v.frais.minimum == null || Number.isNaN(v.frais.minimum)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ minimim est obligatoire *',
+          path: ['frais', 'minimum'],
+        });
+      }
+      if (v.frais.maximum == null || Number.isNaN(v.frais.maximum)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ maximum est obligatoire * ',
+          path: ['frais', 'maximum'],
+        });
+      }
+      if (
+        v.frais.minimum != null &&
+        v.frais.maximum != null &&
+        !Number.isNaN(v.frais.minimum) &&
+        !Number.isNaN(v.frais.maximum) &&
+        v.frais.minimum > v.frais.maximum
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'minimum doit être ≤ maximum',
+          path: ['frais', 'maximum'],
+        });
+      }
+    }
   });
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
-
-type FeeOptionProps = {
-  id: string;
-  value: TypeCalculation;
-  title: string;
-  description?: string;
-};
 
 type TagInputFieldProps = {
   label: string;
@@ -94,25 +163,7 @@ type TagInputFieldProps = {
 
 const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' ');
 
-type NewServiceComponentProps = {
-  institutionId: string;
-};
-
-const FeeOption = ({ id, value, title, description }: FeeOptionProps) => {
-  return (
-    <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
-      <RadioGroupItem
-        id={id}
-        value={value}
-        className='h-3 w-3 rounded-full border-1 border-[#5AB6DB] data-[state=checked]:bg-[#5AB6DB] data-[state=checked]:border-[#5AB6DB] data-[state=checked]:text-[#5AB6DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2'
-      />
-      <Label htmlFor={id} className='cursor-pointer flex-1'>
-        <div className='font-medium'>{title}</div>
-        {description && <div className='text-xs text-gray-500'>{description}</div>}
-      </Label>
-    </div>
-  );
-};
+type NewServiceComponentProps = { institutionId: string };
 
 const TagInputField = ({
   label,
@@ -122,27 +173,21 @@ const TagInputField = ({
   disabled = false,
 }: TagInputFieldProps) => {
   const [input, setInput] = useState('');
-
   const handleAdd = () => {
     if (input.trim()) {
       onChange([...value, input.trim()]);
       setInput('');
     }
   };
-
   const handleRemove = (index: number) => {
-    if (!disabled) {
-      onChange(value.filter((_, i) => i !== index));
-    }
+    if (!disabled) onChange(value.filter((_, i) => i !== index));
   };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAdd();
     }
   };
-
   return (
     <>
       <FormLabel>{label}</FormLabel>
@@ -179,10 +224,34 @@ const TagInputField = ({
           ))}
         </div>
       )}
-      <FormMessage className='text-xs text-red-600' />
+      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
     </>
   );
 };
+
+const FeeOption = ({
+  id,
+  value,
+  title,
+  description,
+}: {
+  id: string;
+  value: 'FREE' | 'FIX' | 'POURCENTAGE';
+  title: string;
+  description?: string;
+}) => (
+  <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
+    <RadioGroupItem
+      id={id}
+      value={value}
+      className='h-3 w-3 rounded-full border-1 border-[#5AB6DB] data-[state=checked]:bg-[#5AB6DB] data-[state=checked]:border-[#5AB6DB] data-[state=checked]:text-[#5AB6DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2'
+    />
+    <Label htmlFor={id} className='cursor-pointer flex-1'>
+      <div className='font-medium'>{title}</div>
+      {description && <div className='text-xs text-gray-500'>{description}</div>}
+    </Label>
+  </div>
+);
 
 const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
   const router = useRouter();
@@ -193,9 +262,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
   const { createService, isCreating } = useCreateService({
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['institution', institutionId],
-      });
+      queryClient.invalidateQueries({ queryKey: ['institution', institutionId] });
       router.push(`/institutions/${institutionId}`);
     },
   });
@@ -206,7 +273,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
       name: '',
       longName: '',
       type: undefined,
-      typeFrais: undefined,
       montantMin: undefined,
       montantMax: undefined,
       frais: {
@@ -222,35 +288,36 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
     mode: 'onChange',
   });
 
-  const typeFrais = form.watch('typeFrais');
-
   const validateStep1 = useCallback(() => {
     const { name, longName, type } = form.getValues();
-    return name.length >= 2 && longName.length >= 2 && type && type.length > 0;
+    return name.length >= 2 && longName.length >= 2 && !!type;
   }, [form]);
 
   const watchStep1Fields = form.watch(['name', 'longName', 'type']);
-
   useEffect(() => {
     setIsStep1Valid(validateStep1());
   }, [watchStep1Fields, validateStep1]);
 
+  const feeTypeUI = form.watch('feeTypeUI');
+
   useEffect(() => {
-    if (typeFrais === TypeCalculation.FREE) {
+    if (feeTypeUI === 'FREE') {
       form.setValue('frais.montantFixe', undefined);
       form.setValue('frais.pourcentage', undefined);
       form.setValue('frais.minimum', undefined);
       form.setValue('frais.maximum', undefined);
-    } else if (typeFrais === TypeCalculation.FIX) {
+    } else if (feeTypeUI === 'FIX') {
+      form.setValue('frais.pourcentage', undefined);
       form.setValue('frais.minimum', undefined);
       form.setValue('frais.maximum', undefined);
+    } else if (feeTypeUI === 'POURCENTAGE') {
+      form.setValue('frais.montantFixe', undefined);
     }
-  }, [typeFrais, form]);
+  }, [feeTypeUI, form]);
 
   const onSubmit = (data: ServiceFormData) => {
-    const serviceData: CreateServiceDto = {
-      ...data,
-    };
+    const { feeTypeUI: _ui, ...rest } = data;
+    const serviceData: CreateServiceDto = { ...rest };
     createService({ institutionId, serviceData });
   };
 
@@ -259,9 +326,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
     { label: 'Frais', baseIcon: Coins },
   ];
 
-  const getStepClassName = (stepNumber: number) => {
-    return step === stepNumber ? 'space-y-4' : 'hidden';
-  };
+  const getStepClassName = (n: number) => (n === step ? 'space-y-4' : 'hidden');
 
   return (
     <>
@@ -290,7 +355,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
             const active = i === step;
             const done = i < step;
             const IconToShow = done ? Check : s.baseIcon;
-
             return (
               <div key={s.label} className='flex flex-col items-center justify-center gap-2'>
                 <div
@@ -318,22 +382,26 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='rounded-2xl'>
+            {/* Étape 1 */}
             <div className={getStepClassName(0)}>
               <FormField
                 control={form.control}
                 name='name'
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Nom du service *</FormLabel>
                     <FormControl>
                       <Input
                         placeholder='Ex: Transfert'
-                        className='bg-[#F8F9FA] border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none'
+                        className={cx(
+                          'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
+                          fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                        )}
                         {...field}
                         disabled={isCreating}
                       />
                     </FormControl>
-                    <FormMessage className='text-xs text-red-600' />
+                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                   </FormItem>
                 )}
               />
@@ -341,18 +409,21 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               <FormField
                 control={form.control}
                 name='longName'
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Description *</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Ex: Transfert d'argent"
-                        className='bg-[#F8F9FA] min-h-15 border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none'
+                        className={cx(
+                          'bg-[#F8F9FA] min-h-15 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
+                          fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                        )}
                         {...field}
                         disabled={isCreating}
                       />
                     </FormControl>
-                    <FormMessage className='text-xs text-red-600' />
+                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                   </FormItem>
                 )}
               />
@@ -360,7 +431,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               <FormField
                 control={form.control}
                 name='type'
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Type de service *</FormLabel>
                     <Select
@@ -369,7 +440,12 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       disabled={isCreating}
                     >
                       <FormControl>
-                        <SelectTrigger className='bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal border-0 ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0'>
+                        <SelectTrigger
+                          className={cx(
+                            'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0',
+                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                          )}
+                        >
                           <SelectValue placeholder='Sélectionner un type' />
                         </SelectTrigger>
                       </FormControl>
@@ -381,7 +457,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className='text-xs text-red-600' />
+                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                   </FormItem>
                 )}
               />
@@ -390,7 +466,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <FormField
                   control={form.control}
                   name='montantMin'
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Montant minimum (FCFA)</FormLabel>
                       <FormControl>
@@ -399,7 +475,10 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           inputMode='decimal'
                           min='0'
                           placeholder='0'
-                          className='bg-[#F8F9FA] border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                          className={cx(
+                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                          )}
                           {...field}
                           value={field.value ?? ''}
                           onKeyDown={e => {
@@ -411,7 +490,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           disabled={isCreating}
                         />
                       </FormControl>
-                      <FormMessage className='text-xs text-red-600' />
+                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                     </FormItem>
                   )}
                 />
@@ -419,7 +498,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <FormField
                   control={form.control}
                   name='montantMax'
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Montant maximum (FCFA)</FormLabel>
                       <FormControl>
@@ -428,7 +507,10 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           inputMode='decimal'
                           min='0'
                           placeholder='0'
-                          className='bg-[#F8F9FA] border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                          className={cx(
+                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                          )}
                           {...field}
                           value={field.value ?? ''}
                           onKeyDown={e => {
@@ -440,7 +522,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           disabled={isCreating}
                         />
                       </FormControl>
-                      <FormMessage className='text-xs text-red-600' />
+                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                     </FormItem>
                   )}
                 />
@@ -471,48 +553,56 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               </div>
             </div>
 
+            {/* Étape 2 */}
             <div className={getStepClassName(1)}>
               <FormField
                 control={form.control}
-                name='typeFrais'
+                name='feeTypeUI'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className='text-base font-semibold'>Type de frais *</FormLabel>
                     <FormControl>
                       <RadioGroup
-                        value={field.value}
+                        value={field.value ?? undefined}
                         onValueChange={field.onChange}
                         className='space-y-3'
                       >
-                        <FeeOption id='fee-free' value={TypeCalculation.FREE} title='Gratuit' />
+                        <FeeOption id='fee-free' value='FREE' title='Gratuit' />
                         <FeeOption
                           id='fee-fix'
-                          value={TypeCalculation.FIX}
+                          value='FIX'
                           title='Frais fixe'
                           description='Montant constant en FCFA'
                         />
                         <FeeOption
                           id='fee-percent'
-                          value={TypeCalculation.POURCENTAGE}
+                          value='POURCENTAGE'
                           title='Frais en pourcentage'
                           description='Taux sur le montant'
                         />
                       </RadioGroup>
                     </FormControl>
-                    <FormMessage className='text-xs text-red-600' />
+                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                   </FormItem>
                 )}
               />
 
-              {typeFrais && typeFrais !== TypeCalculation.FREE && (
+              {feeTypeUI !== 'FREE' && (
                 <div className='space-y-4'>
                   <FormLabel className='text-sm font-semibold'>Configuration des frais</FormLabel>
-                  <div className='grid grid-cols-2 gap-4'>
-                    {typeFrais === TypeCalculation.FIX && (
+
+                  <div
+                    className={
+                      feeTypeUI === 'POURCENTAGE'
+                        ? 'grid grid-cols-3 gap-4'
+                        : 'grid grid-cols-2 gap-4 mb-4'
+                    }
+                  >
+                    {feeTypeUI === 'FIX' && (
                       <FormField
                         control={form.control}
                         name='frais.montantFixe'
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
                             <FormLabel className='text-sm text-gray-600'>
                               Montant fixe (FCFA) *
@@ -522,9 +612,15 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                 type='number'
                                 min='0'
                                 placeholder='0'
-                                className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                className={cx(
+                                  'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                                  fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                                )}
                                 {...field}
-                                value={field.value || ''}
+                                value={field.value ?? ''}
+                                onKeyDown={e => {
+                                  if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                }}
                                 onChange={e =>
                                   field.onChange(
                                     e.target.value ? Number(e.target.value) : undefined
@@ -533,21 +629,22 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                 disabled={isCreating}
                               />
                             </FormControl>
-                            <FormMessage className='text-xs text-red-600' />
+                            <div className=' min-h-[10px]'>
+                              <FormMessage className='text-xs text-red-600' />
+                            </div>
                           </FormItem>
                         )}
                       />
                     )}
 
-                    {(typeFrais === TypeCalculation.FIX ||
-                      typeFrais === TypeCalculation.POURCENTAGE) && (
+                    {(feeTypeUI === 'FIX' || feeTypeUI === 'POURCENTAGE') && (
                       <FormField
                         control={form.control}
                         name='frais.pourcentage'
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
                             <FormLabel className='text-sm text-gray-600'>
-                              Pourcentage (%) {typeFrais === TypeCalculation.POURCENTAGE && '*'}
+                              Pourcentage (%) {feeTypeUI === 'POURCENTAGE' && '*'}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -556,9 +653,15 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                 min='0'
                                 max='100'
                                 placeholder='0'
-                                className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                className={cx(
+                                  'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                                  fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                                )}
                                 {...field}
-                                value={field.value || ''}
+                                value={field.value ?? ''}
+                                onKeyDown={e => {
+                                  if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                }}
                                 onChange={e =>
                                   field.onChange(
                                     e.target.value ? Number(e.target.value) : undefined
@@ -567,30 +670,38 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                 disabled={isCreating}
                               />
                             </FormControl>
-                            <FormMessage className='text-xs text-red-600' />
+                            <div className=' min-h-[10px]'>
+                              <FormMessage className='text-xs text-red-600' />
+                            </div>
                           </FormItem>
                         )}
                       />
                     )}
 
-                    {typeFrais === TypeCalculation.POURCENTAGE && (
-                      <div className='grid grid-cols-2 gap-4'>
+                    {feeTypeUI === 'POURCENTAGE' && (
+                      <>
                         <FormField
                           control={form.control}
                           name='frais.minimum'
-                          render={({ field }) => (
+                          render={({ field, fieldState }) => (
                             <FormItem>
                               <FormLabel className='text-sm text-gray-600'>
-                                Minimum (FCFA)
+                                Minimum (FCFA) *
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type='number'
                                   min='0'
                                   placeholder='0'
-                                  className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                  className={cx(
+                                    'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                                    fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                                  )}
                                   {...field}
-                                  value={field.value || ''}
+                                  value={field.value ?? ''}
+                                  onKeyDown={e => {
+                                    if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                  }}
                                   onChange={e =>
                                     field.onChange(
                                       e.target.value ? Number(e.target.value) : undefined
@@ -599,7 +710,9 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                   disabled={isCreating}
                                 />
                               </FormControl>
-                              <FormMessage className='text-xs text-red-600' />
+                              <div className=' min-h-[10px]'>
+                                <FormMessage className='text-xs text-red-600' />
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -607,19 +720,25 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         <FormField
                           control={form.control}
                           name='frais.maximum'
-                          render={({ field }) => (
+                          render={({ field, fieldState }) => (
                             <FormItem>
                               <FormLabel className='text-sm text-gray-600'>
-                                Maximum (FCFA)
+                                Maximum (FCFA) *
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type='number'
                                   min='0'
                                   placeholder='0'
-                                  className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                  className={cx(
+                                    'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                                    fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                                  )}
                                   {...field}
-                                  value={field.value || ''}
+                                  value={field.value ?? ''}
+                                  onKeyDown={e => {
+                                    if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                                  }}
                                   onChange={e =>
                                     field.onChange(
                                       e.target.value ? Number(e.target.value) : undefined
@@ -628,11 +747,13 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                                   disabled={isCreating}
                                 />
                               </FormControl>
-                              <FormMessage className='text-xs text-red-600' />
+                              <div className=' min-h-[10px]'>
+                                <FormMessage className='text-xs text-red-600' />
+                              </div>
                             </FormItem>
                           )}
                         />
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>

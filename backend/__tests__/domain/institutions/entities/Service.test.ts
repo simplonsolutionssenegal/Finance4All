@@ -1,4 +1,4 @@
-import { Service, TypeService, TypeCalculation } from '@/domain/institutions/entities/Service';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
 import { EntityId } from '@/domain/shared/EntityId';
 import {
   FraisGratuit,
@@ -17,7 +17,7 @@ describe('Service', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -30,7 +30,7 @@ describe('Service', () => {
       expect(service.name).toBe(serviceProps.name);
       expect(service.longName).toBe(serviceProps.longName);
       expect(service.type).toBe(serviceProps.type);
-      expect(service.typeFrais).toBe(serviceProps.typeFrais);
+
       expect(service.frais).toBe(serviceProps.frais);
       expect(service.conditionAccess).toEqual(serviceProps.conditionAccess);
       expect(service.plafonds).toEqual(serviceProps.plafonds);
@@ -45,7 +45,7 @@ describe('Service', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais: new FraisFixes(100, 0.02, 50),
         conditionAccess: [],
         plafonds: [],
@@ -54,7 +54,6 @@ describe('Service', () => {
 
       const service = new Service(serviceProps);
 
-      expect(service.typeFrais).toBe(TypeCalculation.FIX);
       expect(service.frais).toBeInstanceOf(FraisFixes);
     });
 
@@ -66,7 +65,7 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -75,7 +74,6 @@ describe('Service', () => {
 
       const service = new Service(serviceProps);
 
-      expect(service.typeFrais).toBe(TypeCalculation.POURCENTAGE);
       expect(service.frais).toBeInstanceOf(FraisPourcentage);
     });
 
@@ -87,7 +85,7 @@ describe('Service', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -128,7 +126,7 @@ describe('Service', () => {
           type: serviceType,
           montantMin: 100000,
           montantMax: 100000,
-          typeFrais: TypeCalculation.FREE,
+
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -137,40 +135,6 @@ describe('Service', () => {
 
         expect(service.type).toBe(serviceType);
       });
-    });
-  });
-
-  describe('TypeCalculation enum', () => {
-    it('should support all TypeCalculation values', () => {
-      const calculationTypes = [
-        TypeCalculation.FREE,
-        TypeCalculation.FIX,
-        TypeCalculation.POURCENTAGE,
-      ];
-
-      calculationTypes.forEach(calculationType => {
-        const service = new Service({
-          id: EntityId.generate(),
-          name: 'Test',
-          longName: 'Test Long',
-          type: TypeService.AUTRES,
-          montantMin: 100000,
-          montantMax: 100000,
-          typeFrais: calculationType,
-          frais: new FraisGratuit(),
-          conditionAccess: [],
-          plafonds: [],
-          infrastructureAccess: [],
-        });
-
-        expect(service.typeFrais).toBe(calculationType);
-      });
-    });
-
-    it('should have correct enum values', () => {
-      expect(TypeCalculation.FREE).toBe('free');
-      expect(TypeCalculation.FIX).toBe('fix');
-      expect(TypeCalculation.POURCENTAGE).toBe('pourcentage');
     });
   });
 
@@ -183,7 +147,7 @@ describe('Service', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -197,7 +161,6 @@ describe('Service', () => {
       expect(dto.name).toBe(serviceProps.name);
       expect(dto.longName).toBe(serviceProps.longName);
       expect(dto.type).toBe(serviceProps.type);
-      expect(dto.typeFrais).toBe(serviceProps.typeFrais);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.FREE,
       });
@@ -215,7 +178,7 @@ describe('Service', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais,
         conditionAccess: ['ID required'],
         plafonds: ['5000 FCFA/day'],
@@ -227,7 +190,6 @@ describe('Service', () => {
 
       expect(dto.id).toBe(serviceProps.id.getValue());
       expect(dto.name).toBe(serviceProps.name);
-      expect(dto.typeFrais).toBe(TypeCalculation.FIX);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.FIX,
         montantFixe: 100,
@@ -245,7 +207,7 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais,
         conditionAccess: [],
         plafonds: [],
@@ -255,7 +217,6 @@ describe('Service', () => {
       const service = new Service(serviceProps);
       const dto = service.toDTO();
 
-      expect(dto.typeFrais).toBe(TypeCalculation.POURCENTAGE);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.POURCENTAGE,
         pourcentage: 0.03,
@@ -272,7 +233,7 @@ describe('Service', () => {
         type: TypeService.CREDIT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1', 'Condition 2', 'Condition 3'],
         plafonds: ['Plafond 1', 'Plafond 2'],
@@ -300,7 +261,7 @@ describe('Service', () => {
         type: TypeService.WALLET_BANQUE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
+
         frais: new FraisFixes(200),
         conditionAccess: ['Access 1'],
         plafonds: ['Limit 1'],
@@ -312,7 +273,6 @@ describe('Service', () => {
       expect(service.name).toBe('Getter Test Service');
       expect(service.longName).toBe('Getter Test Service Long Name');
       expect(service.type).toBe(TypeService.WALLET_BANQUE);
-      expect(service.typeFrais).toBe(TypeCalculation.FIX);
       expect(service.frais).toBeInstanceOf(FraisFixes);
       expect(service.conditionAccess).toEqual(['Access 1']);
       expect(service.plafonds).toEqual(['Limit 1']);
@@ -327,7 +287,7 @@ describe('Service', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FREE,
+
         frais: new FraisGratuit(),
         conditionAccess: ['Original'],
         plafonds: ['Original'],
@@ -353,7 +313,7 @@ describe('Service', () => {
         name: 'Long Name Service',
         longName,
         type: TypeService.AUTRES,
-        typeFrais: TypeCalculation.FREE,
+
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisGratuit(),
@@ -375,7 +335,7 @@ describe('Service', () => {
         name: 'Many Conditions Service',
         longName: 'Many Conditions Service Long Name',
         type: TypeService.AUTRES,
-        typeFrais: TypeCalculation.FREE,
+
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisGratuit(),
@@ -397,7 +357,7 @@ describe('Service', () => {
         name: 'Reference Test',
         longName: 'Reference Test Long',
         type: TypeService.AUTRES,
-        typeFrais: TypeCalculation.FIX,
+
         montantMin: 100000,
         montantMax: 100000,
         frais,
@@ -424,7 +384,7 @@ describe('Service', () => {
           type: serviceType,
           montantMin: 100000,
           montantMax: 100000,
-          typeFrais: TypeCalculation.FREE,
+
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -432,7 +392,6 @@ describe('Service', () => {
         });
 
         expect(service.type).toBe(serviceType);
-        expect(service.typeFrais).toBe(TypeCalculation.FREE);
       });
     });
 
@@ -442,7 +401,7 @@ describe('Service', () => {
         name: 'Transfer Service',
         longName: 'Transfer Service Long',
         type: TypeService.TRANSFERT_ARGENT,
-        typeFrais: TypeCalculation.FIX,
+
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisFixes(100),
@@ -452,7 +411,6 @@ describe('Service', () => {
       });
 
       expect(service.type).toBe(TypeService.TRANSFERT_ARGENT);
-      expect(service.typeFrais).toBe(TypeCalculation.FIX);
     });
 
     it('should allow POURCENTAGE calculation with savings service', () => {
@@ -463,7 +421,7 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.POURCENTAGE,
+
         frais: new FraisPourcentage(0.02),
         conditionAccess: [],
         plafonds: [],
@@ -471,7 +429,6 @@ describe('Service', () => {
       });
 
       expect(service.type).toBe(TypeService.EPARGNE);
-      expect(service.typeFrais).toBe(TypeCalculation.POURCENTAGE);
     });
   });
 });

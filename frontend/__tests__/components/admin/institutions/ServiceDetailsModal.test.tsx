@@ -2,7 +2,7 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { Service } from '@/types/Service';
-import { TypeService, TypeCalculation } from '@/types/Service';
+import { TypeService } from '@/types/Service';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
 
 // ---- Mocks ----
@@ -86,8 +86,6 @@ describe('ServiceDetailsModal', () => {
     name: "Transfert d'argent",
     longName: "Service de transfert d'argent mobile",
     type: TypeService.TRANSFERT_ARGENT,
-    typeFrais: TypeCalculation.POURCENTAGE,
-    // 🔸 Le composant lit la tranche via montantMin/montantMax
     montantMin: 50,
     montantMax: 5000,
     frais: {
@@ -241,11 +239,6 @@ describe('ServiceDetailsModal', () => {
     it('formate 5000 → "5 000"', () => {
       render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={baseService} />);
       expect(screen.getAllByText(/5 000/).length).toBeGreaterThan(0);
-    });
-
-    it('affiche typeFrais si présent', () => {
-      render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={baseService} />);
-      expect(screen.getByText('pourcentage')).toBeInTheDocument();
     });
   });
 });

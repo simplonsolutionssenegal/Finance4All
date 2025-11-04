@@ -140,9 +140,7 @@ describe('GetInstitutionByIdUseCase', () => {
     });
 
     it('should return institution with services correctly', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
       const { randomUUID } = await import('crypto');
 
@@ -154,7 +152,6 @@ describe('GetInstitutionByIdUseCase', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -186,7 +183,6 @@ describe('GetInstitutionByIdUseCase', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-        typeFrais: TypeCalculation.FIX,
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],

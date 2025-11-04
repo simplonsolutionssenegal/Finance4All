@@ -19,8 +19,7 @@ import { useEffect, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
-import ServiceList from '@/components/admin/institutions/ServiceList';
-import ServiceModal from '@/components/admin/institutions/ServiceModal';
+import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -92,7 +91,6 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
   const [showUpdateStateModal, setShowUpdateStateModal] = useState(false);
   const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
-  const [showServiceModal, setShowServiceModal] = useState(false);
 
   const [openServiceDetails, setOpenServiceDetails] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -358,7 +356,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
               </Link>
             </div>
             <div className='rounded-2xl bg-white shadow-md'>
-              <ServiceList
+              <ServiceItem
                 services={institution.services || []}
                 onView={handleViewService}
                 onEdit={handleEditService}
@@ -376,14 +374,6 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         institution={institution}
         status={newStatus}
       />
-      <ServiceModal
-        open={showServiceModal}
-        onOpenChange={setShowServiceModal}
-        institutionId={institutionId}
-        institutionName={institution.name}
-        refresh={() => refetch()}
-      />
-
       <ServiceDetailsModal
         open={openServiceDetails}
         onOpenChange={setOpenServiceDetails}

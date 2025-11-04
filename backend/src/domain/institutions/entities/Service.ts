@@ -19,12 +19,6 @@ export enum TypeService {
   AUTRES = 'autres services',
 }
 
-export enum TypeCalculation {
-  FREE = 'free',
-  POURCENTAGE = 'pourcentage',
-  FIX = 'fix',
-}
-
 interface SerciceProps {
   id: EntityId;
   name: string;
@@ -33,7 +27,6 @@ interface SerciceProps {
   frais: Frais;
   montantMin: number;
   montantMax: number;
-  typeFrais: TypeCalculation;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -45,7 +38,6 @@ export class Service extends DomainEntity<EntityId> {
   private _type: TypeService;
   private _montantMin: number;
   private _montantMax: number;
-  private _typeFrais: TypeCalculation;
   private _frais: Frais;
   private _conditionAccess: string[];
   private _plafonds: string[];
@@ -58,7 +50,6 @@ export class Service extends DomainEntity<EntityId> {
     this._type = service.type;
     this._montantMin = service.montantMin;
     this._montantMax = service.montantMax;
-    this._typeFrais = service.typeFrais;
     this._frais = service.frais;
     this._conditionAccess = service.conditionAccess;
     this._plafonds = service.plafonds;
@@ -100,10 +91,6 @@ export class Service extends DomainEntity<EntityId> {
     return this._infrastructureAccess;
   }
 
-  get typeFrais(): TypeCalculation {
-    return this._typeFrais;
-  }
-
   public toDTO(): ServiceDTO {
     return {
       id: this.id.getValue(),
@@ -112,7 +99,6 @@ export class Service extends DomainEntity<EntityId> {
       type: this._type,
       montantMin: this._montantMin,
       montantMax: this._montantMax,
-      typeFrais: this._typeFrais,
       frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,
       plafonds: this._plafonds,
