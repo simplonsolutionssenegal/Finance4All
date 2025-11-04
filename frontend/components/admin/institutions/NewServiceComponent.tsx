@@ -321,6 +321,7 @@ const TagInputField = ({
   error = false,
 }: TagInputFieldProps) => {
   const [input, setInput] = useState('');
+
   const handleAdd = () => {
     const next = input.trim();
     if (!next) return;
@@ -333,12 +334,14 @@ const TagInputField = ({
   const handleRemoveByValue = (val: string) => {
     if (!disabled) onChange(value.filter(v => v !== val));
   };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAdd();
     }
   };
+
   return (
     <>
       <FormLabel className='text-sm font-normal '>{label}</FormLabel>
