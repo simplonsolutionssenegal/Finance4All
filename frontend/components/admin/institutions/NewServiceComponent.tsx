@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import NumericFormField from '@/components/admin/institutions/NumericFormField';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -461,70 +462,18 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                   </FormItem>
                 )}
               />
-
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <FormField
+                <NumericFormField
                   control={form.control}
-                  name='montantMin'
-                  render={({ field, fieldState }) => (
-                    <FormItem>
-                      <FormLabel>Montant minimum (FCFA)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          inputMode='decimal'
-                          min='0'
-                          placeholder='0'
-                          className={cx(
-                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                          )}
-                          {...field}
-                          value={field.value ?? ''}
-                          onKeyDown={e => {
-                            if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                          }}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
-                    </FormItem>
-                  )}
+                  name={'montantMin'}
+                  label='Montant minimum (FCFA)'
+                  disabled={isCreating}
                 />
-
-                <FormField
+                <NumericFormField
                   control={form.control}
-                  name='montantMax'
-                  render={({ field, fieldState }) => (
-                    <FormItem>
-                      <FormLabel>Montant maximum (FCFA)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='number'
-                          inputMode='decimal'
-                          min='0'
-                          placeholder='0'
-                          className={cx(
-                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                          )}
-                          {...field}
-                          value={field.value ?? ''}
-                          onKeyDown={e => {
-                            if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                          }}
-                          onChange={e =>
-                            field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                          }
-                          disabled={isCreating}
-                        />
-                      </FormControl>
-                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
-                    </FormItem>
-                  )}
+                  name={'montantMax'}
+                  label='Montant maximum (FCFA)'
+                  disabled={isCreating}
                 />
               </div>
 
@@ -586,7 +535,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                   </FormItem>
                 )}
               />
-
               {feeTypeUI !== 'FREE' && (
                 <div className='space-y-4'>
                   <FormLabel className='text-sm font-semibold'>Configuration des frais</FormLabel>
@@ -599,159 +547,42 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     }
                   >
                     {feeTypeUI === 'FIX' && (
-                      <FormField
+                      <NumericFormField
                         control={form.control}
-                        name='frais.montantFixe'
-                        render={({ field, fieldState }) => (
-                          <FormItem>
-                            <FormLabel className='text-sm text-gray-600'>
-                              Montant fixe (FCFA) *
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type='number'
-                                min='0'
-                                placeholder='0'
-                                className={cx(
-                                  'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                                  fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                                )}
-                                {...field}
-                                value={field.value ?? ''}
-                                onKeyDown={e => {
-                                  if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                }}
-                                onChange={e =>
-                                  field.onChange(
-                                    e.target.value ? Number(e.target.value) : undefined
-                                  )
-                                }
-                                disabled={isCreating}
-                              />
-                            </FormControl>
-                            <div className=' min-h-[10px]'>
-                              <FormMessage className='text-xs text-red-600' />
-                            </div>
-                          </FormItem>
-                        )}
+                        name={'frais.montantFixe'}
+                        label='Montant fixe (FCFA)'
+                        requiredMark
+                        disabled={isCreating}
                       />
                     )}
 
                     {(feeTypeUI === 'FIX' || feeTypeUI === 'POURCENTAGE') && (
-                      <FormField
+                      <NumericFormField
                         control={form.control}
-                        name='frais.pourcentage'
-                        render={({ field, fieldState }) => (
-                          <FormItem>
-                            <FormLabel className='text-sm text-gray-600'>
-                              Pourcentage (%) {feeTypeUI === 'POURCENTAGE' && '*'}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type='number'
-                                step='0.01'
-                                min='0'
-                                max='100'
-                                placeholder='0'
-                                className={cx(
-                                  'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                                  fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                                )}
-                                {...field}
-                                value={field.value ?? ''}
-                                onKeyDown={e => {
-                                  if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                }}
-                                onChange={e =>
-                                  field.onChange(
-                                    e.target.value ? Number(e.target.value) : undefined
-                                  )
-                                }
-                                disabled={isCreating}
-                              />
-                            </FormControl>
-                            <div className=' min-h-[10px]'>
-                              <FormMessage className='text-xs text-red-600' />
-                            </div>
-                          </FormItem>
-                        )}
+                        name={'frais.pourcentage'}
+                        label='Pourcentage (%)'
+                        step='0.01'
+                        max={100}
+                        requiredMark={feeTypeUI === 'POURCENTAGE'}
+                        disabled={isCreating}
                       />
                     )}
 
                     {feeTypeUI === 'POURCENTAGE' && (
                       <>
-                        <FormField
+                        <NumericFormField
                           control={form.control}
-                          name='frais.minimum'
-                          render={({ field, fieldState }) => (
-                            <FormItem>
-                              <FormLabel className='text-sm text-gray-600'>
-                                Minimum (FCFA) *
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type='number'
-                                  min='0'
-                                  placeholder='0'
-                                  className={cx(
-                                    'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                                    fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                                  )}
-                                  {...field}
-                                  value={field.value ?? ''}
-                                  onKeyDown={e => {
-                                    if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                  }}
-                                  onChange={e =>
-                                    field.onChange(
-                                      e.target.value ? Number(e.target.value) : undefined
-                                    )
-                                  }
-                                  disabled={isCreating}
-                                />
-                              </FormControl>
-                              <div className=' min-h-[10px]'>
-                                <FormMessage className='text-xs text-red-600' />
-                              </div>
-                            </FormItem>
-                          )}
+                          name={'frais.minimum'}
+                          label='Minimum (FCFA)'
+                          requiredMark
+                          disabled={isCreating}
                         />
-
-                        <FormField
+                        <NumericFormField
                           control={form.control}
-                          name='frais.maximum'
-                          render={({ field, fieldState }) => (
-                            <FormItem>
-                              <FormLabel className='text-sm text-gray-600'>
-                                Maximum (FCFA) *
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type='number'
-                                  min='0'
-                                  placeholder='0'
-                                  className={cx(
-                                    'bg-[#F8F9FA] ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-                                    fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                                  )}
-                                  {...field}
-                                  value={field.value ?? ''}
-                                  onKeyDown={e => {
-                                    if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                                  }}
-                                  onChange={e =>
-                                    field.onChange(
-                                      e.target.value ? Number(e.target.value) : undefined
-                                    )
-                                  }
-                                  disabled={isCreating}
-                                />
-                              </FormControl>
-                              <div className=' min-h-[10px]'>
-                                <FormMessage className='text-xs text-red-600' />
-                              </div>
-                            </FormItem>
-                          )}
+                          name={'frais.maximum'}
+                          label='Maximum (FCFA)'
+                          requiredMark
+                          disabled={isCreating}
                         />
                       </>
                     )}
