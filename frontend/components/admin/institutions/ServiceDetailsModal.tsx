@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
+import Chip from '@/components/admin/institutions/Chip';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -27,12 +28,6 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   service?: Service | null;
 };
-
-const Pill = ({ children }: { children: React.ReactNode }) => (
-  <span className='inline-flex items-center rounded-full bg-[#F8F9FA] px-3 py-1 text-xs font-medium text-gray-700'>
-    {children}
-  </span>
-);
 
 type ChipListProps = {
   items?: string[];
@@ -130,14 +125,15 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
                   </DialogDescription>
                 )}
                 <div className='mt-3 flex flex-wrap items-center gap-2'>
-                  <Pill>
+                  <Chip className='bg-[#F8F9FA] text-gray-700' variant='default'>
                     <Wallet className='mr-1.5 h-3.5 w-3.5' />
                     {service.type}
-                  </Pill>
-                  <Pill>
+                  </Chip>
+
+                  <Chip className='bg-[#F8F9FA] text-gray-700' variant='default'>
                     <BadgePercent className='mr-1.5 h-3.5 w-3.5' />
                     {feeKindLabel[feeKind]}
-                  </Pill>
+                  </Chip>
                 </div>
               </div>
             </div>

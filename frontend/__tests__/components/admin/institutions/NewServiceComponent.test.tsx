@@ -261,8 +261,8 @@ describe('NewServiceComponent', () => {
 
       await waitFor(() => expect(screen.getByText('300000 FCFA/jour')).toBeInTheDocument());
 
-      const badge = screen.getByText('300000 FCFA/jour').closest('.cursor-pointer');
-      fireEvent.click(badge!);
+      const badge = screen.getByText('300000 FCFA/jour');
+      fireEvent.click(badge);
 
       await waitFor(() => {
         expect(screen.queryByText('300000 FCFA/jour')).not.toBeInTheDocument();
@@ -278,8 +278,8 @@ describe('NewServiceComponent', () => {
 
       await waitFor(() => expect(screen.getByText('Mobile')).toBeInTheDocument());
 
-      const badge = screen.getByText('Mobile').closest('.cursor-pointer');
-      fireEvent.click(badge!);
+      const badge = screen.getByText('Mobile');
+      fireEvent.click(badge);
 
       await waitFor(() => expect(screen.queryByText('Mobile')).not.toBeInTheDocument());
     });
@@ -404,8 +404,8 @@ describe('NewServiceComponent', () => {
         expect(screen.getByText('Compte vérifié')).toBeInTheDocument();
       });
 
-      const badge = screen.getByText('Compte vérifié').closest('.cursor-pointer');
-      fireEvent.click(badge!);
+      const badge = screen.getByText('Compte vérifié');
+      fireEvent.click(badge);
 
       await waitFor(() => {
         expect(screen.queryByText('Compte vérifié')).not.toBeInTheDocument();

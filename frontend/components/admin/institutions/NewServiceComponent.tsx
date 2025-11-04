@@ -9,8 +9,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import Chip from '@/components/admin/institutions/Chip';
 import NumericFormField from '@/components/admin/institutions/NumericFormField';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -174,21 +174,28 @@ const TagInputField = ({
   disabled = false,
 }: TagInputFieldProps) => {
   const [input, setInput] = useState('');
+
   const handleAdd = () => {
-    if (input.trim()) {
-      onChange([...value, input.trim()]);
-      setInput('');
+    const next = input.trim();
+    if (!next) return;
+    // Empêche les doublons -> key={item} devient sûre
+    if (!value.includes(next)) {
+      onChange([...value, next]);
     }
+    setInput('');
   };
-  const handleRemove = (index: number) => {
-    if (!disabled) onChange(value.filter((_, i) => i !== index));
+
+  const handleRemoveByValue = (val: string) => {
+    if (!disabled) onChange(value.filter(v => v !== val));
   };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAdd();
     }
   };
+
   return (
     <>
       <FormLabel>{label}</FormLabel>
@@ -210,21 +217,24 @@ const TagInputField = ({
           <Plus className='w-4 h-4' />
         </Button>
       </div>
+
       {value.length > 0 && (
         <div className='flex flex-wrap gap-2 mt-2'>
-          {value.map((item, index) => (
-            <Badge
+          {value.map(item => (
+            <Chip
               key={item}
               variant='secondary'
-              className='bg-gray-200 px-3 py-1 cursor-pointer hover:bg-gray-300'
-              onClick={() => handleRemove(index)}
+              onClick={() => handleRemoveByValue(item)}
+              className='bg-gray-200 px-3 py-1'
+              ariaLabel={`Supprimer ${item}`}
             >
               {item}
               <X className='w-3 h-3 ml-1' />
-            </Badge>
+            </Chip>
           ))}
         </div>
       )}
+
       <FormMessage className='text-xs text-red-600 min-h-[16px]' />
     </>
   );
