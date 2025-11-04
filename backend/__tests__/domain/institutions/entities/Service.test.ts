@@ -1,4 +1,4 @@
-import { Service, TypeService, TypeCalculation } from '@/domain/institutions/entities/Service';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
 import { EntityId } from '@/domain/shared/EntityId';
 import {
   FraisGratuit,

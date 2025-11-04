@@ -19,12 +19,6 @@ export enum TypeService {
   AUTRES = 'autres services',
 }
 
-export enum TypeCalculation {
-  FREE = 'free',
-  POURCENTAGE = 'pourcentage',
-  FIX = 'fix',
-}
-
 interface SerciceProps {
   id: EntityId;
   name: string;
@@ -95,10 +89,6 @@ export class Service extends DomainEntity<EntityId> {
 
   get infrastructureAccess(): string[] {
     return this._infrastructureAccess;
-  }
-
-  get typeFrais(): TypeCalculation {
-    return this._typeFrais;
   }
 
   public toDTO(): ServiceDTO {

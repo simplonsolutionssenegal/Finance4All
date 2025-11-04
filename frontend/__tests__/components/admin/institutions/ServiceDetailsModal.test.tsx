@@ -240,10 +240,5 @@ describe('ServiceDetailsModal', () => {
       render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={baseService} />);
       expect(screen.getAllByText(/5 000/).length).toBeGreaterThan(0);
     });
-
-    it('affiche typeFrais si présent', () => {
-      render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={baseService} />);
-      expect(screen.getByText('pourcentage')).toBeInTheDocument();
-    });
   });
 });

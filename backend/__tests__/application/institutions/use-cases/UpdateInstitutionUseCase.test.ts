@@ -180,9 +180,7 @@ describe('UpdateInstitutionUseCaseImpl', () => {
     });
 
     it('should preserve existing services when updating institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const serviceId = randomUUID();

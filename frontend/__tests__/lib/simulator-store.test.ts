@@ -10,7 +10,7 @@ import {
 } from '@/lib/simulator-store';
 import type { Institution, Service } from '@/lib/simulator-types';
 import { InstitutionStatus } from '@/types/Institution';
-import { TypeCalculation, TypeService } from '@/types/Service';
+import { TypeService } from '@/types/Service';
 
 // Mock data pour les tests
 const mockService: Service = {

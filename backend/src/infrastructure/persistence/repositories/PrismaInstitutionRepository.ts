@@ -1,7 +1,7 @@
 import { Institution } from '@/domain/institutions/entities/Institution';
 // eslint-disable-next-line no-duplicate-imports
 import type { InstitutionStatus } from '@/domain/institutions/entities/Institution';
-import { Service, TypeCalculation, TypeService } from '@/domain/institutions/entities/Service';
+import { Service, TypeService } from '@/domain/institutions/entities/Service';
 import {
   FraisGratuit,
   FraisFixes,
@@ -216,24 +216,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       plafonds: service.plafonds,
       infrastructureAccess: service.infrastructureAccess,
     };
-  }
-
-  private mapPrismaTypeCalculationToDomain(prismaType: string): TypeCalculation {
-    const typeMap: Record<string, TypeCalculation> = {
-      FREE: TypeCalculation.FREE,
-      POURCENTAGE: TypeCalculation.POURCENTAGE,
-      FIX: TypeCalculation.FIX,
-    };
-    return typeMap[prismaType] || TypeCalculation.FREE;
-  }
-
-  private mapTypeCalculationToPrisma(type: TypeCalculation): string {
-    const typeMap: Record<TypeCalculation, string> = {
-      [TypeCalculation.FREE]: 'FREE',
-      [TypeCalculation.POURCENTAGE]: 'POURCENTAGE',
-      [TypeCalculation.FIX]: 'FIX',
-    };
-    return typeMap[type] || 'FREE';
   }
 
   private mapTypeServiceToPrismaType(type: TypeService): string {

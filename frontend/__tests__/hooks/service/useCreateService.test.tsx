@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 
 import { useLoader } from '@/contexts/LoaderContext';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeCalculation, TypeService } from '@/types/Service';
+import { TypeService } from '@/types/Service';
 
 const mockUseAuth = useAuth as jest.Mock;
 const mockUseLoader = useLoader as unknown as jest.Mock;
@@ -51,7 +51,6 @@ describe('useCreateService', () => {
     name: 'Test Service',
     longName: 'Test Service Long Name',
     type: TypeService.PAIEMENT_MARCHAND,
-    typeFrais: TypeCalculation.FIX,
     frais: {
       montantFixe: 100,
       pourcentage: 1,
@@ -327,7 +326,6 @@ describe('useCreateService', () => {
       name: 'Minimal Service',
       longName: 'Minimal Service Long Name',
       type: TypeService.AUTRES,
-      typeFrais: TypeCalculation.FREE,
       frais: {},
       conditionAccess: [],
       plafonds: [],

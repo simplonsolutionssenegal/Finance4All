@@ -482,6 +482,9 @@ describe('NewServiceComponent', () => {
       await waitFor(() => {
         const montantFixeInput = screen.getByLabelText(/montant fixe \(fcfa\)/i);
         fireEvent.change(montantFixeInput, { target: { value: '500' } });
+
+        const pourcentageInput = screen.getByLabelText(/pourcentage \(%\)/i);
+        fireEvent.change(pourcentageInput, { target: { value: '0' } });
       });
 
       const submitButton = screen.getByRole('button', { name: /créer le service/i });

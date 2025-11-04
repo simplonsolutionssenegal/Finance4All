@@ -263,9 +263,7 @@ describe('Institution', () => {
 
   describe('services management', () => {
     it('should add service to institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
       const institution = createTestInstitution({
@@ -295,9 +293,7 @@ describe('Institution', () => {
     });
 
     it('should remove service from institution', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisPourcentage } = await import('@/domain/institutions/entities/Frais');
 
       const service1 = new Service({
@@ -343,9 +339,7 @@ describe('Institution', () => {
     });
 
     it('should return services array from Set', async () => {
-      const { Service, TypeService, TypeCalculation } = await import(
-        '@/domain/institutions/entities/Service'
-      );
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
 
       const service = new Service({
