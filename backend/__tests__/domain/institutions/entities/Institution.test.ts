@@ -1,10 +1,35 @@
-import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
+import {
+  type InstitutionProps,
+  Institution,
+  InstitutionStatus,
+} from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
-import { randomUUID } from 'crypto';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
+import { randomUUID } from 'node:crypto';
 
 describe('Institution', () => {
   let testUuid: string;
+
+  const createTestInstitution = (override: Partial<InstitutionProps> = {}) => {
+    const defaultProps: InstitutionProps = {
+      id: EntityId.from(testUuid),
+      name: 'Test Institution',
+      description: 'Test Description',
+      type: InstitutionType.BANQUE_NUMERIQUE,
+      website: UrlValueObject.from(null),
+      geographicZones: ['EURO'],
+      pays: Country.SENEGAL,
+      logoUrl: UrlValueObject.from(null),
+      status: InstitutionStatus.PENDING,
+      services: [],
+    };
+    return new Institution({
+      ...defaultProps,
+      ...override,
+    });
+  };
 
   beforeEach(() => {
     testUuid = randomUUID();
@@ -12,15 +37,12 @@ describe('Institution', () => {
 
   describe('constructor', () => {
     it('should create an institution with all properties', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
+      const institution = createTestInstitution({
+        type: InstitutionType.BANQUE_NUMERIQUE,
+        pays: Country.SENEGAL,
         website: UrlValueObject.from('https://test.com'),
         geographicZones: ['EURO', 'USD'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
-        status: InstitutionStatus.PENDING,
-        services: [],
       });
 
       expect(institution.id.getValue()).toBe(testUuid);
@@ -33,15 +55,9 @@ describe('Institution', () => {
     });
 
     it('should create an institution with null website and logoUrl', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['USD'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['USD'],
       });
 
       expect(institution.website.getValue()).toBeNull();
@@ -51,60 +67,36 @@ describe('Institution', () => {
 
   describe('status management', () => {
     it('should activate institution', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         geographicZones: ['USD'],
-        logoUrl: UrlValueObject.from(null),
-        status: InstitutionStatus.PENDING,
-        services: [],
       });
 
       const beforeActivate = institution.updatedAt;
 
-      // Small delay to ensure updatedAt changes
-      setTimeout(() => {
-        institution.activate();
+      institution.activate();
 
-        expect(institution.status).toBe(InstitutionStatus.ACTIVE);
-        expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeActivate.getTime());
-      }, 10);
+      expect(institution.status).toBe(InstitutionStatus.ACTIVE);
+      expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeActivate.getTime());
     });
 
     it('should deactivate institution', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['USD'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['USD'],
       });
 
       const beforeDeactivate = institution.updatedAt;
 
-      setTimeout(() => {
-        institution.deactivate();
+      institution.deactivate();
 
-        expect(institution.status).toBe(InstitutionStatus.INACTIVE);
-        expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeDeactivate.getTime());
-      }, 10);
+      expect(institution.status).toBe(InstitutionStatus.INACTIVE);
+      expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeDeactivate.getTime());
     });
 
     it('should set institution to pending', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['USD'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['USD'],
       });
 
       const beforePending = institution.updatedAt;
@@ -118,15 +110,9 @@ describe('Institution', () => {
 
   describe('geographic zones management', () => {
     it('should add geographic zone', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['EURO'],
       });
 
       institution.addGeographicZone('USD');
@@ -137,15 +123,9 @@ describe('Institution', () => {
     });
 
     it('should remove geographic zone', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO', 'USD'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['EURO', 'USD'],
       });
 
       institution.removeGeographicZone('USD');
@@ -156,15 +136,9 @@ describe('Institution', () => {
     });
 
     it('should check if operates in zone', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO', 'USD'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
+        geographicZones: ['EURO', 'USD'],
       });
 
       expect(institution.operatesInZone('EURO')).toBe(true);
@@ -175,15 +149,9 @@ describe('Institution', () => {
 
   describe('update methods', () => {
     it('should update name', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
+      const institution = createTestInstitution({
         name: 'Old Name',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       institution.updateName('New Name');
@@ -192,15 +160,9 @@ describe('Institution', () => {
     });
 
     it('should update description', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
+      const institution = createTestInstitution({
         description: 'Old Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       institution.updateDescription('New Description');
@@ -209,15 +171,9 @@ describe('Institution', () => {
     });
 
     it('should throw error when updating description with empty string', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
+      const institution = createTestInstitution({
         description: 'Old Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       expect(() => institution.updateDescription('')).toThrow('Description cannot be empty');
@@ -225,15 +181,9 @@ describe('Institution', () => {
     });
 
     it('should update website', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
+      const institution = createTestInstitution({
         website: UrlValueObject.from('https://old.com'),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       institution.updateWebsite(UrlValueObject.from('https://new.com'));
@@ -242,15 +192,9 @@ describe('Institution', () => {
     });
 
     it('should update logo', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
+      const institution = createTestInstitution({
         logoUrl: UrlValueObject.from('https://old-logo.com'),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       institution.updateLogo(UrlValueObject.from('https://new-logo.com'));
@@ -261,15 +205,11 @@ describe('Institution', () => {
 
   describe('getters', () => {
     it('should return all property values correctly', () => {
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
+      const institution = createTestInstitution({
         website: UrlValueObject.from('https://test.com'),
         geographicZones: ['EURO', 'USD', 'GBP'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       expect(institution.name).toBe('Test Institution');
@@ -286,15 +226,8 @@ describe('Institution', () => {
       const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
       const { FraisFixes } = await import('@/domain/institutions/entities/Frais');
 
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
-        services: [],
       });
 
       const service = new Service({
@@ -342,13 +275,7 @@ describe('Institution', () => {
         infrastructureAccess: [],
       });
 
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
         services: [service1, service2],
       });
@@ -377,13 +304,7 @@ describe('Institution', () => {
         infrastructureAccess: [],
       });
 
-      const institution = new Institution({
-        id: EntityId.from(testUuid),
-        name: 'Test Institution',
-        description: 'Test Description',
-        website: UrlValueObject.from(null),
-        geographicZones: ['EURO'],
-        logoUrl: UrlValueObject.from(null),
+      const institution = createTestInstitution({
         status: InstitutionStatus.ACTIVE,
         services: [service],
       });

@@ -3,6 +3,8 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 describe('GetInstitutionsUseCase', () => {
   let useCase: GetInstitutionsUseCaseImpl;
@@ -32,6 +34,8 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from('https://test1.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -43,6 +47,8 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from('https://test2.com/logo.png'),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -108,6 +114,8 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['GBP'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -163,6 +171,8 @@ describe('GetInstitutionsUseCase', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [mockService],
       });
 

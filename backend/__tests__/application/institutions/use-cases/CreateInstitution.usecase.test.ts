@@ -5,6 +5,8 @@ import { Institution, InstitutionStatus } from '@/domain/institutions/entities/I
 import { DuplicateError } from '@/domain/shared/errors';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 import { randomUUID } from 'crypto';
 
 describe('CreateInstitutionUseCaseImpl', () => {
@@ -37,9 +39,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
     const validCommand = {
       name: 'Test Institution',
       description: 'Test Description',
+      type: InstitutionType.BANQUE_NUMERIQUE,
       website: 'https://test.com',
       geographicZones: ['EURO', 'USD'],
       logoUrl: 'https://test.com/logo.png',
+      pays: Country.SENEGAL,
     };
 
     it('should create an institution successfully with all fields', async () => {
@@ -50,9 +54,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: validCommand.name,
         description: validCommand.description,
+        type: validCommand.type,
         website: UrlValueObject.from(validCommand.website),
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
+        pays: validCommand.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -71,6 +77,8 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: validCommand.geographicZones,
         logoUrl: validCommand.logoUrl,
         status: InstitutionStatus.PENDING,
+        type: validCommand.type,
+        pays: validCommand.pays,
         services: [],
         createdAt: savedInstitution.createdAt,
         updatedAt: savedInstitution.updatedAt,
@@ -83,6 +91,8 @@ describe('CreateInstitutionUseCaseImpl', () => {
         name: 'Test Institution',
         description: 'Test Description',
         geographicZones: ['EURO'],
+        type: InstitutionType.BANQUE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockDomainService.isNameUnique.mockResolvedValue(true);
@@ -91,9 +101,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: commandWithoutOptionalFields.name,
         description: commandWithoutOptionalFields.description,
+        type: commandWithoutOptionalFields.type,
         website: UrlValueObject.from(null),
         geographicZones: commandWithoutOptionalFields.geographicZones,
         logoUrl: UrlValueObject.from(null),
+        pays: commandWithoutOptionalFields.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -110,6 +122,8 @@ describe('CreateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithoutOptionalFields.geographicZones,
         logoUrl: null,
         status: InstitutionStatus.PENDING,
+        type: commandWithoutOptionalFields.type,
+        pays: commandWithoutOptionalFields.pays,
         services: [],
         createdAt: savedInstitution.createdAt,
         updatedAt: savedInstitution.updatedAt,
@@ -144,9 +158,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: validCommand.name,
         description: validCommand.description,
+        type: validCommand.type,
         website: UrlValueObject.from(validCommand.website),
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
+        pays: validCommand.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -171,9 +187,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: commandWithEmptyWebsite.name,
         description: commandWithEmptyWebsite.description,
+        type: commandWithEmptyWebsite.type,
         website: UrlValueObject.from(null),
         geographicZones: commandWithEmptyWebsite.geographicZones,
         logoUrl: UrlValueObject.from(commandWithEmptyWebsite.logoUrl),
+        pays: commandWithEmptyWebsite.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -198,9 +216,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: commandWithEmptyLogo.name,
         description: commandWithEmptyLogo.description,
+        type: commandWithEmptyLogo.type,
         website: UrlValueObject.from(commandWithEmptyLogo.website),
         geographicZones: commandWithEmptyLogo.geographicZones,
         logoUrl: UrlValueObject.from(null),
+        pays: commandWithEmptyLogo.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -220,9 +240,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: validCommand.name,
         description: validCommand.description,
+        type: validCommand.type,
         website: UrlValueObject.from(validCommand.website),
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
+        pays: validCommand.pays,
         status: InstitutionStatus.PENDING,
         services: [],
       });
@@ -265,9 +287,11 @@ describe('CreateInstitutionUseCaseImpl', () => {
         id: EntityId.from(testUuid),
         name: validCommand.name,
         description: validCommand.description,
+        type: validCommand.type,
         website: UrlValueObject.from(validCommand.website),
         geographicZones: validCommand.geographicZones,
         logoUrl: UrlValueObject.from(validCommand.logoUrl),
+        pays: validCommand.pays,
         status: InstitutionStatus.PENDING,
         services: [mockService],
       });

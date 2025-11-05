@@ -3,7 +3,9 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
-import { randomUUID } from 'crypto';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
+import { randomUUID } from 'node:crypto';
 
 describe('InstitutionDomainService', () => {
   let service: InstitutionDomainService;
@@ -46,6 +48,8 @@ describe('InstitutionDomainService', () => {
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
         services: [],
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       });
 
       mockRepository.findByName.mockResolvedValue([existingInstitution]);
@@ -66,6 +70,8 @@ describe('InstitutionDomainService', () => {
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
         services: [],
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       });
 
       const institution2 = new Institution({
@@ -77,6 +83,8 @@ describe('InstitutionDomainService', () => {
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
         services: [],
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       });
 
       mockRepository.findByName.mockResolvedValue([institution1, institution2]);

@@ -11,6 +11,22 @@ export const validateCreateInstitution = [
   body('website').optional().isURL().withMessage('Invalid website URL'),
   body('geographicZones').isArray().withMessage('Geographic zones must be an array'),
   body('logoUrl').optional().isURL().withMessage('Invalid logo URL'),
+  body('type')
+    .isIn([
+      'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+      'PORTEFEUILLE_NUMERIQUE',
+      'SERVICE_PAIEMENT_ELECTRONIQUE',
+      'BANQUE_NUMERIQUE',
+      'SERVICE_FINANCIER_DECENTRALISE',
+      'SERVICE_FINANCEMENT_PARTICIPATIF',
+      'SERVICE_INVESTISSEMENT',
+      'SERVICE_GESTION_FINANCIERE',
+      'SERVICE_ASSURANCE_NUMERIQUE',
+    ])
+    .withMessage('Invalid institution type'),
+  body('pays')
+    .isIn(['SENEGAL', 'CAMEROUN'])
+    .withMessage('Country must be either SENEGAL or CAMEROUN'),
 ];
 
 export const validateUpdateInstitution = [
@@ -24,6 +40,24 @@ export const validateUpdateInstitution = [
   body('website').optional().isURL().withMessage('Invalid website URL'),
   body('geographicZones').isArray().withMessage('Geographic zones must be an array'),
   body('logoUrl').optional().isURL().withMessage('Invalid logo URL'),
+  body('type')
+    .optional()
+    .isIn([
+      'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+      'PORTEFEUILLE_NUMERIQUE',
+      'SERVICE_PAIEMENT_ELECTRONIQUE',
+      'BANQUE_NUMERIQUE',
+      'SERVICE_FINANCIER_DECENTRALISE',
+      'SERVICE_FINANCEMENT_PARTICIPATIF',
+      'SERVICE_INVESTISSEMENT',
+      'SERVICE_GESTION_FINANCIERE',
+      'SERVICE_ASSURANCE_NUMERIQUE',
+    ])
+    .withMessage('Invalid institution type'),
+  body('pays')
+    .optional()
+    .isIn(['SENEGAL', 'CAMEROUN'])
+    .withMessage('Country must be either SENEGAL or CAMEROUN'),
 ];
 
 export const validatePagination = [
@@ -76,6 +110,12 @@ export const validateAddService = [
     .withMessage('Pourcentage must be between 0 and 100'),
   body('frais.minimum').optional().isNumeric().withMessage('Minimum must be a number'),
   body('frais.maximum').optional().isNumeric().withMessage('Maximum must be a number'),
+  body('frais.minimum').custom((value, { req }) => {
+    if (value && req.body.frais?.maximum && Number(value) > Number(req.body.frais.maximum)) {
+      throw new Error('Minimum cannot be greater than maximum');
+    }
+    return true;
+  }),
   body('conditionAccess').isArray().withMessage('Condition access must be an array'),
   body('plafonds').isArray().withMessage('Plafonds must be an array'),
   body('infrastructureAccess').isArray().withMessage('Infrastructure access must be an array'),

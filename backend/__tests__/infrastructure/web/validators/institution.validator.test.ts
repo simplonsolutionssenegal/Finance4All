@@ -63,6 +63,8 @@ describe('Institution Validator', () => {
       website: 'https://test.com',
       geographicZones: ['Zone 1'],
       logoUrl: 'https://test.com/logo.png',
+      type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+      pays: 'SENEGAL',
     };
 
     it('should pass with valid data', async () => {
@@ -83,6 +85,66 @@ describe('Institution Validator', () => {
         ])
       );
     });
+
+    it('should fail if type is missing', async () => {
+      const { type: _type, ...dataWithoutType } = validData;
+      mockRequest.body = dataWithoutType;
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'type',
+            msg: 'Invalid institution type',
+          }),
+        ])
+      );
+    });
+
+    it('should fail if type is invalid', async () => {
+      mockRequest.body = { ...validData, type: 'INVALID_TYPE' };
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'type',
+            msg: 'Invalid institution type',
+          }),
+        ])
+      );
+    });
+
+    it('should fail if pays is missing', async () => {
+      const { pays: _pays, ...dataWithoutPays } = validData;
+      mockRequest.body = dataWithoutPays;
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'pays',
+            msg: 'Country must be either SENEGAL or CAMEROUN',
+          }),
+        ])
+      );
+    });
+
+    it('should fail if pays is invalid', async () => {
+      mockRequest.body = { ...validData, pays: 'FRANCE' };
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'pays',
+            msg: 'Country must be either SENEGAL or CAMEROUN',
+          }),
+        ])
+      );
+    });
+
+    it('should pass with CAMEROUN as pays', async () => {
+      mockRequest.body = { ...validData, pays: 'CAMEROUN' };
+      const errors = await runValidation(mockRequest as Request, validateCreateInstitution);
+      expect(errors.isEmpty()).toBe(true);
+    });
   });
 
   describe('validateUpdateInstitution', () => {
@@ -92,6 +154,8 @@ describe('Institution Validator', () => {
       website: 'https://updated.com',
       geographicZones: ['Zone 2'],
       logoUrl: 'https://updated.com/logo.png',
+      type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+      pays: 'SENEGAL',
     };
 
     it('should pass with valid data', async () => {
@@ -108,6 +172,54 @@ describe('Institution Validator', () => {
       expect(errors.array()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ path: 'id', msg: 'Invalid institution ID format' }),
+        ])
+      );
+    });
+
+    it('should pass with optional type when valid', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validData,
+        type: 'SERVICE_PAIEMENT_ELECTRONIQUE',
+      };
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail with invalid type', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = { ...validData, type: 'INVALID_TYPE' };
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'type',
+            msg: 'Invalid institution type',
+          }),
+        ])
+      );
+    });
+
+    it('should pass with optional pays when valid', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validData,
+        pays: 'CAMEROUN',
+      };
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail with invalid pays', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = { ...validData, pays: 'FRANCE' };
+      const errors = await runValidation(mockRequest as Request, validateUpdateInstitution);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'pays',
+            msg: 'Country must be either SENEGAL or CAMEROUN',
+          }),
         ])
       );
     });
@@ -216,6 +328,84 @@ describe('Institution Validator', () => {
           expect.objectContaining({
             path: 'frais.pourcentage',
             msg: 'Pourcentage must be between 0 and 100',
+          }),
+        ])
+      );
+    });
+
+    it('should pass with only montantFixe', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validService,
+        frais: {
+          montantFixe: 100,
+        },
+      };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should pass with only pourcentage', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validService,
+        frais: {
+          pourcentage: 2.5,
+        },
+      };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should pass with minimum and maximum', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validService,
+        frais: {
+          pourcentage: 2.5,
+          minimum: 50,
+          maximum: 500,
+        },
+      };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('should fail if montantFixe is not a number', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validService,
+        frais: {
+          montantFixe: 'not-a-number',
+        },
+      };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'frais.montantFixe',
+            msg: 'Montant fixe must be a number',
+          }),
+        ])
+      );
+    });
+
+    it('should fail if minimum is greater than maximum', async () => {
+      mockRequest.params = { id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+      mockRequest.body = {
+        ...validService,
+        frais: {
+          pourcentage: 2.5,
+          minimum: 1000,
+          maximum: 500,
+        },
+      };
+      const errors = await runValidation(mockRequest as Request, validateAddService);
+      expect(errors.array()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'frais.minimum',
+            msg: 'Minimum cannot be greater than maximum',
           }),
         ])
       );

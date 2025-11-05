@@ -3,6 +3,8 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { randomUUID } from 'crypto';
 
@@ -19,6 +21,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.ACTIVE,
+    type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+    pays: Country.SENEGAL,
     services: [],
   });
 
@@ -67,6 +71,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: existingInstitution.status,
+        type: existingInstitution.type,
+        pays: existingInstitution.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -88,6 +94,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: updateCommand.logoUrl,
         status: existingInstitution.status,
+        type: existingInstitution.type,
+        pays: existingInstitution.pays,
         services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
@@ -110,6 +118,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithNulls.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        type: existingInstitution.type,
+        pays: existingInstitution.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -136,6 +146,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyStrings.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
+        type: existingInstitution.type,
+        pays: existingInstitution.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -156,6 +168,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         status: existingInstitution.status,
         logoUrl: existingInstitution.logoUrl,
+        type: existingInstitution.type,
+        pays: existingInstitution.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -189,6 +203,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from('https://old.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [mockService],
       });
 
@@ -202,6 +218,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: institutionWithService.status,
+        type: institutionWithService.type,
+        pays: institutionWithService.pays,
         services: [mockService],
       });
 

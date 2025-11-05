@@ -10,6 +10,8 @@ import {
 } from '@/domain/institutions/entities/Frais';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import type { InstitutionTypeEnum } from '@/domain/institutions/value-objects/InstitutionType';
+import type { CountryType } from '@/domain/institutions/value-objects/Country';
 import type {
   Prisma,
   PrismaClient,
@@ -17,6 +19,8 @@ import type {
   Service as PrismaService,
   InstitutionStatus as PrismaInstitutionStatus,
   TypeService as PrismaTypeService,
+  InstitutionType as PrismaInstitutionType,
+  Country as PrismaPays,
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
@@ -141,6 +145,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       geographicZones: prismaInstitution.geographicZones,
       logoUrl: UrlValueObject.from(prismaInstitution.logoUrl),
       status: prismaInstitution.status as InstitutionStatus,
+      type: prismaInstitution.type as InstitutionTypeEnum,
+      pays: prismaInstitution.pays as CountryType,
       services,
     });
   }
@@ -183,6 +189,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       geographicZones: institution.geographicZones,
       logoUrl: institution.logoUrl.getValue(),
       status: institution.status as PrismaInstitutionStatus,
+      type: institution.type as PrismaInstitutionType,
+      pays: institution.pays as PrismaPays,
     };
   }
 

@@ -3,6 +3,8 @@ import type { InstitutionRepository } from '@/domain/institutions/ports/out/Inst
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 
 describe('GetInstitutionByIdUseCase', () => {
@@ -20,6 +22,8 @@ describe('GetInstitutionByIdUseCase', () => {
       geographicZones: ['UEMOA', 'CEMAC'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
       services: [],
     });
 
@@ -52,6 +56,8 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA', 'CEMAC'],
         logoUrl: 'https://logo.com/logo.png',
         status: 'ACTIVE',
+        type: 'PORTEFEUILLE_NUMERIQUE',
+        pays: 'SENEGAL',
         services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
@@ -79,6 +85,8 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -94,6 +102,8 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'PORTEFEUILLE_NUMERIQUE',
+        pays: 'SENEGAL',
         services: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
@@ -116,6 +126,8 @@ describe('GetInstitutionByIdUseCase', () => {
           geographicZones: ['UEMOA'],
           logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
           status,
+          type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+          pays: Country.SENEGAL,
           services: [],
         });
 
@@ -152,6 +164,8 @@ describe('GetInstitutionByIdUseCase', () => {
         geographicZones: ['UEMOA', 'CEMAC'],
         logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [mockService],
       });
 
