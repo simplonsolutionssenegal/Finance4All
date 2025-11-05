@@ -61,8 +61,8 @@ export class Module extends DomainEntity<EntityId> {
       throw new Error('Le titre ne peut pas dépasser 200 caractères');
     }
 
-    if (!props.imageUrl || props.imageUrl.trim().length === 0) {
-      throw new Error("L'URL de l'image est obligatoire");
+    if (props.imageUrl !== null && props.imageUrl.trim().length === 0) {
+      throw new Error("L'URL de l'image ne peut pas être une chaîne vide");
     }
 
     if (!props.description || props.description.trim().length === 0) {

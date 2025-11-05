@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 import ContentTabs from '@/components/admin/modules/content-tabs';
 import FiltersBar from '@/components/admin/modules/filters-bar';
@@ -10,47 +10,44 @@ import ModuleDialog from '@/components/admin/modules/module-dialog';
 import ModuleList from '@/components/admin/modules/module-list';
 import StatsCards from '@/components/admin/modules/stats-cards';
 import QuizList from '@/components/admin/quiz/quiz-list';
-import type { Module } from '@/types/modules/module';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useGetModules } from '@/hooks/module/useGetModules';
 
-interface ModulesPageContentProps {
-  initialModules: Module[];
-}
-
-export default function ModulesPageContent({ initialModules }: ModulesPageContentProps) {
+export default function ModulesPageContent() {
+  const { showLoader, hideLoader } = useLoader();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageLimit = 3;
 
-  // États des filtres - en dehors des tabs
+  // Récupérer les modules avec pagination
+  const { modules, pagination, isLoading, isError, refetch } = useGetModules({
+    page: currentPage,
+    limit: pageLimit,
+  });
+
+  // Gérer le loader global
+  useEffect(() => {
+    if (isLoading) {
+      showLoader();
+    } else {
+      hideLoader();
+    }
+  }, [isLoading, showLoader, hideLoader]);
+
+  // Filtres (optionnel - vous pouvez les ajouter plus tard)
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [thematicFilter, setThematicFilter] = useState('');
-  // Filtrer les modules
-  const filteredModules = useMemo(() => {
-    return initialModules.filter(module => {
-      // Filtre par recherche
-      const matchesSearch =
-        searchQuery === '' ||
-        module.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        module.description.toLowerCase().includes(searchQuery.toLowerCase());
-      // Filtre par statut
-      const matchesStatus = statusFilter === '' || module.status === statusFilter;
-      // Filtre par thématique
-      const matchesThematic =
-        thematicFilter === '' || module.thematics.some(t => t === thematicFilter);
-      return matchesSearch && matchesStatus && matchesThematic;
-    });
-  }, [initialModules, searchQuery, statusFilter, thematicFilter]);
 
-  // Calculer les statistiques
-  const totalModules = initialModules.length;
-  const publishedModules = initialModules.filter(m => m.status === 'PUBLISHED').length;
+  // Statistiques
+  const totalModules = pagination?.total || 0;
+  const publishedModules = modules.filter(m => m.status === 'PUBLISHED').length;
   const totalQuizzes = 2;
   const totalLearners = 688;
 
-  // Réinitialiser les filtres
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('');
-    setThematicFilter('');
+  // Gérer le changement de page
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -68,7 +65,6 @@ export default function ModulesPageContent({ initialModules }: ModulesPageConten
         <ContentTabs>
           {activeTab => (
             <>
-              {/* Barre de filtres */}
               <FiltersBar
                 onNewClick={() => setIsDialogOpen(true)}
                 buttonLabel={activeTab === 'modules' ? 'Nouveau module' : 'Nouveau quiz'}
@@ -78,36 +74,31 @@ export default function ModulesPageContent({ initialModules }: ModulesPageConten
                 searchValue={searchQuery}
                 statusValue={statusFilter}
                 thematicValue={thematicFilter}
-                filteredModules={activeTab === 'modules' ? filteredModules : []}
               />
 
-              {/* Message si aucun résultat */}
-              {activeTab === 'modules' && filteredModules.length === 0 && (
-                <div className='bg-white rounded-xl border border-gray-200 p-12 text-center'>
-                  <p className='text-gray-500 mb-4'>
-                    Aucun module ne correspond à vos critères de recherche
-                  </p>
-                  <button
-                    onClick={handleResetFilters}
-                    className='px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors'
-                  >
-                    Réinitialiser les filtres
-                  </button>
-                </div>
+              {activeTab === 'modules' ? (
+                <ModuleList
+                  modules={modules}
+                  pagination={pagination}
+                  isLoading={isLoading}
+                  isError={isError}
+                  onPageChange={handlePageChange}
+                />
+              ) : (
+                <QuizList />
               )}
-
-              {/* Contenu selon le tab actif */}
-              {activeTab === 'modules' && filteredModules.length > 0 && (
-                <ModuleList modules={filteredModules} />
-              )}
-
-              {activeTab === 'quiz' && <QuizList />}
             </>
           )}
         </ContentTabs>
 
         {/* Dialog */}
-        <ModuleDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} />
+        <ModuleDialog
+          isOpen={isDialogOpen}
+          onClose={() => {
+            setIsDialogOpen(false);
+            refetch();
+          }}
+        />
       </div>
     </div>
   );

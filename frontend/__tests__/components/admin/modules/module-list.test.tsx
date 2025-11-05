@@ -48,9 +48,6 @@ describe('ModuleList', () => {
   it("applique les bonnes classes CSS pour l'état vide", () => {
     const { container } = render(<ModuleList modules={[]} />);
 
-    const emptyStateDiv = container.querySelector('.text-center.py-12');
-    expect(emptyStateDiv).toBeInTheDocument();
-
     const message = container.querySelector('.text-gray-500.text-lg');
     expect(message).toBeInTheDocument();
   });

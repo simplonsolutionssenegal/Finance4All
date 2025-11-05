@@ -7,10 +7,16 @@ import type {
 } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import { Module, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
+import { DuplicateTitleException } from '@/domain/shared/exceptions/DomainException';
 
 export class CreateModuleUseCaseImpl implements CreateModuleUseCase {
   constructor(private readonly moduleRepository: ModuleRepository) {}
   async execute(input: CreateModuleDTO): Promise<ModuleResponseDTO> {
+    const existingModule = await this.moduleRepository.findByTitle(input.title);
+
+    if (existingModule) {
+      throw new DuplicateTitleException(input.title);
+    }
     // Créer l'entité Module
     const module = new Module({
       id: EntityId.generate(),

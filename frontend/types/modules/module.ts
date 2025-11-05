@@ -13,12 +13,6 @@ export enum ModuleStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
-export enum MediaType {
-  VIDEO = 'VIDEO',
-  AUDIO = 'AUDIO',
-  TEXT = 'TEXT',
-}
-
 export enum Thematic {
   FINANCIAL_EDUCATION = 'FINANCIAL_EDUCATION',
   PERSONAL_DEVELOPMENT = 'PERSONAL_DEVELOPMENT',

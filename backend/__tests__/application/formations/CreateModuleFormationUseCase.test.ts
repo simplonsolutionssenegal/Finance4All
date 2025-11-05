@@ -15,6 +15,7 @@ import { Thematic } from '@/domain/formations/value-objects/Thematic';
 const mockModuleRepository: jest.Mocked<ModuleRepository> = {
   save: jest.fn(),
   findAll: jest.fn(),
+  findByTitle: jest.fn(),
 };
 
 // Mock d'EntityId

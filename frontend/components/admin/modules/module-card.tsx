@@ -46,9 +46,9 @@ export default function ModuleCard({ module }: ModuleCardProps) {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 group'>
+    <div className='bg-white rounded-2xl shadow-2xl hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 group  space-x-4 space-y-8 gap-4'>
       {/* Image */}
-      <div className='relative h-48 w-full overflow-hidden bg-primary-300 group-hover:bg-primary-200  from-red-100 to-pink-100'>
+      <div className='relative h-50 w-full overflow-hidden bg-primary-300 group-hover:bg-primary-200  from-red-100 to-pink-100'>
         {module.imageUrl ? (
           <Image
             src={module.imageUrl}
@@ -136,7 +136,7 @@ export default function ModuleCard({ module }: ModuleCardProps) {
         </div>
 
         {/* Titre */}
-        <h3 className='text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer'>
+        <h3 className='text-xl font- text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer'>
           {module.title}
         </h3>
 

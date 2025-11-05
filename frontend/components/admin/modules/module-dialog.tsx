@@ -1,12 +1,13 @@
+// frontend/src/components/modules/module-dialog.tsx
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { X } from 'lucide-react';
+import { useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 
-import { createModule } from '@/lib/api/modules';
+import { useCreateModule } from '@/hooks/module/useCreateModule';
 import { DIFFICULTY_LABELS, THEMATIC_LABELS } from '@/lib/constants/module-constants';
 import { createModuleSchema } from '@/lib/validations/module-schema';
 // eslint-disable-next-line no-duplicate-imports
@@ -19,10 +20,6 @@ interface ModuleDialogProps {
 }
 
 export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const {
     register,
     handleSubmit,
@@ -40,42 +37,43 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
     },
   });
 
-  const onSubmit: SubmitHandler<CreateModuleFormData> = async data => {
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const payload: CreateModuleData = {
-        title: data.title,
-        description: data.description,
-        imageUrl: data.imageUrl || undefined,
-        difficultyLevel: data.difficultyLevel,
-        estimatedDuration: data.estimatedDuration,
-        thematics: data.thematics,
-      };
-
-      await createModule(payload as CreateModuleData);
+  const { createModule, isCreating } = useCreateModule({
+    onSuccess: () => {
       reset();
       onClose();
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      setIsSubmitting(false);
+    },
+  });
+
+  // Réinitialiser le formulaire quand le dialog se ferme
+  useEffect(() => {
+    if (!isOpen) {
+      reset();
     }
+  }, [isOpen, reset]);
+
+  const onSubmit: SubmitHandler<CreateModuleFormData> = async data => {
+    const payload: CreateModuleData = {
+      title: data.title,
+      description: data.description,
+      imageUrl: data.imageUrl || null,
+      difficultyLevel: data.difficultyLevel,
+      estimatedDuration: data.estimatedDuration,
+      thematics: data.thematics,
+    };
+
+    createModule(payload);
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!isCreating) {
       reset();
-      setError(null);
       onClose();
     }
   };
 
   // Gestionnaire pour le clavier (Escape)
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && !isCreating) {
       handleClose();
     }
   };
@@ -108,7 +106,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
         <div className='relative px-8 pt-6 pb-3'>
           <button
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isCreating}
             className='absolute top-4 right-6 p-1 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50'
             aria-label='Fermer'
           >
@@ -134,6 +132,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
               {...register('title')}
               className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors'
               placeholder='Ex: Introduction à la finance'
+              disabled={isCreating}
             />
             {errors.title && <p className='mt-1 text-xs text-red-600'>{errors.title.message}</p>}
           </div>
@@ -149,6 +148,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
               rows={2}
               className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors resize-none'
               placeholder='Description du module'
+              disabled={isCreating}
             />
             {errors.description && (
               <p className='mt-1 text-xs text-red-600'>{errors.description.message}</p>
@@ -165,6 +165,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
                 id='thematic'
                 {...register('thematics.0')}
                 className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer'
+                disabled={isCreating}
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
                   backgroundPosition: 'right 0.5rem center',
@@ -192,6 +193,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
                 id='difficultyLevel'
                 {...register('difficultyLevel')}
                 className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer'
+                disabled={isCreating}
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
                   backgroundPosition: 'right 0.5rem center',
@@ -219,9 +221,9 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
               type='url'
               {...register('imageUrl')}
               className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors'
-              placeholder='https://exemple.com/image.jpg'
+              placeholder=' Formats acceptés: JPG, PNG, GIF (max 5MB)'
+              disabled={isCreating}
             />
-            <p className='mt-1 text-xs text-gray-400'>Formats acceptés: JPG, PNG, GIF (max 5MB)</p>
             {errors.imageUrl && (
               <p className='mt-1 text-xs text-red-600'>{errors.imageUrl.message}</p>
             )}
@@ -241,18 +243,12 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
               {...register('estimatedDuration', { valueAsNumber: true })}
               className='w-full px-4 py-2.5 text-sm bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors'
               placeholder='0'
+              disabled={isCreating}
             />
             {errors.estimatedDuration && (
               <p className='mt-1 text-xs text-red-600'>{errors.estimatedDuration.message}</p>
             )}
           </div>
-
-          {/* Messages d'erreur */}
-          {error && (
-            <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
-              <p className='text-sm text-red-800'>{error}</p>
-            </div>
-          )}
 
           {/* Boutons d'action */}
           <div className='flex gap-3 pt-3'>
@@ -260,18 +256,37 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
               type='button'
               onClick={handleClose}
               className='flex-1 px-6 py-2.5 text-sm border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors'
-              disabled={isSubmitting}
+              disabled={isCreating}
             >
               Annuler
             </button>
             <button
               type='submit'
-              disabled={isSubmitting}
+              disabled={isCreating}
               className='flex-1 px-6 py-2.5 text-sm bg-sky-400 text-white rounded-lg font-medium hover:bg-sky-500 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors'
             >
-              {isSubmitting ? (
+              {isCreating ? (
                 <>
-                  <Loader2 size={16} className='animate-spin' />
+                  <svg
+                    className='animate-spin h-4 w-4'
+                    xmlns='http://www.w3.org/2000/svg'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                  >
+                    <circle
+                      className='opacity-25'
+                      cx='12'
+                      cy='12'
+                      r='10'
+                      stroke='currentColor'
+                      strokeWidth='4'
+                    />
+                    <path
+                      className='opacity-75'
+                      fill='currentColor'
+                      d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                    />
+                  </svg>
                   Création...
                 </>
               ) : (

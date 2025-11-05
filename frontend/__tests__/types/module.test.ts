@@ -2,7 +2,7 @@
 
 import type { CreateModuleData, Module } from '@/types/modules/module';
 // eslint-disable-next-line no-duplicate-imports
-import { DifficultyLevel, ModuleStatus, MediaType, Thematic } from '@/types/modules/module';
+import { DifficultyLevel, ModuleStatus, Thematic } from '@/types/modules/module';
 
 describe('Types de module', () => {
   describe('Enum DifficultyLevel', () => {
@@ -55,56 +55,6 @@ describe('Types de module', () => {
       expect(isPubliclyVisible(ModuleStatus.PUBLISHED)).toBe(true);
       expect(isPubliclyVisible(ModuleStatus.DRAFT)).toBe(false);
       expect(isPubliclyVisible(ModuleStatus.ARCHIVED)).toBe(false);
-    });
-  });
-
-  describe('Enum MediaType', () => {
-    it('contient toutes les valeurs de type de média attendues', () => {
-      expect(MediaType.VIDEO).toBe('VIDEO');
-      expect(MediaType.AUDIO).toBe('AUDIO');
-      expect(MediaType.TEXT).toBe('TEXT');
-    });
-
-    it('contient exactement 3 types de média', () => {
-      const types = Object.values(MediaType);
-      expect(types).toHaveLength(3);
-    });
-
-    it('toutes les valeurs sont des chaînes de caractères', () => {
-      const types = Object.values(MediaType);
-      types.forEach(type => {
-        expect(typeof type).toBe('string');
-      });
-    });
-
-    it('peut être utilisé pour déterminer le format de fichier', () => {
-      const getFileExtensions = (mediaType: MediaType): string[] => {
-        switch (mediaType) {
-          case MediaType.VIDEO:
-            return ['.mp4', '.avi', '.mov'];
-          case MediaType.AUDIO:
-            return ['.mp3', '.wav', '.ogg'];
-          case MediaType.TEXT:
-            return ['.txt', '.md', '.pdf'];
-          default:
-            return [];
-        }
-      };
-
-      expect(getFileExtensions(MediaType.VIDEO)).toContain('.mp4');
-      expect(getFileExtensions(MediaType.AUDIO)).toContain('.mp3');
-      expect(getFileExtensions(MediaType.TEXT)).toContain('.txt');
-    });
-
-    it('peut être utilisé dans des conditions', () => {
-      const mediaType = MediaType.VIDEO;
-
-      let isVideo = false;
-      if (mediaType === MediaType.VIDEO) {
-        isVideo = true;
-      }
-
-      expect(isVideo).toBe(true);
     });
   });
 
