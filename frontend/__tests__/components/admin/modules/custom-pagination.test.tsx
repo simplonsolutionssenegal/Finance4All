@@ -66,7 +66,7 @@ describe('CustomPagination', () => {
     it('applique la classe active à la page courante', () => {
       render(<CustomPagination {...defaultProps} currentPage={2} />);
       const pageButton = screen.getByText('2');
-      expect(pageButton).toHaveClass('bg-sky-400', 'text-white');
+      expect(pageButton).toHaveClass('bg-primary-300', 'text-white');
     });
 
     it('applique la classe normale aux pages non actives', () => {
@@ -242,7 +242,7 @@ describe('CustomPagination', () => {
     it('gère currentPage = totalPages', () => {
       render(<CustomPagination {...defaultProps} currentPage={5} totalPages={5} />);
       const pageButton = screen.getByText('5');
-      expect(pageButton).toHaveClass('bg-sky-400', 'text-white');
+      expect(pageButton).toHaveClass('bg-primary-300', 'text-white');
     });
 
     it('gère un grand nombre de pages (100+)', () => {
