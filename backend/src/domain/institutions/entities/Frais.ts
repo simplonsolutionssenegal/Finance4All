@@ -40,12 +40,14 @@ export class FraisFixes extends Frais {
   protected _amount: Money;
   protected _rate?: number;
   protected _fxSurcharge?: Money;
+  protected _devise?: string;
 
-  constructor(amount: Money, rate?: number, fxSurcharge?: Money) {
+  constructor(amount: Money, rate?: number, fxSurcharge?: Money, devise?: string) {
     super();
     this._amount = amount;
     this._rate = rate;
     this._fxSurcharge = fxSurcharge;
+    this._devise = devise;
   }
 
   describe(): string {
@@ -75,12 +77,17 @@ export class FraisFixes extends Frais {
     return this._fxSurcharge;
   }
 
+  get devise(): string | undefined {
+    return this._devise;
+  }
+
   toDTO(): FraisDTO {
     return {
       typeCalculation: this._typeCalculation,
       montantFixe: this._amount,
       pourcentage: this._rate,
       fraisChange: this._fxSurcharge,
+      devise: this._devise,
     };
   }
 }

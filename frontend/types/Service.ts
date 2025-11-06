@@ -8,8 +8,9 @@ export interface Frais {
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
-
+  devise?: string;
   montantFixe?: number;
+  fraisChange?: number;
   pourcentage?: number;
   minimum?: number;
   maximum?: number;

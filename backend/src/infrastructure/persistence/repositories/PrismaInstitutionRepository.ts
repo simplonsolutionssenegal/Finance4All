@@ -35,6 +35,7 @@ type FraisData = {
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
+  devise?: string;
   cap?: number;
   floor?: number;
 };
@@ -173,7 +174,12 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     }
 
     if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
-      return new FraisFixes(fraisData.amount, fraisData.rate, fraisData.fxSurcharge);
+      return new FraisFixes(
+        fraisData.amount,
+        fraisData.rate,
+        fraisData.fxSurcharge,
+        fraisData.devise
+      );
     }
 
     if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
@@ -261,6 +267,7 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
         amount: frais.amount,
         rate: frais.rate,
         fxSurcharge: frais.fxSurcharge,
+        devise: frais.devise,
       };
     }
 

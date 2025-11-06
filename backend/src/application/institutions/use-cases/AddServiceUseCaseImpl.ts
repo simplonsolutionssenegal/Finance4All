@@ -54,6 +54,9 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
       return new FraisFixes(fraisDTO.montantFixe, rate);
     }
 
+    if (fraisDTO.fraisChange !== undefined && fraisDTO.fraisChange > 0) {
+      return new FraisFixes(0, undefined, fraisDTO.fraisChange, fraisDTO.devise);
+    }
     // Si on a un pourcentage avec ou sans plafonds
     if (fraisDTO.pourcentage !== undefined && fraisDTO.pourcentage > 0) {
       const rate = fraisDTO.pourcentage / 100;

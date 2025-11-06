@@ -7,6 +7,8 @@ export interface FraisDTO {
   pourcentage?: number;
   minimum?: number;
   maximum?: number;
+  fraisChange?: number;
+  devise?: string;
 }
 
 export interface AddServiceCommand {

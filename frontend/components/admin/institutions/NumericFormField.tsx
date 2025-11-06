@@ -42,7 +42,7 @@ const NumericFormField = <T extends FieldValues>({
   requiredMark = false,
   placeholder = '0',
   step,
-  min = 0,
+  min = 1,
   max,
   disabled = false,
   containerClassName,
@@ -54,7 +54,7 @@ const NumericFormField = <T extends FieldValues>({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem className={containerClassName}>
-          <FormLabel className='text-sm text-gray-600'>
+          <FormLabel className='font-normal '>
             {label} {requiredMark && '*'}
           </FormLabel>
           <FormControl>

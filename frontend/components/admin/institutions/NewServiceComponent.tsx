@@ -1,8 +1,19 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Coins, FileText, Plus, Settings, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Coins,
+  FileText,
+  MoveRight,
+  Plus,
+  Settings,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
@@ -34,10 +45,72 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCreateService } from '@/hooks/service/useCreateService';
 import { TypeService, type CreateServiceDto } from '@/types/Service';
 
+enum Currency {
+  AUD = 'AUD',
+  CAD = 'CAD',
+  CHF = 'CHF',
+  DKK = 'DKK',
+  GBP = 'GBP',
+  JPY = 'JPY',
+  NOK = 'NOK',
+  SEK = 'SEK',
+  USD = 'USD',
+  ZAR = 'ZAR',
+  SAR = 'SAR',
+  ARS = 'ARS',
+  BRL = 'BRL',
+  BGN = 'BGN',
+  XAF = 'XAF',
+  XOF = 'XOF',
+  CLP = 'CLP',
+  CNY = 'CNY',
+  COP = 'COP',
+  KRW = 'KRW',
+  CRC = 'CRCAED ',
+  AEDHKD = 'HKDHUF ',
+  HUFINR = 'INR',
+  IDR = 'IDR',
+  ISK = 'ISK',
+  ILS = 'ILS',
+  JOD = 'JOD',
+  KES = 'KES',
+  LBP = 'LBP',
+  MYR = 'MYR',
+  MAD = 'MAD',
+  MUR = 'MUR',
+  MXN = 'MXN',
+  NZD = 'NZD',
+  OMR = 'OMR',
+  PEN = 'PEN',
+  PHP = 'PHP',
+  PLN = 'PLN',
+  QAR = 'QAR',
+  DOP = 'DOP',
+  CZK = 'CZK',
+  RON = 'RON',
+  RUB = 'RUB',
+  RSD = 'RSD',
+  SGD = 'SGD',
+  LKR = 'LKR',
+  TWD = 'TWD',
+  THB = 'THB',
+  TRY = 'TRY',
+  VND = 'VND',
+}
 const serviceSchema = z
   .object({
-    name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères *'),
-    longName: z.string().min(2, 'La description doit contenir au moins 2 caractères *'),
+    name: z
+      .string()
+      .min(3, 'Le champ nom service est obligatoire *')
+      .refine(val => val.trim().length >= 2, {
+        message: 'Le nom doit contenir au moins 2 caractères (hors espaces) *',
+      }),
+    longName: z
+      .string()
+      .min(1, 'Le champ description est obligatoire *')
+      .refine(val => val.trim().length >= 2, {
+        message: 'La description doit contenir au moins 2 caractères (hors espaces) *',
+      }),
     type: z.enum(
       [
         TypeService.PAIEMENT_MARCHAND,
@@ -56,18 +129,74 @@ const serviceSchema = z
       ],
       { message: '* Veuillez sélectionner un type de service' }
     ),
-    montantMin: z.number().min(0, 'Doit être ≥ 0').optional(),
-    montantMax: z.number().min(0, 'Doit être ≥ 0').optional(),
+    montantMin: z.number().positive('Doit être ≥ 0').optional(),
+    montantMax: z.number().positive('Doit être ≥ 0').optional(),
 
-    feeTypeUI: z.enum(['FREE', 'FIX', 'POURCENTAGE'], {
+    feeTypeUI: z.enum(['FREE', 'FIX', 'MIXTE', 'POURCENTAGE', 'CHANGE'], {
       message: '* Veuillez sélectionner un type de frais',
     }),
 
     frais: z.object({
-      montantFixe: z.number().min(0, 'Doit être ≥ 0').optional(),
-      pourcentage: z.number().min(0, 'Doit être ≥ 0').max(100, 'Doit être ≤ 100').optional(),
-      minimum: z.number().min(0, 'Doit être ≥ 0').optional(),
-      maximum: z.number().min(0, 'Doit être ≥ 0').optional(),
+      montantFixe: z.number().positive('Doit être ≥ 0').optional(),
+      pourcentage: z.number().positive('Doit être ≥ 0').max(100, 'Doit être ≤ 100').optional(),
+      minimum: z.number().positive('Doit être ≥ 0').optional(),
+      maximum: z.number().positive('Doit être ≥ 0').optional(),
+      fraisChange: z.number().positive('Doit être ≥ 0').optional(),
+      devise: z
+        .enum(
+          [
+            Currency.AUD,
+            Currency.CAD,
+            Currency.CHF,
+            Currency.DKK,
+            Currency.GBP,
+            Currency.JPY,
+            Currency.NOK,
+            Currency.SEK,
+            Currency.USD,
+            Currency.ZAR,
+            Currency.SAR,
+            Currency.ARS,
+            Currency.BRL,
+            Currency.BGN,
+            Currency.XAF,
+            Currency.XOF,
+            Currency.CLP,
+            Currency.CNY,
+            Currency.COP,
+            Currency.KRW,
+            Currency.CRC,
+            Currency.IDR,
+            Currency.ISK,
+            Currency.ILS,
+            Currency.JOD,
+            Currency.KES,
+            Currency.LBP,
+            Currency.MYR,
+            Currency.MAD,
+            Currency.MUR,
+            Currency.MXN,
+            Currency.NZD,
+            Currency.OMR,
+            Currency.PEN,
+            Currency.PHP,
+            Currency.PLN,
+            Currency.QAR,
+            Currency.DOP,
+            Currency.CZK,
+            Currency.RON,
+            Currency.RUB,
+            Currency.RSD,
+            Currency.SGD,
+            Currency.LKR,
+            Currency.TWD,
+            Currency.THB,
+            Currency.TRY,
+            Currency.VND,
+          ],
+          { message: 'Choisissez une devise' }
+        )
+        .optional(),
     }),
 
     conditionAccess: z.array(z.string()),
@@ -84,7 +213,9 @@ const serviceSchema = z
         v.frais.montantFixe != null ||
         v.frais.pourcentage != null ||
         v.frais.minimum != null ||
-        v.frais.maximum != null;
+        v.frais.maximum != null ||
+        v.frais.fraisChange != null ||
+        v.frais.devise != null;
 
       if (anyFee) {
         ctx.addIssue({
@@ -100,7 +231,18 @@ const serviceSchema = z
       if (v.frais.montantFixe == null || Number.isNaN(v.frais.montantFixe)) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Le champ montant Fixe est obligatoire *',
+          message: 'Le champ montant fixe est obligatoire *',
+          path: ['frais', 'montantFixe'],
+        });
+      }
+      return;
+    }
+
+    if (v.feeTypeUI === 'MIXTE') {
+      if (v.frais.montantFixe == null || Number.isNaN(v.frais.montantFixe)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ montant fixe est obligatoire *',
           path: ['frais', 'montantFixe'],
         });
       }
@@ -122,20 +264,6 @@ const serviceSchema = z
           path: ['frais', 'pourcentage'],
         });
       }
-      if (v.frais.minimum == null || Number.isNaN(v.frais.minimum)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ minimim est obligatoire *',
-          path: ['frais', 'minimum'],
-        });
-      }
-      if (v.frais.maximum == null || Number.isNaN(v.frais.maximum)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ maximum est obligatoire * ',
-          path: ['frais', 'maximum'],
-        });
-      }
       if (
         v.frais.minimum != null &&
         v.frais.maximum != null &&
@@ -147,6 +275,23 @@ const serviceSchema = z
           code: 'custom',
           message: 'minimum doit être ≤ maximum',
           path: ['frais', 'maximum'],
+        });
+      }
+    }
+
+    if (v.feeTypeUI === 'CHANGE') {
+      if (v.frais.fraisChange == null || Number.isNaN(v.frais.fraisChange)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Le champ montant devise est obligatoire *',
+          path: ['frais', 'fraisChange'],
+        });
+      }
+      if (v.frais.devise == null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'La devise de référence est obligatoire *',
+          path: ['frais', 'devise'],
         });
       }
     }
@@ -178,7 +323,6 @@ const TagInputField = ({
   const handleAdd = () => {
     const next = input.trim();
     if (!next) return;
-    // Empêche les doublons -> key={item} devient sûre
     if (!value.includes(next)) {
       onChange([...value, next]);
     }
@@ -198,13 +342,13 @@ const TagInputField = ({
 
   return (
     <>
-      <FormLabel>{label}</FormLabel>
+      <FormLabel className='text-sm font-normal '>{label}</FormLabel>
       <div className='flex gap-2'>
         <Input
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={placeholder}
-          className='bg-[#F8F9FA] border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
+          className='bg-[#F8F9FA]  border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
           disabled={disabled}
           onKeyDown={handleKeyDown}
         />
@@ -247,19 +391,34 @@ const FeeOption = ({
   description,
 }: {
   id: string;
-  value: 'FREE' | 'FIX' | 'POURCENTAGE';
+  value: 'FREE' | 'FIX' | 'MIXTE' | 'POURCENTAGE' | 'CHANGE';
   title: string;
   description?: string;
 }) => (
-  <div className='flex items-center gap-3 rounded-xl border p-3 hover:bg-gray-50 cursor-pointer'>
+  <div className='flex items-center  gap-2 rounded-lg border-1 border-gray-300 p-2 hover:bg-gray-50 cursor-pointer'>
     <RadioGroupItem
       id={id}
       value={value}
-      className='h-3 w-3 rounded-full border-1 border-[#5AB6DB] data-[state=checked]:bg-[#5AB6DB] data-[state=checked]:border-[#5AB6DB] data-[state=checked]:text-[#5AB6DB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2'
+      className='
+    h-2 w-2 rounded-full border-1 border-[#5AB6DB]
+    text-[#5AB6DB]
+    data-[state=checked]:bg-[#5AB6DB]
+    data-[state=checked]:border-[#5AB6DB]
+    data-[state=checked]:text-[#5AB6DB]
+    data-[state=checked]:[&>span]:bg-[#5AB6DB] 
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2
+  '
     />
     <Label htmlFor={id} className='cursor-pointer flex-1'>
-      <div className='font-medium'>{title}</div>
-      {description && <div className='text-xs text-gray-500'>{description}</div>}
+      <div className='flex items-center gap-2 flex-wrap'>
+        <span className='font-normal'>{title}</span>
+        {description && (
+          <>
+            <MoveRight className='h-3 w-6 opacity-60' aria-hidden />
+            <span className='font-normal text-gray-500'>{description}</span>
+          </>
+        )}
+      </div>
     </Label>
   </div>
 );
@@ -286,11 +445,14 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
       type: undefined,
       montantMin: undefined,
       montantMax: undefined,
+      feeTypeUI: 'FREE',
       frais: {
         montantFixe: undefined,
         pourcentage: undefined,
         minimum: undefined,
         maximum: undefined,
+        fraisChange: undefined,
+        devise: undefined,
       },
       conditionAccess: [],
       plafonds: [],
@@ -312,17 +474,41 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
   const feeTypeUI = form.watch('feeTypeUI');
 
   useEffect(() => {
-    if (feeTypeUI === 'FREE') {
-      form.setValue('frais.montantFixe', undefined);
-      form.setValue('frais.pourcentage', undefined);
-      form.setValue('frais.minimum', undefined);
-      form.setValue('frais.maximum', undefined);
-    } else if (feeTypeUI === 'FIX') {
-      form.setValue('frais.pourcentage', undefined);
-      form.setValue('frais.minimum', undefined);
-      form.setValue('frais.maximum', undefined);
-    } else if (feeTypeUI === 'POURCENTAGE') {
-      form.setValue('frais.montantFixe', undefined);
+    switch (feeTypeUI) {
+      case 'FREE':
+        form.setValue('frais.montantFixe', undefined);
+        form.setValue('frais.pourcentage', undefined);
+        form.setValue('frais.minimum', undefined);
+        form.setValue('frais.maximum', undefined);
+        form.setValue('frais.fraisChange', undefined);
+        form.setValue('frais.devise', undefined);
+        break;
+      case 'FIX':
+        form.setValue('frais.pourcentage', undefined);
+        form.setValue('frais.minimum', undefined);
+        form.setValue('frais.maximum', undefined);
+        form.setValue('frais.fraisChange', undefined);
+        form.setValue('frais.devise', undefined);
+        break;
+      case 'MIXTE':
+        form.setValue('frais.minimum', undefined);
+        form.setValue('frais.maximum', undefined);
+        form.setValue('frais.fraisChange', undefined);
+        form.setValue('frais.devise', undefined);
+        break;
+      case 'POURCENTAGE':
+        form.setValue('frais.montantFixe', undefined);
+        form.setValue('frais.fraisChange', undefined);
+        form.setValue('frais.devise', undefined);
+        break;
+      case 'CHANGE':
+        form.setValue('frais.montantFixe', undefined);
+        form.setValue('frais.pourcentage', undefined);
+        form.setValue('frais.minimum', undefined);
+        form.setValue('frais.maximum', undefined);
+        break;
+      default:
+        break;
     }
   }, [feeTypeUI, form]);
 
@@ -344,9 +530,9 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
       <div className='mb-4'>
         <Link
           href={`/institutions/${institutionId}`}
-          className='flex items-center gap-2 text-gray-600 hover:text-gray-900'
+          className='flex items-center gap-2 text-gray-900'
         >
-          <ArrowLeft className='w-5 h-5' /> <span>Retour à l&apos;institution</span>
+          <ArrowLeft className='w-5 h-5 ' /> <span>Retour </span>
         </Link>
       </div>
 
@@ -355,8 +541,8 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
           <Settings className='h-6 w-6 text-white' aria-hidden='true' />
         </div>
         <div>
-          <h1 className='text-2xl font-bold text-gray-900'>Nouveau service</h1>
-          <span className='text-gray-400 font-light text-sm'>Créez un nouveau service</span>
+          <h1 className='text-2xl font-bold text-gray-800'>Nouveau service</h1>
+          <span className='text-gray-500 font-light text-sm'>Créez un nouveau service</span>
         </div>
       </div>
 
@@ -393,36 +579,75 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='rounded-2xl'>
-            {/* Étape 1 */}
             <div className={getStepClassName(0)}>
-              <FormField
-                control={form.control}
-                name='name'
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel>Nom du service *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='Ex: Transfert'
-                        className={cx(
-                          'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
-                          fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                        )}
-                        {...field}
-                        disabled={isCreating}
-                      />
-                    </FormControl>
-                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
-                  </FormItem>
-                )}
-              />
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <FormField
+                  control={form.control}
+                  name='name'
+                  render={({ field, fieldState }) => (
+                    <FormItem>
+                      <FormLabel className='font-normal'>Nom du service *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='Ex: Transfert'
+                          className={cx(
+                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
+                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                          )}
+                          {...field}
+                          disabled={isCreating}
+                        />
+                      </FormControl>
+                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                    </FormItem>
+                  )}
+                />
 
+                <FormField
+                  control={form.control}
+                  name='type'
+                  render={({ field, fieldState }) => (
+                    <FormItem>
+                      <FormLabel className='font-normal'>Type de service *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isCreating}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className={cx(
+                              'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0',
+                              fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                            )}
+                          >
+                            <SelectValue placeholder='Sélectionner un type' />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className='bg-cyan-50 max-h-64 border border-cyan-200'>
+                          {Object.entries(TypeService).map(([key, value]) => (
+                            <SelectItem
+                              key={key}
+                              value={value}
+                              className='group relative pl-3 pr-8 hover:bg-cyan-100 focus:bg-cyan-100 data-[state=checked]:bg-cyan-200 text-gray-900'
+                            >
+                              <span className='block truncate pr-2'>{value}</span>
+                              <Check className='absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-600 opacity-0 group-data-[state=checked]:opacity-100 pointer-events-none flex-shrink-0' />
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name='longName'
                 render={({ field, fieldState }) => (
                   <FormItem>
-                    <FormLabel>Description *</FormLabel>
+                    <FormLabel className='font-normal'>Description *</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Ex: Transfert d'argent"
@@ -434,40 +659,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         disabled={isCreating}
                       />
                     </FormControl>
-                    <FormMessage className='text-xs text-red-600 min-h-[16px]' />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='type'
-                render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel>Type de service *</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isCreating}
-                    >
-                      <FormControl>
-                        <SelectTrigger
-                          className={cx(
-                            'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0',
-                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
-                          )}
-                        >
-                          <SelectValue placeholder='Sélectionner un type' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className='bg-cyan-200 w-50 h-70'>
-                        {Object.entries(TypeService).map(([key, value]) => (
-                          <SelectItem key={key} value={value}>
-                            {value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage className='text-xs text-red-600 min-h-[16px]' />
                   </FormItem>
                 )}
@@ -486,6 +677,8 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                   disabled={isCreating}
                 />
               </div>
+
+              <Separator className='my-1 h-[0.5px] bg-gray-200' />
 
               <div className='pt-6'>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -519,10 +712,12 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 name='feeTypeUI'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className='text-base font-semibold'>Type de frais *</FormLabel>
+                    <FormLabel className='font-normal text-gray-900'>
+                      Séléctionnez le type de frais *
+                    </FormLabel>
                     <FormControl>
                       <RadioGroup
-                        value={field.value ?? undefined}
+                        value={field.value ?? 'FREE'}
                         onValueChange={field.onChange}
                         className='space-y-3'
                       >
@@ -539,6 +734,19 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           title='Frais en pourcentage'
                           description='Taux sur le montant'
                         />
+                        <FeeOption
+                          id='fee-mixte'
+                          value='MIXTE'
+                          title='Frais mixte (fixe + %)'
+                          description='(Combinaison des deux)'
+                        />
+
+                        <FeeOption
+                          id='fee-change'
+                          value='CHANGE'
+                          title='Frais selon devise / taux de change'
+                          description='Montant ajusté selon la devise'
+                        />
                       </RadioGroup>
                     </FormControl>
                     <FormMessage className='text-xs text-red-600 min-h-[16px]' />
@@ -547,16 +755,18 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               />
               {feeTypeUI !== 'FREE' && (
                 <div className='space-y-4'>
-                  <FormLabel className='text-sm font-semibold'>Configuration des frais</FormLabel>
-
                   <div
                     className={
                       feeTypeUI === 'POURCENTAGE'
                         ? 'grid grid-cols-3 gap-4'
-                        : 'grid grid-cols-2 gap-4 mb-4'
+                        : feeTypeUI === 'MIXTE'
+                          ? 'grid grid-cols-2 gap-4'
+                          : feeTypeUI === 'CHANGE'
+                            ? 'grid grid-cols-1 gap-1'
+                            : 'grid grid-cols-1 gap-4'
                     }
                   >
-                    {feeTypeUI === 'FIX' && (
+                    {(feeTypeUI === 'FIX' || feeTypeUI === 'MIXTE') && (
                       <NumericFormField
                         control={form.control}
                         name={'frais.montantFixe'}
@@ -566,14 +776,14 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       />
                     )}
 
-                    {(feeTypeUI === 'FIX' || feeTypeUI === 'POURCENTAGE') && (
+                    {(feeTypeUI === 'MIXTE' || feeTypeUI === 'POURCENTAGE') && (
                       <NumericFormField
                         control={form.control}
                         name={'frais.pourcentage'}
-                        label='Pourcentage (%)'
+                        label='Taux (%)'
                         step='0.01'
                         max={100}
-                        requiredMark={feeTypeUI === 'POURCENTAGE'}
+                        requiredMark
                         disabled={isCreating}
                       />
                     )}
@@ -596,6 +806,60 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         />
                       </>
                     )}
+
+                    {feeTypeUI === 'CHANGE' && (
+                      <>
+                        <NumericFormField
+                          control={form.control}
+                          name={'frais.fraisChange'}
+                          label='Montant en devise'
+                          step='0.01'
+                          requiredMark
+                          disabled={isCreating}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name='frais.devise'
+                          render={({ field, fieldState }) => (
+                            <FormItem className='space-y-0.5'>
+                              <FormLabel className='text-sm font-normal'>
+                                Devise de référence *
+                              </FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                disabled={isCreating}
+                              >
+                                <FormControl>
+                                  <SelectTrigger
+                                    className={cx(
+                                      'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0',
+                                      fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                                    )}
+                                  >
+                                    <SelectValue placeholder='Sélectionnez une devise' />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className='bg-cyan-50 max-h-64 border border-cyan-200'>
+                                  {Object.entries(Currency).map(([key, value]) => (
+                                    <SelectItem
+                                      key={key}
+                                      value={value}
+                                      className='group relative pl-3 pr-8 hover:bg-cyan-100 focus:bg-cyan-100 data-[state=checked]:bg-cyan-200 text-gray-900'
+                                    >
+                                      <span className='block truncate pr-2'>{value}</span>
+                                      <Check className='absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-600 opacity-0 group-data-[state=checked]:opacity-100 pointer-events-none flex-shrink-0' />
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -604,7 +868,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 control={form.control}
                 name='conditionAccess'
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className='text-sm font-normal '>
                     <TagInputField
                       label="Conditions d'accès"
                       placeholder='Ajouter une condition'
@@ -620,7 +884,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 control={form.control}
                 name='plafonds'
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className='text-sm font-normal'>
                     <TagInputField
                       label='Plafonds'
                       placeholder='Ex: 500 000 FCFA/jour'
@@ -636,7 +900,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 control={form.control}
                 name='infrastructureAccess'
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className='text-sm font-normal '>
                     <TagInputField
                       label="Infrastructure d'accès"
                       placeholder='Ex: Agence, GAB, Mobile'
@@ -647,8 +911,8 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                   </FormItem>
                 )}
               />
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <Separator className='my-1 h-[0.5px] bg-gray-200' />
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 pt-6'>
                 <Button
                   type='button'
                   variant='outline'

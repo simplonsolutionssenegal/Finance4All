@@ -7,4 +7,5 @@ export interface FraisDTO {
   minimum?: number;
   maximum?: number;
   fraisChange?: number;
+  devise?: string;
 }

@@ -82,7 +82,7 @@ describe('NewServiceComponent', () => {
 
       expect(screen.getByText('Nouveau service')).toBeInTheDocument();
       expect(screen.getByText('Créez un nouveau service')).toBeInTheDocument();
-      expect(screen.getByText("Retour à l'institution")).toBeInTheDocument();
+      expect(screen.getByText('Retour')).toBeInTheDocument();
     });
 
     it('devrait afficher les étapes du formulaire', () => {
@@ -237,6 +237,8 @@ describe('NewServiceComponent', () => {
       expect(screen.getByText('Gratuit')).toBeInTheDocument();
       expect(screen.getByText('Frais fixe')).toBeInTheDocument();
       expect(screen.getByText('Frais en pourcentage')).toBeInTheDocument();
+      expect(screen.getByText(/Frais mixte/i)).toBeInTheDocument();
+      expect(screen.getByText(/Frais selon devise/i)).toBeInTheDocument();
     });
 
     it('devrait ajouter une condition avec la touche Entrée', async () => {
@@ -309,23 +311,13 @@ describe('NewServiceComponent', () => {
       expect(headerPercent).toBeInTheDocument();
       fireEvent.click(screen.getByLabelText(/frais en pourcentage/i));
 
-      await waitFor(() => expect(screen.getByLabelText(/pourcentage \(%\)/i)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByLabelText(/taux \(%\)/i)).toBeInTheDocument());
 
       // Remplir tous les champs requis pour le type POURCENTAGE
-      fireEvent.change(screen.getByLabelText(/pourcentage \(%\)/i), { target: { value: '2.5' } });
+      fireEvent.change(screen.getByLabelText(/taux \(%\)/i), { target: { value: '2.5' } });
 
-      // Cibler les champs Minimum et Maximum spécifiques à la configuration des frais
-      const feeConfigInputs = screen.getAllByRole('spinbutton');
-      // Filtrer pour obtenir uniquement les champs de la section "Configuration des frais"
-      const pourcentageInput = screen.getByLabelText(/pourcentage \(%\)/i);
-      const pourcentageIndex = feeConfigInputs.indexOf(pourcentageInput as HTMLInputElement);
-
-      // Les champs minimum et maximum sont après le champ pourcentage dans la configuration
-      const minInput = feeConfigInputs[pourcentageIndex + 1];
-      const maxInput = feeConfigInputs[pourcentageIndex + 2];
-
-      fireEvent.change(minInput, { target: { value: '50' } });
-      fireEvent.change(maxInput, { target: { value: '500' } });
+      // Pour POURCENTAGE, minimum et maximum ne sont PAS obligatoires
+      // On ne les remplit pas pour ce test
 
       // Attendre que le bouton soit activé
       const submitButton = screen.getByRole('button', { name: /créer le service/i });
@@ -342,8 +334,6 @@ describe('NewServiceComponent', () => {
             type: TypeService.TRANSFERT_ARGENT,
             frais: expect.objectContaining({
               pourcentage: 2.5,
-              minimum: 50,
-              maximum: 500,
             }),
           }),
         });
@@ -358,7 +348,8 @@ describe('NewServiceComponent', () => {
 
       await waitFor(() => {
         expect(screen.getByLabelText(/montant fixe \(fcfa\)/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/pourcentage \(%\)/i)).toBeInTheDocument();
+        // Plus de champ pourcentage pour FIX
+        expect(screen.queryByLabelText(/pourcentage \(%\)/i)).not.toBeInTheDocument();
       });
     });
 
@@ -369,11 +360,38 @@ describe('NewServiceComponent', () => {
       fireEvent.click(percentOption);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/pourcentage \(%\)/i)).toBeInTheDocument();
-        const minimumInputs = screen.getAllByLabelText(/minimum/i);
-        expect(minimumInputs.length).toBeGreaterThan(0);
-        const maximumInputs = screen.getAllByLabelText(/maximum/i);
-        expect(maximumInputs.length).toBeGreaterThan(0);
+        expect(screen.getByLabelText(/taux \(%\)/i)).toBeInTheDocument();
+        // Utiliser getAllByLabelText pour les champs dupliqués
+        const minimumInputs = screen.getAllByLabelText(/minimum \(fcfa\)/i);
+        const maximumInputs = screen.getAllByLabelText(/maximum \(fcfa\)/i);
+
+        // Le second élément est celui des frais (index 1)
+        expect(minimumInputs[1]).toBeInTheDocument();
+        expect(maximumInputs[1]).toBeInTheDocument();
+      });
+    });
+
+    it('devrait afficher les champs pour frais mixte', async () => {
+      await setupStep2();
+
+      const mixteOption = screen.getByLabelText(/frais mixte/i);
+      fireEvent.click(mixteOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/montant fixe \(fcfa\)/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/taux \(%\)/i)).toBeInTheDocument();
+      });
+    });
+
+    it('devrait afficher les champs pour frais de change', async () => {
+      await setupStep2();
+
+      const changeOption = screen.getByLabelText(/frais selon devise/i);
+      fireEvent.click(changeOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/montant en devise/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/devise de référence/i)).toBeInTheDocument();
       });
     });
 
@@ -426,7 +444,7 @@ describe('NewServiceComponent', () => {
   });
 
   describe('Soumission du formulaire', () => {
-    it('devrait soumettre le formulaire avec les bonnes données', async () => {
+    it('devrait soumettre le formulaire avec les bonnes données (frais fixe)', async () => {
       render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
 
       // Étape 1
@@ -464,12 +482,11 @@ describe('NewServiceComponent', () => {
       await waitFor(() => {
         const montantFixeInput = screen.getByLabelText(/montant fixe \(fcfa\)/i);
         fireEvent.change(montantFixeInput, { target: { value: '500' } });
-
-        const pourcentageInput = screen.getByLabelText(/pourcentage \(%\)/i);
-        fireEvent.change(pourcentageInput, { target: { value: '0' } });
       });
 
       const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      await waitFor(() => expect(submitButton).toBeEnabled());
+
       fireEvent.click(submitButton);
 
       await waitFor(() => {
@@ -483,7 +500,6 @@ describe('NewServiceComponent', () => {
             montantMax: 500000,
             frais: expect.objectContaining({
               montantFixe: 500,
-              pourcentage: 0,
             }),
           }),
         });
@@ -530,7 +546,7 @@ describe('NewServiceComponent', () => {
       const percentOption = screen.getByLabelText(/frais en pourcentage/i);
       fireEvent.click(percentOption);
 
-      const pourcentageInput = await screen.findByLabelText(/pourcentage \(%\)/i);
+      const pourcentageInput = await screen.findByLabelText(/taux \(%\)/i);
       expect(pourcentageInput).toBeInTheDocument();
       fireEvent.change(pourcentageInput, { target: { value: '10' } });
 
@@ -540,8 +556,7 @@ describe('NewServiceComponent', () => {
 
       // Les champs de configuration des frais doivent disparaître
       await waitFor(() => {
-        expect(screen.queryByLabelText(/pourcentage \(%\)/i)).not.toBeInTheDocument();
-        expect(screen.queryByText(/configuration des frais/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/taux \(%\)/i)).not.toBeInTheDocument();
       });
     });
 
@@ -571,7 +586,9 @@ describe('NewServiceComponent', () => {
       fireEvent.click(freeOption);
 
       await waitFor(() => {
-        expect(screen.queryByText(/configuration des frais/i)).not.toBeInTheDocument();
+        // Utiliser un sélecteur plus précis
+        expect(screen.queryByLabelText(/^taux \(%\)$/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/montant fixe/i)).not.toBeInTheDocument();
       });
     });
 
@@ -671,6 +688,262 @@ describe('NewServiceComponent', () => {
       fireEvent.click(cancelButton);
 
       expect(mockBack).toHaveBeenCalled();
+    });
+  });
+
+  describe('Validation des frais de change', () => {
+    it('devrait valider les champs obligatoires pour frais de change', async () => {
+      render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
+
+      // Étape 1
+      fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
+        target: { value: 'Transfert Change' },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
+        target: { value: 'Service avec frais de change' },
+      });
+
+      const selectTrigger = screen.getByRole('combobox');
+      fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
+      fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
+
+      // Étape 2 - Frais de change
+      await waitFor(() => {
+        expect(screen.getByText(/type de frais/i)).toBeInTheDocument();
+      });
+
+      const changeOption = screen.getByLabelText(/frais selon devise/i);
+      fireEvent.click(changeOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/montant en devise/i)).toBeInTheDocument();
+      });
+
+      // Remplir le montant en devise
+      fireEvent.change(screen.getByLabelText(/montant en devise/i), {
+        target: { value: '10.5' },
+      });
+
+      // Trouver le select de devise (il y a maintenant 2 combobox: type service + devise)
+      const allComboboxes = screen.getAllByRole('combobox');
+      const deviseSelect = allComboboxes[allComboboxes.length - 1]; // Le dernier ajouté
+
+      fireEvent.pointerDown(deviseSelect, { pointerType: 'mouse' });
+
+      // Attendre que les options apparaissent
+      await waitFor(() => {
+        const options = screen.queryAllByRole('option');
+        // Vérifier qu'il y a des options disponibles
+        expect(options.length).toBeGreaterThan(0);
+      });
+
+      // Trouver l'option USD parmi toutes les options
+      const usdOption = screen.getAllByRole('option').find(option => option.textContent === 'USD');
+
+      expect(usdOption).toBeInTheDocument();
+      fireEvent.click(usdOption!);
+
+      // Vérifier que le bouton de soumission est activé
+      const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      await waitFor(() => expect(submitButton).toBeEnabled());
+
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockCreateService).toHaveBeenCalledWith({
+          institutionId,
+          serviceData: expect.objectContaining({
+            name: 'Transfert Change',
+            longName: 'Service avec frais de change',
+            type: TypeService.TRANSFERT_ARGENT,
+            frais: expect.objectContaining({
+              fraisChange: 10.5,
+              devise: 'USD',
+            }),
+          }),
+        });
+      });
+    });
+
+    it("devrait empêcher la soumission si la devise n'est pas sélectionnée", async () => {
+      render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
+
+      // Étape 1
+      fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
+        target: { value: 'Transfert Change' },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
+        target: { value: 'Service avec frais de change' },
+      });
+
+      const selectTrigger = screen.getByRole('combobox');
+      fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
+      fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
+
+      // Étape 2 - Frais de change
+      await waitFor(() => {
+        expect(screen.getByText(/type de frais/i)).toBeInTheDocument();
+      });
+
+      const changeOption = screen.getByLabelText(/frais selon devise/i);
+      fireEvent.click(changeOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/montant en devise/i)).toBeInTheDocument();
+      });
+
+      // Remplir uniquement le montant, sans sélectionner la devise
+      fireEvent.change(screen.getByLabelText(/montant en devise/i), {
+        target: { value: '10.5' },
+      });
+
+      // Le bouton de soumission doit rester désactivé
+      const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      expect(submitButton).toBeDisabled();
+    });
+  });
+
+  describe('Validation des frais mixtes', () => {
+    it('devrait soumettre avec frais mixte (fixe + pourcentage)', async () => {
+      render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
+
+      // Étape 1
+      fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
+        target: { value: 'Transfert Mixte' },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
+        target: { value: 'Service avec frais mixte' },
+      });
+
+      const selectTrigger = screen.getByRole('combobox');
+      fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
+      fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
+
+      // Étape 2 - Frais mixte
+      await waitFor(() => {
+        expect(screen.getByText(/type de frais/i)).toBeInTheDocument();
+      });
+
+      const mixteOption = screen.getByLabelText(/frais mixte/i);
+      fireEvent.click(mixteOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/montant fixe \(fcfa\)/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/taux \(%\)/i)).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText(/montant fixe \(fcfa\)/i), {
+        target: { value: '200' },
+      });
+      fireEvent.change(screen.getByLabelText(/taux \(%\)/i), {
+        target: { value: '1.5' },
+      });
+
+      const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      await waitFor(() => expect(submitButton).toBeEnabled());
+
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockCreateService).toHaveBeenCalledWith({
+          institutionId,
+          serviceData: expect.objectContaining({
+            name: 'Transfert Mixte',
+            longName: 'Service avec frais mixte',
+            type: TypeService.TRANSFERT_ARGENT,
+            frais: expect.objectContaining({
+              montantFixe: 200,
+              pourcentage: 1.5,
+            }),
+          }),
+        });
+      });
+    });
+  });
+
+  describe('Validation des champs minimum et maximum', () => {
+    it('devrait valider que minimum <= maximum pour les frais en pourcentage', async () => {
+      render(<NewServiceComponent institutionId={institutionId} />, { wrapper: createWrapper() });
+
+      // Étape 1
+      fireEvent.change(screen.getByPlaceholderText('Ex: Transfert'), {
+        target: { value: 'Transfert' },
+      });
+      fireEvent.change(screen.getByPlaceholderText("Ex: Transfert d'argent"), {
+        target: { value: 'Service de transfert' },
+      });
+
+      const selectTrigger = screen.getByRole('combobox');
+      fireEvent.pointerDown(selectTrigger, { pointerType: 'mouse' });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT })
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('option', { name: TypeService.TRANSFERT_ARGENT }));
+      fireEvent.click(screen.getByRole('button', { name: /continuer/i }));
+
+      // Étape 2 - Pourcentage
+      await waitFor(() => {
+        expect(screen.getByText(/type de frais/i)).toBeInTheDocument();
+      });
+
+      const percentOption = screen.getByLabelText(/frais en pourcentage/i);
+      fireEvent.click(percentOption);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/taux \(%\)/i)).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText(/taux \(%\)/i), {
+        target: { value: '2.5' },
+      });
+
+      // Récupérer tous les champs et utiliser le bon index
+      const minimumInputs = screen.getAllByLabelText(/minimum \(fcfa\)/i);
+      const maximumInputs = screen.getAllByLabelText(/maximum \(fcfa\)/i);
+
+      // Les champs des frais sont les seconds (index 1)
+      fireEvent.change(minimumInputs[1], {
+        target: { value: '1000' },
+      });
+      fireEvent.change(maximumInputs[1], {
+        target: { value: '500' },
+      });
+
+      const submitButton = screen.getByRole('button', { name: /créer le service/i });
+      fireEvent.click(submitButton);
+
+      // La soumission ne devrait pas avoir lieu
+      await waitFor(() => {
+        expect(mockCreateService).not.toHaveBeenCalled();
+      });
     });
   });
 });

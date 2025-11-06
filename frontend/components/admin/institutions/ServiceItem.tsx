@@ -67,6 +67,9 @@ const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) =
     if (service.frais.maximum) {
       parts.push(`max: ${service.frais.maximum} FCFA`);
     }
+    if (service.frais.fraisChange) {
+      parts.push(`frais de change: ${service.frais.fraisChange} ${service.frais.devise}`);
+    }
     return parts.length > 0 ? parts.join(', ') : 'Aucun frais';
   };
 
