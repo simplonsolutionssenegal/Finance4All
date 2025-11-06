@@ -585,7 +585,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='rounded-2xl'>
-            {/* Étape 1 */}
             <div className={getStepClassName(0)}>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <FormField
