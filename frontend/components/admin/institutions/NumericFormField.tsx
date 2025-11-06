@@ -15,11 +15,16 @@ const blockInvalidNumberKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
 const toNumberOrUndefined = (v: string) => (v ? Number(v) : undefined);
 
 const baseNumberInput =
-  'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none ' +
+  'bg-[#F8F9FA] shadow-none transition-all ' +
   '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 const inputClass = (hasError: boolean, extra?: string) =>
-  cx(baseNumberInput, hasError ? 'border-1 border-red-500' : 'border-0', extra);
+  cx(
+    baseNumberInput,
+    'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent',
+    hasError ? 'border-red-500 focus:ring-red-500' : 'border-transparent',
+    extra
+  );
 
 export type NumericFormFieldProps<T extends FieldValues> = {
   control: Control<T>;

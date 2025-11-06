@@ -305,6 +305,7 @@ type TagInputFieldProps = {
   value: string[];
   onChange: (value: string[]) => void;
   disabled?: boolean;
+  error?: boolean;
 };
 
 const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' ');
@@ -317,6 +318,7 @@ const TagInputField = ({
   value,
   onChange,
   disabled = false,
+  error = false,
 }: TagInputFieldProps) => {
   const [input, setInput] = useState('');
 
@@ -348,7 +350,11 @@ const TagInputField = ({
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={placeholder}
-          className='bg-[#F8F9FA]  border-0 ring-0 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0'
+          className={cx(
+            'bg-[#F8F9FA] shadow-none transition-all',
+            'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent',
+            error ? 'border-red-500 focus:ring-red-500' : 'border-transparent'
+          )}
           disabled={disabled}
           onKeyDown={handleKeyDown}
         />
@@ -591,18 +597,22 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         <Input
                           placeholder='Ex: Transfert'
                           className={cx(
-                            'bg-[#F8F9FA] ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
-                            fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                            'bg-[#F8F9FA] shadow-none transition-all',
+                            'focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-transparent',
+                            fieldState.error
+                              ? 'border-red-500 focus:ring-red-500'
+                              : 'border-transparent'
                           )}
                           {...field}
                           disabled={isCreating}
                         />
                       </FormControl>
-                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                      <div className='mt-1'>
+                        <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                      </div>
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name='type'
@@ -617,8 +627,12 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         <FormControl>
                           <SelectTrigger
                             className={cx(
-                              'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal ring-0 shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0',
-                              fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                              'bg-[#F8F9FA] data-[placeholder]:text-black/40 data-[placeholder]:font-normal shadow-none transition-all',
+                              'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent',
+                              'focus-visible:ring-2 focus-visible:ring-cyan-500',
+                              fieldState.error
+                                ? 'border-red-500 focus:ring-red-500 focus-visible:ring-red-500'
+                                : 'border-transparent'
                             )}
                           >
                             <SelectValue placeholder='Sélectionner un type' />
@@ -637,7 +651,9 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                      <div className='mt-1'>
+                        <FormMessage className='text-xs text-red-600 min-h-[16px]' />
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -652,8 +668,11 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       <Textarea
                         placeholder="Ex: Transfert d'argent"
                         className={cx(
-                          'bg-[#F8F9FA] min-h-15 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none shadow-none',
-                          fieldState.error ? 'border-1 border-red-500' : 'border-0'
+                          'bg-[#F8F9FA] min-h-15 shadow-none transition-all',
+                          'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent',
+                          fieldState.error
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-transparent'
                         )}
                         {...field}
                         disabled={isCreating}
