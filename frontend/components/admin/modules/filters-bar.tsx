@@ -5,7 +5,6 @@
 import { Search, Plus, X, Filter, ChevronDown } from 'lucide-react';
 
 import { MODULE_STATUS_LABELS, THEMATIC_LABELS } from '@/lib/constants/module-constants';
-import type { Module } from '@/types/modules/module';
 
 interface FiltersBarProps {
   onNewClick: () => void;
@@ -16,7 +15,7 @@ interface FiltersBarProps {
   searchValue?: string;
   statusValue?: string;
   thematicValue?: string;
-  filteredModules?: Module[];
+  totalResults?: number;
 }
 
 export default function FiltersBar({
@@ -28,7 +27,7 @@ export default function FiltersBar({
   searchValue = '',
   statusValue = '',
   thematicValue = '',
-  filteredModules = [],
+  totalResults = 0,
 }: FiltersBarProps) {
   const hasActiveFilters = searchValue !== '' || statusValue !== '' || thematicValue !== '';
 
@@ -119,7 +118,7 @@ export default function FiltersBar({
       {hasActiveFilters && (
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-gray-600'>
-            {filteredModules.length} résultat{filteredModules.length > 1 ? 's' : ''}
+            {totalResults} résultat{totalResults > 1 ? 's' : ''}
           </span>
           <button
             onClick={() => {

@@ -263,7 +263,7 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
             <button
               type='submit'
               disabled={isCreating}
-              className='flex-1 px-6 py-2.5 text-sm bg-sky-400 text-white rounded-lg font-medium hover:bg-sky-500 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors'
+              className='flex-1 px-6 py-2.5 text-sm bg-primary-300 text-white rounded-lg font-medium hover:bg-primary-400 disabled:bg-gray-400 flex items-center justify-center gap-2 transition-colors'
             >
               {isCreating ? (
                 <>

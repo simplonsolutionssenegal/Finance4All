@@ -1,4 +1,4 @@
-// frontend/src/hooks/modules/useGetModules.ts
+// frontend/src/hooks/module/useGetModules.ts
 
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';

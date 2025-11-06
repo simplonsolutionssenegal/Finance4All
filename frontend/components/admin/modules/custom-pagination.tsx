@@ -35,8 +35,8 @@ export function CustomPagination({
             onClick={() => onPageChange(i)}
             className={`min-w-[36px] h-[36px] rounded-lg text-sm font-medium transition-all ${
               i === currentPage
-                ? 'bg-sky-400 text-white shadow-md'
-                : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-primary-300 text-white shadow-md'
+                : 'border border-gray-300 text-gray-700 hover:bg-primary-50'
             }`}
           >
             {i}
@@ -51,8 +51,8 @@ export function CustomPagination({
           onClick={() => onPageChange(1)}
           className={`min-w-[36px] h-[36px] rounded-lg text-sm font-medium transition-all ${
             1 === currentPage
-              ? 'bg-sky-400 text-white shadow-md'
-              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'bg-primary-300 text-white shadow-md'
+              : 'border border-gray-300 text-gray-700 hover:bg-primary-50'
           }`}
         >
           1
@@ -77,8 +77,8 @@ export function CustomPagination({
             onClick={() => onPageChange(i)}
             className={`min-w-[36px] h-[36px] rounded-lg text-sm font-medium transition-all ${
               i === currentPage
-                ? 'bg-sky-400 text-white shadow-md'
-                : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-primary-300 text-white shadow-md'
+                : 'border border-gray-300 text-gray-700 hover:bg-primary-50'
             }`}
           >
             {i}
@@ -100,8 +100,8 @@ export function CustomPagination({
           onClick={() => onPageChange(totalPages)}
           className={`min-w-[36px] h-[36px] rounded-lg text-sm font-medium transition-all ${
             totalPages === currentPage
-              ? 'bg-sky-400 text-white shadow-md'
-              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'bg-primary-400 text-white shadow-md'
+              : 'border border-primary-500 text-gray-700 hover:bg-gray-50'
           }`}
         >
           {totalPages}
@@ -113,9 +113,9 @@ export function CustomPagination({
   };
 
   return (
-    <div className='flex items-center justify-between py-3 px-2 bg-white rounded-lg border border-gray-200'>
+    <div className='flex items-center justify-between py-4 px-2 bg-white rounded-lg border border-gray-200'>
       {/* Info */}
-      <div className='text-xs text-gray-600'>
+      <div className='text-xl text-gray-600'>
         Affichage de <span className='font-semibold'>{startItem}</span> à{' '}
         <span className='font-semibold'>{endItem}</span> sur{' '}
         <span className='font-semibold'>{totalItems}</span> résultats
@@ -144,7 +144,7 @@ export function CustomPagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className='p-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+          className='p-1.5 rounded-lg border border-gray-300 hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
         >
           <ChevronRight size={16} />
         </button>
@@ -152,7 +152,7 @@ export function CustomPagination({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className='p-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+          className='p-1.5 rounded-lg border border-gray-300 hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
         >
           <ChevronsRight size={16} />
         </button>

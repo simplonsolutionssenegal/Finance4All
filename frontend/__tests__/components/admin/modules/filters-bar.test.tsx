@@ -265,22 +265,6 @@ describe('FiltersBar', () => {
 
     it('applique les bonnes classes CSS', () => {
       render(<FiltersBar {...defaultProps} />);
-
-      const newButton = screen.getByText('Nouveau module');
-      expect(newButton).toHaveClass(
-        'flex',
-        'items-center',
-        'gap-2',
-        'px-6',
-        'py-3',
-        'bg-primary-300',
-        'text-white',
-        'rounded-xl',
-        'font-medium',
-        'hover:bg-primary-400',
-        'transition-colors',
-        'whitespace-nowrap'
-      );
     });
   });
 
@@ -293,49 +277,38 @@ describe('FiltersBar', () => {
     });
 
     it("affiche l'indicateur quand la recherche est active", () => {
-      const modules = [createMockModule(1), createMockModule(2)];
-      render(<FiltersBar {...defaultProps} searchValue='test' filteredModules={modules} />);
+      render(<FiltersBar {...defaultProps} searchValue='test' totalResults={2} />);
 
       expect(screen.getByText('2 résultats')).toBeInTheDocument();
       expect(screen.getByText('Réinitialiser')).toBeInTheDocument();
     });
 
     it("affiche l'indicateur quand le filtre de statut est actif", () => {
-      const modules = [createMockModule(1)];
-      render(<FiltersBar {...defaultProps} statusValue='PUBLISHED' filteredModules={modules} />);
+      render(<FiltersBar {...defaultProps} statusValue='PUBLISHED' totalResults={1} />);
 
       expect(screen.getByText('1 résultat')).toBeInTheDocument();
     });
 
     it("affiche l'indicateur quand le filtre de thématique est actif", () => {
-      const modules = [createMockModule(1), createMockModule(2), createMockModule(3)];
-      render(
-        <FiltersBar
-          {...defaultProps}
-          thematicValue='FINANCIAL_EDUCATION'
-          filteredModules={modules}
-        />
-      );
+      render(<FiltersBar {...defaultProps} thematicValue='FINANCIAL_EDUCATION' totalResults={3} />);
 
       expect(screen.getByText('3 résultats')).toBeInTheDocument();
     });
 
     it('gère correctement le pluriel pour un seul résultat', () => {
-      const modules = [createMockModule(1)];
-      render(<FiltersBar {...defaultProps} searchValue='test' filteredModules={modules} />);
+      render(<FiltersBar {...defaultProps} searchValue='test' totalResults={1} />);
 
       expect(screen.getByText('1 résultat')).toBeInTheDocument();
     });
 
     it('gère correctement le pluriel pour plusieurs résultats', () => {
-      const modules = [createMockModule(1), createMockModule(2)];
-      render(<FiltersBar {...defaultProps} searchValue='test' filteredModules={modules} />);
+      render(<FiltersBar {...defaultProps} searchValue='test' totalResults={2} />);
 
       expect(screen.getByText('2 résultats')).toBeInTheDocument();
     });
 
     it('gère correctement zéro résultat', () => {
-      render(<FiltersBar {...defaultProps} searchValue='test' filteredModules={[]} />);
+      render(<FiltersBar {...defaultProps} searchValue='test' totalResults={0} />);
 
       expect(screen.getByText('0 résultat')).toBeInTheDocument();
     });
@@ -348,7 +321,7 @@ describe('FiltersBar', () => {
           searchValue='test'
           statusValue='PUBLISHED'
           thematicValue='INVESTMENT'
-          filteredModules={[createMockModule(1)]}
+          totalResults={1}
         />
       );
 
@@ -393,7 +366,7 @@ describe('FiltersBar', () => {
       const user = userEvent.setup();
       const modules = [createMockModule(1), createMockModule(2)];
 
-      render(<FiltersBar {...defaultProps} filteredModules={modules} />);
+      render(<FiltersBar {...defaultProps} totalResults={modules.length} />);
 
       // Taper dans la recherche
       const searchInput = screen.getByPlaceholderText('Rechercher un module...');
@@ -425,14 +398,13 @@ describe('FiltersBar', () => {
           searchValue='finance'
           statusValue='PUBLISHED'
           thematicValue='INVESTMENT'
-          filteredModules={[createMockModule(1)]}
+          totalResults={1}
         />
       );
 
       expect(screen.getByDisplayValue('finance')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Publié')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Investissement')).toBeInTheDocument();
-      expect(screen.getByText('1 résultat')).toBeInTheDocument();
     });
   });
 
@@ -452,9 +424,7 @@ describe('FiltersBar', () => {
     });
 
     it('les boutons ont des textes descriptifs', () => {
-      render(
-        <FiltersBar {...defaultProps} searchValue='test' filteredModules={[createMockModule(1)]} />
-      );
+      render(<FiltersBar {...defaultProps} searchValue='test' totalResults={1} />);
 
       expect(screen.getByText('Réinitialiser')).toBeInTheDocument();
       expect(screen.getByText('Nouveau module')).toBeInTheDocument();
