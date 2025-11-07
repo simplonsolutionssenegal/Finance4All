@@ -406,7 +406,7 @@ const FeeOption = ({
       id={id}
       value={value}
       className='
-    h-2 w-2 rounded-full border-1 border-primary-300
+    h-2 w-2 rounded-full border-0
     text-primary-300
     data-[state=checked]:bg-primary-300
     data-[state=checked]:border-primary-300
