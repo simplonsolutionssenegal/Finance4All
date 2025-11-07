@@ -935,7 +935,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <Button
                   type='button'
                   variant='outline'
-                  className='w-full h-6 rounded bg-white border-[#EAEAEA] text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                  className='w-full h-6 rounded-lg bg-white border-[#EAEAEA] text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                   onClick={() => setStep(0)}
                   disabled={isCreating}
                 >
@@ -945,7 +945,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <Button
                   type='submit'
                   disabled={isCreating || !form.formState.isValid}
-                  className='w-full h-6 rounded bg-primary-300 text-white hover:bg-primary-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
+                  className='w-full h-6 rounded-lg bg-primary-300 text-white hover:bg-primary-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
                 >
                   <Check />
                   {isCreating ? 'Création…' : 'Créer le service'}
