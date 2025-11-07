@@ -246,7 +246,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         </div>
 
         <div className='flex items-center gap-3'>
-          <Button variant='outline' className='gap-2 bg-[#6EC1E4] text-white hover:bg-customBlue'>
+          <Button variant='outline' className='gap-2 bg-primary-300 text-white hover:bg-customBlue'>
             <Edit className='w-5 h-5' />
             Modifier
           </Button>
@@ -341,15 +341,8 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
               <h2 className='font-poppins text-base font-normal leading-6 tracking-normal text-[#37415199]'>
                 Gérez les services financiers proposés par {institution.name}
               </h2>
-              {/* <Button
-                onClick={() => setShowServiceModal(true)}
-                className='bg-cyan-500 text-white hover:bg-cyan-600 gap-2'
-              >
-                <Plus className='w-4 h-4' />
-                Nouveau service
-              </Button> */}
               <Link href={`/institutions/${institutionId}/service/new`}>
-                <Button className='bg-cyan-500 text-white hover:bg-cyan-600 gap-2'>
+                <Button className='bg-primary-300 text-white hover:bg-primary-4 gap-2'>
                   <Plus className='w-4 h-4' />
                   Nouveau service
                 </Button>

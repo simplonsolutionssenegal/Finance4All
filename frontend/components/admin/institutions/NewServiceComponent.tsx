@@ -406,13 +406,13 @@ const FeeOption = ({
       id={id}
       value={value}
       className='
-    h-2 w-2 rounded-full border-1 border-[#5AB6DB]
-    text-[#5AB6DB]
-    data-[state=checked]:bg-[#5AB6DB]
-    data-[state=checked]:border-[#5AB6DB]
-    data-[state=checked]:text-[#5AB6DB]
-    data-[state=checked]:[&>span]:bg-[#5AB6DB] 
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5AB6DB] focus-visible:ring-offset-2
+    h-2 w-2 rounded-full border-1 border-primary-300
+    text-primary-300
+    data-[state=checked]:bg-primary-300
+    data-[state=checked]:border-primary-300
+    data-[state=checked]:text-primary-300
+    data-[state=checked]:[&>span]:bg-primary-300 
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2
   '
     />
     <Label htmlFor={id} className='cursor-pointer flex-1'>
@@ -543,7 +543,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
       </div>
 
       <div className='mb-6 flex items-center gap-3'>
-        <div className='bg-[#5AB6DB] p-2 rounded-2xl'>
+        <div className='bg-primary-300 p-2 rounded-2xl'>
           <Settings className='h-6 w-6 text-white' aria-hidden='true' />
         </div>
         <div>
@@ -563,7 +563,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <div
                   className={cx(
                     'h-8 w-8 rounded-full flex items-center justify-center border transition-colors',
-                    active && 'bg-teal-500 text-white border-teal-500',
+                    active && 'bg-primary-300 text-white border-primary-300',
                     done && 'bg-green-600 text-white border-green-600',
                     !active && !done && 'bg-[#F8F9FA] text-gray-700 border-[#F8F9FA]'
                   )}
@@ -715,7 +715,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     type='button'
                     onClick={() => setStep(1)}
                     disabled={!isStep1Valid}
-                    className='w-full h-6 rounded-lg bg-[#6EC1E4] text-white hover:bg-[#5AB6DB] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
+                    className='w-full h-6 rounded-lg bg-primary-300 text-white hover:bg-primary-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
                   >
                     Continuer
                     <ArrowRight className='ml-2 h-4 w-4' aria-hidden='true' />
@@ -945,7 +945,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 <Button
                   type='submit'
                   disabled={isCreating || !form.formState.isValid}
-                  className='w-full h-6 rounded bg-[#6EC1E4] text-white hover:bg-[#5AB6DB] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
+                  className='w-full h-6 rounded bg-primary-300 text-white hover:bg-primary-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm'
                 >
                   <Check />
                   {isCreating ? 'Création…' : 'Créer le service'}
