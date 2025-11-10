@@ -57,6 +57,8 @@ describe('useUpdateInstitution', () => {
     description: '',
     geographicZones: [],
     name: 'New Name',
+    type: 'SERVICE_FINANCIER_DECENTRALISE',
+    pays: 'SENEGAL',
   };
   const institutionId = 'inst-123';
 

@@ -20,6 +20,7 @@ import { useAuth } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
+import { CreateInstitutionDto } from '@/types/Institution';
 
 import { useLoader } from '@/contexts/LoaderContext';
 import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
@@ -46,10 +47,12 @@ describe('useCreateInstitution', () => {
   let mockHideLoader: jest.Mock;
   let mockGetToken: jest.Mock;
 
-  const institutionData = {
+  const institutionData: CreateInstitutionDto = {
     name: 'Test Institution',
     description: 'Test Description',
     geographicZones: ['UEMOA'],
+    type: 'SERVICE_FINANCIER_DECENTRALISE' as const,
+    pays: 'SENEGAL' as const,
   };
 
   beforeEach(() => {
