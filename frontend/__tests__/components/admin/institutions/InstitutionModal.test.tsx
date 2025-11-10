@@ -95,8 +95,8 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
 
     expect(querySubmitButton()).toBeDisabled();
 
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O'); // trop court
-    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'trop court'); // < 10
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O');
+    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'trop court');
     await u.type(screen.getByPlaceholderText('https://'), 'not-a-url');
     await u.type(screen.getByPlaceholderText('🏦 ou https://'), 'also-not-a-url');
 
@@ -105,7 +105,7 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     await screen.findByText('Le nom doit contenir au moins 2 caractères');
 
     await screen.findByText(/Le nom doit contenir au moins 2 caractères/i);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Donner du temps aux autres messages
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(screen.getByLabelText('Description *')).toBeInTheDocument();
     expect(screen.getByText(/une zone géographique est requise/i)).toBeInTheDocument();
@@ -117,27 +117,21 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     await u.clear(desc);
     await u.type(desc, 'Une description valide (>= 10 caractères)');
 
-    // Website OK
     const website = screen.getByPlaceholderText('https://');
     await u.clear(website);
     await u.type(website, 'https://ok.sn');
 
-    // Logo OK
     const logo = screen.getByPlaceholderText('🏦 ou https://');
     await u.clear(logo);
     await u.type(logo, 'https://exemple.com/logo.png');
 
-    // Sélectionner Type & Pays (requis par zod)
     await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
     await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
 
-    // Ajouter une zone
     await addZone('UEMOA');
 
-    // Aperçu du logo rendu
     expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
 
-    // Form valide => bouton actif (label création)
     expect(screen.getByRole('button', { name: 'Créer l&apos;institution' })).toBeEnabled();
   });
 
@@ -145,7 +139,6 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     const u = userEvent.setup();
     renderModal();
 
-    // Champs requis + valides
     await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
     await u.type(
       screen.getByPlaceholderText("Description de l'institution"),
