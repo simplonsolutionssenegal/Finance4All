@@ -1,0 +1,121 @@
+name: Preview
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+  actions: read
+
+jobs:
+  check-preview-request:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/preview') }}
+    name: Check Preview Request
+    runs-on: ubuntu-latest
+    outputs:
+      pr-ref: ${{ steps.pr-details.outputs.ref }}
+      pr-sha: ${{ steps.pr-details.outputs.sha }}
+      pr-number: ${{ steps.pr-details.outputs.number }}
+
+    steps:
+      - name: Get PR details
+        uses: actions/github-script@v7
+        id: pr-details
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('ref', pullRequest.head.ref);
+            core.setOutput('sha', pullRequest.head.sha);
+            core.setOutput('number', context.issue.number);
+
+      - name: React to comment (optimized)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Opérations parallèles
+            await Promise.all([
+              github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket'
+              }),
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to KIND...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              })
+            ]);
+
+
+  run-ci:
+    name: Run CI
+    needs: check-preview-request
+    uses: ./.github/workflows/ci.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+      FROM_NAME: ${{ secrets.FROM_NAME }}
+
+  build-and-deploy:
+    name: Build Images & Deploy on Preview
+    runs-on: self-hosted
+    needs: [check-preview-request, run-ci]
+    if: needs.run-ci.outputs.build-success == 'true'
+
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ secrets.NEXUS_PREVIEW }}"]
+              http = true
+              insecure = true
+
+      - name: Login to Nexus Registry
+        run: |
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
+
+      - name: Build and push frontend preview image
+        if: needs.run-ci.outputs.frontend-changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          secrets: |
+            "clerk_publishable_key=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}"
+            "clerk_secret_key=${{ secrets.CLERK_SECRET_KEY }}"
+          build-args: |
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+            NEXT_PUBLIC_API_URL=http://${{ steps.server-ip.outputs.ip }}:30081
+          tags: |
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
+            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            

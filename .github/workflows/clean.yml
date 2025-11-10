@@ -15,49 +15,9 @@ jobs:
     runs-on: self-hosted
     
     steps:
-      - name: Configure kubectl for KIND
-        run: |
-          # Configurer kubectl pour utiliser KIND si le cluster existe
-          if kind get clusters | grep -q "preview-cluster"; then
-            kubectl config use-context kind-preview-cluster
-          else
-            echo "KIND cluster not found, skipping kubectl configuration"
-          fi
-
-      - name: Delete preview namespace
-        run: |
-          # Supprimer le namespace s'il existe
-          if kubectl get namespace preview-pr-${{ github.event.pull_request.number }} 2>/dev/null; then
-            kubectl delete namespace preview-pr-${{ github.event.pull_request.number }} --ignore-not-found=true
-            echo "Namespace preview-pr-${{ github.event.pull_request.number }} deleted"
-          else
-            echo "Namespace preview-pr-${{ github.event.pull_request.number }} not found"
-          fi
-
-      - name: Clean KIND cluster if no more previews
-        run: |
-          # Vérifier s'il reste des namespaces preview
-          PREVIEW_NAMESPACES=$(kubectl get namespaces --no-headers 2>/dev/null | grep "preview-pr-" | wc -l || echo "0")
-          
-          if [ "$PREVIEW_NAMESPACES" -eq 0 ]; then
-            echo "No more preview namespaces, deleting KIND cluster..."
-            kind delete cluster --name preview-cluster || echo "KIND cluster already deleted or not found"
-          else
-            echo "Still $PREVIEW_NAMESPACES preview namespace(s) remaining, keeping KIND cluster"
-          fi
+      - name: Stop and delete preview instance
 
       - name: Delete preview Docker images
-        run: |
-          # Supprimer les images frontend depuis Nexus
-          docker rmi ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ github.event.pull_request.number }} || true
-          docker rmi ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ github.event.pull_request.head.sha }} || true
-          
-          # Supprimer les images backend depuis Nexus (si elles existent)
-          docker rmi ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ github.event.pull_request.number }} || true
-          docker rmi ${{ secrets.NEXUS_PREVIEW }}/finance4all-backend:preview-${{ github.event.pull_request.head.sha }} || true
-          
-          # Nettoyer les images dangling
-          docker image prune -f || true
 
       - name: Comment PR cleanup
         uses: actions/github-script@v7
