@@ -6,10 +6,11 @@ import { InstitutionStatus } from '@/types/Institution';
 // Mock du hook useGetInstitutions
 jest.mock('@/hooks/institution/useGetInstitutions');
 
-// Mock des icônes Lucide
+// Mock des icônes Lucide utilisés par le composant
 jest.mock('lucide-react', () => ({
+  Building2: (props: any) => <div data-testid='building2-icon' {...props} />,
   CheckCircle2: (props: any) => <div data-testid='check-circle-icon' {...props} />,
-  Ban: (props: any) => <div data-testid='ban-icon' {...props} />,
+  AlertCircle: (props: any) => <div data-testid='alert-circle-icon' {...props} />,
   Archive: (props: any) => <div data-testid='archive-icon' {...props} />,
   Settings: (props: any) => <div data-testid='settings-icon' {...props} />,
 }));
@@ -21,8 +22,8 @@ describe('InstitutionsStats', () => {
     jest.clearAllMocks();
   });
 
-  describe('Rendering with default/empty data', () => {
-    it('renders without crashing when no data is provided', () => {
+  describe('Rendering avec données vides par défaut', () => {
+    it('rend sans crash quand aucune donnée', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -34,7 +35,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('Total')).toBeInTheDocument();
     });
 
-    it('renders all 5 stat cards', () => {
+    it('rend les 5 cartes de stats', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -47,7 +48,7 @@ describe('InstitutionsStats', () => {
       expect(cards.length).toBe(5);
     });
 
-    it('displays all card titles correctly', () => {
+    it('affiche tous les titres de cartes', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -63,7 +64,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('En attente')).toBeInTheDocument();
     });
 
-    it('shows 0 for all stats when no institutions exist', () => {
+    it('affiche 0 pour toutes les stats sans institutions', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -77,8 +78,8 @@ describe('InstitutionsStats', () => {
     });
   });
 
-  describe('Data calculation and display', () => {
-    it('calculates total from pagination when available', () => {
+  describe('Calcul des données et affichage', () => {
+    it('calcule le total depuis pagination quand disponible', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE, services: [] },
@@ -93,7 +94,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('150')).toBeInTheDocument();
     });
 
-    it('calculates total from institutions length when pagination is not available', () => {
+    it("calcule le total depuis la longueur d'institutions si pas de pagination", () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE, services: [] },
@@ -109,7 +110,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('3')).toBeInTheDocument();
     });
 
-    it('counts active institutions correctly', () => {
+    it('compte correctement les actives', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE, services: [] },
@@ -125,7 +126,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('2')).toBeInTheDocument();
     });
 
-    it('counts inactive institutions correctly', () => {
+    it('compte correctement les inactives', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE, services: [] },
@@ -141,7 +142,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('2')).toBeInTheDocument();
     });
 
-    it('counts pending institutions correctly', () => {
+    it('compte correctement les en attente', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.PENDING, services: [] },
@@ -153,12 +154,12 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const pendingTitle = screen.getByText('En attente');
-      const pendingValue = pendingTitle.previousElementSibling as HTMLElement;
-      expect(pendingValue).toHaveTextContent('1');
+      const title = screen.getByText('En attente');
+      const valueEl = title.previousElementSibling as HTMLElement; // la valeur est juste avant le titre
+      expect(valueEl).toHaveTextContent('1');
     });
 
-    it('always shows 0 for archived institutions', () => {
+    it('affiche toujours 0 pour Archivées', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [{ id: '1', status: InstitutionStatus.ACTIVE, services: [] }],
         pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
@@ -167,13 +168,14 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const archiveCard = screen.getByText('Archivées').closest('.bg-white');
-      expect(archiveCard?.querySelector('.text-2xl')).toHaveTextContent('0');
+      const title = screen.getByText('Archivées');
+      const valueEl = title.previousElementSibling as HTMLElement;
+      expect(valueEl).toHaveTextContent('0');
     });
   });
 
-  describe('Services calculation', () => {
-    it('handles institutions without services property', () => {
+  describe('Services (tolérance)', () => {
+    it('gère les institutions sans propriété services', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE },
@@ -187,7 +189,7 @@ describe('InstitutionsStats', () => {
       expect(() => render(<InstitutionsStats />)).not.toThrow();
     });
 
-    it('handles institutions with null services', () => {
+    it('gère services = null', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [{ id: '1', status: InstitutionStatus.ACTIVE, services: null }],
         pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
@@ -198,7 +200,7 @@ describe('InstitutionsStats', () => {
       expect(() => render(<InstitutionsStats />)).not.toThrow();
     });
 
-    it('handles institutions with empty services array', () => {
+    it('gère services = []', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [{ id: '1', status: InstitutionStatus.ACTIVE, services: [] }],
         pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
@@ -210,8 +212,8 @@ describe('InstitutionsStats', () => {
     });
   });
 
-  describe('Icons rendering', () => {
-    it('renders CheckCircle2 icon for Total card', () => {
+  describe('Rendu des icônes', () => {
+    it('rend Building2 pour la carte Total', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -220,11 +222,10 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const checkIcons = screen.getAllByTestId('check-circle-icon');
-      expect(checkIcons.length).toBeGreaterThanOrEqual(2);
+      expect(screen.getByTestId('building2-icon')).toBeInTheDocument();
     });
 
-    it('renders Ban icon for Inactives card', () => {
+    it('rend CheckCircle2 pour la carte Actives', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -233,10 +234,22 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      expect(screen.getByTestId('ban-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('check-circle-icon')).toBeInTheDocument();
     });
 
-    it('renders Archive icon for Archivées card', () => {
+    it('rend AlertCircle pour la carte Inactives', () => {
+      mockUseGetInstitutions.mockReturnValue({
+        institutions: [],
+        pagination: undefined,
+        isLoading: false,
+        error: null,
+      } as any);
+
+      render(<InstitutionsStats />);
+      expect(screen.getByTestId('alert-circle-icon')).toBeInTheDocument();
+    });
+
+    it('rend Archive pour la carte Archivées', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -248,7 +261,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByTestId('archive-icon')).toBeInTheDocument();
     });
 
-    it('renders Settings icon for En attente card', () => {
+    it('rend Settings pour la carte En attente', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -261,8 +274,8 @@ describe('InstitutionsStats', () => {
     });
   });
 
-  describe('Styling and layout', () => {
-    it('uses responsive grid layout', () => {
+  describe('Style & layout', () => {
+    it('utilise une grille responsive', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -277,11 +290,11 @@ describe('InstitutionsStats', () => {
         'grid-cols-1',
         'sm:grid-cols-2',
         'lg:grid-cols-5',
-        'gap-5'
+        'gap-4' // mis à jour (était gap-5)
       );
     });
 
-    it('applies correct badge color for Total card', () => {
+    it('badge couleurs: Total (hex classes)', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -290,12 +303,13 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const totalBadge = screen.getByText('Total').previousElementSibling
+      const totalTitle = screen.getByText('Total');
+      const iconContainer = totalTitle.previousElementSibling
         ?.previousElementSibling as HTMLElement;
-      expect(totalBadge).toHaveClass('bg-sky-100', 'text-sky-600');
+      expect(iconContainer).toHaveClass('bg-[#6EC1E41A]', 'text-[#6EC1E4]');
     });
 
-    it('applies correct badge color for Actives card', () => {
+    it('badge couleurs: Actives', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -304,12 +318,12 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const activesBadge = screen.getByText('Actives').previousElementSibling
-        ?.previousElementSibling as HTMLElement;
-      expect(activesBadge).toHaveClass('bg-emerald-100', 'text-emerald-600');
+      const t = screen.getByText('Actives');
+      const el = t.previousElementSibling?.previousElementSibling as HTMLElement;
+      expect(el).toHaveClass('bg-[#16A34A1A]', 'text-[#16A34A]');
     });
 
-    it('applies correct badge color for Inactives card', () => {
+    it('badge couleurs: Inactives', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -318,12 +332,12 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const inactivesBadge = screen.getByText('Inactives').previousElementSibling
-        ?.previousElementSibling as HTMLElement;
-      expect(inactivesBadge).toHaveClass('bg-amber-100', 'text-amber-600');
+      const t = screen.getByText('Inactives');
+      const el = t.previousElementSibling?.previousElementSibling as HTMLElement;
+      expect(el).toHaveClass('bg-[#F59E0B1A]', 'text-[#F59E0B]');
     });
 
-    it('applies correct badge color for Archivées card', () => {
+    it('badge couleurs: Archivées', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -332,12 +346,12 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const archivesBadge = screen.getByText('Archivées').previousElementSibling
-        ?.previousElementSibling as HTMLElement;
-      expect(archivesBadge).toHaveClass('bg-zinc-100', 'text-zinc-600');
+      const t = screen.getByText('Archivées');
+      const el = t.previousElementSibling?.previousElementSibling as HTMLElement;
+      expect(el).toHaveClass('bg-[#E9ECEF]', 'text-[#6C757D]');
     });
 
-    it('applies correct badge color for En attente card', () => {
+    it('badge couleurs: En attente', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -346,12 +360,12 @@ describe('InstitutionsStats', () => {
       } as any);
 
       render(<InstitutionsStats />);
-      const pendingBadge = screen.getByText('En attente').previousElementSibling
-        ?.previousElementSibling as HTMLElement;
-      expect(pendingBadge).toHaveClass('bg-fuchsia-100', 'text-fuchsia-600');
+      const t = screen.getByText('En attente');
+      const el = t.previousElementSibling?.previousElementSibling as HTMLElement;
+      expect(el).toHaveClass('bg-[#F3E8FF]', 'text-[#8200DB]');
     });
 
-    it('applies card styling with shadow', () => {
+    it('carte avec ombre et conteneur attendu', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -367,7 +381,7 @@ describe('InstitutionsStats', () => {
       }
     });
 
-    it('applies icon container styling', () => {
+    it("style du conteneur d'icône (h-11 w-11)", () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -376,11 +390,11 @@ describe('InstitutionsStats', () => {
       } as any);
 
       const { container } = render(<InstitutionsStats />);
-      const iconContainers = container.querySelectorAll('.h-9.w-9.rounded-xl');
+      const iconContainers = container.querySelectorAll('.h-11.w-11.rounded-xl');
       expect(iconContainers.length).toBe(5);
     });
 
-    it('applies value text styling', () => {
+    it('style du texte valeur (text-4xl + classes)', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -390,12 +404,12 @@ describe('InstitutionsStats', () => {
 
       const { container } = render(<InstitutionsStats />);
       const values = container.querySelectorAll(
-        '.text-2xl.font-semibold.tracking-tight.text-slate-800'
+        '.text-4xl.leading-none.text-secondary-300.tracking-tight'
       );
       expect(values.length).toBe(5);
     });
 
-    it('applies title text styling', () => {
+    it('style du titre (text-sm + classes)', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -404,13 +418,15 @@ describe('InstitutionsStats', () => {
       } as any);
 
       const { container } = render(<InstitutionsStats />);
-      const titles = container.querySelectorAll('.text-sm.text-slate-500');
+      const titles = container.querySelectorAll(
+        '.text-sm.font-normal.text-tertiary-400.text-muted-foreground.tracking-wide'
+      );
       expect(titles.length).toBe(5);
     });
   });
 
-  describe('Edge cases and complex scenarios', () => {
-    it('handles mixed status institutions', () => {
+  describe('Cas limites & scénarios complexes', () => {
+    it('gère un mix de statuts', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [
           { id: '1', status: InstitutionStatus.ACTIVE, services: [] },
@@ -435,7 +451,7 @@ describe('InstitutionsStats', () => {
       expect(inactivesValue).toHaveTextContent('1');
     });
 
-    it('handles large numbers correctly', () => {
+    it('gère les grands nombres', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: new Array(100).fill(null).map((_, i) => ({
           id: `${i}`,
@@ -452,7 +468,7 @@ describe('InstitutionsStats', () => {
       expect(screen.getByText('100')).toBeInTheDocument();
     });
 
-    it('handles when pagination total is 0', () => {
+    it('gère pagination total = 0', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
@@ -465,7 +481,7 @@ describe('InstitutionsStats', () => {
       expect(values.length).toBe(5);
     });
 
-    it('renders correctly when hook returns null pagination', () => {
+    it('rend correctement quand pagination = null', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [{ id: '1', status: InstitutionStatus.ACTIVE, services: [] }],
         pagination: null,
@@ -479,8 +495,8 @@ describe('InstitutionsStats', () => {
     });
   });
 
-  describe('Component structure', () => {
-    it('renders cards in correct order', () => {
+  describe('Structure du composant', () => {
+    it('rend les cartes dans le bon ordre', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -497,7 +513,7 @@ describe('InstitutionsStats', () => {
       expect(titles[4]).toHaveTextContent('En attente');
     });
 
-    it('each card has unique key', () => {
+    it('chaque carte a une clé unique (contenu distinct)', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -507,14 +523,14 @@ describe('InstitutionsStats', () => {
 
       const { container } = render(<InstitutionsStats />);
       const cards = container.querySelectorAll('.bg-white');
-      const keys = Array.from(cards).map((card, index) => card.textContent);
+      const keys = Array.from(cards).map(card => card.textContent);
       const uniqueKeys = new Set(keys);
       expect(uniqueKeys.size).toBe(5);
     });
   });
 
-  describe('Hook integration', () => {
-    it('calls useGetInstitutions with correct parameters', () => {
+  describe('Intégration du hook', () => {
+    it('appelle useGetInstitutions avec les bons paramètres', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,
@@ -526,7 +542,7 @@ describe('InstitutionsStats', () => {
       expect(mockUseGetInstitutions).toHaveBeenCalledWith({ page: 1, limit: 10 });
     });
 
-    it('calls useGetInstitutions hook only once', () => {
+    it("n'appelle le hook qu'une seule fois", () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         pagination: undefined,

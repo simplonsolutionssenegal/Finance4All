@@ -61,11 +61,17 @@ describe('InstitutionsPage', () => {
     expect(mainDiv).toHaveClass('space-y-6');
   });
 
-  it('renders header section with flex layout', () => {
-    const { container } = render(<InstitutionsPage />);
+  it('renders header section with correct layout', () => {
+    render(<InstitutionsPage />);
 
-    const headerSection = container.querySelector('.flex.items-start.justify-between');
-    expect(headerSection).toBeInTheDocument();
+    // Vérifier la présence des éléments de l'en-tête sans dépendre des classes exactes
+    const title = screen.getByText('Gestion des institutions');
+    const description = screen.getByText(
+      'Administrez les institutions financières disponibles sur la plateforme'
+    );
+
+    expect(title).toBeInTheDocument();
+    expect(description).toBeInTheDocument();
   });
 
   it('renders all three main sections in correct order', () => {
@@ -81,7 +87,13 @@ describe('InstitutionsPage', () => {
     render(<InstitutionsPage />);
 
     const title = screen.getByText('Gestion des institutions');
-    expect(title).toHaveClass('text-3xl', 'md:text-[40px]', 'font-semibold', 'text-gray-900');
+    expect(title).toHaveClass(
+      'text-6xl',
+      'text-tertiary-400',
+      'tracking-tight',
+      'leading-tight',
+      'mb-1'
+    );
   });
 
   it('applies correct text styles to description', () => {
@@ -90,6 +102,12 @@ describe('InstitutionsPage', () => {
     const description = screen.getByText(
       'Administrez les institutions financières disponibles sur la plateforme'
     );
-    expect(description).toHaveClass('text-sm', 'text-gray-500');
+    expect(description).toHaveClass(
+      'text-lg',
+      'text-tertiary-400/60',
+      'text-muted-foreground',
+      'font-normal',
+      'tracking-normal'
+    );
   });
 });

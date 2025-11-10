@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Ban, Archive, Settings } from 'lucide-react';
+import { Building2, CheckCircle2, AlertCircle, Archive, Settings } from 'lucide-react';
 
 import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
 import { InstitutionStatus } from '@/types/Institution';
@@ -11,64 +11,70 @@ export default function InstitutionsStats() {
   const total = pagination?.total ?? institutions.length ?? 0;
   const actives = institutions.filter(i => i.status === InstitutionStatus.ACTIVE).length;
   const inactives = institutions.filter(i => i.status === InstitutionStatus.INACTIVE).length;
+  const archived = 0; // Pas encore de statut archived
   const pending = institutions.filter(i => i.status === InstitutionStatus.PENDING).length;
 
   const cards = [
     {
       title: 'Total',
       value: total,
-      icon: CheckCircle2,
-      badge: 'bg-sky-100 text-sky-600',
+      icon: Building2,
+      badge: 'bg-[#6EC1E41A] text-[#6EC1E4]',
     },
     {
       title: 'Actives',
       value: actives,
       icon: CheckCircle2,
-      badge: 'bg-emerald-100 text-emerald-600',
+      badge: 'bg-[#16A34A1A] text-[#16A34A]',
     },
     {
       title: 'Inactives',
       value: inactives,
-      icon: Ban,
-      badge: 'bg-amber-100 text-amber-600',
+      icon: AlertCircle,
+      badge: 'bg-[#F59E0B1A] text-[#F59E0B]',
     },
     {
       title: 'Archivées',
-      value: 0,
+      value: archived,
       icon: Archive,
-      badge: 'bg-zinc-100 text-zinc-600',
+      badge: 'bg-[#E9ECEF] text-[#6C757D]',
     },
     {
       title: 'En attente',
       value: pending,
       icon: Settings,
-      badge: 'bg-fuchsia-100 text-fuchsia-600',
+      badge: 'bg-[#F3E8FF] text-[#8200DB]',
     },
   ];
 
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5'>
+    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
       {cards.map(({ title, value, icon: Icon, badge }) => (
         <div
           key={title}
           className='
             relative overflow-hidden
             rounded-2xl bg-white
-            p-5 sm:p-6
-            /* shadow compact & prononcé (deux couches, peu étalé) */
-            shadow-[0_10px_22px_-10px_rgba(0,0,0,.35),0_4px_10px_-4px_rgba(0,0,0,.25)]
+            p-6
+            h-[220px]
+            flex flex-col justify-between
+            shadow-[0_5px_8px_rgba(0,0,0,0.1)]
+            transition-shadow duration-200
+            hover:shadow-[0_7px_14px_rgba(0,0,0,0.1)]
           '
         >
-          {/* pastille icône */}
-          <div className={`inline-flex items-center justify-center h-9 w-9 rounded-xl ${badge}`}>
-            <Icon className='h-5 w-5' />
+          {/* Icône en haut */}
+          <div className={`inline-flex items-center justify-center h-11 w-11 rounded-xl ${badge}`}>
+            <Icon className='h-5 w-5' strokeWidth={2} />
           </div>
 
-          {/* valeur bien visible */}
-          <div className='mt-6 text-2xl font-semibold tracking-tight text-slate-800'>{value}</div>
+          {/* Valeur (nombre) */}
+          <div className='text-4xl leading-none text-secondary-300 tracking-tight'>{value}</div>
 
-          {/* libellé en bas à gauche */}
-          <div className='mt-8 text-sm text-slate-500'>{title}</div>
+          {/* Titre (libellé) */}
+          <div className='text-sm font-normal text-tertiary-400 text-muted-foreground tracking-wide'>
+            {title}
+          </div>
         </div>
       ))}
     </div>

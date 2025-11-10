@@ -10,11 +10,11 @@ export default function NewInstitutionButton() {
       onClick={() => {
         globalThis.dispatchEvent(new CustomEvent('open-institution-modal'));
       }}
-      className='bg-teal-500 hover:bg-teal-600 text-white rounded-xl gap-2 h-10 px-4'
-      style={{ backgroundColor: 'var(--primary-200)' }}
+      className='h-11 px-5 rounded-xl gap-2 text-white font-medium text-[15px] transition-all'
+      style={{ backgroundColor: 'var(--primary-300)' }}
     >
-      <Plus className='w-5 h-5' />
-      <span className='hidden sm:inline'>Nouvelle institution</span>
+      <Plus className='w-5 h-5' strokeWidth={2.5} />
+      <span>Nouvelle institution</span>
     </Button>
   );
 }

@@ -5,20 +5,26 @@ import NewInstitutionButton from '@/components/admin/institutions/NewInstitution
 export default function InstitutionsPage() {
   return (
     <div className='space-y-6'>
-      <div className='flex items-start justify-between'>
+      {/* Header */}
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl md:text-[40px] font-semibold text-gray-900'>
+          <h1 className='text-6xl text-tertiary-400 tracking-tight leading-tight mb-1'>
             Gestion des institutions
           </h1>
-          <p className='text-sm text-gray-500'>
+          <p className='text-lg text-tertiary-400/60 text-muted-foreground font-normal tracking-normal'>
             Administrez les institutions financières disponibles sur la plateforme
           </p>
         </div>
 
-        <NewInstitutionButton />
+        <div className='flex-shrink-0 ml-6'>
+          <NewInstitutionButton />
+        </div>
       </div>
 
+      {/* Stats Cards */}
       <InstitutionsStats />
+
+      {/* Table */}
       <InstitutionsList />
     </div>
   );

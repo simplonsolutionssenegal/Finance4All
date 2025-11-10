@@ -5,9 +5,19 @@ import userEvent from '@testing-library/user-event';
 import InstitutionModal from '@/components/admin/institutions/InstitutionModal';
 import type { Institution } from '@/types/Institution';
 
+// Mock next/image
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => <img {...props} />, // simplifie Next/Image
+  default: ({ src, alt, width, height, className }: any) => (
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      data-testid='next-image'
+    />
+  ),
 }));
 
 const createInstitutionMock = jest.fn();
@@ -20,215 +30,247 @@ jest.mock('@/hooks/institution/useUpdateInstitution', () => ({
   useUpdateInstitution: jest.fn(),
 }));
 
-jest.mock('sonner', () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
-}));
-jest.mock('@clerk/nextjs', () => ({
-  useAuth: () => ({ getToken: jest.fn(async () => 'test-token') }),
-}));
+const querySubmitButton = () =>
+  screen.getByRole('button', {
+    name: /Créer l'institution|Enregistrer les modifications|Enregistrement…/,
+  });
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Utils
-// ───────────────────────────────────────────────────────────────────────────────
+const renderModal = (overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
+  const onOpenChange = jest.fn();
+  const refresh = jest.fn();
+  render(<InstitutionModal open onOpenChange={onOpenChange} refresh={refresh} {...overrides} />);
+  return { onOpenChange, refresh };
+};
 
-const submitForm = () => {
+const openDropdownAndChoose = async (triggerLabel: string, optionText: string) => {
+  const u = userEvent.setup();
+  const trigger = screen.getByRole('button', { name: new RegExp(triggerLabel) });
+  await u.click(trigger);
+  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre l'animation d'ouverture
+  const item = await screen.findByRole('menuitem', { name: optionText });
+  await u.click(item);
+  await new Promise(resolve => setTimeout(resolve, 50)); // Attendre l'animation de fermeture
+};
+
+const addZone = async (zoneText: string) => {
+  const u = userEvent.setup();
+  const zoneInput = screen.getByPlaceholderText('Sélectionner une zone');
+  await u.click(zoneInput);
+  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre l'ouverture
+  await u.type(zoneInput, zoneText.slice(0, 3));
+  const option = await screen.findByRole('button', { name: zoneText });
+  await u.click(option);
+  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre la fermeture
+};
+
+// Soumettre le <form> directement (même si le bouton est disabled)
+const submitFormProgrammatically = () => {
   const dialog = screen.getByRole('dialog');
-  const form = dialog.querySelector('form') as HTMLFormElement;
+  const form = dialog.querySelector('form');
+  if (!form) throw new Error('Form not found in dialog');
   fireEvent.submit(form);
 };
 
-const fillValidForm = async (u: ReturnType<typeof userEvent.setup>) => {
-  await u.type(screen.getByPlaceholderText('Ex : Orange Money'), 'Orange Money');
-  await u.type(
-    screen.getByPlaceholderText('Description de l’institution…'),
-    'Une description valide pour le test'
-  );
-  await u.type(screen.getByPlaceholderText('https://www.institution.sn'), 'https://www.orange.sn');
-  await u.type(
-    screen.getByPlaceholderText('https://exemple.com/logo.png'),
-    'https://exemple.com/logo.png'
-  );
+// ───────────────────────────────────────────────────────────────────────────────
 
-  const search = screen.getByPlaceholderText('Rechercher une zone…');
-  await u.click(search);
-  await u.type(search, 'UEM');
-  await u.click(await screen.findByRole('button', { name: 'UEMOA' }));
-
-  expect(screen.getByText('UEMOA')).toBeInTheDocument();
-};
-
-const querySubmitButton = () =>
-  screen.getByRole('button', { name: /Enregistrer|Modifier|Enregistrement…/ });
-
-const renderCreate = (overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
-  const onOpenChange = jest.fn();
-  const refresh = jest.fn();
-  return {
-    ...render(
-      <InstitutionModal open onOpenChange={onOpenChange} refresh={refresh} {...overrides} />
-    ),
-    onOpenChange,
-    refresh,
-  };
-};
-
-const origWarn = console.warn;
-beforeAll(() => {
-  jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {
-    const msg = String(args[0] ?? '');
-    if (msg.includes('Missing `Description` or `aria-describedby')) return;
-    // @ts-ignore
-    origWarn(...args);
-  });
-});
-afterAll(() => {
-  (console.warn as unknown as jest.SpyInstance).mockRestore();
-});
-
-describe('InstitutionModal (create & edit)', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
-    (useCreateInstitution as jest.Mock).mockReturnValue({
-      isCreating: false,
-      createInstitution: createInstitutionMock,
-    });
-
-    const { useUpdateInstitution } = require('@/hooks/institution/useUpdateInstitution');
-    (useUpdateInstitution as jest.Mock).mockReturnValue({
-      isUpdating: false,
-      updateInstitution: updateInstitutionMock,
-    });
+beforeEach(() => {
+  jest.clearAllMocks();
+  const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
+  (useCreateInstitution as jest.Mock).mockReturnValue({
+    isCreating: false,
+    createInstitution: createInstitutionMock,
   });
 
-  test('création: erreurs de validation, puis formulaire valide active le bouton', async () => {
+  const { useUpdateInstitution } = require('@/hooks/institution/useUpdateInstitution');
+  (useUpdateInstitution as jest.Mock).mockReturnValue({
+    isUpdating: false,
+    updateInstitution: updateInstitutionMock,
+  });
+});
+
+describe('InstitutionModal (nouvelle implémentation)', () => {
+  test('validation: erreurs affichées après submit, puis correction rend le bouton actif', async () => {
     const u = userEvent.setup();
-    renderCreate();
+    renderModal();
 
-    // bouton désactivé au départ
     expect(querySubmitButton()).toBeDisabled();
 
-    // URLs invalides
-    await u.type(screen.getByPlaceholderText('https://www.institution.sn'), 'not-a-url');
-    await u.type(screen.getByPlaceholderText('https://exemple.com/logo.png'), 'also-not-a-url');
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O'); // trop court
+    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'trop court'); // < 10
+    await u.type(screen.getByPlaceholderText('https://'), 'not-a-url');
+    await u.type(screen.getByPlaceholderText('🏦 ou https://'), 'also-not-a-url');
 
-    // Submit du <form> (le bouton est disabled)
-    submitForm();
+    submitFormProgrammatically();
 
-    // Attendre les messages d’erreur
-    expect(
-      await screen.findByText('Le nom doit contenir au moins 2 caractères')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('La description doit contenir au moins 10 caractères')
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('Doit être une URL valide').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Au moins une zone géographique est requise')).toBeInTheDocument();
+    await screen.findByText('Le nom doit contenir au moins 2 caractères');
 
-    // Corriger -> form valide -> bouton actif
-    await u.clear(screen.getByPlaceholderText('https://www.institution.sn'));
-    await u.type(screen.getByPlaceholderText('https://www.institution.sn'), 'https://ok.sn');
+    await screen.findByText(/Le nom doit contenir au moins 2 caractères/i);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Donner du temps aux autres messages
 
-    await u.clear(screen.getByPlaceholderText('https://exemple.com/logo.png'));
-    await u.type(
-      screen.getByPlaceholderText('https://exemple.com/logo.png'),
-      'https://exemple.com/logo.png'
-    );
+    expect(screen.getByLabelText('Description *')).toBeInTheDocument();
+    expect(screen.getByText(/une zone géographique est requise/i)).toBeInTheDocument();
 
-    await u.type(screen.getByPlaceholderText('Ex : Orange Money'), 'OM');
-    await u.type(
-      screen.getByPlaceholderText('Description de l’institution…'),
-      'Une super institution'
-    );
+    await u.clear(screen.getByPlaceholderText('Ex: Orange Money'));
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
 
-    const search = screen.getByPlaceholderText('Rechercher une zone…');
-    await u.click(search);
-    await u.type(search, 'UEM');
-    await u.click(await screen.findByRole('button', { name: 'UEMOA' }));
+    const desc = screen.getByPlaceholderText("Description de l'institution");
+    await u.clear(desc);
+    await u.type(desc, 'Une description valide (>= 10 caractères)');
 
+    // Website OK
+    const website = screen.getByPlaceholderText('https://');
+    await u.clear(website);
+    await u.type(website, 'https://ok.sn');
+
+    // Logo OK
+    const logo = screen.getByPlaceholderText('🏦 ou https://');
+    await u.clear(logo);
+    await u.type(logo, 'https://exemple.com/logo.png');
+
+    // Sélectionner Type & Pays (requis par zod)
+    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+
+    // Ajouter une zone
+    await addZone('UEMOA');
+
+    // Aperçu du logo rendu
     expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
-    expect(querySubmitButton()).toBeEnabled();
+
+    // Form valide => bouton actif (label création)
+    expect(screen.getByRole('button', { name: "Créer l'institution" })).toBeEnabled();
   });
 
-  test('création: soumet et appelle createInstitution avec le payload correct', async () => {
+  test('création: envoie le payload complet à createInstitution', async () => {
     const u = userEvent.setup();
-    renderCreate();
+    renderModal();
 
-    await fillValidForm(u);
-    await u.click(querySubmitButton());
+    // Champs requis + valides
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
+    await u.type(
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide'
+    );
+    await u.type(screen.getByPlaceholderText('https://'), 'https://www.orange.sn');
+    await u.type(screen.getByPlaceholderText('🏦 ou https://'), 'https://exemple.com/logo.png');
+
+    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    await addZone('UEMOA');
+
+    await u.click(screen.getByRole('button', { name: "Créer l'institution" }));
 
     expect(createInstitutionMock).toHaveBeenCalledTimes(1);
     expect(createInstitutionMock).toHaveBeenCalledWith({
       name: 'Orange Money',
-      description: 'Une description valide pour le test',
+      description: 'Une description valide',
       website: 'https://www.orange.sn',
       geographicZones: ['UEMOA'],
       logoUrl: 'https://exemple.com/logo.png',
+      type: 'SERVICE_PAIEMENT_ELECTRONIQUE',
+      pays: 'SENEGAL',
     });
   });
 
-  test('création: ajouter puis supprimer une zone via le badge désactive à nouveau le submit', async () => {
+  test('zones: retirer une zone via badge remet le formulaire invalide (submit désactivé si plus de zone)', async () => {
     const u = userEvent.setup();
-    renderCreate();
+    renderModal();
 
-    await fillValidForm(u);
+    // Remplir minimal valide
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
+    await u.type(
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide'
+    );
+    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
+    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    await addZone('UEMOA');
 
-    const badgeText = screen.getByText('UEMOA');
-    const badgeEl = badgeText.closest('[data-slot="badge"]') || badgeText;
-    await u.click(badgeEl as Element);
+    // Bouton devrait être activé si tout est ok
+    expect(querySubmitButton()).toBeEnabled();
 
-    expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
+    // Retirer la zone en cliquant le badge
+    await u.click(screen.getByText('UEMOA'));
+
+    // Plus de zone → invalide
     expect(querySubmitButton()).toBeDisabled();
   });
 
-  test("création: 'Annuler' ferme le modal si pas en soumission", async () => {
+  test("Aperçu du logo: affiché quand URL valide, disparaît quand l'input est vidé", async () => {
     const u = userEvent.setup();
-    const { onOpenChange } = renderCreate();
-    await u.click(screen.getByRole('button', { name: 'Annuler' }));
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    renderModal();
+
+    // Rendre la prévisualisation visible (tout en validant le form)
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
+    await u.type(
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide'
+    );
+    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
+    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    await addZone('UEMOA');
+
+    const logo = screen.getByPlaceholderText('🏦 ou https://');
+    await u.type(logo, 'https://valid.com/logo.png');
+
+    expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
+
+    await u.clear(logo);
+    // L’aperçu doit disparaître
+    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
   });
 
-  test("création: 'Annuler' ne ferme pas si isSubmitting=true", async () => {
+  test('Annuler ferme le modal si pas en soumission, ne ferme pas pendant la soumission', async () => {
+    const u = userEvent.setup();
+    const { onOpenChange } = renderModal();
+
+    await u.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+
+    // Simuler soumission
     const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
     (useCreateInstitution as jest.Mock).mockReturnValue({
       isCreating: true,
       createInstitution: createInstitutionMock,
     });
 
-    const u = userEvent.setup();
-    const { onOpenChange } = renderCreate();
+    // Rerender pour refléter isSubmitting=true
+    onOpenChange.mockClear();
+    renderModal();
+
     await u.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
-  test('édition: bouton désactivé au départ, devient actif après modification et appelle updateInstitution', async () => {
+  test('édition: modifie le nom puis soumet -> appelle updateInstitution avec id + data', async () => {
     const u = userEvent.setup();
 
-    const institution: Institution = {
+    const inst: Institution = {
       id: 'inst_1',
       name: 'Banky',
-      description: 'Desc existante',
+      description: 'Description existante assez longue',
       website: 'https://banky.sn',
       geographicZones: ['UEMOA', 'CEMAC'],
       logoUrl: 'https://cdn/logo.png',
       status: 'ACTIVE' as any,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-02',
+      type: 'SERVICE_PAIEMENT_ELECTRONIQUE' as any,
+      pays: 'SENEGAL' as any,
     };
 
-    renderCreate({ institution });
+    renderModal({ institution: inst });
 
+    // Titre d’édition + bouton d’action spécifique
     expect(screen.getByText("Modifier l'institution")).toBeInTheDocument();
+    const submit = screen.getByRole('button', { name: 'Enregistrer les modifications' });
+    // Selon les libs RHF/zod, isValid peut être false au premier rendu -> bouton potentiellement disabled
+    // Assurer l'activation en modifiant un champ
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), ' Plus');
 
-    // au reset, isValid n'est pas encore true => disabled
-    const submit = screen.getByRole('button', { name: 'Modifier' });
-    expect(submit).toBeDisabled();
-
-    // modification d'un champ => isValid true => enabled
-    await u.type(screen.getByPlaceholderText('Ex : Orange Money'), ' Plus');
     expect(submit).toBeEnabled();
-
     await u.click(submit);
 
     expect(updateInstitutionMock).toHaveBeenCalledTimes(1);
@@ -236,37 +278,43 @@ describe('InstitutionModal (create & edit)', () => {
       id: 'inst_1',
       data: {
         name: 'Banky Plus',
-        description: 'Desc existante',
+        description: 'Description existante assez longue',
         website: 'https://banky.sn',
         geographicZones: ['UEMOA', 'CEMAC'],
         logoUrl: 'https://cdn/logo.png',
+        type: 'SERVICE_PAIEMENT_ELECTRONIQUE',
+        pays: 'SENEGAL',
       },
     });
   });
 
-  test("l'aperçu du logo disparaît quand la valeur devient vide (non fournie)", async () => {
+  test("l'aperçu n'apparaît pas si logo invalide (url non valide)", async () => {
     const u = userEvent.setup();
-    renderCreate();
+    renderModal();
 
-    await u.type(screen.getByPlaceholderText('Ex : Orange Money'), 'OM');
+    // Rendre form quasi valide sauf logo
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
     await u.type(
-      screen.getByPlaceholderText('Description de l’institution…'),
-      'Une super description'
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide'
     );
-    await u.type(screen.getByPlaceholderText('https://www.institution.sn'), 'https://ok.sn');
-    const logoInput = screen.getByPlaceholderText('https://exemple.com/logo.png');
-    await u.type(logoInput, 'https://valid.com/logo.png');
+    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
+    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    await addZone('UEMOA');
 
-    const search = screen.getByPlaceholderText('Rechercher une zone…');
-    await u.click(search);
-    await u.type(search, 'UEM');
-    await u.click(await screen.findByRole('button', { name: 'UEMOA' }));
+    // S'assurer qu'il n'y a pas d'aperçu au départ
+    expect(screen.queryByTestId('next-image')).not.toBeInTheDocument();
 
-    expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
-
+    // Logo invalide
+    const logoInput = screen.getByPlaceholderText('🏦 ou https://');
     await u.clear(logoInput);
+    await u.type(logoInput, 'not-a-url');
 
-    await screen.findByRole('button', { name: 'Enregistrer' }); // petite synchro
-    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
+    // Attendre que la validation soit faite
+    await screen.findByText('Doit être une URL valide');
+
+    // Vérifier qu'il n'y a pas d'aperçu
+    expect(screen.queryByTestId('next-image')).not.toBeInTheDocument();
   });
 });

@@ -1,11 +1,11 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NewInstitutionButton from '@/components/admin/institutions/NewInstitutionButton';
 
 // Mock du composant Button de shadcn/ui
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, className, ...props }: any) => (
-    <button onClick={onClick} className={className} {...props}>
+  Button: ({ children, onClick, className, style, ...props }: any) => (
+    <button onClick={onClick} className={className} style={style} {...props}>
       {children}
     </button>
   ),
@@ -13,7 +13,9 @@ jest.mock('@/components/ui/button', () => ({
 
 // Mock de l'icône Plus de lucide-react
 jest.mock('lucide-react', () => ({
-  Plus: (props: any) => <div data-testid='plus-icon' {...props} />,
+  Plus: ({ className, strokeWidth, ...props }: any) => (
+    <div data-testid='plus-icon' className={className} data-stroke-width={strokeWidth} {...props} />
+  ),
 }));
 
 describe('NewInstitutionButton', () => {
@@ -55,10 +57,10 @@ describe('NewInstitutionButton', () => {
   });
 
   describe('Styling', () => {
-    it('applies correct background color classes', () => {
+    it('applies correct inline background color style', () => {
       const { container } = render(<NewInstitutionButton />);
       const button = container.querySelector('button');
-      expect(button).toHaveClass('bg-teal-500', 'hover:bg-teal-600');
+      expect(button?.getAttribute('style')).toContain('--primary-300');
     });
 
     it('applies correct text color class', () => {
@@ -82,20 +84,38 @@ describe('NewInstitutionButton', () => {
     it('applies correct height class', () => {
       const { container } = render(<NewInstitutionButton />);
       const button = container.querySelector('button');
-      expect(button).toHaveClass('h-10');
+      expect(button).toHaveClass('h-11');
     });
 
     it('applies correct padding class', () => {
       const { container } = render(<NewInstitutionButton />);
       const button = container.querySelector('button');
-      expect(button).toHaveClass('px-4');
+      expect(button).toHaveClass('px-5');
+    });
+
+    it('applies font-medium class', () => {
+      const { container } = render(<NewInstitutionButton />);
+      const button = container.querySelector('button');
+      expect(button).toHaveClass('font-medium');
+    });
+
+    it('applies correct font size class', () => {
+      const { container } = render(<NewInstitutionButton />);
+      const button = container.querySelector('button');
+      expect(button).toHaveClass('text-[15px]');
+    });
+
+    it('applies transition-all class', () => {
+      const { container } = render(<NewInstitutionButton />);
+      const button = container.querySelector('button');
+      expect(button).toHaveClass('transition-all');
     });
 
     it('applies all className props correctly', () => {
       const { container } = render(<NewInstitutionButton />);
       const button = container.querySelector('button');
       expect(button?.className).toBe(
-        'bg-teal-500 hover:bg-teal-600 text-white rounded-xl gap-2 h-10 px-4'
+        'h-11 px-5 rounded-xl gap-2 text-white font-medium text-[15px] transition-all'
       );
     });
   });
@@ -118,25 +138,26 @@ describe('NewInstitutionButton', () => {
       const icon = screen.getByTestId('plus-icon');
       expect(icon).toHaveClass('w-5', 'h-5');
     });
+
+    it('Plus icon has strokeWidth prop', () => {
+      render(<NewInstitutionButton />);
+      const icon = screen.getByTestId('plus-icon');
+      expect(icon).toHaveAttribute('data-stroke-width', '2.5');
+    });
   });
 
-  describe('Text visibility (responsive)', () => {
-    it('text has hidden class by default', () => {
+  describe('Text visibility', () => {
+    it('text is always visible without responsive classes', () => {
       const { container } = render(<NewInstitutionButton />);
       const span = container.querySelector('span');
-      expect(span).toHaveClass('hidden');
+      expect(span).not.toHaveClass('hidden');
+      expect(span).not.toHaveClass('sm:inline');
     });
 
-    it('text becomes visible on sm breakpoint', () => {
+    it('span contains correct text', () => {
       const { container } = render(<NewInstitutionButton />);
       const span = container.querySelector('span');
-      expect(span).toHaveClass('sm:inline');
-    });
-
-    it('applies both responsive classes to text', () => {
-      const { container } = render(<NewInstitutionButton />);
-      const span = container.querySelector('span');
-      expect(span).toHaveClass('hidden', 'sm:inline');
+      expect(span?.textContent).toBe('Nouvelle institution');
     });
   });
 
@@ -342,7 +363,14 @@ describe('NewInstitutionButton', () => {
       const { container } = render(<NewInstitutionButton />);
       const button = container.querySelector('button');
 
-      expect(button?.className).toContain('bg-teal-500');
+      expect(button?.className).toContain('rounded-xl');
+    });
+
+    it('passes style prop to Button component', () => {
+      const { container } = render(<NewInstitutionButton />);
+      const button = container.querySelector('button');
+
+      expect(button?.getAttribute('style')).toContain('--primary-300');
     });
   });
 
