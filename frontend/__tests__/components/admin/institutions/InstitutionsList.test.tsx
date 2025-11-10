@@ -16,7 +16,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 jest.mock('next/link', () => {
   return ({ children, href }: any) => <a href={href}>{children}</a>;
 });
-jest.mock('next/image', () => (props: any) => <img {...props} />);
+jest.mock('next/image', () => (props: any) => <img alt={props.alt || ''} {...props} />);
 
 // Mock LoaderContext
 jest.mock('@/contexts/LoaderContext');
@@ -278,17 +278,20 @@ describe('InstitutionsList (nouvelle version)', () => {
       });
       render(<InstitutionsList />, { wrapper });
 
+      // Fonction matcher pour le texte de pagination
+      const paginationTextMatcher = (content: string, element: Element | null): boolean => {
+        if (!element) return false;
+        return (
+          element.tagName.toLowerCase() === 'div' &&
+          element.classList.contains('text-tertiary-400/60') &&
+          content.includes('Affichage de') &&
+          content.includes('résultats')
+        );
+      };
+
       // Trouver le conteneur du texte de pagination
       await waitFor(() => {
-        const paginationText = screen.getByText((content, element) => {
-          if (!element) return false;
-          return (
-            element.tagName.toLowerCase() === 'div' &&
-            element.classList.contains('text-tertiary-400/60') &&
-            content.includes('Affichage de') &&
-            content.includes('résultats')
-          );
-        });
+        const paginationText = screen.getByText(paginationTextMatcher);
         expect(paginationText).toBeInTheDocument();
       });
     });

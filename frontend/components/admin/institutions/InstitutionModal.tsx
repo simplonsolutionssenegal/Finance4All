@@ -120,6 +120,10 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
     mode: 'onChange',
   });
 
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [searchZone, setSearchZone] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   // Gestionnaire de clic en dehors pour fermer le dropdown des zones
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -171,10 +175,6 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
       refresh();
     },
   });
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [searchZone, setSearchZone] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const logoUrl = form.watch('logoUrl');
   const sanitizedLogoUrl = typeof logoUrl === 'string' ? logoUrl.trim() : logoUrl;

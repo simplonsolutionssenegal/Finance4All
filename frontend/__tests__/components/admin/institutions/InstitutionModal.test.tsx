@@ -32,7 +32,7 @@ jest.mock('@/hooks/institution/useUpdateInstitution', () => ({
 
 const querySubmitButton = () =>
   screen.getByRole('button', {
-    name: /Créer l'institution|Enregistrer les modifications|Enregistrement…/,
+    name: /Créer l'institution|Créer l&apos;institution|Enregistrer les modifications|Enregistrement…/,
   });
 
 const renderModal = (overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
@@ -138,7 +138,7 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
 
     // Form valide => bouton actif (label création)
-    expect(screen.getByRole('button', { name: "Créer l'institution" })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Créer l&apos;institution' })).toBeEnabled();
   });
 
   test('création: envoie le payload complet à createInstitution', async () => {
@@ -158,7 +158,7 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
     await addZone('UEMOA');
 
-    await u.click(screen.getByRole('button', { name: "Créer l'institution" }));
+    await u.click(screen.getByRole('button', { name: 'Créer l&apos;institution' }));
 
     expect(createInstitutionMock).toHaveBeenCalledTimes(1);
     expect(createInstitutionMock).toHaveBeenCalledWith({
@@ -264,7 +264,7 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     renderModal({ institution: inst });
 
     // Titre d’édition + bouton d’action spécifique
-    expect(screen.getByText("Modifier l'institution")).toBeInTheDocument();
+    expect(screen.getByText('Modifier l&apos;institution')).toBeInTheDocument();
     const submit = screen.getByRole('button', { name: 'Enregistrer les modifications' });
     // Selon les libs RHF/zod, isValid peut être false au premier rendu -> bouton potentiellement disabled
     // Assurer l'activation en modifiant un champ
