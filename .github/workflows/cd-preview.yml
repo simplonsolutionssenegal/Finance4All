@@ -156,7 +156,7 @@ jobs:
         run: |
           cat > .env.preview <<EOF
           PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
-          GITHUB_REPOSITORY=${{ env.REPO_LOWER }}
+          GITHUB_REPOSITORY=${REPO_LOWER}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
           CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
