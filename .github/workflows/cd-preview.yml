@@ -82,11 +82,31 @@ jobs:
     runs-on: self-hosted
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
+    timeout-minutes: 30
     env:
       PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
       GITHUB_REPOSITORY: ${{ github.repository }}
 
     steps:
+      - name: Check runner health
+        run: |
+          echo "Runner hostname: $(hostname)"
+          echo "Available disk space:"
+          df -h
+          echo "Available memory:"
+          free -h || vm_stat
+          echo "Docker version:"
+          docker --version
+          echo "Docker info:"
+          docker info
+
+      - name: Cleanup old Docker resources
+        continue-on-error: true
+        run: |
+          echo "Cleaning up old Docker resources..."
+          docker system prune -f
+          docker image prune -a -f --filter "until=72h"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -133,7 +153,6 @@ jobs:
           cat > .env.preview <<EOF
           PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
           GITHUB_REPOSITORY=${{ github.repository }}
-          DATABASE_URL=${{ secrets.PREVIEW_DATABASE_URL }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
           CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}

@@ -1,46 +1,55 @@
-# Étape 1 : Construction
-FROM node:22-alpine AS builder
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Arguments de build pour les variables d'environnement
+# Copy package files
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . ./
+
+# Build arguments for build-time environment variables
+ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG CLERK_SECRET_KEY
 
-# Définir les variables d'environnement pour le build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
-# Copier seulement les fichiers de dépendances
-COPY package*.json ./
-
-# Installer toutes les dépendances nécessaires pour le build
-RUN npm install --frozen-lockfile --silent || npm install --silent
-
-# Copier le code source
-COPY . .
-
-# Builder l'application Next.js
 RUN npm run build
 
-# Étape 2 : Image de production avec Node.js (Next.js a besoin de Node)
-FROM node:22-alpine AS runner
+# Stage 3: Runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Copier les fichiers nécessaires de Next.js
-COPY --from=builder /app/next.config.* ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copier les fichiers buildés de Next.js
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy necessary files
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Exposer le port 80
-EXPOSE 80
+USER nextjs
 
-# Variables d'environnement
-ENV NODE_ENV=production
-ENV PORT=80
+EXPOSE 3000
 
-# Démarrer l'application Next.js
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
 CMD ["node", "server.js"]

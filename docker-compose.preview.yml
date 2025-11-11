@@ -1,20 +1,46 @@
 version: '3.8'
 
 services:
+  # Base de données PostgreSQL isolée pour chaque PR
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance4all-postgres-pr-${PR_NUMBER}
+    restart: unless-stopped
+    networks:
+      - preview-pr-${PR_NUMBER}
+    environment:
+      - POSTGRES_DB=finance4all_pr_${PR_NUMBER}
+      - POSTGRES_USER=finance4all
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data-pr-${PR_NUMBER}:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U finance4all" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY}/backend:pr-${PR_NUMBER}
     container_name: finance4all-backend-pr-${PR_NUMBER}
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - traefik-public
       - preview-pr-${PR_NUMBER}
     environment:
       - NODE_ENV=preview
       - PORT=3001
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://finance4all:${POSTGRES_PASSWORD}@postgres:5432/finance4all_pr_${PR_NUMBER}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - JWT_SECRET=${JWT_SECRET}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
       - FRONTEND_URL=https://pr-${PR_NUMBER}.finance4all.simplonprojet.com
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - FROM_NAME=${FROM_NAME}
       - PR_NUMBER=${PR_NUMBER}
     labels:
       - "traefik.enable=true"
@@ -67,25 +93,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Base de données PostgreSQL isolée pour chaque PR
-  postgres:
-    image: postgres:16-alpine
-    container_name: finance4all-postgres-pr-${PR_NUMBER}
-    restart: unless-stopped
-    networks:
-      - preview-pr-${PR_NUMBER}
-    environment:
-      - POSTGRES_DB=finance4all_pr_${PR_NUMBER}
-      - POSTGRES_USER=finance4all
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres-data-pr-${PR_NUMBER}:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U finance4all" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 networks:
   traefik-public:
