@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/src/main.js",
     "dev": "tsx watch src/main.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -32,6 +32,9 @@
   "prisma": {
     "schema": "src/infrastructure/config/schema.prisma"
   },
+  "_moduleAliases": {
+    "@": "./dist/src"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -48,6 +51,7 @@
     "helmet": "^8.1.0",
     "inversify": "^7.10.2",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "nodemailer": "^6.10.1",
     "svix": "^1.76.1",
     "uuid": "^8.3.2",
@@ -78,6 +82,7 @@
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
     "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^3.15.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
