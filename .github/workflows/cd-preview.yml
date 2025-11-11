@@ -9,6 +9,7 @@ permissions:
   pull-requests: write
   contents: read
   actions: read
+  packages: write
 
 jobs:
   check-preview-request:
@@ -136,6 +137,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:buildcache,mode=max
           build-args: |
             NODE_ENV=preview
+        continue-on-error: false
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
