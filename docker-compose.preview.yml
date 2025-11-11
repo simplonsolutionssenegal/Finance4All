@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:pr-${PR_NUMBER}
+    container_name: finance4all-backend-pr-${PR_NUMBER}
+    restart: unless-stopped
+    networks:
+      - traefik-public
+      - preview-pr-${PR_NUMBER}
+    environment:
+      - NODE_ENV=preview
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=https://pr-${PR_NUMBER}.finance4all.simplonprojet.com
+      - PR_NUMBER=${PR_NUMBER}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-pr-${PR_NUMBER}.rule=Host(`api-pr-${PR_NUMBER}.finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.backend-pr-${PR_NUMBER}.entrypoints=websecure"
+      - "traefik.http.routers.backend-pr-${PR_NUMBER}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend-pr-${PR_NUMBER}.loadbalancer.server.port=3001"
+      # CORS Headers
+      - "traefik.http.middlewares.cors-pr-${PR_NUMBER}.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      - "traefik.http.middlewares.cors-pr-${PR_NUMBER}.headers.accesscontrolalloworiginlist=https://pr-${PR_NUMBER}.finance4all.simplonprojet.com"
+      - "traefik.http.middlewares.cors-pr-${PR_NUMBER}.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.cors-pr-${PR_NUMBER}.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.backend-pr-${PR_NUMBER}.middlewares=cors-pr-${PR_NUMBER}"
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:pr-${PR_NUMBER}
+    container_name: finance4all-frontend-pr-${PR_NUMBER}
+    restart: unless-stopped
+    networks:
+      - traefik-public
+      - preview-pr-${PR_NUMBER}
+    environment:
+      - NODE_ENV=preview
+      - NEXT_PUBLIC_API_URL=https://api-pr-${PR_NUMBER}.finance4all.simplonprojet.com
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - PR_NUMBER=${PR_NUMBER}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-pr-${PR_NUMBER}.rule=Host(`pr-${PR_NUMBER}.finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.frontend-pr-${PR_NUMBER}.entrypoints=websecure"
+      - "traefik.http.routers.frontend-pr-${PR_NUMBER}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend-pr-${PR_NUMBER}.loadbalancer.server.port=3000"
+      # Security Headers
+      - "traefik.http.middlewares.security-pr-${PR_NUMBER}.headers.framedeny=true"
+      - "traefik.http.middlewares.security-pr-${PR_NUMBER}.headers.sslredirect=true"
+      - "traefik.http.middlewares.security-pr-${PR_NUMBER}.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-pr-${PR_NUMBER}.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-pr-${PR_NUMBER}.headers.stsPreload=true"
+      - "traefik.http.routers.frontend-pr-${PR_NUMBER}.middlewares=security-pr-${PR_NUMBER}"
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Base de données PostgreSQL isolée pour chaque PR
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance4all-postgres-pr-${PR_NUMBER}
+    restart: unless-stopped
+    networks:
+      - preview-pr-${PR_NUMBER}
+    environment:
+      - POSTGRES_DB=finance4all_pr_${PR_NUMBER}
+      - POSTGRES_USER=finance4all
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data-pr-${PR_NUMBER}:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U finance4all" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  traefik-public:
+    external: true
+  preview-pr-${PR_NUMBER}:
+    name: preview-pr-${PR_NUMBER}
+    driver: bridge
+
+volumes:
+  postgres-data-pr-${PR_NUMBER}:
+    name: postgres-data-pr-${PR_NUMBER}

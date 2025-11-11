@@ -1,0 +1,206 @@
+name: Preview
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+  actions: read
+
+jobs:
+  check-preview-request:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/preview') }}
+    name: Check Preview Request
+    runs-on: ubuntu-latest
+    outputs:
+      pr-ref: ${{ steps.pr-details.outputs.ref }}
+      pr-sha: ${{ steps.pr-details.outputs.sha }}
+      pr-number: ${{ steps.pr-details.outputs.number }}
+
+    steps:
+      - name: Get PR details
+        uses: actions/github-script@v7
+        id: pr-details
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('ref', pullRequest.head.ref);
+            core.setOutput('sha', pullRequest.head.sha);
+            core.setOutput('number', context.issue.number);
+
+      - name: React to comment (optimized)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Opérations parallèles
+            await Promise.all([
+              github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket'
+              }),
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to KIND...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              })
+            ]);
+
+
+  run-ci:
+    name: Run CI Tests
+    needs: check-preview-request
+    uses: ./.github/workflows/ci.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+      FROM_NAME: ${{ secrets.FROM_NAME }}
+
+  build-and-deploy:
+    name: Build Images & Deploy Preview
+    runs-on: self-hosted
+    needs: [check-preview-request, run-ci]
+    if: needs.run-ci.outputs.build-success == 'true'
+    env:
+      PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache,mode=max
+          build-args: |
+            NODE_ENV=preview
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+
+      - name: Create .env file for preview deployment
+        run: |
+          cat > .env.preview <<EOF
+          PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
+          GITHUB_REPOSITORY=${{ github.repository }}
+          DATABASE_URL=${{ secrets.PREVIEW_DATABASE_URL }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          GMAIL_USER=${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+          FROM_EMAIL=${{ secrets.FROM_EMAIL }}
+          FROM_NAME=${{ secrets.FROM_NAME }}
+          EOF
+
+      - name: Deploy preview with docker-compose
+        run: |
+          docker-compose -f docker-compose.preview.yml --env-file .env.preview up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to be healthy..."
+          timeout 120 sh -c 'until docker-compose -f docker-compose.preview.yml ps | grep -q "healthy"; do sleep 5; done' || echo "Health check timeout"
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ **Preview deployment successful!**
+
+              🌐 **Frontend**: https://pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+              🔧 **Backend API**: https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+
+              📦 **Docker Images**:
+              - Frontend: \`ghcr.io/${{ github.repository }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Backend: \`ghcr.io/${{ github.repository }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+
+              🔄 To update this preview, push new commits or comment \`/preview\` again.
+              🗑️ To cleanup, comment \`/cleanup\` on this PR.`
+            });
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: [check-preview-request, run-ci, build-and-deploy]
+    if: failure()
+
+    steps:
+      - name: Comment PR with failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let errorMessage = '❌ **Preview deployment failed!**\n\n';
+
+            if ('${{ needs.run-ci.result }}' === 'failure') {
+              errorMessage += '**CI Tests failed.** Please fix the errors before requesting a new preview with `/preview`.\n\n';
+              errorMessage += '[View CI logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
+            } else if ('${{ needs.build-and-deploy.result }}' === 'failure') {
+              errorMessage += '**Deployment failed.** There was an issue building or deploying the preview environment.\n\n';
+              errorMessage += '[View deployment logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
+            } else {
+              errorMessage += 'An unexpected error occurred during the preview deployment process.\n\n';
+              errorMessage += '[View workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: errorMessage
+            });
