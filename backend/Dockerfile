@@ -1,91 +1,57 @@
-# Utiliser Node.js 18 Alpine pour une image légère
-FROM node:18-alpine AS base
-
-# Installer les dépendances système nécessaires
-RUN apk add --no-cache libc6-compat
-
-# Définir le répertoire de travail
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Arguments de build pour les variables d'environnement
-ARG DATABASE_URL
-ARG CLERK_PUBLISHABLE_KEY
-ARG CLERK_SECRET_KEY
-ARG CLERK_WEBHOOK_SECRET
-ARG FRONTEND_URL
-ARG GMAIL_USER
-ARG GMAIL_APP_PASSWORD
-ARG FROM_EMAIL
-ARG FROM_NAME
-
-# Définir les variables d'environnement pour le build
-ENV DATABASE_URL=$DATABASE_URL
-ENV CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY
-ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
-ENV CLERK_WEBHOOK_SECRET=$CLERK_WEBHOOK_SECRET
-ENV FRONTEND_URL=$FRONTEND_URL
-ENV GMAIL_USER=$GMAIL_USER
-ENV GMAIL_APP_PASSWORD=$GMAIL_APP_PASSWORD
-ENV FROM_EMAIL=$FROM_EMAIL
-ENV FROM_NAME=$FROM_NAME
-
-# Définir les variables d'environnement par défaut
-ENV PORT=5000
-ENV API_VERSION=v1
-
-# Copier les fichiers de configuration de package
+# Copy package files first
 COPY package*.json ./
 
-# Étape de construction des dépendances
-FROM base AS deps
+# Copy prisma schema BEFORE npm install (postinstall needs it)
+COPY src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
 
-# Installer toutes les dépendances (dev + prod)
-RUN npm install
+# Copy rest of src
+COPY src ./src/
 
-# Étape de construction de l'application
-FROM base AS builder
+# Install production dependencies
+RUN npm install --production --no-package-lock
 
-# Copier les dépendances depuis l'étape précédente
-COPY --from=deps /app/node_modules ./node_modules
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Copier le code source
-COPY . .
+# Copy package files and source (includes prisma schema)
+COPY package*.json ./
+COPY src ./src/
 
-# Générer le client Prisma
-RUN npx prisma generate
+# Install all dependencies (including dev dependencies for build)
+RUN npm install --no-package-lock
 
-# Construire l'application TypeScript
+# Copy remaining source files
+COPY . ./
+
+# Build TypeScript
 RUN npm run build
 
-# Étape de production
-FROM base AS runner
+# Stage 3: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
 
-# Créer un utilisateur non-root pour la sécurité
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
-
-# Définir l'environnement de production
 ENV NODE_ENV=production
 
-# Copier seulement les dépendances de production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+
+# Copy built application
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copier les fichiers construits
-COPY --from=builder /app/dist ./dist
-
-# Créer la structure de répertoires et copier le fichier de schéma Prisma
-RUN mkdir -p ./src/infrastructure/config
 COPY --from=builder /app/src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
 
-# Copier le package.json pour les scripts
-COPY package*.json ./
-
-# Changer les permissions pour l'utilisateur nodejs
-RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-# Exposer le port
-EXPOSE 5000
+EXPOSE 3001
 
-# Commande de démarrage avec migration Prisma
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+CMD ["node", "dist/main.js"]
