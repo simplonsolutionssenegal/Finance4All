@@ -13,10 +13,11 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U finance4all" ]
+      test: [ "CMD-SHELL", "pg_isready -U finance4all -d finance4all_pr_${PR_NUMBER}" ]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 40s
 
   backend:
     image: ghcr.io/simplonsolutionssenegal/finance4all/backend:pr-${PR_NUMBER}
