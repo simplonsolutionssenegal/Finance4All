@@ -43,10 +43,13 @@ RUN apk add --no-cache wget
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy necessary files
-COPY --from=builder /app/public ./public
+# Copy necessary files from the builder stage
+# First copy the standalone output (contains server files)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# Then copy the static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Finally copy the public folder (this is important for static assets)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
