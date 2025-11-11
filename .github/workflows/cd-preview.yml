@@ -86,7 +86,6 @@ jobs:
     timeout-minutes: 30
     env:
       PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
-      GITHUB_REPOSITORY_LOWER: ${{ github.repository }}
 
     steps:
       - name: Set repository name to lowercase
