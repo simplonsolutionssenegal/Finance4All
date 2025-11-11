@@ -2,12 +2,13 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files
+# Copy package files and source (includes prisma schema)
+# because postinstall runs prisma generate
 COPY package*.json ./
-COPY prisma ./prisma/
+COPY src ./src/
 
-RUN npm install --production --no-package-lock && \
-    npx prisma generate
+# Install production dependencies
+RUN npm install --production --no-package-lock
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -16,10 +17,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Copy source code (includes prisma schema)
+COPY src ./src/
+
 # Install all dependencies (including dev dependencies for build)
 RUN npm install --no-package-lock
 
-# Copy source code
+# Copy remaining source files
 COPY . ./
 
 # Build TypeScript
@@ -36,7 +40,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy built application
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/prisma ./prisma
+COPY --from=builder /app/src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
