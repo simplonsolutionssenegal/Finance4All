@@ -98,7 +98,6 @@ export class Service extends DomainEntity<EntityId> {
   }
 
   get typeFrais(): TypeCalculation {
-    // Ajout
     return this._typeFrais;
   }
 
