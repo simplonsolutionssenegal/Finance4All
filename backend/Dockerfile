@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production && \
+RUN npm install --production --no-package-lock && \
     npx prisma generate
 
 # Stage 2: Builder
@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm install --no-package-lock
 
 # Copy source code
 COPY . ./
