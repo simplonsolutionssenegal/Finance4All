@@ -18,15 +18,15 @@ RUN npm install --production --no-package-lock
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files and source (includes prisma schema)
+# Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
+
+# Copy source files (includes prisma schema)
 COPY src ./src/
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm install --no-package-lock
-
-# Copy remaining source files
-COPY . ./
 
 # Build TypeScript
 RUN npm run build
