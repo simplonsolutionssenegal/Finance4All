@@ -85,9 +85,12 @@ jobs:
     timeout-minutes: 30
     env:
       PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_REPOSITORY_LOWER: ${{ github.repository }}
 
     steps:
+      - name: Set repository name to lowercase
+        id: repo-name
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Check runner health
         run: |
           echo "Runner hostname: $(hostname)"
@@ -128,9 +131,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/backend:buildcache,mode=max
+          tags: ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:buildcache,mode=max
           build-args: |
             NODE_ENV=preview
 
@@ -140,9 +143,9 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/frontend:buildcache,mode=max
+          tags: ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:buildcache,mode=max
           build-args: |
             NEXT_PUBLIC_API_URL=https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
@@ -152,7 +155,7 @@ jobs:
         run: |
           cat > .env.preview <<EOF
           PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
-          GITHUB_REPOSITORY=${{ github.repository }}
+          GITHUB_REPOSITORY=${{ env.REPO_LOWER }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
           CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
