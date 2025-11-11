@@ -2,9 +2,13 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files and source (includes prisma schema)
-# because postinstall runs prisma generate
+# Copy package files first
 COPY package*.json ./
+
+# Copy prisma schema BEFORE npm install (postinstall needs it)
+COPY src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
+
+# Copy rest of src
 COPY src ./src/
 
 # Install production dependencies
@@ -14,10 +18,8 @@ RUN npm install --production --no-package-lock
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
+# Copy package files and source (includes prisma schema)
 COPY package*.json ./
-
-# Copy source code (includes prisma schema)
 COPY src ./src/
 
 # Install all dependencies (including dev dependencies for build)
