@@ -7,13 +7,13 @@ services:
     container_name: finance4all-postgres-pr-${PR_NUMBER}
     restart: unless-stopped
     networks:
-      - preview-pr-${PR_NUMBER}
+      - preview-network
     environment:
       - POSTGRES_DB=finance4all_pr_${PR_NUMBER}
       - POSTGRES_USER=finance4all
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
-      - postgres-data-pr-${PR_NUMBER}:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U finance4all" ]
       interval: 10s
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     networks:
       - traefik-public
-      - preview-pr-${PR_NUMBER}
+      - preview-network
     environment:
       - NODE_ENV=preview
       - PORT=3001
@@ -67,7 +67,7 @@ services:
     restart: unless-stopped
     networks:
       - traefik-public
-      - preview-pr-${PR_NUMBER}
+      - preview-network
     environment:
       - NODE_ENV=preview
       - NEXT_PUBLIC_API_URL=https://api-pr-${PR_NUMBER}.finance4all.simplonprojet.com
@@ -97,10 +97,10 @@ services:
 networks:
   traefik-public:
     external: true
-  preview-pr-${PR_NUMBER}:
+  preview-network:
     name: preview-pr-${PR_NUMBER}
     driver: bridge
 
 volumes:
-  postgres-data-pr-${PR_NUMBER}:
+  postgres-data:
     name: postgres-data-pr-${PR_NUMBER}
