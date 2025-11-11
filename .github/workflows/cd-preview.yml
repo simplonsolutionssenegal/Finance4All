@@ -191,8 +191,8 @@ jobs:
               🔧 **Backend API**: https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
 
               📦 **Docker Images**:
-              - Frontend: \`ghcr.io/${{ github.repository }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`ghcr.io/${{ github.repository }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
 
               🔄 To update this preview, push new commits or comment \`/preview\` again.
               🗑️ To cleanup, comment \`/cleanup\` on this PR.`
