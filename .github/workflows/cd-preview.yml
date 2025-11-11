@@ -170,7 +170,7 @@ jobs:
 
       - name: Deploy preview with docker-compose
         run: |
-          docker-compose -f docker-compose.preview.yml --env-file .env.preview up -d
+          docker compose -f docker-compose.preview.yml --env-file .env.preview up -d
 
       - name: Wait for services to be healthy
         run: |
