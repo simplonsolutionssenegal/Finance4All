@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs/
+README.md
+*.md
+
+# Traefik
+traefik/letsencrypt/
+traefik/logs/
+
+# Tests
+coverage/
+.coverage
+*.test.js
+*.spec.js
+__tests__/
+__mocks__/
+
+# Build artifacts (will be built in container)
+dist/
+build/
+.next/
+
+# Logs
+logs/
+*.log

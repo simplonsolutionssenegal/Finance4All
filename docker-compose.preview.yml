@@ -33,6 +33,7 @@ services:
       - NODE_ENV=preview
       - PORT=3001
       - DATABASE_URL=postgresql://finance4all:${POSTGRES_PASSWORD}@postgres:5432/finance4all_pr_${PR_NUMBER}
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
       - FRONTEND_URL=https://pr-${PR_NUMBER}.finance4all.simplonprojet.com
