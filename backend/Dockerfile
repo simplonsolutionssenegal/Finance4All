@@ -49,6 +49,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/src/infrastructure/config/schema.
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown -R nodejs:nodejs logs
+
 USER nodejs
 
 EXPOSE 3001
