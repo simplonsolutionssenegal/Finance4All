@@ -49,6 +49,14 @@ COPY --from=builder --chown=nodejs:nodejs /app/src/infrastructure/config/schema.
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
+# Copy Prisma CLI from builder (needed for migrations)
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/prisma ./node_modules/prisma
+
+# Copy docker entrypoint script
+COPY --chown=nodejs:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Create logs directory with proper permissions
 RUN mkdir -p logs && chown -R nodejs:nodejs logs
 
@@ -60,4 +68,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]
