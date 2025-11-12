@@ -17,7 +17,7 @@ module.exports = [
         ecmaVersion: 'latest',
         sourceType: 'module',
         tsconfigRootDir: __dirname,
-        project: path.join(__dirname, 'tsconfig.json'),
+        project: path.join(__dirname, 'tsconfig.eslint.json'),
       },
       globals: {
         console: 'readonly',
