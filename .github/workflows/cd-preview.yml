@@ -131,11 +131,16 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:buildcache,mode=max
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
           build-args: |
             NODE_ENV=preview
+            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            BUILD_DATE=${{ github.run_number }}
+          no-cache: false
         continue-on-error: false
 
       - name: Build and push frontend image
@@ -144,13 +149,18 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:buildcache,mode=max
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
           build-args: |
             NEXT_PUBLIC_API_URL=https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            BUILD_DATE=${{ github.run_number }}
+          no-cache: false
 
       - name: Create .env file for preview deployment
         run: |
@@ -166,6 +176,20 @@ jobs:
           FROM_EMAIL=${{ secrets.FROM_EMAIL }}
           FROM_NAME=${{ secrets.FROM_NAME }}
           EOF
+
+      - name: Stop and remove old preview containers
+        continue-on-error: true
+        run: |
+          echo "Stopping and removing old containers for PR-${{ needs.check-preview-request.outputs.pr-number }}..."
+          docker compose -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans
+
+          echo "Removing old images for PR-${{ needs.check-preview-request.outputs.pr-number }}..."
+          docker rmi -f ghcr.io/${REPO_LOWER}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }} || true
+          docker rmi -f ghcr.io/${REPO_LOWER}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }} || true
+
+          echo "Pulling fresh images..."
+          docker pull ghcr.io/${REPO_LOWER}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+          docker pull ghcr.io/${REPO_LOWER}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
 
       - name: Deploy preview with docker-compose
         env:

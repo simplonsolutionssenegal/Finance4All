@@ -1,0 +1,186 @@
+name: Preview Cleanup
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+  packages: write
+
+jobs:
+  check-cleanup-request:
+    if: |
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/cleanup')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.state == 'closed')
+    name: Check Cleanup Request
+    runs-on: ubuntu-latest
+    outputs:
+      pr-number: ${{ steps.pr-details.outputs.number }}
+      trigger-type: ${{ steps.pr-details.outputs.trigger }}
+
+    steps:
+      - name: Get PR details
+        uses: actions/github-script@v7
+        id: pr-details
+        with:
+          script: |
+            let prNumber;
+            let triggerType;
+
+            if (context.eventName === 'issue_comment') {
+              prNumber = context.issue.number;
+              triggerType = 'manual';
+            } else if (context.eventName === 'pull_request') {
+              prNumber = context.payload.pull_request.number;
+              triggerType = 'automatic';
+            }
+
+            core.setOutput('number', prNumber);
+            core.setOutput('trigger', triggerType);
+
+      - name: React to cleanup comment
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes'
+            });
+
+  cleanup-preview:
+    name: Cleanup Preview Environment
+    runs-on: self-hosted
+    needs: check-cleanup-request
+    env:
+      PR_NUMBER: ${{ needs.check-cleanup-request.outputs.pr-number }}
+
+    steps:
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stop and remove containers
+        run: |
+          cd ${{ github.workspace }}
+          if [ -f docker-compose.preview.yml ]; then
+            export PR_NUMBER=${{ needs.check-cleanup-request.outputs.pr-number }}
+            export GITHUB_REPOSITORY=${{ env.REPO_LOWER }}
+            docker-compose -f docker-compose.preview.yml down -v || echo "No containers to remove"
+          fi
+
+      - name: Remove local Docker images
+        continue-on-error: true
+        run: |
+          echo "Removing local Docker images for PR-${{ needs.check-cleanup-request.outputs.pr-number }}..."
+          docker rmi ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-cleanup-request.outputs.pr-number }} || true
+          docker rmi ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-cleanup-request.outputs.pr-number }} || true
+
+      - name: Delete Docker images from GitHub Container Registry
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = ${{ needs.check-cleanup-request.outputs.pr-number }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // List of packages to clean
+            const packages = ['backend', 'frontend'];
+
+            for (const packageName of packages) {
+              try {
+                // Get all versions of the package
+                const { data: versions } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+                  package_type: 'container',
+                  package_name: `${repo}/${packageName}`,
+                  org: owner,
+                  per_page: 100
+                });
+
+                // Find versions with the PR tag
+                const prTag = `pr-${prNumber}`;
+                const versionsToDelete = versions.filter(v =>
+                  v.metadata?.container?.tags?.some(tag =>
+                    tag === prTag || tag.startsWith(`${prTag}-`)
+                  )
+                );
+
+                // Delete each matching version
+                for (const version of versionsToDelete) {
+                  console.log(`Deleting ${packageName} version ${version.id} with tags: ${version.metadata.container.tags.join(', ')}`);
+                  await github.rest.packages.deletePackageVersionForOrg({
+                    package_type: 'container',
+                    package_name: `${repo}/${packageName}`,
+                    org: owner,
+                    package_version_id: version.id
+                  });
+                }
+
+                console.log(`✅ Cleaned up ${versionsToDelete.length} versions of ${packageName}`);
+              } catch (error) {
+                console.error(`⚠️ Error cleaning ${packageName}:`, error.message);
+              }
+            }
+
+      - name: Remove preview network
+        run: |
+          docker network rm preview-pr-${{ needs.check-cleanup-request.outputs.pr-number }} || echo "Network already removed"
+
+      - name: Comment PR with cleanup status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const triggerType = '${{ needs.check-cleanup-request.outputs.trigger-type }}';
+            const triggerMessage = triggerType === 'automatic'
+              ? 'PR was closed/merged'
+              : 'cleanup was requested with `/cleanup`';
+
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.check-cleanup-request.outputs.pr-number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🧹 **Preview environment cleaned up!**
+
+              ✅ Containers stopped and removed
+              ✅ Docker volumes deleted
+              ✅ Docker images deleted from GHCR
+              ✅ Network removed
+
+              Trigger: ${triggerMessage}
+
+              To redeploy a preview, comment \`/preview\` on this PR.`
+            });
+
+  notify-cleanup-failure:
+    name: Notify Cleanup Failure
+    runs-on: ubuntu-latest
+    needs: [check-cleanup-request, cleanup-preview]
+    if: failure()
+
+    steps:
+      - name: Comment PR with failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.check-cleanup-request.outputs.pr-number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⚠️ **Preview cleanup failed!**
+
+              There was an issue cleaning up the preview environment.
+
+              [View cleanup logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+              You may need to manually cleanup the resources.`
+            });
