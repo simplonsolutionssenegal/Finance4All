@@ -18,15 +18,15 @@ RUN npm install --production --no-package-lock
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files and source (includes prisma schema)
+# Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
+
+# Copy source files (includes prisma schema)
 COPY src ./src/
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm install --no-package-lock
-
-# Copy remaining source files
-COPY . ./
 
 # Build TypeScript
 RUN npm run build
@@ -37,14 +37,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
 # Copy built application
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
 USER nodejs
 
@@ -52,6 +55,6 @@ EXPOSE 3001
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

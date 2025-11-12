@@ -37,19 +37,26 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copy necessary files from the builder stage
+# First copy the standalone output (contains server files)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# Then copy the static assets
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Finally copy the public folder (this is important for static assets)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
+# Use exec form to ensure proper signal handling
 CMD ["node", "server.js"]
