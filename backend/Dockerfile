@@ -49,6 +49,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/src/infrastructure/config/schema.
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown -R nodejs:nodejs logs
+
 USER nodejs
 
 EXPOSE 3001
@@ -57,4 +60,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

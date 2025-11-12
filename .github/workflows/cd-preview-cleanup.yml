@@ -65,16 +65,32 @@ jobs:
     steps:
       - name: Set repository name to lowercase
         run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Create .env file for preview cleanup
+        run: |
+          cat > .env.preview <<EOF
+          PR_NUMBER=${{ needs.check-cleanup-request.outputs.pr-number }}
+          GITHUB_REPOSITORY=${REPO_LOWER}
+          POSTGRES_PASSWORD=dummy
+          CLERK_PUBLISHABLE_KEY=dummy
+          CLERK_SECRET_KEY=dummy
+          CLERK_WEBHOOK_SECRET=dummy
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=dummy
+          GMAIL_USER=dummy
+          GMAIL_APP_PASSWORD=dummy
+          FROM_EMAIL=dummy
+          FROM_NAME=dummy
+          EOF
 
       - name: Stop and remove containers
         run: |
           cd ${{ github.workspace }}
           if [ -f docker-compose.preview.yml ]; then
-            export PR_NUMBER=${{ needs.check-cleanup-request.outputs.pr-number }}
-            export GITHUB_REPOSITORY=${{ env.REPO_LOWER }}
-            docker-compose -f docker-compose.preview.yml down -v || echo "No containers to remove"
+            echo "Stopping and removing containers for PR-${{ needs.check-cleanup-request.outputs.pr-number }}..."
+            docker compose -f docker-compose.preview.yml --env-file .env.preview down -v --remove-orphans || echo "No containers to remove"
           fi
 
       - name: Remove local Docker images
