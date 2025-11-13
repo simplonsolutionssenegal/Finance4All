@@ -124,7 +124,6 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
   const [searchZone, setSearchZone] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Gestionnaire de clic en dehors pour fermer le dropdown des zones
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
