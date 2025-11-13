@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-echo "🔄 Running database migrations..."
-npx prisma migrate deploy --schema=src/infrastructure/config/schema.prisma
+echo "🔄 Synchronizing database schema..."
+npx prisma db push --schema=src/infrastructure/config/schema.prisma --accept-data-loss --skip-generate
 
-echo "✅ Migrations completed successfully"
+echo "✅ Database schema synchronized successfully"
 echo "🚀 Starting Finance4All Backend..."
 
 # Execute the main command (node dist/main.js)
