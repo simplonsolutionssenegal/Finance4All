@@ -13,24 +13,6 @@ export class ModuleController {
     private readonly getModulesUseCase: GetModulesUseCase
   ) {}
 
-  /**
-   * POST /modules
-   * Créer un nouveau module de formation
-   */
-  // public create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  //   try {
-  //     const moduleData = req.body;
-  //     const result = await this.createModuleUseCase.execute(moduleData);
-
-  //     res.status(201).json({
-  //       success: true,
-  //       data: result,
-  //       message: 'Module créé avec succès',
-  //     });
-  //   } catch (error) {
-  //     next(error);
-  //   }
-  // };
   async create(req: Request, res: Response): Promise<Response> {
     try {
       const dto = req.body;
