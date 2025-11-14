@@ -58,7 +58,7 @@ type FeeKind = 'GRATUIT' | 'FIXE' | 'POURCENTAGE';
 const getFeeKind = (s: Service): FeeKind => {
   const f = s.frais || {};
   const hasPct = (f.pourcentage ?? 0) > 0;
-  const hasFix = (f.montantFixe ?? 0) > 0;
+  const hasFix = (f.montantFixe ?? 0) > 0 || (f.fraisChange ?? 0) > 0;
   if (hasPct) return 'POURCENTAGE';
   if (hasFix) return 'FIXE';
   return 'GRATUIT';
@@ -104,6 +104,7 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
     if (f.pourcentage) parts.push(`${f.pourcentage}%`);
     if (f.minimum) parts.push(`min: ${fmt(f.minimum)} FCFA`);
     if (f.maximum) parts.push(`max: ${fmt(f.maximum)} FCFA`);
+    if (f.fraisChange) parts.push(`change: ${fmt(f.fraisChange)} ${f.devise || ''}`);
     return parts.length ? parts.join(' · ') : 'Aucun frais';
   };
 
@@ -150,7 +151,6 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
                   {feeKindLabel[feeKind]}
                 </Badge>
               </div>
-              <p className='mt-2 text-xs text-gray-900'>{fraisText(service)}</p>
             </div>
 
             <div className='rounded-xl border border-gray-200 bg-[#F8F9FA] p-4'>
