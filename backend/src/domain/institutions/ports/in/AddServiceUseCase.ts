@@ -2,13 +2,17 @@ import type { UseCase } from '@/domain/shared/UseCase';
 import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 import type { TypeService } from '@/domain/institutions/entities/Service';
 
+export type FraisChangeDTO = {
+  fxSurcharge: number;
+  devise: string;
+};
+
 export interface FraisDTO {
   montantFixe?: number;
   pourcentage?: number;
   minimum?: number;
   maximum?: number;
-  fraisChange?: number;
-  devise?: string;
+  fraisChange?: FraisChangeDTO;
 }
 
 export interface AddServiceCommand {

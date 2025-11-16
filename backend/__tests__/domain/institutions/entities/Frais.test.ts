@@ -30,7 +30,7 @@ describe('Frais', () => {
     });
 
     it('should describe a fixed fee with a rate and fx surcharge', () => {
-      const frais = new FraisFixes(100, 0.01, 50);
+      const frais = new FraisFixes(100, 0.01, { fxSurcharge: 50, devise: 'EUR' });
       expect(frais.describe()).toBe('100 + 1% + Frais de change');
     });
 
@@ -39,11 +39,20 @@ describe('Frais', () => {
       expect(frais.typeCalculation).toBe(TypeCalculation.FIX);
     });
 
-    it('should return the correct amount, rate, and fxSurcharge', () => {
-      const frais = new FraisFixes(100, 0.01, 50);
+    it('should return the correct amount, rate, and fraisChange', () => {
+      const frais = new FraisFixes(100, 0.01, { fxSurcharge: 50, devise: 'EUR' });
       expect(frais.amount).toBe(100);
       expect(frais.rate).toBe(0.01);
+      expect(frais.fraisChange).toEqual({ fxSurcharge: 50, devise: 'EUR' });
       expect(frais.fxSurcharge).toBe(50);
+      expect(frais.devise).toBe('EUR');
+    });
+
+    it('should return undefined for fraisChange properties when not set', () => {
+      const frais = new FraisFixes(100);
+      expect(frais.fraisChange).toBeUndefined();
+      expect(frais.fxSurcharge).toBeUndefined();
+      expect(frais.devise).toBeUndefined();
     });
   });
 

@@ -90,7 +90,7 @@ describe('ServiceDetailsModal', () => {
     montantMax: 5000,
     frais: {
       montantFixe: 100,
-      pourcentage: 2,
+      pourcentage: 0.02, // 2% stocké comme 0.02, affiché comme 2%
       minimum: 50,
       maximum: 5000,
     },
@@ -160,8 +160,10 @@ describe('ServiceDetailsModal', () => {
   describe('Frais', () => {
     it('affiche tous les frais si présents', () => {
       render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={baseService} />);
-      const rows = screen.getAllByText(/100 FCFA fixe · 2% · min: 50 FCFA · max: 5 000 FCFA/);
-      expect(rows.length).toBeGreaterThan(0);
+      // Le pourcentage 0.02 est converti en 2% (0.02 * 100)
+      // Le texte apparaît 2 fois : dans "Frais appliqués" et "Frais détaillés"
+      const texts = screen.getAllByText(/100 FCFA fixe · 2% · min: 50 FCFA · max: 5 000 FCFA/);
+      expect(texts.length).toBeGreaterThan(0);
     });
 
     it("affiche 'Aucun frais' si objet vide", () => {
@@ -177,8 +179,9 @@ describe('ServiceDetailsModal', () => {
     });
 
     it("affiche seulement le pourcentage si c'est le seul champ", () => {
-      const s = { ...baseService, frais: { pourcentage: 1.5 } };
+      const s = { ...baseService, frais: { pourcentage: 0.015 } }; // 1.5% stocké comme 0.015
       render(<ServiceDetailsModal open={true} onOpenChange={onOpenChange} service={s} />);
+      // 0.015 * 100 = 1.5%
       expect(screen.getAllByText('1.5%').length).toBeGreaterThan(0);
     });
   });

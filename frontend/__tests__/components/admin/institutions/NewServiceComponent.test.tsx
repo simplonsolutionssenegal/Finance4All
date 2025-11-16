@@ -765,8 +765,10 @@ describe('NewServiceComponent', () => {
             longName: 'Service avec frais de change',
             type: TypeService.TRANSFERT_ARGENT,
             frais: expect.objectContaining({
-              fraisChange: 10.5,
-              devise: 'USD',
+              fraisChange: expect.objectContaining({
+                fxSurcharge: 10.5,
+                devise: 'USD',
+              }),
             }),
           }),
         });

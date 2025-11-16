@@ -58,7 +58,7 @@ type FeeKind = 'GRATUIT' | 'FIXE' | 'POURCENTAGE';
 const getFeeKind = (s: Service): FeeKind => {
   const f = s.frais || {};
   const hasPct = (f.pourcentage ?? 0) > 0;
-  const hasFix = (f.montantFixe ?? 0) > 0 || (f.fraisChange ?? 0) > 0;
+  const hasFix = (f.montantFixe ?? 0) > 0 || (f.fraisChange?.fxSurcharge ?? 0) > 0;
   if (hasPct) return 'POURCENTAGE';
   if (hasFix) return 'FIXE';
   return 'GRATUIT';
@@ -101,10 +101,11 @@ const ServiceDetailsModal: React.FC<Readonly<Props>> = ({ open, onOpenChange, se
     const f = s.frais || {};
     const parts: string[] = [];
     if (f.montantFixe) parts.push(`${fmt(f.montantFixe)} FCFA fixe`);
-    if (f.pourcentage) parts.push(`${f.pourcentage}%`);
+    if (f.pourcentage) parts.push(`${f.pourcentage * 100}%`);
     if (f.minimum) parts.push(`min: ${fmt(f.minimum)} FCFA`);
     if (f.maximum) parts.push(`max: ${fmt(f.maximum)} FCFA`);
-    if (f.fraisChange) parts.push(`change: ${fmt(f.fraisChange)} ${f.devise || ''}`);
+    if (f.fraisChange)
+      parts.push(`change: ${fmt(f.fraisChange.fxSurcharge)} ${f.fraisChange.devise || ''}`);
     return parts.length ? parts.join(' · ') : 'Aucun frais';
   };
 

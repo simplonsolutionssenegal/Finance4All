@@ -1,7 +1,6 @@
 import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
 
 export type Money = number;
-
 export type Tranche = { min: Money; max?: Money; fee: Money };
 
 export enum TypeCalculation {
@@ -9,6 +8,11 @@ export enum TypeCalculation {
   POURCENTAGE,
   FIX,
 }
+
+export type FraisChange = {
+  fxSurcharge: Money;
+  devise: string;
+};
 
 export abstract class Frais {
   abstract readonly _typeCalculation: TypeCalculation;
@@ -36,18 +40,15 @@ export class FraisGratuit extends Frais {
 
 export class FraisFixes extends Frais {
   readonly _typeCalculation = TypeCalculation.FIX;
-
   protected _amount: Money;
   protected _rate?: number;
-  protected _fxSurcharge?: Money;
-  protected _devise?: string;
+  protected _fraisChange?: FraisChange;
 
-  constructor(amount: Money, rate?: number, fxSurcharge?: Money, devise?: string) {
+  constructor(amount: Money, rate?: number, fraisChange?: FraisChange) {
     super();
     this._amount = amount;
     this._rate = rate;
-    this._fxSurcharge = fxSurcharge;
-    this._devise = devise;
+    this._fraisChange = fraisChange;
   }
 
   describe(): string {
@@ -55,7 +56,7 @@ export class FraisFixes extends Frais {
     if (this._rate) {
       description += ` + ${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}%`;
     }
-    if (this._fxSurcharge) {
+    if (this._fraisChange) {
       description += ` + Frais de change`;
     }
     return description;
@@ -73,12 +74,16 @@ export class FraisFixes extends Frais {
     return this._rate;
   }
 
+  get fraisChange(): FraisChange | undefined {
+    return this._fraisChange;
+  }
+
   get fxSurcharge(): Money | undefined {
-    return this._fxSurcharge;
+    return this._fraisChange?.fxSurcharge;
   }
 
   get devise(): string | undefined {
-    return this._devise;
+    return this._fraisChange?.devise;
   }
 
   toDTO(): FraisDTO {
@@ -86,15 +91,13 @@ export class FraisFixes extends Frais {
       typeCalculation: this._typeCalculation,
       montantFixe: this._amount,
       pourcentage: this._rate,
-      fraisChange: this._fxSurcharge,
-      devise: this._devise,
+      fraisChange: this._fraisChange,
     };
   }
 }
 
 export class FraisPourcentage extends Frais {
   readonly _typeCalculation = TypeCalculation.POURCENTAGE;
-
   protected _rate: number;
   protected _cap?: Money;
   protected _floor?: Money;
@@ -108,7 +111,6 @@ export class FraisPourcentage extends Frais {
 
   describe(): string {
     let addInfo = '';
-
     if (this._cap !== undefined && this._floor !== undefined) {
       addInfo = `(frais min ${this._floor} et frais max ${this._cap})`;
     } else if (this._cap !== undefined) {
@@ -116,7 +118,6 @@ export class FraisPourcentage extends Frais {
     } else if (this._floor !== undefined) {
       addInfo = `(frais minimum ${this._floor})`;
     }
-
     return `${(this._rate * 100).toFixed(2).replace(/\.00$/, '')}% ${addInfo}`.trim();
   }
 

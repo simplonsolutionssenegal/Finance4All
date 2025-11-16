@@ -48,7 +48,7 @@ describe('ServiceItem', () => {
       montantMax: 50000,
       frais: {
         montantFixe: 100,
-        pourcentage: 2,
+        pourcentage: 0.02, // ✅ 0.02 au lieu de 2
         minimum: 50,
         maximum: 500,
       },
@@ -67,7 +67,7 @@ describe('ServiceItem', () => {
       montantMin: 500,
       montantMax: 100000,
       frais: {
-        pourcentage: 1.5,
+        pourcentage: 0.015, // ✅ 0.015 au lieu de 1.5
       },
       conditionAccess: [],
       plafonds: [],
@@ -199,7 +199,7 @@ describe('ServiceItem', () => {
     it('affiche uniquement le pourcentage quand défini seul', () => {
       render(<ServiceItem services={mockServices} />);
 
-      expect(screen.getByText(/1.5%/)).toBeInTheDocument();
+      expect(screen.getByText(/1\.5%/)).toBeInTheDocument();
     });
 
     it('affiche "Aucun frais" quand aucun frais n\'est défini', () => {

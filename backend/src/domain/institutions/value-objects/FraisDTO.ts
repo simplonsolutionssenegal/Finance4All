@@ -6,6 +6,10 @@ export interface FraisDTO {
   pourcentage?: number;
   minimum?: number;
   maximum?: number;
-  fraisChange?: number;
-  devise?: string;
+  fraisChange?: FraisChangeDTO;
+}
+
+export interface FraisChangeDTO {
+  fxSurcharge: number;
+  devise: string;
 }

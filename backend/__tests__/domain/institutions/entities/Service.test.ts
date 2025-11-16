@@ -17,7 +17,6 @@ describe('Service', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -30,7 +29,6 @@ describe('Service', () => {
       expect(service.name).toBe(serviceProps.name);
       expect(service.longName).toBe(serviceProps.longName);
       expect(service.type).toBe(serviceProps.type);
-
       expect(service.frais).toBe(serviceProps.frais);
       expect(service.conditionAccess).toEqual(serviceProps.conditionAccess);
       expect(service.plafonds).toEqual(serviceProps.plafonds);
@@ -45,8 +43,7 @@ describe('Service', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-
-        frais: new FraisFixes(100, 0.02, 50),
+        frais: new FraisFixes(100, 0.02, { fxSurcharge: 50, devise: 'USD' }),
         conditionAccess: [],
         plafonds: [],
         infrastructureAccess: [],
@@ -65,7 +62,6 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -85,7 +81,6 @@ describe('Service', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -126,7 +121,6 @@ describe('Service', () => {
           type: serviceType,
           montantMin: 100000,
           montantMax: 100000,
-
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -147,7 +141,6 @@ describe('Service', () => {
         type: TypeService.PAIEMENT_MARCHAND,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -170,7 +163,7 @@ describe('Service', () => {
     });
 
     it('should convert to DTO correctly with FraisFixes', () => {
-      const frais = new FraisFixes(100, 0.02, 50);
+      const frais = new FraisFixes(100, 0.02, { fxSurcharge: 50, devise: 'EUR' });
       const serviceProps = {
         id: EntityId.generate(),
         name: 'Fixed Fee Service',
@@ -178,7 +171,6 @@ describe('Service', () => {
         type: TypeService.TRANSFERT_ARGENT,
         montantMin: 100000,
         montantMax: 100000,
-
         frais,
         conditionAccess: ['ID required'],
         plafonds: ['5000 FCFA/day'],
@@ -194,7 +186,7 @@ describe('Service', () => {
         typeCalculation: FraisTypeCalculation.FIX,
         montantFixe: 100,
         pourcentage: 0.02,
-        fraisChange: 50,
+        fraisChange: { fxSurcharge: 50, devise: 'EUR' },
       });
     });
 
@@ -207,7 +199,6 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-
         frais,
         conditionAccess: [],
         plafonds: [],
@@ -233,7 +224,6 @@ describe('Service', () => {
         type: TypeService.CREDIT,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1', 'Condition 2', 'Condition 3'],
         plafonds: ['Plafond 1', 'Plafond 2'],
@@ -261,7 +251,6 @@ describe('Service', () => {
         type: TypeService.WALLET_BANQUE,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisFixes(200),
         conditionAccess: ['Access 1'],
         plafonds: ['Limit 1'],
@@ -287,7 +276,6 @@ describe('Service', () => {
         type: TypeService.AUTRES,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisGratuit(),
         conditionAccess: ['Original'],
         plafonds: ['Original'],
@@ -313,7 +301,6 @@ describe('Service', () => {
         name: 'Long Name Service',
         longName,
         type: TypeService.AUTRES,
-
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisGratuit(),
@@ -335,7 +322,6 @@ describe('Service', () => {
         name: 'Many Conditions Service',
         longName: 'Many Conditions Service Long Name',
         type: TypeService.AUTRES,
-
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisGratuit(),
@@ -357,7 +343,6 @@ describe('Service', () => {
         name: 'Reference Test',
         longName: 'Reference Test Long',
         type: TypeService.AUTRES,
-
         montantMin: 100000,
         montantMax: 100000,
         frais,
@@ -384,7 +369,6 @@ describe('Service', () => {
           type: serviceType,
           montantMin: 100000,
           montantMax: 100000,
-
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -401,7 +385,6 @@ describe('Service', () => {
         name: 'Transfer Service',
         longName: 'Transfer Service Long',
         type: TypeService.TRANSFERT_ARGENT,
-
         montantMin: 100000,
         montantMax: 100000,
         frais: new FraisFixes(100),
@@ -421,7 +404,6 @@ describe('Service', () => {
         type: TypeService.EPARGNE,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisPourcentage(0.02),
         conditionAccess: [],
         plafonds: [],

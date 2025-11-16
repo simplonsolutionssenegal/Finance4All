@@ -141,61 +141,64 @@ const serviceSchema = z
       pourcentage: z.number().positive('Doit être ≥ 0').max(100, 'Doit être ≤ 100').optional(),
       minimum: z.number().positive('Doit être ≥ 0').optional(),
       maximum: z.number().positive('Doit être ≥ 0').optional(),
-      fraisChange: z.number().positive('Doit être ≥ 0').optional(),
-      devise: z
-        .enum(
-          [
-            Currency.AUD,
-            Currency.CAD,
-            Currency.CHF,
-            Currency.DKK,
-            Currency.GBP,
-            Currency.JPY,
-            Currency.NOK,
-            Currency.SEK,
-            Currency.USD,
-            Currency.ZAR,
-            Currency.SAR,
-            Currency.ARS,
-            Currency.BRL,
-            Currency.BGN,
-            Currency.XAF,
-            Currency.XOF,
-            Currency.CLP,
-            Currency.CNY,
-            Currency.COP,
-            Currency.KRW,
-            Currency.CRC,
-            Currency.IDR,
-            Currency.ISK,
-            Currency.ILS,
-            Currency.JOD,
-            Currency.KES,
-            Currency.LBP,
-            Currency.MYR,
-            Currency.MAD,
-            Currency.MUR,
-            Currency.MXN,
-            Currency.NZD,
-            Currency.OMR,
-            Currency.PEN,
-            Currency.PHP,
-            Currency.PLN,
-            Currency.QAR,
-            Currency.DOP,
-            Currency.CZK,
-            Currency.RON,
-            Currency.RUB,
-            Currency.RSD,
-            Currency.SGD,
-            Currency.LKR,
-            Currency.TWD,
-            Currency.THB,
-            Currency.TRY,
-            Currency.VND,
-          ],
-          { message: 'Choisissez une devise' }
-        )
+      // ✅ CHANGEMENT ICI : fraisChange devient un objet
+      fraisChange: z
+        .object({
+          fxSurcharge: z.number().positive('Doit être ≥ 0'),
+          devise: z.enum(
+            [
+              Currency.AUD,
+              Currency.CAD,
+              Currency.CHF,
+              Currency.DKK,
+              Currency.GBP,
+              Currency.JPY,
+              Currency.NOK,
+              Currency.SEK,
+              Currency.USD,
+              Currency.ZAR,
+              Currency.SAR,
+              Currency.ARS,
+              Currency.BRL,
+              Currency.BGN,
+              Currency.XAF,
+              Currency.XOF,
+              Currency.CLP,
+              Currency.CNY,
+              Currency.COP,
+              Currency.KRW,
+              Currency.CRC,
+              Currency.IDR,
+              Currency.ISK,
+              Currency.ILS,
+              Currency.JOD,
+              Currency.KES,
+              Currency.LBP,
+              Currency.MYR,
+              Currency.MAD,
+              Currency.MUR,
+              Currency.MXN,
+              Currency.NZD,
+              Currency.OMR,
+              Currency.PEN,
+              Currency.PHP,
+              Currency.PLN,
+              Currency.QAR,
+              Currency.DOP,
+              Currency.CZK,
+              Currency.RON,
+              Currency.RUB,
+              Currency.RSD,
+              Currency.SGD,
+              Currency.LKR,
+              Currency.TWD,
+              Currency.THB,
+              Currency.TRY,
+              Currency.VND,
+            ],
+            { message: 'Choisissez une devise' }
+          ),
+        })
         .optional(),
     }),
 
@@ -214,8 +217,7 @@ const serviceSchema = z
         v.frais.pourcentage != null ||
         v.frais.minimum != null ||
         v.frais.maximum != null ||
-        v.frais.fraisChange != null ||
-        v.frais.devise != null;
+        v.frais.fraisChange != null;
 
       if (anyFee) {
         ctx.addIssue({
@@ -280,19 +282,31 @@ const serviceSchema = z
     }
 
     if (v.feeTypeUI === 'CHANGE') {
-      if (v.frais.fraisChange == null || Number.isNaN(v.frais.fraisChange)) {
+      // ✅ CHANGEMENT ICI : validation de l'objet complet
+      if (!v.frais.fraisChange) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Le champ montant devise est obligatoire *',
+          message: 'Les frais de change sont obligatoires *',
           path: ['frais', 'fraisChange'],
         });
-      }
-      if (v.frais.devise == null) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'La devise de référence est obligatoire *',
-          path: ['frais', 'devise'],
-        });
+      } else {
+        if (
+          v.frais.fraisChange.fxSurcharge == null ||
+          Number.isNaN(v.frais.fraisChange.fxSurcharge)
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Le champ montant devise est obligatoire *',
+            path: ['frais', 'fraisChange', 'fxSurcharge'],
+          });
+        }
+        if (!v.frais.fraisChange.devise) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'La devise de référence est obligatoire *',
+            path: ['frais', 'fraisChange', 'devise'],
+          });
+        }
       }
     }
   });
@@ -458,7 +472,6 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
         minimum: undefined,
         maximum: undefined,
         fraisChange: undefined,
-        devise: undefined,
       },
       conditionAccess: [],
       plafonds: [],
@@ -487,25 +500,24 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
         form.setValue('frais.minimum', undefined);
         form.setValue('frais.maximum', undefined);
         form.setValue('frais.fraisChange', undefined);
-        form.setValue('frais.devise', undefined);
         break;
       case 'FIX':
         form.setValue('frais.pourcentage', undefined);
         form.setValue('frais.minimum', undefined);
         form.setValue('frais.maximum', undefined);
         form.setValue('frais.fraisChange', undefined);
-        form.setValue('frais.devise', undefined);
+
         break;
       case 'MIXTE':
         form.setValue('frais.minimum', undefined);
         form.setValue('frais.maximum', undefined);
         form.setValue('frais.fraisChange', undefined);
-        form.setValue('frais.devise', undefined);
+
         break;
       case 'POURCENTAGE':
         form.setValue('frais.montantFixe', undefined);
         form.setValue('frais.fraisChange', undefined);
-        form.setValue('frais.devise', undefined);
+
         break;
       case 'CHANGE':
         form.setValue('frais.montantFixe', undefined);
@@ -830,7 +842,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       <>
                         <NumericFormField
                           control={form.control}
-                          name={'frais.fraisChange'}
+                          name={'frais.fraisChange.fxSurcharge'} // ✅ Chemin modifié
                           label='Montant en devise'
                           step='0.01'
                           requiredMark
@@ -839,7 +851,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
                         <FormField
                           control={form.control}
-                          name='frais.devise'
+                          name='frais.fraisChange.devise' // ✅ Chemin modifié
                           render={({ field, fieldState }) => (
                             <FormItem className='space-y-0.5'>
                               <FormLabel className='text-sm font-normal'>

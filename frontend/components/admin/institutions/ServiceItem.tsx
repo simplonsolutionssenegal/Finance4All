@@ -59,7 +59,7 @@ const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) =
       parts.push(`${service.frais.montantFixe} FCFA fixe`);
     }
     if (service.frais.pourcentage) {
-      parts.push(`${service.frais.pourcentage}%`);
+      parts.push(`${service.frais.pourcentage * 100}%`);
     }
     if (service.frais.minimum) {
       parts.push(`min: ${service.frais.minimum} FCFA`);
@@ -68,7 +68,9 @@ const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) =
       parts.push(`max: ${service.frais.maximum} FCFA`);
     }
     if (service.frais.fraisChange) {
-      parts.push(`frais de change: ${service.frais.fraisChange} ${service.frais.devise}`);
+      parts.push(
+        `frais de change: ${service.frais.fraisChange.fxSurcharge} ${service.frais.fraisChange.devise}`
+      );
     }
     return parts.length > 0 ? parts.join(', ') : 'Aucun frais';
   };

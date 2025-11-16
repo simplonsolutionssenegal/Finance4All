@@ -8,14 +8,17 @@ export interface Frais {
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
-  devise?: string;
   montantFixe?: number;
-  fraisChange?: number;
+  fraisChange?: FraisChange;
   pourcentage?: number;
   minimum?: number;
   maximum?: number;
 }
 
+export type FraisChange = {
+  fxSurcharge: number;
+  devise: string;
+};
 export interface CreateServiceDto {
   name: string;
   longName: string;
