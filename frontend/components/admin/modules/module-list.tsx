@@ -4,9 +4,9 @@
 
 import { Loader2 } from 'lucide-react';
 
-import { CustomPagination } from '@/components/admin/modules/custom-pagination';
 import type { Module } from '@/types/modules/module';
 
+import { CustomPagination } from './custom-pagination';
 import ModuleCard from './module-card';
 
 interface PaginationInfo {

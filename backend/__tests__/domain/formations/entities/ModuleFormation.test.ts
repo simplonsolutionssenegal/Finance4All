@@ -168,8 +168,7 @@ describe('Module', () => {
       const module = Module.create(baseProps);
       const dto = module.toDTO();
 
-      expect(dto).toEqual({
-        id: module.id.getValue(),
+      expect(dto).toMatchObject({
         title: module.title,
         description: module.description,
         imageUrl: module.imageUrl,

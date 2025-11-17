@@ -1,8 +1,8 @@
 // backend/__tests__/application/formations/CreateModuleFormationUseCase.test.ts
 
-import { CreateModuleUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCase';
+import { CreateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCaseImpl';
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
-import type { CreateModuleDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
+import type { CreateModuleUseCommand } from '@/domain/formations/ports/in/CreateModuleUseCase';
 import {
   Module,
   ModuleStatus,
@@ -22,15 +22,19 @@ const mockModuleRepository: jest.Mocked<ModuleRepository> = {
 jest.mock('@/domain/shared/EntityId', () => ({
   EntityId: {
     generate: jest.fn(),
+    from: jest.fn((value: string) => ({
+      getValue: () => value,
+      equals: (other: any) => other?.getValue() === value,
+    })),
   },
 }));
 
-describe('CreateModuleUseCaseImpl', () => {
-  let useCase: CreateModuleUseCaseImpl;
+describe('CreateModuleFormationUseCaseImpl', () => {
+  let useCase: CreateModuleFormationUseCaseImpl;
   let mockEntityId: jest.MockedFunction<typeof EntityId.generate>;
 
   beforeEach(() => {
-    useCase = new CreateModuleUseCaseImpl(mockModuleRepository);
+    useCase = new CreateModuleFormationUseCaseImpl(mockModuleRepository);
     mockEntityId = EntityId.generate as jest.MockedFunction<typeof EntityId.generate>;
 
     // Reset des mocks
@@ -38,19 +42,18 @@ describe('CreateModuleUseCaseImpl', () => {
   });
 
   describe('execute', () => {
-    const validCreateModuleDTO: CreateModuleDTO = {
+    const validCreateModuleDTO: CreateModuleUseCommand = {
       title: 'Introduction aux Finances',
       description: "Module d'introduction aux concepts financiers de base pour débutants",
       thematics: [Thematic.FINANCIAL_EDUCATION, Thematic.BUDGET_MANAGEMENT],
       imageUrl: 'https://example.com/image.jpg',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
+      status: ModuleStatus.DRAFT,
     };
 
     // Créer un mock d'EntityId valide
-    const mockGeneratedId = {
-      getValue: () => 'mock-uuid-12345678-1234-1234-1234-123456789abc',
-    } as EntityId;
+    const mockGeneratedId = EntityId.from('mock-uuid-12345678-1234-1234-1234-123456789abc');
 
     beforeEach(() => {
       mockEntityId.mockReturnValue(mockGeneratedId);
@@ -88,7 +91,7 @@ describe('CreateModuleUseCaseImpl', () => {
       const savedModuleArg = mockModuleRepository.save.mock.calls[0][0];
       expect(savedModuleArg).toBeInstanceOf(Module);
       expect(savedModuleArg.toDTO()).toMatchObject({
-        id: mockGeneratedId.getValue(),
+        id: 'mock-uuid-12345678-1234-1234-1234-123456789abc',
         title: validCreateModuleDTO.title,
         description: validCreateModuleDTO.description,
         imageUrl: validCreateModuleDTO.imageUrl,
@@ -103,7 +106,7 @@ describe('CreateModuleUseCaseImpl', () => {
 
     it('devrait créer un module avec imageUrl null', async () => {
       // Arrange
-      const inputWithoutImage: CreateModuleDTO = {
+      const inputWithoutImage: CreateModuleUseCommand = {
         ...validCreateModuleDTO,
         imageUrl: null,
       };
@@ -133,7 +136,7 @@ describe('CreateModuleUseCaseImpl', () => {
 
     it('devrait créer un module avec plusieurs thématiques', async () => {
       // Arrange
-      const inputWithMultipleThematics: CreateModuleDTO = {
+      const inputWithMultipleThematics: CreateModuleUseCommand = {
         ...validCreateModuleDTO,
         thematics: [
           Thematic.FINANCIAL_EDUCATION,
@@ -168,7 +171,7 @@ describe('CreateModuleUseCaseImpl', () => {
 
     it('devrait créer un module avec niveau de difficulté EXPERT', async () => {
       // Arrange
-      const inputExpert: CreateModuleDTO = {
+      const inputExpert: CreateModuleUseCommand = {
         ...validCreateModuleDTO,
         difficultyLevel: DifficultyLevel.EXPERT,
         estimatedDuration: 180, // 3 heures pour un niveau expert
@@ -297,11 +300,11 @@ describe('CreateModuleUseCaseImpl', () => {
   describe('Constructor', () => {
     it('devrait instancier correctement avec les dépendances', () => {
       // Act
-      const instance = new CreateModuleUseCaseImpl(mockModuleRepository);
+      const instance = new CreateModuleFormationUseCaseImpl(mockModuleRepository);
 
       // Assert
       expect(instance).toBeDefined();
-      expect(instance).toBeInstanceOf(CreateModuleUseCaseImpl);
+      expect(instance).toBeInstanceOf(CreateModuleFormationUseCaseImpl);
     });
   });
 
@@ -330,7 +333,7 @@ describe('CreateModuleUseCaseImpl', () => {
 
     it('devrait préserver toutes les propriétés lors de la sauvegarde', async () => {
       // Arrange
-      const complexInput: CreateModuleDTO = {
+      const complexInput: CreateModuleUseCommand = {
         title: 'Module Complexe avec Caractères Spéciaux: éàü',
         description:
           'Description très longue avec des caractères spéciaux et des accents: éèàù, çñ',
@@ -338,6 +341,7 @@ describe('CreateModuleUseCaseImpl', () => {
         imageUrl: 'https://cdn.example.com/modules/complex-module-image.webp',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 240, // 4 heures
+        status: ModuleStatus.DRAFT,
       };
 
       const savedModule = new Module({

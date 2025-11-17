@@ -1,17 +1,17 @@
 //application/formations/use-cases/CreateModule.usecase.ts
-import type { CreateModuleUseCase } from '@/domain/formations/ports/in/CreateModuleUseCase';
-import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import type {
-  CreateModuleDTO,
-  ModuleResponseDTO,
-} from '@/domain/formations/value-objects/ModuleFormationDTO';
+  CreateModuleUseCase,
+  CreateModuleUseCommand,
+} from '@/domain/formations/ports/in/CreateModuleUseCase';
+import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
+import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import { Module, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
-import { DuplicateTitleException } from '@/domain/shared/exceptions/DomainException';
+import { DuplicateTitleException } from '@/domain/shared/exceptions/FormationDomainException';
 
-export class CreateModuleUseCaseImpl implements CreateModuleUseCase {
+export class CreateModuleFormationUseCaseImpl implements CreateModuleUseCase {
   constructor(private readonly moduleRepository: ModuleRepository) {}
-  async execute(input: CreateModuleDTO): Promise<ModuleResponseDTO> {
+  async execute(input: CreateModuleUseCommand): Promise<ModuleResponseDTO> {
     const existingModule = await this.moduleRepository.findByTitle(input.title);
 
     if (existingModule) {

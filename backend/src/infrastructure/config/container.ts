@@ -25,9 +25,10 @@ import { ModuleController } from '../web/controllers/ModuleFormationController';
 import type { GetModulesUseCase } from '@/domain/formations/ports/in/GetModulesUseCase';
 import type { CreateModuleUseCase } from '@/domain/formations/ports/in/CreateModuleUseCase';
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
-import { GetModulesUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCase';
-import { CreateModuleUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCase';
+
 import { PrismaModuleFormationRepository } from '../persistence/repositories/PrismaModuleFormationRepository';
+import { CreateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCaseImpl';
+import { GetModulesFormationUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -138,7 +139,7 @@ container
   .bind<CreateModuleUseCase>(TYPES.CreateModuleUseCase)
   .toDynamicValue(context => {
     const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
-    return new CreateModuleUseCaseImpl(moduleRepository);
+    return new CreateModuleFormationUseCaseImpl(moduleRepository);
   })
   .inSingletonScope();
 
@@ -146,7 +147,7 @@ container
   .bind<GetModulesUseCase>(TYPES.GetModulesUseCase)
   .toDynamicValue(context => {
     const repository = context.get<ModuleRepository>(TYPES.ModuleRepository);
-    return new GetModulesUseCaseImpl(repository);
+    return new GetModulesFormationUseCaseImpl(repository);
   })
   .inSingletonScope();
 

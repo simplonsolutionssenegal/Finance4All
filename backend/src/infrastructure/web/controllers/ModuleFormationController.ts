@@ -5,7 +5,7 @@ import {
   DomainException,
   DuplicateTitleException,
   ValidationException,
-} from '@/domain/shared/exceptions/DomainException';
+} from '@/domain/shared/exceptions/FormationDomainException';
 
 export class ModuleController {
   constructor(
@@ -59,10 +59,6 @@ export class ModuleController {
     }
   }
 
-  /**
-   * GET /modules
-   * Récupérer la liste de tous les modules
-   */
   async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;

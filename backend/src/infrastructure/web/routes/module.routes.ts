@@ -7,7 +7,7 @@ import {
   validateGetModules,
 } from '../validators/module.validator';
 
-export const createModuleRoutes = (): Router => {
+export const ModuleFormationRoutes = (): Router => {
   const router = Router();
   const controller = container.get<ModuleController>(TYPES.ModuleController);
 

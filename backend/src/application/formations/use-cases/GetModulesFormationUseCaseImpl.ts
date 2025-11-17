@@ -9,7 +9,7 @@ import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepos
 import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import type { PaginatedResult } from '@/domain/shared/Pagination';
 
-export class GetModulesUseCaseImpl implements GetModulesUseCase {
+export class GetModulesFormationUseCaseImpl implements GetModulesUseCase {
   constructor(private readonly moduleRepository: ModuleRepository) {}
   async execute(query: GetModulesUseCaseQuery): Promise<PaginatedResult<ModuleResponseDTO>> {
     // Récupérer tous les modules

@@ -1,4 +1,4 @@
-import { GetModulesUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCase';
+import { GetModulesFormationUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCaseImpl';
 import {
   Module,
   DifficultyLevel,
@@ -8,8 +8,8 @@ import { EntityId } from '@/domain/shared/EntityId';
 import { Thematic } from '@/domain/formations/value-objects/Thematic';
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 
-describe('GetModulesUseCaseImpl', () => {
-  let useCase: GetModulesUseCaseImpl;
+describe('GetModulesFormationUseCaseImpl', () => {
+  let useCase: GetModulesFormationUseCaseImpl;
   let mockRepository: jest.Mocked<ModuleRepository>;
 
   const TEST_UUIDS = {
@@ -24,7 +24,7 @@ describe('GetModulesUseCaseImpl', () => {
       findByTitle: jest.fn(),
     } as unknown as jest.Mocked<ModuleRepository>;
 
-    useCase = new GetModulesUseCaseImpl(mockRepository);
+    useCase = new GetModulesFormationUseCaseImpl(mockRepository);
   });
 
   afterEach(() => {

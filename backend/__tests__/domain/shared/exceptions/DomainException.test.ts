@@ -3,7 +3,7 @@ import {
   DuplicateTitleException,
   ModuleNotFoundException,
   ValidationException,
-} from '@/domain/shared/exceptions/DomainException';
+} from '../../../../src/domain/shared/exceptions/FormationDomainException';
 
 describe('DomainException hierarchy et messages', () => {
   test('DomainException doit étendre Error et conserver le message', () => {

@@ -39,41 +39,22 @@ export const ThematicDescriptions: Record<Thematic, string> = {
   [Thematic.INSURANCE]: 'Protéger ses biens et sa famille',
 };
 
-/**
- * Classe utilitaire pour travailler avec les thématiques
- */
 export class ThematicUtils {
-  /**
-   * Obtenir le label d'une thématique
-   */
   static getLabel(thematic: Thematic): string {
     return ThematicLabels[thematic];
   }
 
-  /**
-   * Obtenir la description d'une thématique
-   */
   static getDescription(thematic: Thematic): string {
     return ThematicDescriptions[thematic];
   }
 
-  /**
-   * Valider si une valeur est une thématique valide
-   */
   static isValid(value: string): value is Thematic {
     return Object.values(Thematic).includes(value as Thematic);
   }
-
-  /**
-   * Obtenir toutes les thématiques disponibles
-   */
   static getAll(): Thematic[] {
     return Object.values(Thematic);
   }
 
-  /**
-   * Obtenir toutes les thématiques avec leurs labels
-   */
   static getAllWithLabels(): Array<{ value: Thematic; label: string; description: string }> {
     return this.getAll().map(thematic => ({
       value: thematic,

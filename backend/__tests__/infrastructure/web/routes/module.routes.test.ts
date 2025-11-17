@@ -22,7 +22,7 @@ jest.mock('@/infrastructure/config/container', () => ({
 }));
 
 // Mock des validators
-jest.mock('../../../../src/infrastructure/web/validators/module.validator', () => ({
+jest.mock('@/infrastructure/web/validators/module.validator', () => ({
   handleValidationErrors: jest.fn((req, res, next) => next()),
   validateCreateModule: jest.fn((req, res, next) => next()),
   validateGetModules: jest.fn((req, res, next) => next()),
@@ -37,10 +37,8 @@ describe('Module Routes', () => {
     jest.clearAllMocks();
 
     // Dynamically import routes after mocks are set up
-    const {
-      createModuleRoutes,
-    } = require('../../../../src/infrastructure/web/routes/module.routes');
-    moduleRoutes = createModuleRoutes();
+    const { ModuleFormationRoutes } = require('@/infrastructure/web/routes/module.routes');
+    moduleRoutes = ModuleFormationRoutes();
 
     // Setup Express app with routes
     app = express();
