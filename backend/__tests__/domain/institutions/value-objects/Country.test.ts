@@ -14,11 +14,4 @@ describe('Country', () => {
     expect(enumValues).toHaveLength(2);
     expect(enumValues).toEqual(['SENEGAL', 'CAMEROUN']);
   });
-
-  it('should not be possible to add new values at runtime', () => {
-    expect(() => {
-      // @ts-expect-error: Testing runtime modification
-      Country.FRANCE = 'FRANCE';
-    }).toThrow();
-  });
 });

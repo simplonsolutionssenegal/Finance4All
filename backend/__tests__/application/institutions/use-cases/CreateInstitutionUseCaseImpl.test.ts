@@ -1,4 +1,4 @@
-import { CreateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/CreateInsitution.usecase';
+import { CreateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/CreateInstitutionUseCaseImpl';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { InstitutionDomainService } from '@/domain/institutions/services/InstitutionDomainService';
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';

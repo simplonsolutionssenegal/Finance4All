@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+
 import InstitutionsStats from '@/components/admin/institutions/InstitutionsStats';
 import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
 import { InstitutionStatus } from '@/types/Institution';

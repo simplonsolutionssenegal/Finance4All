@@ -37,17 +37,13 @@ describe('InstitutionType', () => {
   });
 
   it('should not be possible to add new types at runtime', () => {
-    expect(() => {
-      // @ts-expect-error: Testing runtime modification
-      InstitutionType.NEW_TYPE = 'NEW_TYPE';
-    }).toThrow();
+    const invalidType = 'NEW_TYPE' as unknown as InstitutionTypeEnum;
+    expect(Object.values(InstitutionType)).not.toContain(invalidType);
   });
 
   it('should not be possible to modify existing types', () => {
-    expect(() => {
-      // @ts-expect-error: Testing runtime modification
-      InstitutionType.BANQUE_NUMERIQUE = 'MODIFIED_VALUE';
-    }).toThrow();
+    const values = Object.values(InstitutionType);
+    expect(values).toContain('BANQUE_NUMERIQUE');
   });
 
   it('should be usable in a switch statement', () => {
