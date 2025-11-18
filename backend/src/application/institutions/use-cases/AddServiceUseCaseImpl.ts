@@ -1,19 +1,13 @@
 import type {
   AddServiceCommand,
   AddServiceUseCase,
-  FraisDTO,
 } from '@/domain/institutions/ports/in/AddServiceUseCase';
 import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { Service } from '@/domain/institutions/entities/Service';
 import { EntityId } from '@/domain/shared/EntityId';
-import {
-  FraisGratuit,
-  FraisFixes,
-  FraisPourcentage,
-  type Frais,
-} from '@/domain/institutions/entities/Frais';
+import { FraisFactory } from '@/domain/institutions/factories/FraisFactory';
 
 export class AddServiceUseCaseImpl implements AddServiceUseCase {
   constructor(private readonly institutionRepository: InstitutionRepository) {}
@@ -25,7 +19,8 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
       throw new NotFoundError(`Institution with id ${command.idInstitution} not found`);
     }
 
-    const frais = this.mapFraisFromDTO(command.frais);
+    // const frais = this.mapFraisFromDTO(command.frais);
+    const frais = FraisFactory.createFromDTO(command.frais);
 
     const service = new Service({
       id: EntityId.generate(),
@@ -47,27 +42,27 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
     return savedInstitution.toDTO();
   }
 
-  private mapFraisFromDTO(fraisDTO: FraisDTO): Frais {
-    // Si on a un montant fixe et éventuellement un pourcentage
-    if (fraisDTO.montantFixe !== undefined && fraisDTO.montantFixe > 0) {
-      const rate = fraisDTO.pourcentage ? fraisDTO.pourcentage / 100 : undefined;
-      return new FraisFixes(fraisDTO.montantFixe, rate);
-    }
+  // private mapFraisFromDTO(fraisDTO: FraisDTO): Frais {
+  //   // Si on a un montant fixe et éventuellement un pourcentage
+  //   if (fraisDTO.montantFixe !== undefined && fraisDTO.montantFixe > 0) {
+  //     const rate = fraisDTO.pourcentage ? fraisDTO.pourcentage / 100 : undefined;
+  //     return new FraisFixes(fraisDTO.montantFixe, rate);
+  //   }
 
-    if (
-      fraisDTO.fraisChange !== undefined &&
-      fraisDTO.fraisChange.fxSurcharge > 0 &&
-      fraisDTO.fraisChange.devise
-    ) {
-      return new FraisFixes(0, undefined, fraisDTO.fraisChange);
-    }
-    // Si on a un pourcentage avec ou sans plafonds
-    if (fraisDTO.pourcentage !== undefined && fraisDTO.pourcentage > 0) {
-      const rate = fraisDTO.pourcentage / 100;
-      return new FraisPourcentage(rate, fraisDTO.maximum, fraisDTO.minimum);
-    }
+  //   if (
+  //     fraisDTO.fraisChange !== undefined &&
+  //     fraisDTO.fraisChange.fxSurcharge > 0 &&
+  //     fraisDTO.fraisChange.devise
+  //   ) {
+  //     return new FraisFixes(0, undefined, fraisDTO.fraisChange);
+  //   }
+  //   // Si on a un pourcentage avec ou sans plafonds
+  //   if (fraisDTO.pourcentage !== undefined && fraisDTO.pourcentage > 0) {
+  //     const rate = fraisDTO.pourcentage / 100;
+  //     return new FraisPourcentage(rate, fraisDTO.maximum, fraisDTO.minimum);
+  //   }
 
-    // Par défaut, gratuit
-    return new FraisGratuit();
-  }
+  //   // Par défaut, gratuit
+  //   return new FraisGratuit();
+  // }
 }
