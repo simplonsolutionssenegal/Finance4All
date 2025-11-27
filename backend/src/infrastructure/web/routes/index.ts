@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import userRoutes from './user.routes';
 import { InstitutionRoutes } from './institution.routes';
+import { ModuleFormationRoutes } from './module.routes';
 
 const router = Router();
 
 router.use('/users', userRoutes);
 router.use('/institutions', InstitutionRoutes());
-
+router.use('/modules', ModuleFormationRoutes());
 // Route de test
 router.get('/test', (req, res) => {
   res.json({

@@ -26,7 +26,7 @@ const menuItems = [
     id: 'formations',
     label: 'Cours & Formations',
     icon: BookOpen,
-    href: '/formations',
+    href: '/modules',
   },
   {
     id: 'users',
