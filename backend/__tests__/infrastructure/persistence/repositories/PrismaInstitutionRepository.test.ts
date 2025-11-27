@@ -628,6 +628,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -953,6 +955,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [service],
       });
 
@@ -1588,6 +1592,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [],
       });
 
