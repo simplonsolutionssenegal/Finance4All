@@ -41,28 +41,4 @@ export class AddServiceUseCaseImpl implements AddServiceUseCase {
 
     return savedInstitution.toDTO();
   }
-
-  // private mapFraisFromDTO(fraisDTO: FraisDTO): Frais {
-  //   // Si on a un montant fixe et éventuellement un pourcentage
-  //   if (fraisDTO.montantFixe !== undefined && fraisDTO.montantFixe > 0) {
-  //     const rate = fraisDTO.pourcentage ? fraisDTO.pourcentage / 100 : undefined;
-  //     return new FraisFixes(fraisDTO.montantFixe, rate);
-  //   }
-
-  //   if (
-  //     fraisDTO.fraisChange !== undefined &&
-  //     fraisDTO.fraisChange.fxSurcharge > 0 &&
-  //     fraisDTO.fraisChange.devise
-  //   ) {
-  //     return new FraisFixes(0, undefined, fraisDTO.fraisChange);
-  //   }
-  //   // Si on a un pourcentage avec ou sans plafonds
-  //   if (fraisDTO.pourcentage !== undefined && fraisDTO.pourcentage > 0) {
-  //     const rate = fraisDTO.pourcentage / 100;
-  //     return new FraisPourcentage(rate, fraisDTO.maximum, fraisDTO.minimum);
-  //   }
-
-  //   // Par défaut, gratuit
-  //   return new FraisGratuit();
-  // }
 }
