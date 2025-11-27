@@ -34,8 +34,14 @@ type FraisData = {
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
+  fraisChange?: FraisChangeData;
   cap?: number;
   floor?: number;
+};
+
+type FraisChangeData = {
+  fxSurcharge: number;
+  devise: string;
 };
 
 export class PrismaInstitutionRepository implements InstitutionRepository {
@@ -157,6 +163,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       name: prismaService.name,
       longName: prismaService.longName,
       type: this.mapPrismaTypeToTypeService(prismaService.type),
+      montantMin: prismaService.montantMin ?? 0,
+      montantMax: prismaService.montantMax ?? 0,
       frais: this.mapFraisToDomain(prismaService.frais as FraisData),
       conditionAccess: prismaService.conditionAccess,
       plafonds: prismaService.plafonds,
@@ -170,7 +178,16 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     }
 
     if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
-      return new FraisFixes(fraisData.amount, fraisData.rate, fraisData.fxSurcharge);
+      return new FraisFixes(
+        fraisData.amount,
+        fraisData.rate,
+        fraisData.fraisChange
+          ? {
+              fxSurcharge: fraisData.fraisChange.fxSurcharge,
+              devise: fraisData.fraisChange.devise,
+            }
+          : undefined
+      );
     }
 
     if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
@@ -200,6 +217,8 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       name: service.name,
       longName: service.longName,
       type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
+      montantMin: service.montantMin,
+      montantMax: service.montantMax,
       frais: this.mapFraisToPrisma(service.frais),
       conditionAccess: service.conditionAccess,
       plafonds: service.plafonds,
@@ -251,12 +270,20 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     }
 
     if (frais instanceof FraisFixes) {
-      return {
+      const fraisData: FraisData = {
         type: 'FIX',
         amount: frais.amount,
         rate: frais.rate,
-        fxSurcharge: frais.fxSurcharge,
       };
+
+      if (frais.fraisChange) {
+        fraisData.fraisChange = {
+          fxSurcharge: frais.fraisChange.fxSurcharge,
+          devise: frais.fraisChange.devise,
+        };
+      }
+
+      return fraisData;
     }
 
     if (frais instanceof FraisPourcentage) {

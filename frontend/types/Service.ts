@@ -8,17 +8,23 @@ export interface Frais {
   amount?: number;
   rate?: number;
   fxSurcharge?: number;
-
   montantFixe?: number;
+  fraisChange?: FraisChange;
   pourcentage?: number;
   minimum?: number;
   maximum?: number;
 }
 
+export type FraisChange = {
+  fxSurcharge: number;
+  devise: string;
+};
 export interface CreateServiceDto {
   name: string;
   longName: string;
   type: TypeService;
+  montantMin?: number;
+  montantMax?: number;
   frais: Frais;
   conditionAccess: string[];
   plafonds: string[];
@@ -30,6 +36,8 @@ export interface Service {
   name: string;
   longName: string;
   type: TypeService;
+  montantMin?: number;
+  montantMax?: number;
   frais: Frais;
   conditionAccess: string[];
   plafonds: string[];

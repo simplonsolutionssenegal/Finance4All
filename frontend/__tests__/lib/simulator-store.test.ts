@@ -18,6 +18,7 @@ const mockService: Service = {
   name: 'Test Service',
   longName: 'Test Service Description',
   type: TypeService.CREDIT,
+
   frais: {
     type: 'POURCENTAGE' as const,
     rate: 3.5,

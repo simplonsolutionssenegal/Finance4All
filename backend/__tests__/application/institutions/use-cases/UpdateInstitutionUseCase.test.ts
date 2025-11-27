@@ -189,6 +189,9 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
+        montantMin: 100000,
+        montantMax: 100000,
+
         frais: new FraisFixes(200, 0.01),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -228,16 +231,18 @@ describe('UpdateInstitutionUseCaseImpl', () => {
       const result = await useCase.execute(updateCommand);
 
       expect(result.services).toHaveLength(1);
-      expect(result.services[0]).toEqual({
+      expect(result.services[0]).toMatchObject({
         id: serviceId,
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.ASSURANCE,
-        frais: expect.any(FraisFixes),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
       });
+      expect(result.services[0].frais).toHaveProperty('typeCalculation');
+      expect(result.services[0].frais).toHaveProperty('montantFixe', 200);
+      expect(result.services[0].frais).toHaveProperty('pourcentage', 0.01);
     });
   });
 });

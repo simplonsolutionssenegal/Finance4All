@@ -8,6 +8,7 @@ const createMockService = (type: TypeService, frais: any = {}): Service => ({
   name: 'Test Service',
   longName: 'Test Service Description',
   type,
+
   frais: {
     type: 'POURCENTAGE',
     rate: 0.035,

@@ -1,6 +1,6 @@
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { EntityId } from '@/domain/shared/EntityId';
-import type { Frais } from '@/domain/institutions/entities/Frais';
+import { type Frais } from '@/domain/institutions/entities/Frais';
 import type { ServiceDTO } from '@/domain/institutions/value-objects/ServiceDTO';
 
 export enum TypeService {
@@ -25,6 +25,8 @@ interface SerciceProps {
   longName: string;
   type: TypeService;
   frais: Frais;
+  montantMin: number;
+  montantMax: number;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];
@@ -34,6 +36,8 @@ export class Service extends DomainEntity<EntityId> {
   private _name: string;
   private _longName: string;
   private _type: TypeService;
+  private _montantMin: number;
+  private _montantMax: number;
   private _frais: Frais;
   private _conditionAccess: string[];
   private _plafonds: string[];
@@ -44,6 +48,8 @@ export class Service extends DomainEntity<EntityId> {
     this._name = service.name;
     this._longName = service.longName;
     this._type = service.type;
+    this._montantMin = service.montantMin;
+    this._montantMax = service.montantMax;
     this._frais = service.frais;
     this._conditionAccess = service.conditionAccess;
     this._plafonds = service.plafonds;
@@ -73,6 +79,13 @@ export class Service extends DomainEntity<EntityId> {
   get plafonds(): string[] {
     return this._plafonds;
   }
+  get montantMin(): number {
+    return this._montantMin;
+  }
+
+  get montantMax(): number {
+    return this._montantMax;
+  }
 
   get infrastructureAccess(): string[] {
     return this._infrastructureAccess;
@@ -84,7 +97,9 @@ export class Service extends DomainEntity<EntityId> {
       name: this._name,
       longName: this._longName,
       type: this._type,
-      frais: this._frais,
+      montantMin: this._montantMin,
+      montantMax: this._montantMax,
+      frais: this._frais.toDTO(),
       conditionAccess: this._conditionAccess,
       plafonds: this._plafonds,
       infrastructureAccess: this._infrastructureAccess,

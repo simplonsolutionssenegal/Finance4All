@@ -1,4 +1,4 @@
-import type { Frais } from '@/domain/institutions/entities/Frais';
+import type { FraisDTO } from '@/domain/institutions/value-objects/FraisDTO';
 import type { TypeService } from '@/domain/institutions/entities/Service';
 
 export interface ServiceDTO {
@@ -6,7 +6,9 @@ export interface ServiceDTO {
   name: string;
   longName: string;
   type: TypeService;
-  frais: Frais;
+  montantMin: number;
+  montantMax: number;
+  frais: FraisDTO;
   conditionAccess: string[];
   plafonds: string[];
   infrastructureAccess: string[];

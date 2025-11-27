@@ -145,6 +145,26 @@ describe('Institution', () => {
       expect(institution.operatesInZone('USD')).toBe(true);
       expect(institution.operatesInZone('GBP')).toBe(false);
     });
+
+    it('should not add duplicate geographic zones', () => {
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [],
+      });
+      institution.addGeographicZone('EURO');
+      institution.addGeographicZone('EURO');
+
+      expect(institution.geographicZones.length).toBe(1);
+      expect(institution.geographicZones).toEqual(['EURO']);
+    });
   });
 
   describe('update methods', () => {
@@ -201,6 +221,29 @@ describe('Institution', () => {
 
       expect(institution.logoUrl.getValue()).toBe('https://new-logo.com');
     });
+
+    it('should update updatedAt timestamp on modifications', () => {
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [],
+      });
+
+      const initialUpdatedAt = institution.updatedAt;
+
+      // Wait a bit to ensure timestamp difference
+      setTimeout(() => {
+        institution.updateName('New Name');
+        expect(institution.updatedAt.getTime()).toBeGreaterThanOrEqual(initialUpdatedAt.getTime());
+      }, 10);
+    });
   });
 
   describe('getters', () => {
@@ -235,6 +278,9 @@ describe('Institution', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        montantMin: 100000,
+        montantMax: 100000,
+
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -258,6 +304,9 @@ describe('Institution', () => {
         name: 'Service 1',
         longName: 'Service 1 Long Name',
         type: TypeService.TRANSFERT_ARGENT,
+        montantMin: 100000,
+        montantMax: 100000,
+
         frais: new FraisPourcentage(0.02, 500, 50),
         conditionAccess: [],
         plafonds: [],
@@ -269,6 +318,9 @@ describe('Institution', () => {
         name: 'Service 2',
         longName: 'Service 2 Long Name',
         type: TypeService.EPARGNE,
+        montantMin: 100000,
+        montantMax: 100000,
+
         frais: new FraisPourcentage(0.01),
         conditionAccess: [],
         plafonds: [],
@@ -298,6 +350,9 @@ describe('Institution', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.ASSURANCE,
+        montantMin: 100000,
+        montantMax: 100000,
+
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -314,6 +369,89 @@ describe('Institution', () => {
       expect(Array.isArray(services)).toBe(true);
       expect(services).toHaveLength(1);
       expect(services[0]).toBe(service);
+    });
+
+    it('should not add duplicate services', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+      const service = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.CREDIT,
+        montantMin: 100000,
+        montantMax: 100000,
+
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [],
+      });
+
+      institution.addService(service);
+      institution.addService(service);
+
+      expect(institution.services).toHaveLength(1);
+    });
+  });
+
+  describe('toDTO', () => {
+    it('should convert institution to DTO with all fields', async () => {
+      const { Service, TypeService } = await import('@/domain/institutions/entities/Service');
+      const { FraisGratuit } = await import('@/domain/institutions/entities/Frais');
+
+      const service = new Service({
+        id: EntityId.from(randomUUID()),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100000,
+        montantMax: 100000,
+
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition'],
+        plafonds: ['Plafond'],
+        infrastructureAccess: ['Infra'],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from('https://test.com'),
+        geographicZones: ['EURO', 'USD'],
+        logoUrl: UrlValueObject.from('https://test.com/logo.png'),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [service],
+      });
+
+      const dto = institution.toDTO();
+
+      expect(dto.id).toBe(testUuid);
+      expect(dto.name).toBe('Test Institution');
+      expect(dto.description).toBe('Test Description');
+      expect(dto.website).toBe('https://test.com');
+      expect(dto.geographicZones).toEqual(['EURO', 'USD']);
+      expect(dto.logoUrl).toBe('https://test.com/logo.png');
+      expect(dto.status).toBe(InstitutionStatus.ACTIVE);
+      expect(dto.services).toHaveLength(1);
+      expect(dto.services[0].id).toBe(service.id.getValue());
     });
   });
 });

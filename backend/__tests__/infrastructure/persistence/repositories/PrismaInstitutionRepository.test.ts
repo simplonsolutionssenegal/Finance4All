@@ -11,7 +11,7 @@ import {
   FraisFixes,
   FraisGratuit,
   FraisPourcentage,
-  TypeCalculation,
+  TypeCalculation as FraisTypeCalculation,
 } from '@/domain/institutions/entities/Frais';
 import { Service, TypeService } from '@/domain/institutions/entities/Service';
 
@@ -401,6 +401,8 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: TypeService.AUTRES,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -425,6 +427,7 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: 'AUTRES',
+        typeFrais: 'FREE',
         frais: { type: 'FREE' },
         conditionAccess: [],
         plafonds: [],
@@ -458,7 +461,7 @@ describe('PrismaInstitutionRepository', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             services: {
-              create: [], // Should be empty
+              create: [],
             },
           }),
         })
@@ -544,7 +547,9 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        frais: new FraisFixes(100, 0.02, 50),
+        montantMin: 100000,
+        montantMax: 100000,
+        frais: new FraisFixes(100, 0.02),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
@@ -579,7 +584,8 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Test Service',
             longName: 'Test Service Long Name',
             type: 'PAIEMENT_MARCHAND',
-            frais: { type: 'FIX', amount: 100, rate: 0.02, fxSurcharge: 50 },
+            typeFrais: 'FIX',
+            frais: { type: 'FIX', amount: 100, rate: 0.02 },
             conditionAccess: ['Condition 1'],
             plafonds: ['Plafond 1'],
             infrastructureAccess: ['Infra 1'],
@@ -597,6 +603,78 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('Test Service');
       expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
+    });
+
+    it('should save institution with FraisFixes service with fraisChange', async () => {
+      const serviceId = randomUUID();
+      const _service = new Service({
+        id: EntityId.from(serviceId),
+        name: 'Test Service',
+        longName: 'Test Service Long Name',
+        type: TypeService.PAIEMENT_MARCHAND,
+        montantMin: 100000,
+        montantMax: 100000,
+        frais: new FraisFixes(100, 0.02, { fxSurcharge: 50, devise: 'EUR' }),
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid1),
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: UrlValueObject.from('https://test.com'),
+        geographicZones: ['EURO'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.PENDING,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
+        services: [],
+      });
+
+      const prismaInstitution: any = {
+        id: testUuid1,
+        name: 'Test Institution',
+        description: 'Test Description',
+        website: 'https://test.com',
+        geographicZones: ['EURO'],
+        logoUrl: null,
+        status: 'PENDING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        services: [
+          {
+            id: serviceId,
+            name: 'Test Service',
+            longName: 'Test Service Long Name',
+            type: 'PAIEMENT_MARCHAND',
+            typeFrais: 'FIX',
+            frais: {
+              type: 'FIX',
+              amount: 100,
+              rate: 0.02,
+              fraisChange: { fxSurcharge: 50, devise: 'EUR' },
+            },
+            conditionAccess: ['Condition 1'],
+            plafonds: ['Plafond 1'],
+            infrastructureAccess: ['Infra 1'],
+            institutionId: testUuid1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      };
+
+      (mockPrisma.institution.create as jest.Mock).mockResolvedValue(prismaInstitution);
+
+      const result = await repository.save(institution);
+
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0].name).toBe('Test Service');
+      expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
+      const fraisFixes = result.services[0].frais as FraisFixes;
+      expect(fraisFixes.fraisChange).toEqual({ fxSurcharge: 50, devise: 'EUR' });
     });
 
     it('should save institution with FraisPourcentage service', async () => {
@@ -631,6 +709,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Test Service',
             longName: 'Test Service Long Name',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.02, cap: 500, floor: 50 },
             conditionAccess: [],
             plafonds: [],
@@ -683,6 +762,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Free Service',
             longName: 'Free Service Long Name',
             type: 'CREDIT',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -735,6 +815,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long Name',
             type: 'AUTRES',
+            typeFrais: null,
             frais: null,
             conditionAccess: [],
             plafonds: [],
@@ -760,6 +841,8 @@ describe('PrismaInstitutionRepository', () => {
         name: 'New Service',
         longName: 'New Service Long Name',
         type: TypeService.TRANSFERT_ARGENT,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisFixes(150),
         conditionAccess: [],
         plafonds: [],
@@ -808,6 +891,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'New Service',
             longName: 'New Service Long Name',
             type: 'TRANSFERT_ARGENT',
+            typeFrais: 'FIX',
             frais: { type: 'FIX', amount: 150 },
             conditionAccess: [],
             plafonds: [],
@@ -829,25 +913,113 @@ describe('PrismaInstitutionRepository', () => {
         include: { services: true },
       });
 
-      expect(mockPrisma.institution.update).toHaveBeenCalledWith({
-        where: { id: testUuid1 },
-        data: expect.objectContaining({
-          name: 'Updated Name',
-          services: {
-            create: expect.arrayContaining([
-              expect.objectContaining({
-                id: serviceId,
-                name: 'New Service',
-                type: 'TRANSFERT_ARGENT',
-              }),
-            ]),
-          },
-        }),
-        include: { services: true },
-      });
+      // Vérification simplifiée : on vérifie juste les parties importantes
+      const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
+
+      expect(updateCall.where).toEqual({ id: testUuid1 });
+      expect(updateCall.data.name).toBe('Updated Name');
+      expect(updateCall.data.description).toBe('Updated Description');
+      expect(updateCall.data.status).toBe('ACTIVE');
+      expect(updateCall.data.services.create).toHaveLength(1);
+      expect(updateCall.data.services.create[0].id).toBe(serviceId);
+      expect(updateCall.data.services.create[0].name).toBe('New Service');
+      expect(updateCall.data.services.create[0].type).toBe('TRANSFERT_ARGENT');
+      expect(updateCall.data.services.create[0].frais.type).toBe('FIX');
+      expect(updateCall.data.services.create[0].frais.amount).toBe(150);
+      expect(updateCall.include).toEqual({ services: true });
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].name).toBe('New Service');
+    });
+
+    it('should update institution with new services with fraisChange', async () => {
+      const serviceId = randomUUID();
+      const service = new Service({
+        id: EntityId.from(serviceId),
+        name: 'New Service',
+        longName: 'New Service Long Name',
+        type: TypeService.TRANSFERT_ARGENT,
+        montantMin: 100000,
+        montantMax: 100000,
+        frais: new FraisFixes(150, undefined, { fxSurcharge: 25, devise: 'USD' }),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const institution = new Institution({
+        id: EntityId.from(testUuid1),
+        name: 'Updated Name',
+        description: 'Updated Description',
+        website: UrlValueObject.from(null),
+        geographicZones: ['CEMAC'],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [service],
+      });
+
+      const existingInstitution: any = {
+        id: testUuid1,
+        name: 'Old Name',
+        description: 'Old Description',
+        website: null,
+        geographicZones: ['UEMOA'],
+        logoUrl: null,
+        status: 'PENDING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        services: [],
+      };
+
+      const updatedInstitution: any = {
+        id: testUuid1,
+        name: 'Updated Name',
+        description: 'Updated Description',
+        website: null,
+        geographicZones: ['CEMAC'],
+        logoUrl: null,
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        services: [
+          {
+            id: serviceId,
+            name: 'New Service',
+            longName: 'New Service Long Name',
+            type: 'TRANSFERT_ARGENT',
+            typeFrais: 'FIX',
+            frais: {
+              type: 'FIX',
+              amount: 150,
+              fraisChange: { fxSurcharge: 25, devise: 'USD' },
+            },
+            conditionAccess: [],
+            plafonds: [],
+            infrastructureAccess: [],
+            institutionId: testUuid1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      };
+
+      (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(existingInstitution);
+      (mockPrisma.institution.update as jest.Mock).mockResolvedValue(updatedInstitution);
+
+      const result = await repository.update(institution);
+
+      const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall.data.services.create[0].frais.fraisChange).toEqual({
+        fxSurcharge: 25,
+        devise: 'USD',
+      });
+
+      expect(result.services).toHaveLength(1);
+      expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
+      const fraisFixes = result.services[0].frais as FraisFixes;
+      expect(fraisFixes.fraisChange).toEqual({ fxSurcharge: 25, devise: 'USD' });
     });
 
     it('should map all TypeService values correctly from Prisma to Domain', async () => {
@@ -901,6 +1073,7 @@ describe('PrismaInstitutionRepository', () => {
               name: 'Service',
               longName: 'Service Long',
               type: serviceTypeMapping[serviceType],
+              typeFrais: 'FREE',
               frais: { type: 'FREE' },
               conditionAccess: [],
               plafonds: [],
@@ -920,7 +1093,7 @@ describe('PrismaInstitutionRepository', () => {
       }
     });
 
-    it('should handle FraisFixes without rate and fxSurcharge', async () => {
+    it('should handle FraisFixes without rate and fraisChange', async () => {
       const serviceId = randomUUID();
       const institution = new Institution({
         id: EntityId.from(testUuid1),
@@ -951,6 +1124,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'PAIEMENT_MARCHAND',
+            typeFrais: 'FIX',
             frais: { type: 'FIX', amount: 100 },
             conditionAccess: [],
             plafonds: [],
@@ -1001,6 +1175,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.015 },
             conditionAccess: [],
             plafonds: [],
@@ -1027,6 +1202,8 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Free Service',
         longName: 'Free Service Long Name',
         type: TypeService.AUTRES,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1075,6 +1252,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Free Service',
             longName: 'Free Service Long Name',
             type: 'AUTRES',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -1102,6 +1280,8 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Percent Service',
         longName: 'Percent Service Long Name',
         type: TypeService.EPARGNE,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -1150,6 +1330,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Percent Service',
             longName: 'Percent Service Long Name',
             type: 'EPARGNE',
+            typeFrais: 'POURCENTAGE',
             frais: { type: 'POURCENTAGE', rate: 0.03, cap: 1000, floor: 100 },
             conditionAccess: [],
             plafonds: [],
@@ -1185,7 +1366,6 @@ describe('PrismaInstitutionRepository', () => {
         services: [],
       });
 
-      // Test with FIX type but no amount
       const prismaInstitution1: any = {
         id: testUuid1,
         name: 'Test',
@@ -1202,7 +1382,8 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Service',
             longName: 'Service Long',
             type: 'AUTRES',
-            frais: { type: 'FIX' }, // Missing amount
+            typeFrais: 'FIX',
+            frais: { type: 'FIX' },
             conditionAccess: [],
             plafonds: [],
             infrastructureAccess: [],
@@ -1218,13 +1399,13 @@ describe('PrismaInstitutionRepository', () => {
       const result1 = await repository.save(institution);
       expect(result1.services[0].frais).toBeInstanceOf(FraisGratuit);
 
-      // Test with POURCENTAGE type but no rate
       const prismaInstitution2: any = {
         ...prismaInstitution1,
         services: [
           {
             ...prismaInstitution1.services[0],
-            frais: { type: 'POURCENTAGE' }, // Missing rate
+            typeFrais: 'POURCENTAGE',
+            frais: { type: 'POURCENTAGE' },
           },
         ],
       };
@@ -1253,6 +1434,7 @@ describe('PrismaInstitutionRepository', () => {
             name: 'Unknown Service',
             longName: 'Unknown Service Long Name',
             type: 'UNKNOWN_TYPE',
+            typeFrais: 'FREE',
             frais: { type: 'FREE' },
             conditionAccess: [],
             plafonds: [],
@@ -1276,7 +1458,9 @@ describe('PrismaInstitutionRepository', () => {
         id: EntityId.from(serviceId),
         name: 'New Service',
         longName: 'New Service Long Name',
-        type: 'UNKNOWN_TYPE' as TypeService, // Force unknown type
+        type: 'UNKNOWN_TYPE' as TypeService,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -1327,17 +1511,27 @@ describe('PrismaInstitutionRepository', () => {
 
     it('should handle unknown Frais type and default to FREE', async () => {
       class UnknownFrais extends Frais {
-        readonly _typeCalculation = TypeCalculation.FREE;
+        readonly _typeCalculation = FraisTypeCalculation.FREE;
+
         describe(): string {
           return 'Unknown frais';
         }
+
+        toDTO() {
+          return {
+            typeCalculation: this._typeCalculation,
+          };
+        }
       }
+
       const serviceId = randomUUID();
       const service = new Service({
         id: EntityId.from(serviceId),
         name: 'New Service',
         longName: 'New Service Long Name',
         type: TypeService.AUTRES,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new UnknownFrais(),
         conditionAccess: [],
         plafonds: [],
@@ -1386,6 +1580,60 @@ describe('PrismaInstitutionRepository', () => {
           }),
         })
       );
+    });
+
+    it('should handle FraisFixes from Prisma without fraisChange', async () => {
+      const serviceId = randomUUID();
+      const institution = new Institution({
+        id: EntityId.from(testUuid1),
+        name: 'Test',
+        description: 'Test',
+        website: UrlValueObject.from(null),
+        geographicZones: [],
+        logoUrl: UrlValueObject.from(null),
+        status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
+        services: [],
+      });
+
+      const prismaInstitution: any = {
+        id: testUuid1,
+        name: 'Test',
+        description: 'Test',
+        website: null,
+        geographicZones: [],
+        logoUrl: null,
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        services: [
+          {
+            id: serviceId,
+            name: 'Service',
+            longName: 'Service Long',
+            type: 'PAIEMENT_MARCHAND',
+            typeFrais: 'FIX',
+            frais: { type: 'FIX', amount: 100, rate: 0.01 },
+            conditionAccess: [],
+            plafonds: [],
+            infrastructureAccess: [],
+            institutionId: testUuid1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      };
+
+      (mockPrisma.institution.create as jest.Mock).mockResolvedValue(prismaInstitution);
+
+      const result = await repository.save(institution);
+
+      expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
+      const fraisFixes = result.services[0].frais as FraisFixes;
+      expect(fraisFixes.amount).toBe(100);
+      expect(fraisFixes.rate).toBe(0.01);
+      expect(fraisFixes.fraisChange).toBeUndefined();
     });
   });
 });

@@ -277,6 +277,8 @@ describe('CreateInstitutionUseCaseImpl', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
+        montantMin: 100000,
+        montantMax: 100000,
         frais: new FraisFixes(100),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -302,16 +304,17 @@ describe('CreateInstitutionUseCaseImpl', () => {
 
       expect(result).toHaveProperty('services');
       expect(result.services).toHaveLength(1);
-      expect(result.services[0]).toEqual({
+      expect(result.services[0]).toMatchObject({
         id: serviceUuid,
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        frais: expect.any(FraisFixes),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
         infrastructureAccess: ['Infra 1'],
       });
+      expect(result.services[0].frais).toHaveProperty('typeCalculation');
+      expect(result.services[0].frais).toHaveProperty('montantFixe', 100);
     });
   });
 });
