@@ -155,9 +155,10 @@ describe('Institution', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [],
       });
-
       institution.addGeographicZone('EURO');
       institution.addGeographicZone('EURO');
 
@@ -230,6 +231,8 @@ describe('Institution', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [],
       });
 
@@ -394,6 +397,8 @@ describe('Institution', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [],
       });
 
@@ -431,6 +436,8 @@ describe('Institution', () => {
         geographicZones: ['EURO', 'USD'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.BANQUE_NUMERIQUE, // Ajouter cette ligne
+        pays: Country.SENEGAL, // Ajouter cette ligne
         services: [service],
       });
 

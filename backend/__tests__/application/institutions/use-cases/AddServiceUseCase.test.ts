@@ -245,6 +245,8 @@ describe('AddServiceUseCaseImpl', () => {
       geographicZones: ['UEMOA'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE, // Ajouter cette ligne
+      pays: Country.SENEGAL, // Ajouter cette ligne
       services: [],
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
@@ -279,6 +281,8 @@ describe('AddServiceUseCaseImpl', () => {
       geographicZones: ['UEMOA'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE, // Ajouter cette ligne
+      pays: Country.SENEGAL, // Ajouter cette ligne
       services: [],
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
@@ -313,6 +317,8 @@ describe('AddServiceUseCaseImpl', () => {
       geographicZones: ['UEMOA'],
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE, // Ajouter cette ligne
+      pays: Country.SENEGAL, // Ajouter cette ligne
       services: [],
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);

@@ -21,7 +21,6 @@ import type {
   TypeService as PrismaTypeService,
   InstitutionType as PrismaInstitutionType,
   Country as PrismaPays,
-  TypeCalculation as PrismaTypeCalculation,
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
