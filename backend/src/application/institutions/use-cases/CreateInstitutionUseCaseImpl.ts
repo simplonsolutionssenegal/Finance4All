@@ -27,10 +27,12 @@ export class CreateInstitutionUseCaseImpl implements CreateInstitutionUseCase {
     const institution = new Institution({
       id: EntityId.generate(),
       name,
+      type: dto.type,
       description: dto.description,
       website: UrlValueObject.from(dto.website || null),
       geographicZones: dto.geographicZones,
       logoUrl: UrlValueObject.from(dto.logoUrl || null),
+      pays: dto.pays,
       status: InstitutionStatus.PENDING,
       services: [],
     });

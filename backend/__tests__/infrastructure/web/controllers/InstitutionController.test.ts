@@ -7,6 +7,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
@@ -93,6 +95,8 @@ describe('InstitutionController', () => {
         services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockRequest.body = requestBody;
@@ -127,6 +131,8 @@ describe('InstitutionController', () => {
         services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockRequest.body = requestBody;
@@ -217,6 +223,8 @@ describe('InstitutionController', () => {
         services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockRequest.body = requestBody;
@@ -243,6 +251,8 @@ describe('InstitutionController', () => {
             services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
+            type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+            pays: Country.SENEGAL,
           },
           {
             id: 'inst_2',
@@ -255,6 +265,8 @@ describe('InstitutionController', () => {
             services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
+            type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+            pays: Country.SENEGAL,
           },
         ],
         pagination: {
@@ -293,6 +305,8 @@ describe('InstitutionController', () => {
             services: [],
             createdAt: new Date(),
             updatedAt: new Date(),
+            type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+            pays: Country.SENEGAL,
           },
         ],
         pagination: {
@@ -363,6 +377,8 @@ describe('InstitutionController', () => {
         services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockRequest.params = { id: 'inst_123' };
@@ -391,6 +407,8 @@ describe('InstitutionController', () => {
         services: [],
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       };
 
       mockRequest.params = { id: 'inst_456' };
@@ -452,6 +470,8 @@ describe('InstitutionController', () => {
           services: [],
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+          pays: Country.SENEGAL,
         };
 
         mockRequest.params = { id: 'inst_status_test' };

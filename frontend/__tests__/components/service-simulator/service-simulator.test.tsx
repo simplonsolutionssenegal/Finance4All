@@ -45,6 +45,8 @@ const mockInstitution: Institution = {
   geographicZones: ['Sénégal'],
   logoUrl: 'https://testbank.com/logo.png',
   status: InstitutionStatus.ACTIVE,
+  type: 'SERVICE_FINANCIER_DECENTRALISE',
+  pays: 'SENEGAL',
   services: [mockService],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

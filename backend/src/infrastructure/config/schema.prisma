@@ -20,6 +20,8 @@ model Institution {
   website         String?
   geographicZones String[]
   logoUrl         String?
+  type            InstitutionType   @default(ETABLISSEMENT_MONNAIE_ELECTRONIQUE)
+  pays            Country           @default(SENEGAL)
   status          InstitutionStatus @default(PENDING)
   services        Service[]
   createdAt       DateTime          @default(now())
@@ -65,4 +67,21 @@ enum TypeService {
   CREDIT
   ASSURANCE
   AUTRES
+}
+
+enum InstitutionType {
+  ETABLISSEMENT_MONNAIE_ELECTRONIQUE
+  PORTEFEUILLE_NUMERIQUE
+  SERVICE_PAIEMENT_ELECTRONIQUE
+  BANQUE_NUMERIQUE
+  SERVICE_FINANCIER_DECENTRALISE
+  SERVICE_FINANCEMENT_PARTICIPATIF
+  SERVICE_INVESTISSEMENT
+  SERVICE_GESTION_FINANCIERE
+  SERVICE_ASSURANCE_NUMERIQUE
+}
+
+enum Country {
+  SENEGAL
+  CAMEROUN
 }

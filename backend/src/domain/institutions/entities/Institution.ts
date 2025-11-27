@@ -4,6 +4,9 @@ import { DomainEntity } from '@/domain/shared/Entity';
 import type { Service } from '@/domain/institutions/entities/Service';
 import type { InstitutionDTO } from '@/domain/institutions/value-objects/InstitutionDTO';
 
+import type { InstitutionTypeEnum } from '../value-objects/InstitutionType';
+import type { CountryType } from '../value-objects/Country';
+
 export interface InstitutionProps {
   id: EntityId;
   name: string;
@@ -11,6 +14,8 @@ export interface InstitutionProps {
   website: UrlValueObject;
   geographicZones: string[];
   status: InstitutionStatus;
+  type: InstitutionTypeEnum;
+  pays: CountryType;
   logoUrl: UrlValueObject;
   services: Service[];
 }
@@ -25,10 +30,12 @@ export class Institution extends DomainEntity<EntityId> {
   private _name: string;
   private _description: string;
   private _website: UrlValueObject;
-  private _geographicZones: Set<string>;
+  private readonly _geographicZones: Set<string>;
   private _status: InstitutionStatus;
+  private readonly _type: InstitutionTypeEnum;
+  private readonly _pays: CountryType;
   private _logoUrl: UrlValueObject;
-  private _services: Set<Service>;
+  private readonly _services: Set<Service>;
 
   constructor(props: InstitutionProps) {
     super(props.id);
@@ -37,6 +44,8 @@ export class Institution extends DomainEntity<EntityId> {
     this._website = props.website;
     this._geographicZones = new Set(props.geographicZones);
     this._status = props.status;
+    this._type = props.type;
+    this._pays = props.pays;
     this._logoUrl = props.logoUrl;
     this._services = new Set(props.services);
   }
@@ -82,6 +91,14 @@ export class Institution extends DomainEntity<EntityId> {
 
   get logoUrl(): UrlValueObject {
     return this._logoUrl;
+  }
+
+  get type(): InstitutionTypeEnum {
+    return this._type;
+  }
+
+  get pays(): CountryType {
+    return this._pays;
   }
 
   addGeographicZone(zone: string): void {
@@ -139,6 +156,8 @@ export class Institution extends DomainEntity<EntityId> {
       website: this._website.getValue(),
       geographicZones: this.geographicZones,
       logoUrl: this._logoUrl.getValue(),
+      type: this._type,
+      pays: this._pays,
       status: this._status,
       services: this.services.map(service => service.toDTO()),
       createdAt: this._createdAt,

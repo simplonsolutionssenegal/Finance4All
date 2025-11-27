@@ -5,6 +5,8 @@ import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { randomUUID } from 'crypto';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 // Helper to create a new Institution instance from an existing one for tests
 const cloneInstitution = (institution: Institution, newStatus: InstitutionStatus): Institution => {
@@ -16,6 +18,8 @@ const cloneInstitution = (institution: Institution, newStatus: InstitutionStatus
     geographicZones: institution.geographicZones,
     logoUrl: institution.logoUrl,
     status: newStatus,
+    type: institution.type,
+    pays: institution.pays,
     services: [],
   });
 };
@@ -33,6 +37,8 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
     geographicZones: ['UEMOA'],
     logoUrl: UrlValueObject.from('https://old.com/logo.png'),
     status: InstitutionStatus.PENDING,
+    type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+    pays: Country.SENEGAL,
     services: [],
   });
 
@@ -136,6 +142,8 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
       });
     });
 
@@ -163,6 +171,8 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from('https://old.com/logo.png'),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [mockService],
       });
 
@@ -176,6 +186,8 @@ describe('UpdateInstitutionStatusUseCaseImpl', () => {
         geographicZones: ['UEMOA'],
         logoUrl: UrlValueObject.from('https://old.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [mockService],
       });
 

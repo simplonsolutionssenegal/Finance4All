@@ -25,6 +25,8 @@ describe('ConfirmUpdateStatusModal', () => {
     logoUrl: '',
     createdAt: '',
     updatedAt: '',
+    type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+    pays: 'SENEGAL',
   };
 
   beforeEach(() => {

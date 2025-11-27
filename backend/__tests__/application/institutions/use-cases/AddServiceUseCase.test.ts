@@ -6,6 +6,8 @@ import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObje
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { TypeService } from '@/domain/institutions/entities/Service';
 import { FraisFixes, FraisGratuit, FraisPourcentage } from '@/domain/institutions/entities/Frais';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 describe('AddServiceUseCaseImpl', () => {
   let useCase: AddServiceUseCaseImpl;
@@ -52,6 +54,8 @@ describe('AddServiceUseCaseImpl', () => {
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
       services: [],
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
     mockRepository.update.mockImplementation(async (institution: Institution) => institution);
@@ -86,6 +90,8 @@ describe('AddServiceUseCaseImpl', () => {
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
       services: [],
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
     mockRepository.update.mockImplementation(async (institution: Institution) => institution);
@@ -119,6 +125,8 @@ describe('AddServiceUseCaseImpl', () => {
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
       services: [],
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
     mockRepository.update.mockImplementation(async (institution: Institution) => institution);
@@ -151,6 +159,8 @@ describe('AddServiceUseCaseImpl', () => {
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
       services: [],
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
     mockRepository.update.mockImplementation(async (institution: Institution) => institution);
@@ -185,6 +195,8 @@ describe('AddServiceUseCaseImpl', () => {
       logoUrl: UrlValueObject.from('https://logo.com/logo.png'),
       status: InstitutionStatus.ACTIVE,
       services: [],
+      type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+      pays: Country.SENEGAL,
     });
     mockRepository.findById.mockResolvedValue(existingInstitution);
     mockRepository.update.mockImplementation(async (institution: Institution) => institution);

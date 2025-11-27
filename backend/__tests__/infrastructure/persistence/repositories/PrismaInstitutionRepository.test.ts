@@ -2,6 +2,8 @@ import { PrismaInstitutionRepository } from '@/infrastructure/persistence/reposi
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import { EntityId } from '@/domain/shared/EntityId';
 import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { Country } from '@/domain/institutions/value-objects/Country';
 import type { PrismaClient, Institution as PrismaInstitution } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import {
@@ -52,6 +54,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO', 'USD'],
         logoUrl: UrlValueObject.from('https://test.com/logo.png'),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -62,6 +66,8 @@ describe('PrismaInstitutionRepository', () => {
         website: 'https://test.com',
         geographicZones: ['EURO', 'USD'],
         logoUrl: 'https://test.com/logo.png',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         status: 'PENDING' as any,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -81,6 +87,8 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: ['EURO', 'USD'],
           logoUrl: 'https://test.com/logo.png',
           status: 'PENDING',
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
         },
         include: {
           services: true,
@@ -101,6 +109,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['USD'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.PORTEFEUILLE_NUMERIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -111,6 +121,8 @@ describe('PrismaInstitutionRepository', () => {
         website: null,
         geographicZones: ['USD'],
         logoUrl: null,
+        type: 'PORTEFEUILLE_NUMERIQUE',
+        pays: 'SENEGAL',
         status: 'ACTIVE' as any,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -129,6 +141,8 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: ['USD'],
           logoUrl: null,
           status: 'ACTIVE',
+          type: 'PORTEFEUILLE_NUMERIQUE',
+          pays: 'SENEGAL',
         },
         include: {
           services: true,
@@ -333,6 +347,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from('https://updated.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -363,6 +379,8 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: ['CEMAC'],
           logoUrl: 'https://updated.com/logo.png',
           status: 'ACTIVE',
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: {
             create: [],
           },
@@ -397,6 +415,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -454,6 +474,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from('https://updated.com/logo.png'),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -536,6 +558,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.PENDING,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -586,6 +610,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -636,6 +662,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -686,6 +714,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -744,6 +774,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -848,6 +880,8 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: [],
           logoUrl: UrlValueObject.from(null),
           status: InstitutionStatus.ACTIVE,
+          type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+          pays: Country.SENEGAL,
           services: [],
         });
 
@@ -896,6 +930,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -944,6 +980,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -1003,6 +1041,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -1076,6 +1116,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -1138,6 +1180,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -1247,6 +1291,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -1306,6 +1352,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 

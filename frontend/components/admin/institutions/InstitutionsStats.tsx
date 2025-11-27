@@ -1,72 +1,82 @@
 'use client';
 
-import { Archive, Clock, CheckCircle2 } from 'lucide-react';
+import { Building2, CheckCircle2, AlertCircle, Archive, Settings } from 'lucide-react';
 
-const InstitutionStats = () => {
-  const stats = [
+import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
+import { InstitutionStatus } from '@/types/Institution';
+
+export default function InstitutionsStats() {
+  const { institutions, pagination } = useGetInstitutions({ page: 1, limit: 10 });
+
+  const total = pagination?.total ?? institutions.length ?? 0;
+  const actives = institutions.filter(i => i.status === InstitutionStatus.ACTIVE).length;
+  const inactives = institutions.filter(i => i.status === InstitutionStatus.INACTIVE).length;
+  const archived = 0; // Pas encore de statut archived
+  const pending = institutions.filter(i => i.status === InstitutionStatus.PENDING).length;
+
+  const cards = [
     {
-      title: 'Terminer',
-      value: '12,350',
-      change: '7,332 Lorem ipsum',
-      icon: Archive,
-      iconColor: 'text-blue-400',
-      iconBg: 'bg-blue-50',
-      trend: 'up',
+      title: 'Total',
+      value: total,
+      icon: Building2,
+      badge: 'bg-[#6EC1E41A] text-[#6EC1E4]',
     },
     {
-      title: 'En cours',
-      value: '134,640.00',
-      change: '13% Lorem ipsum',
-      icon: Clock,
-      iconColor: 'text-blue-400',
-      iconBg: 'bg-blue-50',
-      trend: 'up',
+      title: 'Actives',
+      value: actives,
+      icon: CheckCircle2,
+      badge: 'bg-[#16A34A1A] text-[#16A34A]',
+    },
+    {
+      title: 'Inactives',
+      value: inactives,
+      icon: AlertCircle,
+      badge: 'bg-[#F59E0B1A] text-[#F59E0B]',
+    },
+    {
+      title: 'Archivées',
+      value: archived,
+      icon: Archive,
+      badge: 'bg-[#E9ECEF] text-[#6C757D]',
     },
     {
       title: 'En attente',
-      value: '134,640.00',
-      change: '13% Lorem ipsum',
-      icon: CheckCircle2,
-      iconColor: 'text-blue-400',
-      iconBg: 'bg-blue-50',
-      trend: 'up',
+      value: pending,
+      icon: Settings,
+      badge: 'bg-[#F3E8FF] text-[#8200DB]',
     },
   ];
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
-      {stats.map(stat => {
-        const Icon = stat.icon;
-        return (
-          <div
-            key={stat.title}
-            className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow'
-          >
-            <div className='flex items-start justify-between mb-4'>
-              <div className={`p-3 rounded-xl ${stat.iconBg}`}>
-                <Icon className={`w-6 h-6 ${stat.iconColor}`} />
-              </div>
-              <button className='text-gray-400 hover:text-gray-600'>
-                <svg width='4' height='16' viewBox='0 0 4 16' fill='currentColor' className='w-1'>
-                  <circle cx='2' cy='2' r='2' />
-                  <circle cx='2' cy='8' r='2' />
-                  <circle cx='2' cy='14' r='2' />
-                </svg>
-              </button>
-            </div>
-            <h3 className='text-gray-500 text-sm font-medium mb-2'>{stat.title}</h3>
-            <div className='flex items-end justify-between'>
-              <p className='text-3xl font-bold text-gray-900'>{stat.value}</p>
-            </div>
-            <div className='flex items-center mt-2 text-sm'>
-              {stat.trend === 'up' && <span className='text-green-500 mr-1'>●</span>}
-              <span className='text-gray-500'>{stat.change}</span>
-            </div>
+    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+      {cards.map(({ title, value, icon: Icon, badge }) => (
+        <div
+          key={title}
+          className='
+            relative overflow-hidden
+            rounded-2xl bg-white
+            p-6
+            h-[220px]
+            flex flex-col justify-between
+            shadow-[0_5px_8px_rgba(0,0,0,0.1)]
+            transition-shadow duration-200
+            hover:shadow-[0_7px_14px_rgba(0,0,0,0.1)]
+          '
+        >
+          {/* Icône en haut */}
+          <div className={`inline-flex items-center justify-center h-11 w-11 rounded-xl ${badge}`}>
+            <Icon className='h-5 w-5' strokeWidth={2} />
           </div>
-        );
-      })}
+
+          {/* Valeur (nombre) */}
+          <div className='text-4xl leading-none text-secondary-300 tracking-tight'>{value}</div>
+
+          {/* Titre (libellé) */}
+          <div className='text-sm font-normal text-tertiary-400 text-muted-foreground tracking-wide'>
+            {title}
+          </div>
+        </div>
+      ))}
     </div>
   );
-};
-
-export default InstitutionStats;
+}
