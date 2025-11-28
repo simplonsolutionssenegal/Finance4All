@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -23,9 +23,10 @@ function PasswordInputComponent(
 
   return (
     <div className='relative'>
+      <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10' />
       <Input
         type={showPassword ? 'text' : 'password'}
-        className={cn(showPasswordToggle && 'pr-10', className)}
+        className={cn(showPasswordToggle && 'pr-10', 'pl-10', className)}
         ref={ref}
         autoComplete='new-password'
         autoCorrect='off'

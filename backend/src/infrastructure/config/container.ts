@@ -75,6 +75,7 @@ container
   })
   .inSingletonScope();
 
+
 // Bind domain services
 container
   .bind<InstitutionDomainService>(TYPES.InstitutionDomainService)
