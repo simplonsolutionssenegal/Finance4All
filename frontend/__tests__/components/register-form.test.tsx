@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 import { RegisterForm } from '@/components/register-form';
+import { RegisterFormProvider } from '@/contexts/register-form-context';
 
 const OtpVerificationCardMock = jest.fn(
   ({
@@ -76,6 +77,10 @@ jest.mock('@/hooks/beneficiary/useCreateBeneficiary', () => ({
 const { useSocialAuth } = require('@/hooks/auth/useSocialAuth');
 const { useCreateBeneficiary } = require('@/hooks/beneficiary/useCreateBeneficiary');
 
+function renderWithProvider(ui: React.ReactElement) {
+  return render(<RegisterFormProvider>{ui}</RegisterFormProvider>);
+}
+
 function buildUseCreateBeneficiaryReturn(overrides: any = {}) {
   const base = {
     formState: {
@@ -139,7 +144,7 @@ beforeEach(() => {
 
 describe('RegisterForm', () => {
   it('renders the registration step by default', () => {
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     expect(screen.getByText('Créer votre compte')).toBeInTheDocument();
     expect(screen.getByLabelText('Prénom')).toBeInTheDocument();
@@ -158,7 +163,7 @@ describe('RegisterForm', () => {
       })
     );
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     const submitButton = screen.getByRole('button', { name: 'Créer mon compte' });
     const form = submitButton.closest('form');
@@ -178,7 +183,7 @@ describe('RegisterForm', () => {
       })
     );
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     expect(screen.getByText('Une erreur est survenue.')).toBeInTheDocument();
   });
@@ -203,7 +208,7 @@ describe('RegisterForm', () => {
       })
     );
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     // Allow effects to run
     await screen.findByTestId('otp-card');
@@ -241,7 +246,7 @@ describe('RegisterForm', () => {
       isLoading: true,
     });
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     // Error message from social auth is visible
     expect(screen.getByText('Vous êtes déjà connecté.')).toBeInTheDocument();
@@ -263,7 +268,7 @@ describe('RegisterForm', () => {
       isLoading: false,
     });
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     const googleBtn = screen.getByRole('button', { name: /s'inscrire avec google/i });
     const facebookBtn = screen.getByRole('button', { name: /s'inscrire avec facebook/i });
@@ -288,7 +293,7 @@ describe('RegisterForm', () => {
       })
     );
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
     await screen.findByTestId('otp-card');
 
     // The footer has the resend area with dynamic text
@@ -309,7 +314,7 @@ describe('RegisterForm', () => {
       })
     );
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
     await screen.findByTestId('otp-card');
 
     const otpProps =
@@ -331,12 +336,325 @@ describe('RegisterForm', () => {
       isLoading: false,
     });
 
-    render(<RegisterForm />);
+    renderWithProvider(<RegisterForm />);
 
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire avec google/i }));
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire avec facebook/i }));
     fireEvent.click(screen.getByRole('button', { name: /s'inscrire avec apple/i }));
 
     expect(handleSocialAuth).toHaveBeenCalledTimes(3);
+  });
+
+  it('displays field validation errors', () => {
+    const handleFieldChange = jest.fn(() => jest.fn());
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        formState: {
+          values: {
+            firstName: 'A',
+            lastName: '',
+            phone: '',
+            email: 'invalid',
+          },
+          errors: {
+            firstName: 'Le prénom doit contenir au moins 2 caractères',
+            lastName: 'Le nom est requis',
+            phone: 'Le numéro de téléphone est requis',
+            email: "L'email n'est pas valide",
+          },
+        },
+        hasError: (field: string) =>
+          field in { firstName: true, lastName: true, phone: true, email: true },
+        getError: (field: string) => {
+          const errors: Record<string, string> = {
+            firstName: 'Le prénom doit contenir au moins 2 caractères',
+            lastName: 'Le nom est requis',
+            phone: 'Le numéro de téléphone est requis',
+            email: "L'email n'est pas valide",
+          };
+          return errors[field] || '';
+        },
+        handleFieldChange,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+
+    expect(screen.getByText('Le prénom doit contenir au moins 2 caractères')).toBeInTheDocument();
+    expect(screen.getByText('Le nom est requis')).toBeInTheDocument();
+    expect(screen.getByText('Le numéro de téléphone est requis')).toBeInTheDocument();
+    expect(screen.getByText("L'email n'est pas valide")).toBeInTheDocument();
+  });
+
+  it('handles field changes', () => {
+    const handleFieldChange = jest.fn(() => jest.fn());
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        handleFieldChange,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+
+    const firstNameInput = screen.getByLabelText('Prénom');
+    fireEvent.change(firstNameInput, { target: { value: 'John' } });
+
+    expect(handleFieldChange).toHaveBeenCalledWith('firstName');
+  });
+
+  it('disables submit button when form is invalid', () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isFormValid: false,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+
+    const submitButton = screen.getByRole('button', { name: 'Créer mon compte' });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('disables submit button when loading', () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isFormValid: true,
+        isLoading: true,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+
+    const submitButton = screen.getByRole('button', { name: 'Création en cours...' });
+    expect(submitButton).toBeDisabled();
+    expect(screen.getByText('Création en cours...')).toBeInTheDocument();
+  });
+
+  it('disables submit button when not loaded', () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isFormValid: true,
+        isLoaded: false,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+
+    const submitButton = screen.getByRole('button', { name: 'Créer mon compte' });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('displays login link at step 1', () => {
+    renderWithProvider(<RegisterForm />);
+
+    const loginLink = screen.getByRole('link', { name: 'Se connecter' });
+    expect(loginLink).toBeInTheDocument();
+    expect(loginLink).toHaveAttribute('href', '/login');
+  });
+
+  it('displays resend code button at step 2', async () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        isResending: false,
+        isVerifying: false,
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+    await screen.findByTestId('otp-card');
+
+    const resendButton = screen.getByRole('button', { name: 'Renvoyer le code' });
+    expect(resendButton).toBeInTheDocument();
+    expect(resendButton).not.toBeDisabled();
+  });
+
+  it('disables resend button when resending or verifying', async () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        isResending: true,
+        isVerifying: false,
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+    await screen.findByTestId('otp-card');
+
+    const resendButton = screen.getByRole('button', { name: /Envoi en cours/i });
+    expect(resendButton).toBeDisabled();
+  });
+
+  it('displays separator at step 2', async () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+    await screen.findByTestId('otp-card');
+
+    // Check for separator (hr element)
+    const separators = document.querySelectorAll('hr');
+    expect(separators.length).toBeGreaterThan(0);
+  });
+
+  it('resets verification code when strategy changes', async () => {
+    const { rerender } = renderWithProvider(<RegisterForm />);
+
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        verificationStrategy: 'email_code',
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    rerender(
+      <RegisterFormProvider>
+        <RegisterForm />
+      </RegisterFormProvider>
+    );
+    await screen.findByTestId('otp-card');
+
+    const otpProps =
+      OtpVerificationCardMock.mock.calls[OtpVerificationCardMock.mock.calls.length - 1][0];
+    expect(otpProps.code).toBe('');
+
+    // Change code
+    act(() => {
+      otpProps.onCodeChange('123456');
+    });
+
+    // Change strategy
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        verificationStrategy: 'phone_code',
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    rerender(
+      <RegisterFormProvider>
+        <RegisterForm />
+      </RegisterFormProvider>
+    );
+
+    const newOtpProps =
+      OtpVerificationCardMock.mock.calls[OtpVerificationCardMock.mock.calls.length - 1][0];
+    expect(newOtpProps.code).toBe('');
+  });
+
+  it('displays both error and socialError when both are present', () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        error: 'Erreur de création',
+      })
+    );
+    (useSocialAuth as jest.Mock).mockReturnValue({
+      handleSocialAuth: jest.fn(),
+      isLoaded: true,
+      error: 'Erreur sociale',
+      isLoading: false,
+    });
+
+    renderWithProvider(<RegisterForm />);
+
+    // Should display the error (error takes priority)
+    expect(screen.getByText('Erreur de création')).toBeInTheDocument();
+  });
+
+  it('displays social error when only socialError is present', () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        error: null,
+      })
+    );
+    (useSocialAuth as jest.Mock).mockReturnValue({
+      handleSocialAuth: jest.fn(),
+      isLoaded: true,
+      error: 'Erreur sociale',
+      isLoading: false,
+    });
+
+    renderWithProvider(<RegisterForm />);
+
+    expect(screen.getByText('Erreur sociale')).toBeInTheDocument();
+  });
+
+  it('calls handleResendCode when resend button is clicked at step 2', async () => {
+    const handleResendCode = jest.fn();
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        isResending: false,
+        isVerifying: false,
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+        handleResendCode,
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+    await screen.findByTestId('otp-card');
+
+    const resendButton = screen.getByRole('button', { name: 'Renvoyer le code' });
+    fireEvent.click(resendButton);
+
+    expect(handleResendCode).toHaveBeenCalled();
+  });
+
+  it('displays verification error in OTP step', async () => {
+    (useCreateBeneficiary as jest.Mock).mockReturnValue(
+      buildUseCreateBeneficiaryReturn({
+        isOtpVerification: true,
+        verificationTarget: 'user@example.com',
+        verificationError: 'Code invalide',
+        formState: {
+          values: {
+            email: 'user@example.com',
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<RegisterForm />);
+    await screen.findByTestId('otp-card');
+
+    expect(screen.getByTestId('otp-error')).toHaveTextContent('Code invalide');
   });
 });

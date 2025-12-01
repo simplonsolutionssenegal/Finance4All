@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { usePathname } from 'next/navigation';
+import React from 'react';
 
 import AuthFormsLayout from '@/app/(auth-forms)/layout';
+import { RegisterFormProvider } from '@/contexts/register-form-context';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -153,5 +155,79 @@ describe('AuthFormsLayout', () => {
 
     const closeButton = screen.getByRole('link');
     expect(closeButton).toHaveAttribute('href', '/');
+  });
+
+  it('displays correct tagline for register page', () => {
+    mockUsePathname.mockReturnValue('/register');
+    render(
+      <AuthFormsLayout>
+        <div>Test</div>
+      </AuthFormsLayout>
+    );
+
+    expect(screen.getByText('Rejoignez Finance4All')).toBeInTheDocument();
+  });
+
+  it('displays default security message for login page', () => {
+    mockUsePathname.mockReturnValue('/login');
+    render(
+      <AuthFormsLayout>
+        <div>Test</div>
+      </AuthFormsLayout>
+    );
+
+    expect(
+      screen.getByText('Connexion sécurisée par code OTP ou réseaux sociaux')
+    ).toBeInTheDocument();
+  });
+
+  it('displays default security message for register page at step 1', () => {
+    mockUsePathname.mockReturnValue('/register');
+    render(
+      <RegisterFormProvider>
+        <AuthFormsLayout>
+          <div>Test</div>
+        </AuthFormsLayout>
+      </RegisterFormProvider>
+    );
+
+    expect(
+      screen.getByText('Connexion sécurisée par code OTP ou réseaux sociaux')
+    ).toBeInTheDocument();
+  });
+
+  it('displays specific security message for register page at step 2', () => {
+    mockUsePathname.mockReturnValue('/register');
+    const { useRegisterFormStep } = require('@/contexts/register-form-context');
+    const TestComponent = () => {
+      const { setStep } = useRegisterFormStep();
+      React.useEffect(() => {
+        setStep(2);
+      }, [setStep]);
+      return <div>Test</div>;
+    };
+
+    render(
+      <RegisterFormProvider>
+        <AuthFormsLayout>
+          <TestComponent />
+        </AuthFormsLayout>
+      </RegisterFormProvider>
+    );
+
+    expect(
+      screen.getByText('Données sécurisées • Connexion par code OTP (SMS & Email)')
+    ).toBeInTheDocument();
+  });
+
+  it('displays security message with shield icon', () => {
+    mockUsePathname.mockReturnValue('/login');
+    render(
+      <AuthFormsLayout>
+        <div>Test</div>
+      </AuthFormsLayout>
+    );
+
+    expect(screen.getByTestId('shield-icon')).toBeInTheDocument();
   });
 });

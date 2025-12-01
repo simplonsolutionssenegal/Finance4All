@@ -160,7 +160,7 @@ export function useCreateBeneficiary(
 
       // Redirection si vérifié ou complet
       if (isEmailVerified || attempt.status === 'complete') {
-        router.push('/dashboard');
+        router.push('/beneficiaire-dashboard');
         return;
       }
 
