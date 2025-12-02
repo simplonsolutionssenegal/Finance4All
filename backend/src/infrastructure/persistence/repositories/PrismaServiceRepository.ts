@@ -21,6 +21,7 @@ type FraisChangeData = {
   fxSurcharge: number;
   devise: string;
 };
+
 type FraisData = {
   type: 'FREE' | 'FIX' | 'POURCENTAGE';
   amount?: number;
@@ -30,7 +31,105 @@ type FraisData = {
   cap?: number;
   floor?: number;
 };
+
 type ServiceWithInstitution = PrismaService & { institution: PrismaInstitution };
+
+class ServiceTypeMapper {
+  private static readonly TYPE_MAP: Record<TypeService, PrismaTypeService> = {
+    [TypeService.PAIEMENT_MARCHAND]: 'PAIEMENT_MARCHAND' as PrismaTypeService,
+    [TypeService.ACHAT_CREDIT]: 'ACHAT_CREDIT' as PrismaTypeService,
+    [TypeService.PAIEMENT_FACTURES]: 'PAIEMENT_FACTURES' as PrismaTypeService,
+    [TypeService.DEPOT_SIMPLE]: 'DEPOT_SIMPLE' as PrismaTypeService,
+    [TypeService.DEPOT_RETRAIT_SIMPLE]: 'DEPOT_RETRAIT_SIMPLE' as PrismaTypeService,
+    [TypeService.RETRAIT_SIMPLE]: 'RETRAIT_SIMPLE' as PrismaTypeService,
+    [TypeService.TRANSFERT_ARGENT]: 'TRANSFERT_ARGENT' as PrismaTypeService,
+    [TypeService.BANQUE_WALLET]: 'BANQUE_WALLET' as PrismaTypeService,
+    [TypeService.WALLET_BANQUE]: 'WALLET_BANQUE' as PrismaTypeService,
+    [TypeService.EPARGNE]: 'EPARGNE' as PrismaTypeService,
+    [TypeService.CREDIT]: 'CREDIT' as PrismaTypeService,
+    [TypeService.ASSURANCE]: 'ASSURANCE' as PrismaTypeService,
+    [TypeService.AUTRES]: 'AUTRES' as PrismaTypeService,
+  };
+  private static readonly REVERSE_MAP = Object.entries(this.TYPE_MAP).reduce(
+    (acc, [key, value]) => {
+      acc[value] = key as TypeService;
+      return acc;
+    },
+    {} as Record<string, TypeService>
+  );
+
+  static toPrisma(type: TypeService): PrismaTypeService {
+    return this.TYPE_MAP[type] || ('AUTRES' as PrismaTypeService);
+  }
+
+  static toDomain(prismaType: PrismaTypeService | string): TypeService {
+    return this.REVERSE_MAP[prismaType] || TypeService.AUTRES;
+  }
+}
+
+class FraisMapper {
+  private static mapFraisChangeData(
+    fraisChange?: FraisChangeData | null
+  ): FraisChangeData | undefined {
+    if (!fraisChange) return undefined;
+    return {
+      fxSurcharge: fraisChange.fxSurcharge,
+      devise: fraisChange.devise,
+    };
+  }
+
+  static toDomain(fraisData: FraisData): Frais {
+    if (!fraisData || fraisData.type === 'FREE') {
+      return new FraisGratuit();
+    }
+
+    if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
+      return new FraisFixes(
+        fraisData.amount,
+        fraisData.rate,
+        this.mapFraisChangeData(fraisData.fraisChange)
+      );
+    }
+
+    if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
+      return new FraisPourcentage(fraisData.rate, fraisData.cap, fraisData.floor);
+    }
+
+    return new FraisGratuit();
+  }
+
+  static toPrisma(frais: Frais): FraisData {
+    if (frais instanceof FraisGratuit) {
+      return { type: 'FREE' };
+    }
+
+    if (frais instanceof FraisFixes) {
+      const fraisData: FraisData = {
+        type: 'FIX',
+        amount: frais.amount,
+        rate: frais.rate,
+      };
+
+      const mappedFraisChange = this.mapFraisChangeData(frais.fraisChange);
+      if (mappedFraisChange) {
+        fraisData.fraisChange = mappedFraisChange;
+      }
+
+      return fraisData;
+    }
+
+    if (frais instanceof FraisPourcentage) {
+      return {
+        type: 'POURCENTAGE',
+        rate: frais.rate,
+        cap: frais.cap,
+        floor: frais.floor,
+      };
+    }
+
+    return { type: 'FREE' };
+  }
+}
 
 export class PrismaServiceRepository implements ServiceRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -67,9 +166,10 @@ export class PrismaServiceRepository implements ServiceRepository {
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<ComparedServiceDTO>> {
     const where: Prisma.ServiceWhereInput = {};
-    const typeFilter = (params as unknown as { type?: TypeService }).type;
+    const typeFilter = (params as any).type as TypeService | undefined;
+
     if (typeFilter) {
-      where.type = this.mapTypeServiceToPrismaType(typeFilter) as PrismaTypeService;
+      where.type = ServiceTypeMapper.toPrisma(typeFilter);
     }
 
     return this.findPaginated<ServiceWithInstitution, ComparedServiceDTO>(
@@ -106,21 +206,18 @@ export class PrismaServiceRepository implements ServiceRepository {
         where: { institutionId },
         orderBy: { createdAt: 'desc' },
       },
-
       s => this.toDomain(s)
     );
   }
 
   async findForComparison(ids: string[]): Promise<ComparedServiceDTO[]> {
     if (ids.length === 0) return [];
+
     const services = await this.prisma.service.findMany({
-      where: {
-        id: { in: ids },
-      },
-      include: {
-        institution: true,
-      },
+      where: { id: { in: ids } },
+      include: { institution: true },
     });
+
     return services.map(s =>
       this.mapServiceWithInstitutionToComparedDTO(s as ServiceWithInstitution)
     );
@@ -131,7 +228,7 @@ export class PrismaServiceRepository implements ServiceRepository {
     prismaQueryArgs: Prisma.ServiceFindManyArgs,
     mapper: (item: TPrismaResult) => TMappedResult
   ): Promise<PaginatedResult<TMappedResult>> {
-    const skip = this.getSkip(params);
+    const skip = this.calculateSkip(params);
     const queryWithPagination = {
       ...prismaQueryArgs,
       skip,
@@ -145,36 +242,36 @@ export class PrismaServiceRepository implements ServiceRepository {
 
     return {
       data: services.map(s => mapper(s as unknown as TPrismaResult)),
-      pagination: this.buildPagination(params, total),
+      pagination: this.buildPaginationMetadata(params, total),
     };
   }
 
-  private getBasePrismaData(service: Service) {
-    return {
-      name: service.name,
-      longName: service.longName,
-      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
-      montantMin: service.montantMin,
-      montantMax: service.montantMax,
-      frais: this.mapFraisToPrisma(service.frais),
-      conditionAccess: service.conditionAccess,
-      plafonds: service.plafonds,
-      infrastructureAccess: service.infrastructureAccess,
-    };
-  }
-
-  private getSkip(params: PaginationParams): number {
+  private calculateSkip(params: PaginationParams): number {
     return (params.page - 1) * params.limit;
   }
 
-  private buildPagination(params: PaginationParams, total: number) {
-    const totalPages = Math.ceil(total / params.limit);
+  private buildPaginationMetadata(params: PaginationParams, total: number) {
     return {
       page: params.page,
       limit: params.limit,
       total,
-      totalPages,
+      totalPages: Math.ceil(total / params.limit),
     };
+  }
+
+  private toDomain(prismaService: PrismaService): Service {
+    return new Service({
+      id: EntityId.from(prismaService.id),
+      name: prismaService.name,
+      longName: prismaService.longName,
+      type: ServiceTypeMapper.toDomain(prismaService.type),
+      montantMin: prismaService.montantMin ?? 0,
+      montantMax: prismaService.montantMax ?? 0,
+      frais: FraisMapper.toDomain(prismaService.frais as FraisData),
+      conditionAccess: prismaService.conditionAccess,
+      plafonds: prismaService.plafonds,
+      infrastructureAccess: prismaService.infrastructureAccess,
+    });
   }
 
   private mapServiceWithInstitutionToComparedDTO(
@@ -182,6 +279,7 @@ export class PrismaServiceRepository implements ServiceRepository {
   ): ComparedServiceDTO {
     const domainService = this.toDomain(prismaService);
     const dto = domainService.toDTO();
+
     return {
       ...dto,
       institution: {
@@ -192,42 +290,20 @@ export class PrismaServiceRepository implements ServiceRepository {
     };
   }
 
-  private toDomain(prismaService: PrismaService): Service {
-    return new Service({
-      id: EntityId.from(prismaService.id),
-      name: prismaService.name,
-      longName: prismaService.longName,
-      type: this.mapPrismaTypeToTypeService(prismaService.type),
-      montantMin: prismaService.montantMin ?? 0,
-      montantMax: prismaService.montantMax ?? 0,
-      frais: this.mapFraisToDomain(prismaService.frais as FraisData),
-      conditionAccess: prismaService.conditionAccess,
-      plafonds: prismaService.plafonds,
-      infrastructureAccess: prismaService.infrastructureAccess,
-    });
+  private getBasePrismaData(service: Service) {
+    return {
+      name: service.name,
+      longName: service.longName,
+      type: ServiceTypeMapper.toPrisma(service.type),
+      montantMin: service.montantMin,
+      montantMax: service.montantMax,
+      frais: FraisMapper.toPrisma(service.frais),
+      conditionAccess: service.conditionAccess,
+      plafonds: service.plafonds,
+      infrastructureAccess: service.infrastructureAccess,
+    };
   }
 
-  private mapFraisToDomain(fraisData: FraisData): Frais {
-    if (!fraisData || fraisData.type === 'FREE') {
-      return new FraisGratuit();
-    }
-    if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
-      return new FraisFixes(
-        fraisData.amount,
-        fraisData.rate,
-        fraisData.fraisChange
-          ? {
-              fxSurcharge: fraisData.fraisChange.fxSurcharge,
-              devise: fraisData.fraisChange.devise,
-            }
-          : undefined
-      );
-    }
-    if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
-      return new FraisPourcentage(fraisData.rate, fraisData.cap, fraisData.floor);
-    }
-    return new FraisGratuit();
-  }
   private toPrismaData(service: Service, institutionId: string): Prisma.ServiceCreateInput {
     return {
       id: service.id.getValue(),
@@ -240,72 +316,5 @@ export class PrismaServiceRepository implements ServiceRepository {
 
   private toPrismaUpdateData(service: Service): Prisma.ServiceUpdateInput {
     return this.getBasePrismaData(service);
-  }
-
-  private mapTypeServiceToPrismaType(type: TypeService): string {
-    const typeMap: Record<TypeService, string> = {
-      [TypeService.PAIEMENT_MARCHAND]: 'PAIEMENT_MARCHAND',
-      [TypeService.ACHAT_CREDIT]: 'ACHAT_CREDIT',
-      [TypeService.PAIEMENT_FACTURES]: 'PAIEMENT_FACTURES',
-      [TypeService.DEPOT_SIMPLE]: 'DEPOT_SIMPLE',
-      [TypeService.DEPOT_RETRAIT_SIMPLE]: 'DEPOT_RETRAIT_SIMPLE',
-      [TypeService.RETRAIT_SIMPLE]: 'RETRAIT_SIMPLE',
-      [TypeService.TRANSFERT_ARGENT]: 'TRANSFERT_ARGENT',
-      [TypeService.BANQUE_WALLET]: 'BANQUE_WALLET',
-      [TypeService.WALLET_BANQUE]: 'WALLET_BANQUE',
-      [TypeService.EPARGNE]: 'EPARGNE',
-      [TypeService.CREDIT]: 'CREDIT',
-      [TypeService.ASSURANCE]: 'ASSURANCE',
-      [TypeService.AUTRES]: 'AUTRES',
-    };
-    return typeMap[type] || 'AUTRES';
-  }
-
-  private mapPrismaTypeToTypeService(prismaType: string): TypeService {
-    const typeMap: Record<string, TypeService> = {
-      PAIEMENT_MARCHAND: TypeService.PAIEMENT_MARCHAND,
-      ACHAT_CREDIT: TypeService.ACHAT_CREDIT,
-      PAIEMENT_FACTURES: TypeService.PAIEMENT_FACTURES,
-      DEPOT_SIMPLE: TypeService.DEPOT_SIMPLE,
-      DEPOT_RETRAIT_SIMPLE: TypeService.DEPOT_RETRAIT_SIMPLE,
-      RETRAIT_SIMPLE: TypeService.RETRAIT_SIMPLE,
-      TRANSFERT_ARGENT: TypeService.TRANSFERT_ARGENT,
-      BANQUE_WALLET: TypeService.BANQUE_WALLET,
-      WALLET_BANQUE: TypeService.WALLET_BANQUE,
-      EPARGNE: TypeService.EPARGNE,
-      CREDIT: TypeService.CREDIT,
-      ASSURANCE: TypeService.ASSURANCE,
-      AUTRES: TypeService.AUTRES,
-    };
-    return typeMap[prismaType] || TypeService.AUTRES;
-  }
-
-  private mapFraisToPrisma(frais: Frais): FraisData {
-    if (frais instanceof FraisGratuit) {
-      return { type: 'FREE' };
-    }
-    if (frais instanceof FraisFixes) {
-      const fraisData: FraisData = {
-        type: 'FIX',
-        amount: frais.amount,
-        rate: frais.rate,
-      };
-      if (frais.fraisChange) {
-        fraisData.fraisChange = {
-          fxSurcharge: frais.fraisChange.fxSurcharge,
-          devise: frais.fraisChange.devise,
-        };
-      }
-      return fraisData;
-    }
-    if (frais instanceof FraisPourcentage) {
-      return {
-        type: 'POURCENTAGE',
-        rate: frais.rate,
-        cap: frais.cap,
-        floor: frais.floor,
-      };
-    }
-    return { type: 'FREE' };
   }
 }
