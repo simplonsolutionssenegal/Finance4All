@@ -17,6 +17,11 @@ import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceR
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
 import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/ComparedServiceDTO';
 
+type FraisChangeData = {
+  fxSurcharge: number;
+  devise: string;
+};
+
 type FraisData = {
   type: 'FREE' | 'FIX' | 'POURCENTAGE';
   amount?: number;
@@ -27,11 +32,6 @@ type FraisData = {
   floor?: number;
 };
 
-type FraisChangeData = {
-  fxSurcharge: number;
-  devise: string;
-};
-
 type ServiceWithInstitution = PrismaService & { institution: PrismaInstitution };
 
 export class PrismaServiceRepository implements ServiceRepository {
@@ -39,12 +39,10 @@ export class PrismaServiceRepository implements ServiceRepository {
 
   async update(service: Service): Promise<Service> {
     const serviceData = this.toPrismaUpdateData(service);
-
     const updated = await this.prisma.service.update({
       where: { id: service.id.getValue() },
       data: serviceData,
     });
-
     return this.toDomain(updated);
   }
 
@@ -52,7 +50,6 @@ export class PrismaServiceRepository implements ServiceRepository {
     const service = await this.prisma.service.findUnique({
       where: { id },
     });
-
     return service ? this.toDomain(service) : null;
   }
 
@@ -61,7 +58,6 @@ export class PrismaServiceRepository implements ServiceRepository {
       where: { institutionId },
       orderBy: { createdAt: 'desc' },
     });
-
     return services.map(s => this.toDomain(s));
   }
 
@@ -72,9 +68,9 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<ComparedServiceDTO>> {
-    const skip = (params.page - 1) * params.limit;
-
+    const skip = this.getSkip(params);
     const where: Prisma.ServiceWhereInput = {};
+
     const typeFilter = (params as unknown as { type?: TypeService }).type;
     if (typeFilter) {
       where.type = this.mapTypeServiceToPrismaType(typeFilter) as PrismaTypeService;
@@ -93,18 +89,11 @@ export class PrismaServiceRepository implements ServiceRepository {
       this.prisma.service.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / params.limit);
-
     return {
       data: services.map(s =>
         this.mapServiceWithInstitutionToComparedDTO(s as ServiceWithInstitution)
       ),
-      pagination: {
-        page: params.page,
-        limit: params.limit,
-        total,
-        totalPages,
-      },
+      pagination: this.buildPagination(params, total),
     };
   }
 
@@ -118,7 +107,6 @@ export class PrismaServiceRepository implements ServiceRepository {
       },
       orderBy: { createdAt: 'desc' },
     });
-
     return services.map(s => this.toDomain(s));
   }
 
@@ -126,7 +114,7 @@ export class PrismaServiceRepository implements ServiceRepository {
     institutionId: string,
     params: PaginationParams
   ): Promise<PaginatedResult<Service[]>> {
-    const skip = (params.page - 1) * params.limit;
+    const skip = this.getSkip(params);
 
     const [services, total] = await Promise.all([
       this.prisma.service.findMany({
@@ -140,16 +128,9 @@ export class PrismaServiceRepository implements ServiceRepository {
       }),
     ]);
 
-    const totalPages = Math.ceil(total / params.limit);
-
     return {
       data: [services.map(s => this.toDomain(s))],
-      pagination: {
-        page: params.page,
-        limit: params.limit,
-        total,
-        totalPages,
-      },
+      pagination: this.buildPagination(params, total),
     };
   }
 
@@ -171,10 +152,28 @@ export class PrismaServiceRepository implements ServiceRepository {
     );
   }
 
+  // ---------- HELPERS GÉNÉRIQUES ----------
+
+  private getSkip(params: PaginationParams): number {
+    return (params.page - 1) * params.limit;
+  }
+
+  private buildPagination(params: PaginationParams, total: number) {
+    const totalPages = Math.ceil(total / params.limit);
+    return {
+      page: params.page,
+      limit: params.limit,
+      total,
+      totalPages,
+    };
+  }
+
+  // ---------- MAPPINGS ----------
+
   private mapServiceWithInstitutionToComparedDTO(
     prismaService: ServiceWithInstitution
   ): ComparedServiceDTO {
-    const domainService = this.mapServiceToDomain(prismaService);
+    const domainService = this.toDomain(prismaService);
     const dto = domainService.toDTO();
 
     return {
@@ -185,21 +184,6 @@ export class PrismaServiceRepository implements ServiceRepository {
         logoUrl: prismaService.institution.logoUrl,
       },
     };
-  }
-
-  private mapServiceToDomain(prismaService: PrismaService & { institution?: any }): Service {
-    return new Service({
-      id: EntityId.from(prismaService.id),
-      name: prismaService.name,
-      longName: prismaService.longName,
-      type: this.mapPrismaTypeToTypeService(prismaService.type),
-      montantMin: prismaService.montantMin ?? 0,
-      montantMax: prismaService.montantMax ?? 0,
-      frais: this.mapFraisToDomain(prismaService.frais as FraisData),
-      conditionAccess: prismaService.conditionAccess,
-      plafonds: prismaService.plafonds,
-      infrastructureAccess: prismaService.infrastructureAccess,
-    });
   }
 
   private toDomain(prismaService: PrismaService): Service {
