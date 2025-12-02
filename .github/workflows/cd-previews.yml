@@ -3,14 +3,13 @@ name: Preview
 on:
   issue_comment:
     types: [created]
-  push:
-    branches:
-      - main
-      - feature/ci-cd
 
 permissions:
   issues: write
   pull-requests: write
+  contents: read
+  actions: read
+  packages: write
 
 jobs:
   check-preview-request:
@@ -21,11 +20,11 @@ jobs:
       pr-ref: ${{ steps.pr-details.outputs.ref }}
       pr-sha: ${{ steps.pr-details.outputs.sha }}
       pr-number: ${{ steps.pr-details.outputs.number }}
-    
+
     steps:
       - name: Get PR details
-        uses: actions/github-script@v7
         id: pr-details
+        uses: actions/github-script@v7
         with:
           script: |
             const { data: pullRequest } = await github.rest.pulls.get({
@@ -41,223 +40,235 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Get PR details
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
-            // Ajouter une réaction au commentaire
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket'
-            });
-            
-            // Ajouter un commentaire de confirmation
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to Minikube...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
-            });
+
+            await Promise.all([
+              github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket'
+              }),
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\`...\n\n[View deployment logs](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              })
+            ]);
 
   run-ci:
     name: Run CI Tests
     needs: check-preview-request
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
 
   build-and-deploy:
     name: Build Images & Deploy Preview
     runs-on: self-hosted
     needs: [check-preview-request, run-ci]
     if: needs.run-ci.outputs.build-success == 'true'
+    timeout-minutes: 30
+    env:
+      PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
 
     steps:
-      - name: Checkout PR code
+      - name: Set repository name to lowercase
+        id: repo-name
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Check runner health
+        run: |
+          echo "Runner hostname: $(hostname)"
+          df -h
+          free -h || vm_stat
+          docker --version
+          docker info
+
+      - name: Cleanup old Docker resources
+        continue-on-error: true
+        run: |
+          docker system prune -f
+          docker image prune -a -f --filter "until=72h"
+
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.check-preview-request.outputs.pr-ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          config-inline: |
-            [registry."${{ secrets.NEXUS_PREVIEW }}"]
-              http = true
-              insecure = true
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug buildx config
-        run: |
-          docker buildx inspect default
 
-      - name: Login to Nexus Registry
-        run: |
-          echo  "${{ secrets.NEXUS_PASSWORD }}"
-          echo  "${{ secrets.NEXUS_PREVIEW }}"
-          echo  "${{ secrets.NEXUS_USER }}"
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login ${{ secrets.NEXUS_PREVIEW }} -u "${{ secrets.NEXUS_USER }}" --password-stdin
+      # --------------------------------------------------
+      # Build and push BACKEND image
+      # --------------------------------------------------
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
+          build-args: |
+            NODE_ENV=preview
+            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            BUILD_DATE=${{ github.run_number }}
 
-      - name: Build and push frontend preview image
-        if: needs.run-ci.outputs.frontend-changed == 'true'
+      # --------------------------------------------------
+      # Build and push FRONTEND image
+      # --------------------------------------------------
+      - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-sha }}
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com/api/v1
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            BUILD_DATE=${{ github.run_number }}
 
-      - name: Setup KIND
+
+      # --------------------------------------------------
+      # SAFE REMOVE ONLY THIS PR’S IMAGES (bug fixed!)
+      # --------------------------------------------------
+      - name: Stop and remove old preview environment (safe)
+        continue-on-error: true
         run: |
-          # Créer la configuration KIND avec mapping de port
-          cat <<EOF > /tmp/kind-config.yaml
-          kind: Cluster
-          apiVersion: kind.x-k8s.io/v1alpha4
-          name: preview-cluster
-          nodes:
-          - role: control-plane
-            kubeadmConfigPatches:
-            - |
-              kind: InitConfiguration
-              nodeRegistration:
-                kubeletExtraArgs:
-                  node-labels: "ingress-ready=true"
-            extraPortMappings:
-            - containerPort: 30080
-              hostPort: 30080
-              protocol: TCP
-            - containerPort: 30081
-              hostPort: 30081
-              protocol: TCP
+          PR_TAG="pr-${{ needs.check-preview-request.outputs.pr-number }}"
+          REPO="${REPO_LOWER}"
+
+          echo "🛑 Stopping containers for ${PR_TAG}..."
+          docker compose -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans
+
+          echo "🗑 Removing ONLY images for ${PR_TAG}..."
+
+          # Backend exact matches
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}$" \
+            | xargs -r docker rmi -f
+
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}-" \
+            | xargs -r docker rmi -f
+
+          # Frontend exact matches
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}$" \
+            | xargs -r docker rmi -f
+
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}-" \
+            | xargs -r docker rmi -f
+
+          echo "Pulling fresh images..."
+          docker pull ghcr.io/${REPO}/backend:${PR_TAG}
+          docker pull ghcr.io/${REPO}/frontend:${PR_TAG}
+
+
+      # --------------------------------------------------
+      # DEPLOY PREVIEW
+      # --------------------------------------------------
+      - name: Create .env file
+        run: |
+          cat > .env.preview <<EOF
+          PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
+          GITHUB_REPOSITORY=${REPO_LOWER}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          GMAIL_USER=${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
+          FROM_EMAIL=${{ secrets.FROM_EMAIL }}
+          FROM_NAME=${{ secrets.FROM_NAME }}
           EOF
-          
-          # Vérifier si le cluster existe déjà
-          if kind get clusters | grep -q "preview-cluster"; then
-            echo "KIND cluster already exists"
-          else
-            echo "Creating KIND cluster..."
-            kind create cluster --config /tmp/kind-config.yaml
-          fi
-          
-          # Configurer kubectl pour utiliser KIND
-          kubectl config use-context kind-preview-cluster
-          
-          # Vérifier la connexion
-          kubectl cluster-info
 
-      - name: Get server public IP
-        id: server-ip
+      - name: Deploy preview with docker-compose
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          # Récupérer l'IP publique du serveur
-          PUBLIC_IP=$(curl -s ifconfig.me)
-          echo "ip=${PUBLIC_IP}" >> $GITHUB_OUTPUT
-          echo "Public IP: ${PUBLIC_IP}"
+          docker compose -f docker-compose.preview.yml --env-file .env.preview up -d
 
-      - name: Load images to KIND and Deploy
+      - name: Wait for services to be healthy
         run: |
-          # Charger l'image Docker dans KIND
-          if [ "${{ needs.run-ci.outputs.frontend-changed }}" == "true" ]; then
-            docker pull ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-            kind load docker-image ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }} --name preview-cluster
-          fi
-          
-          # Créer le namespace
-          kubectl create namespace preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Déployer l'application
-          cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            template:
-              metadata:
-                labels:
-                  app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-              spec:
-                containers:
-                - name: frontend
-                  image: ${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}
-                  imagePullPolicy: Never
-                  ports:
-                  - containerPort: 80
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: frontend-service-${{ needs.check-preview-request.outputs.pr-number }}
-            namespace: preview-pr-${{ needs.check-preview-request.outputs.pr-number }}
-          spec:
-            selector:
-              app: frontend-preview-${{ needs.check-preview-request.outputs.pr-number }}
-            ports:
-            - port: 80
-              targetPort: 80
-              nodePort: 30080
-            type: NodePort
-          EOF
-          
-          # Attendre que le déploiement soit prêt
-          kubectl wait --for=condition=ready pod -l app=frontend-preview-${{ needs.check-preview-request.outputs.pr-number }} -n preview-pr-${{ needs.check-preview-request.outputs.pr-number }} --timeout=300s
+          timeout 120 sh -c 'until docker compose -f docker-compose.preview.yml ps | grep -q "healthy"; do sleep 5; done' || echo "Health check timeout"
 
-      - name: Get KIND cluster info
-        id: kind-info
-        run: |
-          # KIND utilise directement l'IP de l'hôte grâce au port mapping
-          echo "cluster-ready=true" >> $GITHUB_OUTPUT
 
-      - name: Comment PR with preview URLs
+      # --------------------------------------------------
+      # COMMENT PR WITH PREVIEW URL
+      # --------------------------------------------------
+      - name: Comment PR
         uses: actions/github-script@v7
         with:
           script: |
-            const publicIp = '${{ steps.server-ip.outputs.ip }}';
-            const frontendUrl = `http://${publicIp}:30080`;
+            const pr = ${{ needs.check-preview-request.outputs.pr-number }};
+            const repo = process.env.REPO_LOWER;
 
             github.rest.issues.createComment({
-              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              issue_number: pr,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview déployé avec succès sur KIND !**
+              body: `✅ **Preview deployed successfully!**
 
-              **URLs de preview:**
-              - Frontend: ${frontendUrl}
+🌐 Frontend → https://pr-${pr}.finance4all.simplonprojet.com  
+🔧 Backend → https://api-pr-${pr}.finance4all.simplonprojet.com  
 
-              **Images Docker:**
-              - Frontend: \`${{ secrets.NEXUS_PREVIEW }}/finance4all-frontend:preview-${{ needs.check-preview-request.outputs.pr-number }}\`
+📦 Docker images:
+- frontend: \`ghcr.io/${repo}/frontend:pr-${pr}\`
+- backend: \`ghcr.io/${repo}/backend:pr-${pr}\`
 
-              **Cluster:** KIND (preview-cluster)
-              **Namespace:** \`preview-pr-${{ needs.check-preview-request.outputs.pr-number }}\`
-
-              _Ce preview sera automatiquement supprimé quand la PR sera fermée._`
+🔄 Update preview: comment \`/preview\`  
+🗑 Cleanup: comment \`/cleanup\``
             });
 
+
   notify-failure:
-    name: Notify CI Failure
+    name: Notify Failure
     runs-on: ubuntu-latest
-    needs: [check-preview-request, run-ci]
-    if: failure() && needs.run-ci.result == 'failure'
+    needs: [check-preview-request, run-ci, build-and-deploy]
+    if: failure()
 
     steps:
       - name: Comment PR with failure
         uses: actions/github-script@v7
         with:
           script: |
+            let msg = "❌ **Preview deployment failed!**\n\n";
+            msg += "Check the logs here:\n";
+            msg += `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `❌ **Preview déploiement échoué !**
-
-              Les tests CI ont échoué. Veuillez corriger les erreurs avant de demander un nouveau preview avec \`/preview\`.
-
-              Consultez les logs du workflow CI pour plus de détails.`
+              body: msg
             });
+
+
+
