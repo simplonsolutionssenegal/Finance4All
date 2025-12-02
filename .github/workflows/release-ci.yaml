@@ -1,210 +1,126 @@
-name: CI-CD-Finance4All
+name: Release
 
 on:
-  push:
-    branches: ['feature/ci-cd']
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
-# =========================================================
-# DETECT CHANGES
-# =========================================================
-  detect-changes:
+  test-and-build:
+    name: 🧪 Test & Build (Frontend & Backend)
     runs-on: ubuntu-latest
-    outputs:
-      frontend-changed: ${{ steps.changes.outputs.frontend }}
-      backend-changed: ${{ steps.changes.outputs.backend }}
-      any-changed: ${{ steps.changes.outputs.frontend == 'true' || steps.changes.outputs.backend == 'true' }}
+
+    steps:
+      - name: Checkout code
+      uses: actions/checkout@v4
+
+      - name: Set up Node.js
+      uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      # -----------------------------------------------------
+      # FRONTEND
+      # -----------------------------------------------------
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: |
+          rm -rf node_modules
+          npm ci
+          npm rebuild lightningcss --force
+
+      - name: Lint frontend
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Type-check frontend
+        working-directory: ./frontend
+        run: npm run type-check || npm run tsc --noEmit
+
+      - name: Test frontend
+        working-directory: ./frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      # -----------------------------------------------------
+      # BACKEND
+      # -----------------------------------------------------
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Type-check backend
+        working-directory: ./backend
+        run: npm run type-check || npm run tsc --noEmit
+
+      - name: Test backend
+        working-directory: ./backend
+        run: npm test
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+  docker-build:
+    name: 🐳 Build & Push Docker Images (Nexus)
+    runs-on: ubuntu-latest
+    needs: test-and-build
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Detect changed modules
-        uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-              - 'frontend/package.json'
-              - 'frontend/package-lock.json'
-            backend:
-              - 'backend/**'
-              - 'backend/package.json'
-              - 'backend/package-lock.json'
-
-# =========================================================
-# TEST FRONTEND
-# =========================================================
-  test-frontend:
-    name: 🧪 Test Frontend
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend-changed == 'true'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install deps
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Lint
-        working-directory: ./frontend
-        run: npm run lint
-
-      - name: Type-check
-        working-directory: ./frontend
-        run: npm run type-check || npm run tsc --noEmit
-
-      - name: Unit tests
-        working-directory: ./frontend
-        run: npm test
-
-# =========================================================
-# TEST BACKEND
-# =========================================================
-  test-backend:
-    name: 🧪 Test Backend
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend-changed == 'true'
-
-    steps:
-      - uses: actions/checkout@vv4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install deps
-        working-directory: ./backend
-        run: npm ci
-
-      - name: Lint
-        working-directory: ./backend
-        run: npm run lint
-
-      - name: Type-check
-        working-directory: ./backend
-        run: npm run type-check || npm run tsc --noEmit
-
-      - name: Unit tests
-        working-directory: ./backend
-        run: npm test
-
-# =========================================================
-# BUILD UNIQUE (frontend + backend)
-# =========================================================
-  build-apps:
-    name: 🛠 Build Frontend & Backend
-    runs-on: ubuntu-latest
-    needs: [detect-changes, test-frontend, test-backend]
-
-    outputs:
-      frontend-built: ${{ steps.frontend-check.outputs.built }}
-      backend-built: ${{ steps.backend-check.outputs.built }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      # ------------------------
-      # FRONTEND BUILD
-      # ------------------------
-      - name: Check frontend build
-        id: frontend-check
-        run: |
-          if [ "${{ needs.detect-changes.outputs.frontend-changed }}" = "true" ]; then
-              echo "built=true" >> $GITHUB_OUTPUT
-          else
-              echo "built=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build Frontend
-        if: steps.frontend-check.outputs.built == 'true'
-        working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
-
-      # ------------------------
-      # BACKEND BUILD
-      # ------------------------
-      - name: Check backend build
-        id: backend-check
-        run: |
-          if [ "${{ needs.detect-changes.outputs.backend-changed }}" = "true" ]; then
-              echo "built=true" >> $GITHUB_OUTPUT
-          else
-              echo "built=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build Backend
-        if: steps.backend-check.outputs.built == 'true'
-        working-directory: ./backend
-        run: |
-          npm ci
-          npm run build
-
-# =========================================================
-# RELEASE (NEXUS)
-# =========================================================
-  release:
-    name: 🚀 Release Docker Images (Frontend & Backend)
-    runs-on: ubuntu-latest
-    needs: [build-apps]
-    if: needs.build-apps.outputs.frontend-built == 'true' || needs.build-apps.outputs.backend-built == 'true'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Enable Docker BuildX
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Nexus
+      - name: Login to Nexus Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.NEXUS_URL }}
           username: ${{ secrets.NEXUS_USERNAME }}
           password: ${{ secrets.NEXUS_PASSWORD }}
 
-      # ----------------------------
-      # FRONTEND RELEASE
-      # ----------------------------
-      - name: Push FRONTEND image
-        if: needs.build-apps.outputs.frontend-built == 'true'
+      # -----------------------------------------------------
+      # FRONTEND IMAGE
+      # -----------------------------------------------------
+      - name: Build & Push Frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.NEXUS_URL }}/finance4all/frontend:latest
+            ${{ secrets.NEXUS_URL }}/finance4all/frontend:${{ github.event.inputs.environment }}
             ${{ secrets.NEXUS_URL }}/finance4all/frontend:${{ github.sha }}
-            ${{ secrets.NEXUS_URL }}/finance4all/frontend:${{ github.ref_name }}
+            ${{ secrets.NEXUS_URL }}/finance4all/frontend:latest
 
-      # ----------------------------
-      # BACKEND RELEASE
-      # ----------------------------
-      - name: Push BACKEND image
-        if: needs.build-apps.outputs.backend-built == 'true'
+      # -----------------------------------------------------
+      # BACKEND IMAGE
+      # -----------------------------------------------------
+      - name: Build & Push Backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.NEXUS_URL }}/finance4all/backend:latest
+            ${{ secrets.NEXUS_URL }}/finance4all/backend:${{ github.event.inputs.environment }}
             ${{ secrets.NEXUS_URL }}/finance4all/backend:${{ github.sha }}
-            ${{ secrets.NEXUS_URL }}/finance4all/backend:${{ github.ref_name }}
+            ${{ secrets.NEXUS_URL }}/finance4all/backend:latest
