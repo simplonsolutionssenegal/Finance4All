@@ -15,7 +15,6 @@ const createMockPrisma = () => ({
   },
 });
 
-// UUIDs valides pour les tests
 const VALID_SERVICE_ID = '550e8400-e29b-41d4-a716-446655440000';
 const VALID_INSTITUTION_ID = '550e8400-e29b-41d4-a716-446655440001';
 const VALID_SERVICE_ID_2 = '550e8400-e29b-41d4-a716-446655440002';
