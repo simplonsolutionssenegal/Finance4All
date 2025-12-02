@@ -11,11 +11,11 @@ import type {
   PrismaClient,
   Service as PrismaService,
   TypeService as PrismaTypeService,
-  Institution as PrismaInstitution, // 🔹 ajouté
+  Institution as PrismaInstitution,
 } from '@prisma/client';
 import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceRepository';
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
-import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/ComparedServiceDTO'; // 🔹 ajouté
+import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/ComparedServiceDTO';
 
 type FraisData = {
   type: 'FREE' | 'FIX' | 'POURCENTAGE';
@@ -113,7 +113,7 @@ export class PrismaServiceRepository implements ServiceRepository {
       where: {
         name: {
           contains: name,
-          mode: 'insensitive', // recherche insensible à la casse
+          mode: 'insensitive',
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -171,13 +171,11 @@ export class PrismaServiceRepository implements ServiceRepository {
     );
   }
 
-  // ---------- MAPPINGS ----------
-
   private mapServiceWithInstitutionToComparedDTO(
     prismaService: ServiceWithInstitution
   ): ComparedServiceDTO {
     const domainService = this.mapServiceToDomain(prismaService);
-    const dto = domainService.toDTO(); // ServiceDTO (avec frais, montantMin, montantMax...)
+    const dto = domainService.toDTO();
 
     return {
       ...dto,

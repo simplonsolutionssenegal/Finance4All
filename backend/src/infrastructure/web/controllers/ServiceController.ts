@@ -64,7 +64,6 @@ export class ServiceController {
         message: `Comparaison de ${data.length} services du type "${data[0].type}"`,
       });
     } catch (error) {
-      // 🔹 Capture l'erreur de comparaison
       if (error instanceof ServiceComparisonError) {
         res.status(400).json({
           success: false,

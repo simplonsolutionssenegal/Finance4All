@@ -6,8 +6,6 @@ import { container, TYPES } from '@/infrastructure/config/container';
 export const ServiceRoutes = (): Router => {
   const router = Router();
   const controller = container.get<ServiceController>(TYPES.ServiceController);
-
-  // Bind methods to preserve 'this' context
   const boundController = {
     getAll: controller.getAll.bind(controller),
     compare: controller.compare.bind(controller),

@@ -149,8 +149,16 @@ describe('ServiceList', () => {
 
       const images = screen.getAllByRole('img');
       expect(images).toHaveLength(3);
-      expect(images[0]).toHaveAttribute('src', 'https://example.com/wave.png');
-      expect(images[0]).toHaveAttribute('alt', 'Wave');
+
+      const first = images[0] as HTMLImageElement;
+
+      // On vérifie qu'on a bien l'alt correct
+      expect(first).toHaveAttribute('alt', 'Wave');
+
+      // Et que l'URL d'origine est bien encodée dans le src généré par Next/Image
+      expect(first.getAttribute('src')).toContain(
+        encodeURIComponent('https://example.com/wave.png')
+      );
     });
 
     it('affiche les types de services', () => {

@@ -230,7 +230,10 @@ describe('ComparatorIntelligent', () => {
   });
 
   describe('Comparaison de services', () => {
-    it('affiche le tableau de comparaison avec au moins 2 services', async () => {
+    it('affiche la vue de comparaison détaillée après sélection de 2 services', async () => {
+      const user = userEvent.setup();
+
+      // On simule une comparaison réussie avec 2 services
       mockUseCompareServices.mockReturnValue({
         services: [mockServices[0], mockServices[1]],
         message: 'Comparaison de 2 services',
@@ -241,14 +244,44 @@ describe('ComparatorIntelligent', () => {
 
       render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const compareButton = screen.getByRole('button', { name: /Comparer/ });
+      // 1. Sélectionner 2 services via les checkboxes de la ServiceList
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
 
-      // Note: Le test vérifie seulement que le composant peut être rendu
-      // avec des données de comparaison mockées
-      expect(compareButton).toBeInTheDocument();
+      // 2. Le bouton comparer doit être activé
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      expect(compareButton).not.toBeDisabled();
+
+      // 3. Lancer la comparaison
+      await user.click(compareButton);
+
+      // 4. La vue de comparaison doit s'afficher
+      expect(await screen.findByText('Comparaison détaillée')).toBeInTheDocument();
+
+      // Message de comparaison
+      expect(screen.getByText('Comparaison de 2 services')).toBeInTheDocument();
+
+      // Critères présents
+      expect(screen.getByText('Frais de service')).toBeInTheDocument();
+      expect(screen.getByText('Délai')).toBeInTheDocument();
+      expect(screen.getByText('Limite de solde')).toBeInTheDocument();
+      expect(screen.getByText('Cashback')).toBeInTheDocument();
+      expect(screen.getByText('Note')).toBeInTheDocument();
+
+      // Bouton "Vue graphique" visible
+      expect(screen.getByRole('button', { name: /Vue graphique/i })).toBeInTheDocument();
+
+      // Noms d'institutions dans l'en-tête du tableau
+      expect(screen.getByText('Wave')).toBeInTheDocument();
+      expect(screen.getByText('Orange Money')).toBeInTheDocument();
     });
 
-    it('affiche les critères de comparaison', async () => {
+    it('permet de revenir à la liste de services en cliquant sur "Modifier"', async () => {
+      const user = userEvent.setup();
+
       mockUseCompareServices.mockReturnValue({
         services: [mockServices[0], mockServices[1]],
         message: 'Comparaison de 2 services',
@@ -259,12 +292,31 @@ describe('ComparatorIntelligent', () => {
 
       render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      // Le composant devrait être capable d'afficher les critères
-      // quand isComparing = true
-      expect(screen.getByText(/services disponibles/)).toBeInTheDocument();
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Vérifier qu'on est bien en mode "comparaison"
+      expect(await screen.findByText('Comparaison détaillée')).toBeInTheDocument();
+
+      // Cliquer sur "Modifier"
+      const backButton = screen.getByRole('button', { name: /Modifier/i });
+      await user.click(backButton);
+
+      // On doit revenir à la liste normale
+      expect(screen.getByText('Sélectionnez les services à comparer')).toBeInTheDocument();
+      expect(screen.queryByText('Comparaison détaillée')).not.toBeInTheDocument();
     });
 
-    it('affiche un message de chargement pendant la comparaison', () => {
+    it('affiche le message de chargement pendant la comparaison', async () => {
+      const user = userEvent.setup();
+
       mockUseCompareServices.mockReturnValue({
         services: [],
         message: '',
@@ -275,11 +327,24 @@ describe('ComparatorIntelligent', () => {
 
       render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      // Le composant devrait gérer l'état de chargement
-      expect(mockUseCompareServices).toHaveBeenCalled();
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Vu que le hook renvoie isLoading: true,
+      // le message de chargement doit apparaître
+      expect(await screen.findByText('Chargement de la comparaison...')).toBeInTheDocument();
     });
 
-    it('affiche une erreur si la comparaison échoue', () => {
+    it('affiche un message d’erreur si la comparaison échoue', async () => {
+      const user = userEvent.setup();
+
       mockUseCompareServices.mockReturnValue({
         services: [],
         message: '',
@@ -290,8 +355,18 @@ describe('ComparatorIntelligent', () => {
 
       render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      // Le composant devrait gérer l'état d'erreur
-      expect(mockUseCompareServices).toHaveBeenCalled();
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Le message d'erreur défini dans le hook doit s'afficher
+      expect(await screen.findByText('Erreur de comparaison')).toBeInTheDocument();
     });
   });
 
