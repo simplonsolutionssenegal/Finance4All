@@ -23,8 +23,8 @@ jobs:
 
     steps:
       - name: Get PR details
-        uses: actions/github-script@v7
         id: pr-details
+        uses: actions/github-script@v7
         with:
           script: |
             const { data: pullRequest } = await github.rest.pulls.get({
@@ -36,7 +36,7 @@ jobs:
             core.setOutput('sha', pullRequest.head.sha);
             core.setOutput('number', context.issue.number);
 
-      - name: React to comment (optimized)
+      - name: React to comment
         uses: actions/github-script@v7
         with:
           script: |
@@ -46,7 +46,6 @@ jobs:
               pull_number: context.issue.number
             });
 
-            // Opérations parallèles
             await Promise.all([
               github.rest.reactions.createForIssueComment({
                 owner: context.repo.owner,
@@ -58,25 +57,16 @@ jobs:
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\` to KIND...\n\n[View deployment progress](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+                body: `🚀 **Preview deployment initiated** by @${context.actor}!\n\nDeploying commit \`${pullRequest.head.sha}\`...\n\n[View deployment logs](${context.payload.repository.html_url}/actions/runs/${context.runId})`
               })
             ]);
-
 
   run-ci:
     name: Run CI Tests
     needs: check-preview-request
     uses: ./.github/workflows/ci.yml
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-      CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-      FROM_NAME: ${{ secrets.FROM_NAME }}
+    secrets: inherit
+
 
   build-and-deploy:
     name: Build Images & Deploy Preview
@@ -91,22 +81,18 @@ jobs:
       - name: Set repository name to lowercase
         id: repo-name
         run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Check runner health
         run: |
           echo "Runner hostname: $(hostname)"
-          echo "Available disk space:"
           df -h
-          echo "Available memory:"
           free -h || vm_stat
-          echo "Docker version:"
           docker --version
-          echo "Docker info:"
           docker info
 
       - name: Cleanup old Docker resources
         continue-on-error: true
         run: |
-          echo "Cleaning up old Docker resources..."
           docker system prune -f
           docker image prune -a -f --filter "until=72h"
 
@@ -125,6 +111,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+
+      # --------------------------------------------------
+      # Build and push BACKEND image
+      # --------------------------------------------------
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
@@ -140,9 +130,10 @@ jobs:
             NODE_ENV=preview
             COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
             BUILD_DATE=${{ github.run_number }}
-          no-cache: false
-        continue-on-error: false
 
+      # --------------------------------------------------
+      # Build and push FRONTEND image
+      # --------------------------------------------------
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -160,9 +151,49 @@ jobs:
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
             COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
             BUILD_DATE=${{ github.run_number }}
-          no-cache: false
 
-      - name: Create .env file for preview deployment
+
+      # --------------------------------------------------
+      # SAFE REMOVE ONLY THIS PR’S IMAGES (bug fixed!)
+      # --------------------------------------------------
+      - name: Stop and remove old preview environment (safe)
+        continue-on-error: true
+        run: |
+          PR_TAG="pr-${{ needs.check-preview-request.outputs.pr-number }}"
+          REPO="${REPO_LOWER}"
+
+          echo "🛑 Stopping containers for ${PR_TAG}..."
+          docker compose -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans
+
+          echo "🗑 Removing ONLY images for ${PR_TAG}..."
+
+          # Backend exact matches
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}$" \
+            | xargs -r docker rmi -f
+
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}-" \
+            | xargs -r docker rmi -f
+
+          # Frontend exact matches
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}$" \
+            | xargs -r docker rmi -f
+
+          docker images --format "{{.Repository}}:{{.Tag}}" \
+            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}-" \
+            | xargs -r docker rmi -f
+
+          echo "Pulling fresh images..."
+          docker pull ghcr.io/${REPO}/backend:${PR_TAG}
+          docker pull ghcr.io/${REPO}/frontend:${PR_TAG}
+
+
+      # --------------------------------------------------
+      # DEPLOY PREVIEW
+      # --------------------------------------------------
+      - name: Create .env file
         run: |
           cat > .env.preview <<EOF
           PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
@@ -178,59 +209,44 @@ jobs:
           FROM_NAME=${{ secrets.FROM_NAME }}
           EOF
 
-      - name: Stop and remove old preview containers
-        continue-on-error: true
-        run: |
-          echo "Stopping and removing old containers for PR-${{ needs.check-preview-request.outputs.pr-number }}..."
-          docker compose -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans
-
-          echo "Removing old images for PR-${{ needs.check-preview-request.outputs.pr-number }}..."
-          docker rmi -f ghcr.io/${REPO_LOWER}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }} || true
-          docker rmi -f ghcr.io/${REPO_LOWER}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }} || true
-
-          echo "Pulling fresh images..."
-          docker pull ghcr.io/${REPO_LOWER}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-          docker pull ghcr.io/${REPO_LOWER}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-
       - name: Deploy preview with docker-compose
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-          FROM_NAME: ${{ secrets.FROM_NAME }}
         run: |
           docker compose -f docker-compose.preview.yml --env-file .env.preview up -d
 
       - name: Wait for services to be healthy
         run: |
-          echo "Waiting for services to be healthy..."
           timeout 120 sh -c 'until docker compose -f docker-compose.preview.yml ps | grep -q "healthy"; do sleep 5; done' || echo "Health check timeout"
 
-      - name: Comment PR with preview URL
+
+      # --------------------------------------------------
+      # COMMENT PR WITH PREVIEW URL
+      # --------------------------------------------------
+      - name: Comment PR
         uses: actions/github-script@v7
         with:
           script: |
+            const pr = ${{ needs.check-preview-request.outputs.pr-number }};
+            const repo = process.env.REPO_LOWER;
+
             github.rest.issues.createComment({
-              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              issue_number: pr,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ **Preview deployment successful!**
+              body: `✅ **Preview deployed successfully!**
 
-              🌐 **Frontend**: https://pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
-              🔧 **Backend API**: https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+🌐 Frontend → https://pr-${pr}.finance4all.simplonprojet.com  
+🔧 Backend → https://api-pr-${pr}.finance4all.simplonprojet.com  
 
-              📦 **Docker Images**:
-              - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+📦 Docker images:
+- frontend: \`ghcr.io/${repo}/frontend:pr-${pr}\`
+- backend: \`ghcr.io/${repo}/backend:pr-${pr}\`
 
-              🔄 To update this preview, push new commits or comment \`/preview\` again.
-              🗑️ To cleanup, comment \`/cleanup\` on this PR.`
+🔄 Update preview: comment \`/preview\`  
+🗑 Cleanup: comment \`/cleanup\``
             });
+
 
   notify-failure:
     name: Notify Failure
@@ -243,22 +259,15 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            let errorMessage = '❌ **Preview deployment failed!**\n\n';
-
-            if ('${{ needs.run-ci.result }}' === 'failure') {
-              errorMessage += '**CI Tests failed.** Please fix the errors before requesting a new preview with `/preview`.\n\n';
-              errorMessage += '[View CI logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
-            } else if ('${{ needs.build-and-deploy.result }}' === 'failure') {
-              errorMessage += '**Deployment failed.** There was an issue building or deploying the preview environment.\n\n';
-              errorMessage += '[View deployment logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
-            } else {
-              errorMessage += 'An unexpected error occurred during the preview deployment process.\n\n';
-              errorMessage += '[View workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
-            }
+            let msg = "❌ **Preview deployment failed!**\n\n";
+            msg += "Check the logs here:\n";
+            msg += `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
             github.rest.issues.createComment({
               issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: errorMessage
+              body: msg
             });
+
+
