@@ -10,7 +10,7 @@ export interface ServiceRepository {
   findAllByInstitution(
     institutionId: string,
     params: PaginationParams
-  ): Promise<PaginatedResult<Service[]>>;
+  ): Promise<PaginatedResult<Service>>;
 
   findAll(params: PaginationParams): Promise<PaginatedResult<ComparedServiceDTO>>;
 

@@ -17,11 +17,11 @@ import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceR
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
 import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/ComparedServiceDTO';
 
+// ... (Les types FraisChangeData, FraisData, ServiceWithInstitution restent identiques)
 type FraisChangeData = {
   fxSurcharge: number;
   devise: string;
 };
-
 type FraisData = {
   type: 'FREE' | 'FIX' | 'POURCENTAGE';
   amount?: number;
@@ -31,7 +31,6 @@ type FraisData = {
   cap?: number;
   floor?: number;
 };
-
 type ServiceWithInstitution = PrismaService & { institution: PrismaInstitution };
 
 export class PrismaServiceRepository implements ServiceRepository {
@@ -67,34 +66,25 @@ export class PrismaServiceRepository implements ServiceRepository {
     });
   }
 
+  // --- REFACTORISÉ : Utilise le helper générique ---
   async findAll(params: PaginationParams): Promise<PaginatedResult<ComparedServiceDTO>> {
-    const skip = this.getSkip(params);
     const where: Prisma.ServiceWhereInput = {};
-
     const typeFilter = (params as unknown as { type?: TypeService }).type;
     if (typeFilter) {
       where.type = this.mapTypeServiceToPrismaType(typeFilter) as PrismaTypeService;
     }
 
-    const [services, total] = await Promise.all([
-      this.prisma.service.findMany({
+    // Appel du helper générique
+    return this.findPaginated<ServiceWithInstitution, ComparedServiceDTO>(
+      params,
+      {
         where,
-        skip,
-        take: params.limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          institution: true,
-        },
-      }),
-      this.prisma.service.count({ where }),
-    ]);
-
-    return {
-      data: services.map(s =>
-        this.mapServiceWithInstitutionToComparedDTO(s as ServiceWithInstitution)
-      ),
-      pagination: this.buildPagination(params, total),
-    };
+        include: { institution: true }, // Nécessaire pour le mapping DTO
+      },
+      // Fonction de mapping spécifique
+      s => this.mapServiceWithInstitutionToComparedDTO(s)
+    );
   }
 
   async findByName(name: string): Promise<Service[]> {
@@ -110,34 +100,27 @@ export class PrismaServiceRepository implements ServiceRepository {
     return services.map(s => this.toDomain(s));
   }
 
+  // --- REFACTORISÉ ET CORRIGÉ ---
   async findAllByInstitution(
     institutionId: string,
     params: PaginationParams
-  ): Promise<PaginatedResult<Service[]>> {
-    const skip = this.getSkip(params);
-
-    const [services, total] = await Promise.all([
-      this.prisma.service.findMany({
+    // CORRECTION ICI : On retire les [] car PaginatedResult s'en charge
+  ): Promise<PaginatedResult<Service>> {
+    // Appel du helper générique
+    // Ici, on dit explicitement que le résultat mappé est UN SEUL Service
+    return this.findPaginated<PrismaService, Service>(
+      params,
+      {
         where: { institutionId },
-        skip,
-        take: params.limit,
         orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.service.count({
-        where: { institutionId },
-      }),
-    ]);
-
-    return {
-      data: [services.map(s => this.toDomain(s))],
-      pagination: this.buildPagination(params, total),
-    };
+      },
+      // La fonction de mapping transforme un PrismaService en un Service
+      s => this.toDomain(s)
+    );
   }
 
-  // 🔥 NOUVELLE MÉTHODE : utilisée par le use case de comparaison
   async findForComparison(ids: string[]): Promise<ComparedServiceDTO[]> {
     if (ids.length === 0) return [];
-
     const services = await this.prisma.service.findMany({
       where: {
         id: { in: ids },
@@ -146,14 +129,64 @@ export class PrismaServiceRepository implements ServiceRepository {
         institution: true,
       },
     });
-
     return services.map(s =>
       this.mapServiceWithInstitutionToComparedDTO(s as ServiceWithInstitution)
     );
   }
 
-  // ---------- HELPERS GÉNÉRIQUES ----------
+  // ---------- NOUVEAUX HELPERS GÉNÉRIQUES (Anti-duplication) ----------
 
+  /**
+   * 🔥 HAUTE VALEUR AJOUTÉE : Centralise la logique de pagination Prisma
+   * TPrismaResult: Le type brut retourné par Prisma (ex: PrismaService ou ServiceWithInstitution)
+   * TMappedResult: Le type final désiré après mapping (ex: Service ou ComparedServiceDTO)
+   */
+  private async findPaginated<TPrismaResult, TMappedResult>(
+    params: PaginationParams,
+    prismaQueryArgs: Prisma.ServiceFindManyArgs,
+    mapper: (item: TPrismaResult) => TMappedResult
+  ): Promise<PaginatedResult<TMappedResult>> {
+    const skip = this.getSkip(params);
+
+    // On combine les arguments de requête de base avec les arguments de pagination
+    const queryWithPagination = {
+      ...prismaQueryArgs,
+      skip,
+      take: params.limit,
+    };
+
+    const [services, total] = await Promise.all([
+      // Exécute la requête avec pagination, include, orderBy, etc.
+      this.prisma.service.findMany(queryWithPagination),
+      // Exécute le count en utilisant uniquement la clause 'where'
+      this.prisma.service.count({ where: prismaQueryArgs.where }),
+    ]);
+
+    return {
+      // On cast 's' car on sait que le 'include' dans prismaQueryArgs détermine le type de retour
+      data: services.map(s => mapper(s as unknown as TPrismaResult)),
+      pagination: this.buildPagination(params, total),
+    };
+  }
+
+  /**
+   * 🔥 HAUTE VALEUR AJOUTÉE : Centralise les champs communs pour Create et Update
+   */
+  private getBasePrismaData(service: Service) {
+    return {
+      name: service.name,
+      longName: service.longName,
+      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
+      montantMin: service.montantMin,
+      montantMax: service.montantMax,
+      frais: this.mapFraisToPrisma(service.frais),
+      conditionAccess: service.conditionAccess,
+      plafonds: service.plafonds,
+      infrastructureAccess: service.infrastructureAccess,
+    };
+  }
+
+  // ---------- ANCIENS HELPERS ----------
   private getSkip(params: PaginationParams): number {
     return (params.page - 1) * params.limit;
   }
@@ -169,13 +202,11 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   // ---------- MAPPINGS ----------
-
   private mapServiceWithInstitutionToComparedDTO(
     prismaService: ServiceWithInstitution
   ): ComparedServiceDTO {
     const domainService = this.toDomain(prismaService);
     const dto = domainService.toDTO();
-
     return {
       ...dto,
       institution: {
@@ -187,6 +218,7 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   private toDomain(prismaService: PrismaService): Service {
+    // ... (Code original identique)
     return new Service({
       id: EntityId.from(prismaService.id),
       name: prismaService.name,
@@ -202,10 +234,10 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   private mapFraisToDomain(fraisData: FraisData): Frais {
+    // ... (Code original identique - pas de duplication logique simple ici)
     if (!fraisData || fraisData.type === 'FREE') {
       return new FraisGratuit();
     }
-
     if (fraisData.type === 'FIX' && fraisData.amount !== undefined) {
       return new FraisFixes(
         fraisData.amount,
@@ -218,47 +250,34 @@ export class PrismaServiceRepository implements ServiceRepository {
           : undefined
       );
     }
-
     if (fraisData.type === 'POURCENTAGE' && fraisData.rate !== undefined) {
       return new FraisPourcentage(fraisData.rate, fraisData.cap, fraisData.floor);
     }
-
     return new FraisGratuit();
   }
 
+  // --- REFACTORISÉ : Utilise getBasePrismaData ---
+  // Note: Cette méthode n'était pas utilisée dans votre extrait original,
+  // mais si vous ajoutez une méthode create(), elle sera indispensable.
   private toPrismaData(service: Service, institutionId: string): Prisma.ServiceCreateInput {
     return {
       id: service.id.getValue(),
-      name: service.name,
-      longName: service.longName,
-      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
-      montantMin: service.montantMin,
-      montantMax: service.montantMax,
-      frais: this.mapFraisToPrisma(service.frais),
-      conditionAccess: service.conditionAccess,
-      plafonds: service.plafonds,
-      infrastructureAccess: service.infrastructureAccess,
+      // Utilisation du spread operator sur les champs communs
+      ...this.getBasePrismaData(service),
       institution: {
         connect: { id: institutionId },
       },
     };
   }
 
+  // --- REFACTORISÉ : Utilise getBasePrismaData ---
   private toPrismaUpdateData(service: Service): Prisma.ServiceUpdateInput {
-    return {
-      name: service.name,
-      longName: service.longName,
-      type: this.mapTypeServiceToPrismaType(service.type) as PrismaTypeService,
-      montantMin: service.montantMin,
-      montantMax: service.montantMax,
-      frais: this.mapFraisToPrisma(service.frais),
-      conditionAccess: service.conditionAccess,
-      plafonds: service.plafonds,
-      infrastructureAccess: service.infrastructureAccess,
-    };
+    // Réutilisation directe des champs communs
+    return this.getBasePrismaData(service);
   }
 
   private mapTypeServiceToPrismaType(type: TypeService): string {
+    // ... (Code original identique. Bien que répétitif, c'est du mapping de données pur, difficile à réduire sans complexifier le TS)
     const typeMap: Record<TypeService, string> = {
       [TypeService.PAIEMENT_MARCHAND]: 'PAIEMENT_MARCHAND',
       [TypeService.ACHAT_CREDIT]: 'ACHAT_CREDIT',
@@ -278,6 +297,7 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   private mapPrismaTypeToTypeService(prismaType: string): TypeService {
+    // ... (Code original identique)
     const typeMap: Record<string, TypeService> = {
       PAIEMENT_MARCHAND: TypeService.PAIEMENT_MARCHAND,
       ACHAT_CREDIT: TypeService.ACHAT_CREDIT,
@@ -297,27 +317,24 @@ export class PrismaServiceRepository implements ServiceRepository {
   }
 
   private mapFraisToPrisma(frais: Frais): FraisData {
+    // ... (Code original identique)
     if (frais instanceof FraisGratuit) {
       return { type: 'FREE' };
     }
-
     if (frais instanceof FraisFixes) {
       const fraisData: FraisData = {
         type: 'FIX',
         amount: frais.amount,
         rate: frais.rate,
       };
-
       if (frais.fraisChange) {
         fraisData.fraisChange = {
           fxSurcharge: frais.fraisChange.fxSurcharge,
           devise: frais.fraisChange.devise,
         };
       }
-
       return fraisData;
     }
-
     if (frais instanceof FraisPourcentage) {
       return {
         type: 'POURCENTAGE',
@@ -326,7 +343,6 @@ export class PrismaServiceRepository implements ServiceRepository {
         floor: frais.floor,
       };
     }
-
     return { type: 'FREE' };
   }
 }
