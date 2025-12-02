@@ -7,6 +7,8 @@ import { InstitutionController } from '@/infrastructure/web/controllers/Institut
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from './prismaClient';
 import { PrismaInstitutionRepository } from '@/infrastructure/persistence/repositories/PrismaInstitutionRepository';
+import { PrismaServiceRepository } from '@/infrastructure/persistence/repositories/PrismaServiceRepository';
+
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import { CreateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/CreateInstitutionUseCaseImpl';
@@ -29,6 +31,12 @@ import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepos
 import { PrismaModuleFormationRepository } from '../persistence/repositories/PrismaModuleFormationRepository';
 import { CreateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCaseImpl';
 import { GetModulesFormationUseCaseImpl } from '@/application/formations/use-cases/GetModulesFormationUseCaseImpl';
+import type { GetServicesUseCase } from '@/domain/institutions/ports/in/GetServicesUseCase';
+import { GetServicesUseCaseImpl } from '@/application/institutions/use-cases/GetServicesUseCaseImpl';
+import { ServiceController } from '../web/controllers/ServiceController';
+import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceRepository';
+import type { CompareServicesUseCase } from '@/domain/institutions/ports/in/CompareServicesUseCase';
+import { CompareServicesUseCaseImpl } from '@/application/institutions/use-cases/CompareServicesUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -38,14 +46,20 @@ export const TYPES = {
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
 
+  GetServicesUseCase: Symbol.for('GetServicesUseCase'),
+
   // Ports Out (External Services)
   InstitutionRepository: Symbol.for('InstitutionRepository'),
+  ServiceRepository: Symbol.for('ServiceRepository'),
+  CompareServicesUseCase: Symbol.for('CompareServicesUseCase'),
 
   // Domain Services
   InstitutionDomainService: Symbol.for('InstitutionDomainService'),
 
   // Controllers
   InstitutionController: Symbol.for('InstitutionController'),
+
+  ServiceController: Symbol.for('ServiceController'),
 
   // ========== Modules de formation ==========
   CreateModuleUseCase: Symbol.for('CreateModuleUseCase'),
@@ -64,6 +78,14 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaInstitutionRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<ServiceRepository>(TYPES.ServiceRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaServiceRepository(prismaClient);
   })
   .inSingletonScope();
 // ========== modules de formation repositories ==========
@@ -135,6 +157,22 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<GetServicesUseCase>(TYPES.GetServicesUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<ServiceRepository>(TYPES.ServiceRepository);
+    return new GetServicesUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<CompareServicesUseCase>(TYPES.CompareServicesUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<ServiceRepository>(TYPES.ServiceRepository);
+    return new CompareServicesUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // ========== 🆕 MODULES USE CASES ==========
 container
   .bind<CreateModuleUseCase>(TYPES.CreateModuleUseCase)
@@ -177,6 +215,17 @@ container
       getInstitutionsUseCase,
       getInstitutionByIdUseCase
     );
+  })
+  .inSingletonScope();
+
+container
+  .bind<ServiceController>(TYPES.ServiceController)
+  .toDynamicValue(context => {
+    const getServicesUseCase = context.get<GetServicesUseCase>(TYPES.GetServicesUseCase);
+    const compareServicesUseCase = context.get<CompareServicesUseCase>(
+      TYPES.CompareServicesUseCase
+    );
+    return new ServiceController(getServicesUseCase, compareServicesUseCase);
   })
   .inSingletonScope();
 
