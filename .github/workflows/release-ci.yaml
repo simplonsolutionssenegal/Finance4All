@@ -2,7 +2,7 @@ name: CI-CD-Finance4All
 
 on:
   push:
-    branches: ['main']
+    branches: ['feature/ci-cd']
   pull_request:
 
 # =========================================================
