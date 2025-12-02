@@ -47,76 +47,89 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+const DEFAULT_FEE = { label: 'Non défini', value: 0 };
+const FREE_FEE = { label: 'Gratuit !', value: 0 };
+
+const getTypeCalculation = (frais: FraisWithTypeCalc): number | undefined =>
+  frais._typeCalculation ?? frais.typeCalculation;
+
+const computePercentageFee = (
+  frais: FraisWithTypeCalc,
+  montant: number
+): { label: string; value: number } => {
+  const pourcentage = frais.pourcentage ?? 0;
+
+  let fee = montant * pourcentage;
+
+  const min = typeof frais.minimum === 'number' ? frais.minimum : undefined;
+  const max = typeof frais.maximum === 'number' ? frais.maximum : undefined;
+
+  if (montant > 0) {
+    if (min !== undefined) {
+      fee = Math.max(fee, min);
+    }
+    if (max !== undefined) {
+      fee = Math.min(fee, max);
+    }
+  } else {
+    fee = 0;
+  }
+
+  const intervalParts: string[] = [];
+  if (min !== undefined) {
+    intervalParts.push(`min ${formatCurrency(min)}`);
+  }
+  if (max !== undefined) {
+    intervalParts.push(`max ${formatCurrency(max)}`);
+  }
+
+  const intervalText = intervalParts.length > 0 ? ` (${intervalParts.join(' · ')})` : '';
+
+  return {
+    label: `${pourcentage * 100}% du montant${intervalText}`,
+    value: fee,
+  };
+};
+
+const computeFixedFee = (
+  frais: FraisWithTypeCalc,
+  montant: number
+): { label: string; value: number } => {
+  const montantFixe = frais.montantFixe ?? 0;
+  const pourcentage = frais.pourcentage ?? 0;
+  const fee = montantFixe + montant * pourcentage;
+
+  const label =
+    pourcentage > 0
+      ? `${formatCurrency(montantFixe)} + ${pourcentage * 100}%`
+      : `${formatCurrency(montantFixe)} fixe`;
+
+  return {
+    label,
+    value: fee,
+  };
+};
+
 // Constante pour calculer les frais
 const computeFee = (service: ServiceDTO, montant: number): { label: string; value: number } => {
   const frais = service.frais as FraisWithTypeCalc | undefined;
 
   if (!frais) {
-    return { label: 'Non défini', value: 0 };
+    return DEFAULT_FEE;
   }
 
-  const typeCalc = frais._typeCalculation ?? frais.typeCalculation ?? undefined;
+  const typeCalc = getTypeCalculation(frais);
 
-  // 0 = FREE
-  if (typeCalc === 0) {
-    return { label: 'Gratuit !', value: 0 };
+  switch (typeCalc) {
+    case 0:
+      return FREE_FEE;
+    case 1:
+      return computePercentageFee(frais, montant);
+    case 2:
+      return computeFixedFee(frais, montant);
+    default:
+      return DEFAULT_FEE;
   }
-
-  // 1 = POURCENTAGE
-  if (typeCalc === 1) {
-    const pourcentage = frais.pourcentage ?? 0;
-
-    // On calcule d'abord la commission théorique
-    let fee = montant * pourcentage;
-
-    const min = typeof frais.minimum === 'number' ? frais.minimum : undefined;
-    const max = typeof frais.maximum === 'number' ? frais.maximum : undefined;
-
-    // On applique min / max seulement si un montant est saisi
-    if (montant > 0) {
-      if (min !== undefined) {
-        fee = Math.max(fee, min);
-      }
-      if (max !== undefined) {
-        fee = Math.min(fee, max);
-      }
-    } else {
-      fee = 0;
-    }
-
-    // Construction du texte d'intervalle
-    const intervalParts: string[] = [];
-    if (min !== undefined) {
-      intervalParts.push(`min ${formatCurrency(min)}`);
-    }
-    if (max !== undefined) {
-      intervalParts.push(`max ${formatCurrency(max)}`);
-    }
-
-    const intervalText = intervalParts.length > 0 ? ` (${intervalParts.join(' · ')})` : '';
-
-    return {
-      label: `${pourcentage * 100}% du montant${intervalText}`,
-      value: fee,
-    };
-  }
-
-  // 2 = FIX (éventuellement + pourcentage)
-  if (typeCalc === 2) {
-    const montantFixe = frais.montantFixe ?? 0;
-    const pourcentage = frais.pourcentage ?? 0;
-    const fee = montantFixe + montant * pourcentage;
-
-    return {
-      label:
-        pourcentage > 0
-          ? `${formatCurrency(montantFixe)} + ${pourcentage * 100}%`
-          : `${formatCurrency(montantFixe)} fixe`,
-      value: fee,
-    };
-  }
-
-  return { label: 'Non défini', value: 0 };
 };
 
 export default function ComparatorIntelligent() {
@@ -160,7 +173,14 @@ export default function ComparatorIntelligent() {
     setIsComparing(false);
   }
 
-  const canCompare = selectedIds.length >= 2;
+  const isCompareDisabled = selectedIds.length < 2;
+
+  const compareButtonClasses = [
+    'inline-flex items-center gap-2 rounded-lg px-5 py-2 text-xs shadow-sm transition',
+    isCompareDisabled
+      ? 'bg-primary-200 text-white/70 cursor-not-allowed'
+      : 'bg-primary-200 text-white hover:bg-primary-500',
+  ].join(' ');
 
   // Lignes de critères pour le tableau façon maquette
   const criteriaRows = [
@@ -174,17 +194,14 @@ export default function ComparatorIntelligent() {
 
         return (
           <div className='flex flex-col items-center text-center'>
-            {/* Ligne du montant : seulement si on a un montant ET des frais réels */}
             {hasFees && amount > 0 && (
               <span className='text-sm text-slate-900'>
                 {formatCurrency(Math.round(fee.value))}
               </span>
             )}
 
-            {/* Si pas de frais → on affiche juste un tiret */}
             {!hasFees && <span className='text-sm text-slate-900'>—</span>}
 
-            {/* Ligne de description des frais : uniquement si le service a des frais */}
             {hasFees && <span className='mt-0.5 text-[11px] text-emerald-600'>{fee.label}</span>}
           </div>
         );
@@ -214,11 +231,7 @@ export default function ComparatorIntelligent() {
       key: 'cashback',
       label: 'Cashback',
       icon: <TrendingDown className='h-3 w-3 text-primary-400' />,
-      render: (_s: ServiceDTO) => (
-        <span className='text-sm text-slate-800'>
-          {/* à remplacer quand tu as un champ cashback */}—
-        </span>
-      ),
+      render: (_s: ServiceDTO) => <span className='text-sm text-slate-800'>—</span>,
     },
     {
       key: 'rating',
@@ -226,7 +239,6 @@ export default function ComparatorIntelligent() {
       icon: <span className='text-base'>⭐</span>,
       render: (_s: ServiceDTO) => (
         <span className='flex items-center justify-center gap-1 text-sm text-slate-800'>
-          {/* à remplacer par s.rating si tu as la note */}
           4.7 / 5
         </span>
       ),
@@ -259,7 +271,6 @@ export default function ComparatorIntelligent() {
           <h2 className='mb-4 text-sm text-slate-800'>Type de produit</h2>
 
           <div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
-            {/* Transferts & Mobile Money */}
             <button
               type='button'
               onClick={() => setProductType('TRANSFERT')}
@@ -275,7 +286,6 @@ export default function ComparatorIntelligent() {
               </span>
             </button>
 
-            {/* Crédit & Prêts */}
             <button
               type='button'
               onClick={() => setProductType('CREDIT')}
@@ -291,7 +301,6 @@ export default function ComparatorIntelligent() {
               </span>
             </button>
 
-            {/* Épargne (désactivé / bientôt dispo) */}
             <button
               type='button'
               disabled
@@ -311,9 +320,11 @@ export default function ComparatorIntelligent() {
         {/* FILTRES DÉTAILLÉS */}
         <section className='space-y-6 rounded-xl bg-white p-6 shadow-sm'>
           <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
-            {/* Type de service (Select Radix) */}
+            {/* Type de service */}
             <div className='flex flex-col gap-1'>
-              <label className='text-xs text-slate-500'>Type de service</label>
+              <label className='text-xs text-slate-500' htmlFor='serviceType'>
+                Type de service
+              </label>
               <Select
                 value={selectedType === '' ? 'ALL' : selectedType}
                 onValueChange={value => {
@@ -326,6 +337,7 @@ export default function ComparatorIntelligent() {
                 }}
               >
                 <SelectTrigger
+                  id='serviceType'
                   size='default'
                   className='h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200'
                 >
@@ -350,9 +362,12 @@ export default function ComparatorIntelligent() {
 
             {/* Pays (placeholder) */}
             <div className='flex flex-col gap-1'>
-              <label className='text-xs text-slate-500'>Pays</label>
+              <label className='text-xs text-slate-500' htmlFor='country'>
+                Pays
+              </label>
               <Select>
                 <SelectTrigger
+                  id='country'
                   size='default'
                   className='h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-400 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200'
                 >
@@ -387,14 +402,9 @@ export default function ComparatorIntelligent() {
             </div>
             <button
               type='button'
-              disabled={!canCompare}
+              disabled={isCompareDisabled}
               onClick={() => setIsComparing(true)}
-              className={[
-                'inline-flex items-center gap-2 rounded-lg px-5 py-2 text-xs shadow-sm transition',
-                !canCompare
-                  ? 'bg-primary-200 text-white/70 cursor-not-allowed'
-                  : 'bg-primary-200 text-white hover:bg-primary-500',
-              ].join(' ')}
+              className={compareButtonClasses}
             >
               <span>
                 Comparer{' '}
@@ -405,7 +415,7 @@ export default function ComparatorIntelligent() {
           </div>
         </section>
 
-        {/* === LISTE DES SERVICES === */}
+        {/* LISTE DES SERVICES */}
         {!isComparing && (
           <section className='space-y-4'>
             <h2 className='text-lg  text-slate-900'>Sélectionnez les services à comparer</h2>
@@ -423,7 +433,7 @@ export default function ComparatorIntelligent() {
           </section>
         )}
 
-        {/* === RÉSULTAT DE COMPARAISON : TABLEAU TYPE MAQUETTE === */}
+        {/* RÉSULTAT DE COMPARAISON */}
         {isComparing && (
           <>
             <div className='flex items-center justify-between'>
@@ -451,7 +461,6 @@ export default function ComparatorIntelligent() {
               </div>
             </div>
             <section className='space-y-4 rounded-3xl bg-white p-2 shadow-sm'>
-              {/* États chargement / erreur */}
               {isCompareLoading && (
                 <p className='text-sm text-slate-500'>Chargement de la comparaison...</p>
               )}
@@ -462,16 +471,12 @@ export default function ComparatorIntelligent() {
                 </p>
               )}
 
-              {/* Tableau */}
               {!isCompareLoading && !isCompareError && comparedServices.length >= 2 && (
                 <div className='overflow-x-auto'>
                   <div className='min-w-[720px] '>
-                    {/* Ligne d'en-tête : Critères + services */}
                     <div className='grid grid-cols-[220px_repeat(auto-fit,minmax(180px,1fr))]'>
-                      {/* Colonne "Critères" */}
                       <div className='rounded-tl-3xl px-4 py-4 font-bold '>Critères</div>
 
-                      {/* Colonnes services */}
                       {comparedServices.map(s => (
                         <div
                           key={s.id}
@@ -497,7 +502,6 @@ export default function ComparatorIntelligent() {
                       ))}
                     </div>
 
-                    {/* Lignes de critères */}
                     {criteriaRows.map((row, rowIndex) => (
                       <div
                         key={row.key}
@@ -506,7 +510,6 @@ export default function ComparatorIntelligent() {
                           rowIndex === criteriaRows.length - 1 ? 'rounded-b-3xl' : '',
                         ].join(' ')}
                       >
-                        {/* Cellule critère */}
                         <div className='flex items-center gap-3  px-2 py-1 text-xs text-slate-700'>
                           <span className='flex h-7 w-7 items-center justify-center rounded-full bg-white'>
                             {row.icon}

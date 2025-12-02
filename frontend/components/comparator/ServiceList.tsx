@@ -5,17 +5,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { ServiceDTO } from '@/types/Service';
 
 interface ServiceListProps {
-  services: ServiceDTO[];
-  selectedIds: string[];
-  amount: number;
-  isLoading: boolean;
-  isError: boolean;
-  error?: Error | null;
-  onToggleService: (id: string) => void;
-  computeFee: (service: ServiceDTO, amount: number) => { label: string; value: number };
+  readonly services: ReadonlyArray<ServiceDTO>;
+  readonly selectedIds: ReadonlyArray<string>;
+  readonly amount: number;
+  readonly isLoading: boolean;
+  readonly isError: boolean;
+  readonly error?: Error | null;
+  readonly onToggleService: (id: string) => void;
+  readonly computeFee: (service: ServiceDTO, amount: number) => { label: string; value: number };
 }
 
-function formatCurrency(amount: number) {
+function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'XOF',
@@ -23,16 +23,10 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function ServiceList({
-  services,
-  selectedIds,
-  amount,
-  isLoading,
-  isError,
-  error,
-  onToggleService,
-  computeFee,
-}: ServiceListProps) {
+export function ServiceList(props: Readonly<ServiceListProps>) {
+  const { services, selectedIds, amount, isLoading, isError, error, onToggleService, computeFee } =
+    props;
+
   if (isLoading) {
     return <p className='text-sm text-slate-500'>Chargement des services...</p>;
   }
@@ -49,7 +43,7 @@ export function ServiceList({
     return (
       <section className='space-y-6 rounded-xl bg-white p-6 shadow-sm'>
         <div className='flex flex-col items-center justify-center py-10 px-2'>
-          <div className='flex h-16 w-16 items-center justify-center rounded-full bg-primary-400 mb-3'>
+          <div className='mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary-400'>
             <svg
               className='h-8 w-8 text-secondary-50'
               fill='none'
@@ -64,8 +58,8 @@ export function ServiceList({
               />
             </svg>
           </div>
-          <p className='text-sm font-medium text-slate-900 mb-1'>Aucun service disponible</p>
-          <p className='text-xs text-slate-500 text-center max-w-xs'>
+          <p className='mb-1 text-sm font-medium text-slate-900'>Aucun service disponible</p>
+          <p className='max-w-xs text-center text-xs text-slate-500'>
             Aucun service n&apos;est disponible pour le moment.
           </p>
         </div>
@@ -80,16 +74,23 @@ export function ServiceList({
         const isSelected = selectedIds.includes(service.id);
 
         const cardClasses = `
-                    relative flex flex-col gap-3 rounded-xl border p-4 
-                    cursor-pointer transition-colors
-                    ${isSelected ? 'border-primary-200 bg-primary-50' : 'border-tertiary-200'}
-                `;
+          relative flex flex-col gap-3 rounded-xl border p-4 
+          cursor-pointer transition-colors
+          ${isSelected ? 'border-primary-200 bg-primary-50' : 'border-tertiary-200'}
+        `;
 
         return (
           <article
             key={service.id}
             className={cardClasses}
             onClick={() => onToggleService(service.id)}
+            tabIndex={0}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onToggleService(service.id);
+              }
+            }}
           >
             <div className='flex items-start justify-between gap-3'>
               <div className='flex items-center gap-2'>
@@ -113,13 +114,11 @@ export function ServiceList({
                   </div>
                 </div>
               </div>
-              <div
-                className='flex items-center gap-1 text-xs text-slate-500'
-                onClick={e => e.stopPropagation()}
-              >
+              <div className='flex items-center gap-1 text-xs text-slate-500'>
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => onToggleService(service.id)}
+                  onClick={event => event.stopPropagation()}
                   className='size-4 border-slate-200 data-[state=checked]:bg-primary-200 data-[state=checked]:border-primary data-[state=checked]:text-white'
                 />
               </div>
