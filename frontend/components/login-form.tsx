@@ -98,17 +98,16 @@ export function LoginForm() {
               icon={Mail}
             />
 
-            {error ||
-              (socialError && (
-                <div
-                  className='text-red-500 text-sm font-medium bg-red-50 p-3 rounded-md border border-red-200'
-                  role='alert'
-                  aria-live='polite'
-                  aria-atomic='true'
-                >
-                  {error || socialError}
-                </div>
-              ))}
+            {(error || socialError) && (
+              <div
+                className='text-red-500 text-sm font-medium bg-red-50 p-3 rounded-md border border-red-200'
+                role='alert'
+                aria-live='polite'
+                aria-atomic='true'
+              >
+                {error || socialError}
+              </div>
+            )}
 
             {success && successMessage && (
               <div
@@ -205,26 +204,31 @@ export function LoginForm() {
           </p>
         </div>
       ) : (
-        <div className='text-center'>
-          <p className='text-sm text-muted-foreground text-gray-500'>
-            Code non reçu ?{' '}
-            <button
-              type='button'
-              onClick={handleResendCode}
-              className='text-primary-300 cursor-pointer font-semibold hover:text-primary-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-              disabled={isResending || isLoading}
-            >
-              {isResending ? (
-                <span className='flex items-center gap-2'>
-                  <span className='inline-flex size-3 animate-spin rounded-full border-2 border-primary-300 border-b-transparent' />
-                  <span>Envoi en cours...</span>
-                </span>
-              ) : (
-                'Renvoyer le code'
-              )}
-            </button>
-          </p>
-        </div>
+        <>
+          <div className='my-6'>
+            <hr className='border-gray-100' />
+          </div>
+          <div className='text-center'>
+            <p className='text-sm text-muted-foreground text-gray-500'>
+              Code non reçu ?{' '}
+              <button
+                type='button'
+                onClick={handleResendCode}
+                className='text-primary-300 cursor-pointer font-semibold hover:text-primary-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                disabled={isResending || isLoading}
+              >
+                {isResending ? (
+                  <span className='flex items-center gap-2'>
+                    <span className='inline-flex size-3 animate-spin rounded-full border-2 border-primary-300 border-b-transparent' />
+                    <span>Envoi en cours...</span>
+                  </span>
+                ) : (
+                  'Renvoyer le code'
+                )}
+              </button>
+            </p>
+          </div>
+        </>
       )}
     </div>
   );

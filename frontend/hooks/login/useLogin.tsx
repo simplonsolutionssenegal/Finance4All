@@ -174,10 +174,10 @@ export function useLogin(initialValues: LoginFormValues, initialStep = 1): UseLo
             strategy: 'email_code',
             code,
           })
-          .then(result => {
+          .then(async result => {
             if (result.status === 'complete') {
-              setActive({ session: result.createdSessionId });
-              router.push('/dashboard');
+              await setActive({ session: result.createdSessionId });
+              router.push('/auth-redirect');
             } else {
               setError('Erreur lors de la vérification du code. Veuillez réessayer.');
             }

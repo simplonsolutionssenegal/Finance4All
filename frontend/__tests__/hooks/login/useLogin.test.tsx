@@ -131,6 +131,89 @@ describe('useLogin', () => {
     });
   });
 
+  describe('handleFieldChange', () => {
+    it('updates field and validates email', () => {
+      const { updateField, setFieldError } = setupFormState();
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      const mockEvent = {
+        target: { value: 'user@example.com' },
+      } as React.ChangeEvent<HTMLInputElement>;
+
+      act(() => {
+        result.current.handleFieldChange('email')(mockEvent);
+      });
+
+      expect(updateField).toHaveBeenCalledWith('email', 'user@example.com');
+      expect(setFieldError).toHaveBeenCalledWith('email', '');
+    });
+
+    it('handles non-email fields', () => {
+      const { updateField } = setupFormState();
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      const mockEvent = {
+        target: { value: 'some value' },
+      } as React.ChangeEvent<HTMLInputElement>;
+
+      act(() => {
+        result.current.handleFieldChange('otherField')(mockEvent);
+      });
+
+      expect(updateField).toHaveBeenCalledWith('otherField', 'some value');
+    });
+
+    it('resets error state when field changes and error exists', () => {
+      const { updateField } = setupFormState();
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      // Set an error first
+      act(() => {
+        result.current.setFieldError('email', 'Some error');
+      });
+
+      const mockEvent = {
+        target: { value: 'user@example.com' },
+      } as React.ChangeEvent<HTMLInputElement>;
+
+      act(() => {
+        result.current.handleFieldChange('email')(mockEvent);
+      });
+
+      expect(updateField).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleCodeChange', () => {
+    it('updates code field and validates', () => {
+      const { updateField, setFieldError } = setupFormState();
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      act(() => {
+        result.current.handleCodeChange('123456');
+      });
+
+      expect(updateField).toHaveBeenCalledWith('code', '123456');
+      expect(setFieldError).toHaveBeenCalledWith('code', '');
+    });
+
+    it('resets error state when code changes and error exists', () => {
+      const { updateField } = setupFormState();
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      // Set an error first
+      act(() => {
+        result.current.setFieldError('code', 'Some error');
+      });
+
+      act(() => {
+        result.current.handleCodeChange('123456');
+      });
+
+      expect(updateField).toHaveBeenCalled();
+    });
+  });
+
   describe('handleSendOTP', () => {
     it('sends the OTP and updates the success state', async () => {
       const { setFieldError } = setupFormState({ email: 'user@example.com', code: '' });
@@ -169,6 +252,96 @@ describe('useLogin', () => {
       expect(setFieldError).toHaveBeenCalledWith('email', "L'adresse email est requise.");
       expect(mockSignIn.create).not.toHaveBeenCalled();
     });
+
+    it('handles service not ready error', async () => {
+      const mockUseSignIn = require('@clerk/nextjs').useSignIn as jest.Mock;
+      mockUseSignIn.mockReturnValueOnce({
+        isLoaded: false,
+        signIn: null,
+        setActive: mockSetActive,
+      });
+
+      setupFormState({ email: 'user@example.com', code: '' });
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleSendOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe("Le service n'est pas prêt. Veuillez réessayer.");
+      expect(result.current.isLoading).toBe(false);
+
+      // Reset mock
+      mockUseSignIn.mockReturnValue({
+        isLoaded: true,
+        signIn: mockSignIn,
+        setActive: mockSetActive,
+      });
+    });
+
+    it('handles account not found error', async () => {
+      setupFormState({ email: 'user@example.com', code: '' });
+      mockSignIn.create.mockRejectedValueOnce(new Error("Couldn't find your account"));
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleSendOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe("Aucun compte n'est associé à cette adresse email");
+    });
+
+    it('handles already signed in error', async () => {
+      setupFormState({ email: 'user@example.com', code: '' });
+      mockSignIn.create.mockRejectedValueOnce(new Error("You're already signed in"));
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleSendOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Vous êtes déjà connecté.');
+    });
+
+    it('handles generic OTP send error', async () => {
+      setupFormState({ email: 'user@example.com', code: '' });
+      mockSignIn.create.mockRejectedValueOnce(new Error('Generic error'));
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleSendOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe("Une erreur est survenue lors de l'envoi du code OTP");
+    });
+
+    it('handles unexpected error', async () => {
+      setupFormState({ email: 'user@example.com', code: '' });
+      mockSignIn.create.mockImplementationOnce(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleSendOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Une erreur inattendue est survenue');
+    });
   });
 
   describe('handleVerifyOTP', () => {
@@ -192,7 +365,7 @@ describe('useLogin', () => {
         code: '123456',
       });
       expect(mockSetActive).toHaveBeenCalledWith({ session: 'sess_123' });
-      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/auth-redirect');
     });
 
     it('sets a validation error when the code is too short', async () => {
@@ -212,6 +385,171 @@ describe('useLogin', () => {
       );
       expect(mockSignIn.attemptFirstFactor).not.toHaveBeenCalled();
     });
+
+    it('sets a validation error when the code length is not 6', async () => {
+      const { setFieldError } = setupFormState({ email: 'user@example.com', code: '1234567' });
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(setFieldError).toHaveBeenCalledWith('code', 'Le code doit contenir 6 caractères.');
+      expect(mockSignIn.attemptFirstFactor).not.toHaveBeenCalled();
+    });
+
+    it('handles service not ready error', async () => {
+      const mockUseSignIn = require('@clerk/nextjs').useSignIn as jest.Mock;
+      mockUseSignIn.mockReturnValueOnce({
+        isLoaded: false,
+        signIn: null,
+        setActive: mockSetActive,
+      });
+
+      setupFormState(validValues);
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe("Le service n'est pas prêt. Veuillez réessayer.");
+      expect(result.current.isLoading).toBe(false);
+
+      // Reset mock
+      mockUseSignIn.mockReturnValue({
+        isLoaded: true,
+        signIn: mockSignIn,
+        setActive: mockSetActive,
+      });
+    });
+
+    it('handles incomplete status', async () => {
+      setupFormState(validValues);
+      mockSignIn.attemptFirstFactor.mockResolvedValueOnce({
+        status: 'incomplete',
+      });
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe(
+        'Erreur lors de la vérification du code. Veuillez réessayer.'
+      );
+    });
+
+    it('handles form_code_incorrect error', async () => {
+      setupFormState(validValues);
+      const clerkError = {
+        errors: [
+          {
+            code: 'form_code_incorrect',
+            message: 'Incorrect code',
+            longMessage: 'The code you entered is incorrect',
+          },
+        ],
+      };
+      mockSignIn.attemptFirstFactor.mockRejectedValueOnce(clerkError);
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Code incorrect. Veuillez réessayer.');
+    });
+
+    it('handles clerk error with longMessage', async () => {
+      setupFormState(validValues);
+      const clerkError = {
+        errors: [
+          {
+            code: 'other_error',
+            message: 'Short message',
+            longMessage: 'This is a long error message',
+          },
+        ],
+      };
+      mockSignIn.attemptFirstFactor.mockRejectedValueOnce(clerkError);
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('This is a long error message');
+    });
+
+    it('handles clerk error with message only', async () => {
+      setupFormState(validValues);
+      const clerkError = {
+        errors: [
+          {
+            code: 'other_error',
+            message: 'Error message',
+          },
+        ],
+      };
+      mockSignIn.attemptFirstFactor.mockRejectedValueOnce(clerkError);
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Error message');
+    });
+
+    it('handles generic error without clerk error structure', async () => {
+      setupFormState(validValues);
+      mockSignIn.attemptFirstFactor.mockRejectedValueOnce(new Error('Generic error'));
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Code incorrect. Veuillez réessayer.');
+    });
+
+    it('handles unexpected error', async () => {
+      setupFormState(validValues);
+      mockSignIn.attemptFirstFactor.mockImplementationOnce(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      await act(async () => {
+        await result.current.handleVerifyOTP({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent<HTMLFormElement>);
+      });
+
+      expect(result.current.error).toBe('Une erreur est survenue lors de la vérification du code');
+    });
   });
 
   describe('handleResendCode', () => {
@@ -229,6 +567,32 @@ describe('useLogin', () => {
         strategy: 'email_code',
         identifier: 'user@example.com',
       });
+    });
+
+    it('does not send code when email is empty', async () => {
+      setupFormState({ email: '', code: '' });
+      mockSignIn.create.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleResendCode();
+      });
+
+      expect(mockSignIn.create).not.toHaveBeenCalled();
+    });
+
+    it('does not send code when email is only whitespace', async () => {
+      setupFormState({ email: '   ', code: '' });
+      mockSignIn.create.mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useLogin(initialValues));
+
+      await act(async () => {
+        await result.current.handleResendCode();
+      });
+
+      expect(mockSignIn.create).not.toHaveBeenCalled();
     });
 
     it('manages isResending state correctly', async () => {
@@ -298,6 +662,17 @@ describe('useLogin', () => {
 
       act(() => {
         result.current.handlePreviousStep();
+      });
+
+      expect(result.current.step).toBe(1);
+    });
+
+    it('resets form state when handleResetForm is invoked', () => {
+      setupFormState(validValues);
+      const { result } = renderHook(() => useLogin(initialValues, 2));
+
+      act(() => {
+        result.current.handleResetForm();
       });
 
       expect(result.current.step).toBe(1);
