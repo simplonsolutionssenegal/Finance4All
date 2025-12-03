@@ -147,6 +147,23 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify Docker image build (Frontend)
+        working-directory: ./frontend
+        run: |
+          docker build \
+            --no-cache \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
+            --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
+            -t finance4all-frontend:ci-test \
+            -f Dockerfile \
+            .
+        env:
+          DOCKER_BUILDKIT: 1
+
   test-and-build-backend:
     name: 🧪 Test & Build Backend
     runs-on: ubuntu-latest
@@ -208,6 +225,20 @@ jobs:
       - name: Build backend application
         working-directory: ./backend
         run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify Docker image build (Backend)
+        working-directory: ./backend
+        run: |
+          docker build \
+            --no-cache \
+            -t finance4all-backend:ci-test \
+            -f Dockerfile \
+            .
+        env:
+          DOCKER_BUILDKIT: 1
 
   sonarqube-frontend:
     name: 📊 SonarQube Frontend

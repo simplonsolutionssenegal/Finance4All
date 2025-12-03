@@ -903,7 +903,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     <TagInputField
                       label="Conditions d'accès"
                       placeholder='Ajouter une condition'
-                      value={field.value}
+                      value={field.value || []}
                       onChange={field.onChange}
                       disabled={isCreating}
                     />
@@ -919,7 +919,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     <TagInputField
                       label='Plafonds'
                       placeholder='Ex: 500 000 FCFA/jour'
-                      value={field.value}
+                      value={field.value || []}
                       onChange={field.onChange}
                       disabled={isCreating}
                     />
@@ -935,7 +935,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     <TagInputField
                       label="Infrastructure d'accès"
                       placeholder='Ex: Agence, GAB, Mobile'
-                      value={field.value}
+                      value={field.value || []}
                       onChange={field.onChange}
                       disabled={isCreating}
                     />

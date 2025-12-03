@@ -2,7 +2,7 @@ name: Preview
 
 on:
   issue_comment:
-    types: [created]
+    types: [ created ]
 
 permissions:
   issues: write
@@ -71,7 +71,7 @@ jobs:
   build-and-deploy:
     name: Build Images & Deploy Preview
     runs-on: self-hosted
-    needs: [check-preview-request, run-ci]
+    needs: [ check-preview-request, run-ci ]
     if: needs.run-ci.outputs.build-success == 'true'
     timeout-minutes: 30
     env:
@@ -227,30 +227,28 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = ${{ needs.check-preview-request.outputs.pr-number }};
-            const repo = process.env.REPO_LOWER;
-
-            const body = `✅ **Preview deployed successfully!**\n\n` +
-              `Frontend: https://pr-${pr}.finance4all.simplonprojet.com\n` +
-              `Backend: https://api-pr-${pr}.finance4all.simplonprojet.com\n\n` +
-              `Docker images:\n` +
-              `- frontend: \`ghcr.io/${repo}/frontend:pr-${pr}\`\n` +
-              `- backend: \`ghcr.io/${repo}/backend:pr-${pr}\`\n\n` +
-              `Update preview: comment \`/preview\`\n` +
-              `Cleanup: comment \`/cleanup\``;
-
             github.rest.issues.createComment({
-              issue_number: pr,
+              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: body
+              body: `✅ **Preview deployment successful!**
+
+              🌐 **Frontend**: https://pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+              🔧 **Backend API**: https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+
+              📦 **Docker Images**:
+              - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+              - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+
+              🔄 To update this preview, push new commits or comment \`/preview\` again.
+              🗑️ To cleanup, comment \`/cleanup\` on this PR.`
             });
 
 
   notify-failure:
     name: Notify Failure
     runs-on: ubuntu-latest
-    needs: [check-preview-request, run-ci, build-and-deploy]
+    needs: [ check-preview-request, run-ci, build-and-deploy ]
     if: failure()
 
     steps:
