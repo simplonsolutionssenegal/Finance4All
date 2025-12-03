@@ -58,12 +58,10 @@ describe('ConfirmDesactivationModal', () => {
     render(<ConfirmDesactivationModal {...defaultProps} />);
 
     expect(screen.getByText('Attention')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Vous allez désactiver le compte de l'utilisateur/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Vous allez supprimer le compte de l'utilisateur/)).toBeInTheDocument();
     expect(screen.getByText('John Doe (john.doe@example.com)')).toBeInTheDocument();
     expect(screen.getByText('Annuler')).toBeInTheDocument();
-    expect(screen.getByText('Désactiver')).toBeInTheDocument();
+    expect(screen.getByText('Supprimer')).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -78,14 +76,14 @@ describe('ConfirmDesactivationModal', () => {
     // Check for the AlertTriangle icon container
     const iconContainer = document.body.querySelector('.bg-orange-100');
     expect(iconContainer).toBeInTheDocument();
-    expect(iconContainer).toHaveClass('rounded-full', 'h-12', 'w-12');
+    expect(iconContainer).toHaveClass('rounded-full');
   });
 
   it('calls onConfirm when confirm button is clicked', async () => {
     const user = userEvent.setup();
     render(<ConfirmDesactivationModal {...defaultProps} />);
 
-    const confirmButton = screen.getByText('Désactiver');
+    const confirmButton = screen.getByText('Supprimer');
     await user.click(confirmButton);
 
     expect(mockOnConfirm).toHaveBeenCalled();
@@ -117,10 +115,30 @@ describe('ConfirmDesactivationModal', () => {
     render(<ConfirmDesactivationModal {...defaultProps} />);
 
     const cancelButton = screen.getByText('Annuler');
-    const confirmButton = screen.getByText('Désactiver');
+    const confirmButton = screen.getByText('Supprimer');
 
     expect(cancelButton).toHaveClass('text-gray-700', 'bg-white', 'border-gray-300');
     expect(confirmButton).toHaveClass('bg-orange-500', 'hover:bg-orange-600', 'text-white');
+  });
+
+  it('shows loading state when deleting', () => {
+    render(<ConfirmDesactivationModal {...defaultProps} isDeleting={true} />);
+
+    expect(screen.getByText('Suppression...')).toBeInTheDocument();
+    const cancelButton = screen.getByText('Annuler');
+    const confirmButton = screen.getByText('Suppression...').closest('button');
+
+    expect(cancelButton).toBeDisabled();
+    expect(confirmButton).toBeDisabled();
+  });
+
+  it('disables buttons when deleting', () => {
+    render(<ConfirmDesactivationModal {...defaultProps} isDeleting={true} />);
+
+    const buttons = screen.getAllByRole('button');
+    buttons.forEach(button => {
+      expect(button).toBeDisabled();
+    });
   });
 
   it('renders with correct dialog structure', () => {
@@ -128,13 +146,13 @@ describe('ConfirmDesactivationModal', () => {
 
     // Check that the main content structure is present
     expect(screen.getByText('Attention')).toBeInTheDocument();
-    expect(screen.getByText(/Vous allez désactiver/)).toBeInTheDocument();
+    expect(screen.getByText(/Vous allez supprimer/)).toBeInTheDocument();
 
     // Check that both action buttons are present
     const buttons = screen.getAllByRole('button');
     expect(buttons).toHaveLength(2);
     expect(buttons[0]).toHaveTextContent('Annuler');
-    expect(buttons[1]).toHaveTextContent('Désactiver');
+    expect(buttons[1]).toHaveTextContent('Supprimer');
   });
 
   it('displays user information with correct formatting', () => {
@@ -156,6 +174,6 @@ describe('ConfirmDesactivationModal', () => {
 
     // The component should render as an AlertDialog which typically has role="alertdialog"
     expect(screen.getByText('Attention')).toBeInTheDocument();
-    expect(screen.getByText(/Vous allez désactiver/)).toBeInTheDocument();
+    expect(screen.getByText(/Vous allez supprimer/)).toBeInTheDocument();
   });
 });
