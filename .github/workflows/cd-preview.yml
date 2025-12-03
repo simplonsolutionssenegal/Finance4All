@@ -230,21 +230,20 @@ jobs:
             const pr = ${{ needs.check-preview-request.outputs.pr-number }};
             const repo = process.env.REPO_LOWER;
 
+            const body = `✅ **Preview deployed successfully!**\n\n` +
+              `Frontend: https://pr-${pr}.finance4all.simplonprojet.com\n` +
+              `Backend: https://api-pr-${pr}.finance4all.simplonprojet.com\n\n` +
+              `Docker images:\n` +
+              `- frontend: \`ghcr.io/${repo}/frontend:pr-${pr}\`\n` +
+              `- backend: \`ghcr.io/${repo}/backend:pr-${pr}\`\n\n` +
+              `Update preview: comment \`/preview\`\n` +
+              `Cleanup: comment \`/cleanup\``;
+
             github.rest.issues.createComment({
               issue_number: pr,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ **Preview deployed successfully!**
-
-🌐 Frontend → https://pr-${pr}.finance4all.simplonprojet.com  
-🔧 Backend → https://api-pr-${pr}.finance4all.simplonprojet.com  
-
-📦 Docker images:
-- frontend: \`ghcr.io/${repo}/frontend:pr-${pr}\`
-- backend: \`ghcr.io/${repo}/backend:pr-${pr}\`
-
-🔄 Update preview: comment \`/preview\`  
-🗑 Cleanup: comment \`/cleanup\``
+              body: body
             });
 
 
