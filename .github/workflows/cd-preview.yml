@@ -193,11 +193,36 @@ jobs:
       # --------------------------------------------------
       # DEPLOY PREVIEW
       # --------------------------------------------------
+      - name: Calculate dynamic ports
+        id: ports
+        run: |
+          PR_NUM=${{ needs.check-preview-request.outputs.pr-number }}
+
+          # Calculate unique ports for this PR
+          # Frontend: 30000 + (PR_NUMBER * 10)
+          # Backend:  30001 + (PR_NUMBER * 10)
+          # Postgres: 35432 + (PR_NUMBER * 10)
+          FRONTEND_PORT=$((30000 + PR_NUM * 10))
+          BACKEND_PORT=$((30001 + PR_NUM * 10))
+          POSTGRES_PORT=$((35432 + PR_NUM * 10))
+
+          echo "FRONTEND_PORT=${FRONTEND_PORT}" >> $GITHUB_OUTPUT
+          echo "BACKEND_PORT=${BACKEND_PORT}" >> $GITHUB_OUTPUT
+          echo "POSTGRES_PORT=${POSTGRES_PORT}" >> $GITHUB_OUTPUT
+
+          echo "📊 Allocated ports for PR #${PR_NUM}:"
+          echo "  - Frontend: ${FRONTEND_PORT}"
+          echo "  - Backend:  ${BACKEND_PORT}"
+          echo "  - Postgres: ${POSTGRES_PORT}"
+
       - name: Create .env file
         run: |
           cat > .env.preview <<EOF
           PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
           GITHUB_REPOSITORY=${REPO_LOWER}
+          FRONTEND_PORT=${{ steps.ports.outputs.FRONTEND_PORT }}
+          BACKEND_PORT=${{ steps.ports.outputs.BACKEND_PORT }}
+          POSTGRES_PORT=${{ steps.ports.outputs.POSTGRES_PORT }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
@@ -225,6 +250,10 @@ jobs:
       # --------------------------------------------------
       - name: Comment PR
         uses: actions/github-script@v7
+        env:
+          FRONTEND_PORT: ${{ steps.ports.outputs.FRONTEND_PORT }}
+          BACKEND_PORT: ${{ steps.ports.outputs.BACKEND_PORT }}
+          POSTGRES_PORT: ${{ steps.ports.outputs.POSTGRES_PORT }}
         with:
           script: |
             github.rest.issues.createComment({
@@ -239,6 +268,11 @@ jobs:
               📦 **Docker Images**:
               - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
               - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+
+              🔌 **Allocated Ports** (on self-hosted runner):
+              - Frontend: \`${process.env.FRONTEND_PORT}\`
+              - Backend: \`${process.env.BACKEND_PORT}\`
+              - PostgreSQL: \`${process.env.POSTGRES_PORT}\`
 
               🔄 To update this preview, push new commits or comment \`/preview\` again.
               🗑️ To cleanup, comment \`/cleanup\` on this PR.`
