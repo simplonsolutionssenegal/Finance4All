@@ -163,7 +163,14 @@ jobs:
           REPO="${REPO_LOWER}"
 
           echo "🛑 Stopping containers for ${PR_TAG}..."
-          docker compose -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans
+
+          # Stop and remove ONLY containers for this specific PR
+          docker ps -a --filter "label=com.docker.compose.project=finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}" -q | xargs -r docker stop
+          docker ps -a --filter "label=com.docker.compose.project=finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}" -q | xargs -r docker rm
+
+          # Also stop containers by name pattern (fallback)
+          docker ps -a --format "{{.Names}}" | grep "pr-${{ needs.check-preview-request.outputs.pr-number }}" | xargs -r docker stop
+          docker ps -a --format "{{.Names}}" | grep "pr-${{ needs.check-preview-request.outputs.pr-number }}" | xargs -r docker rm
 
           echo "🗑 Removing ONLY images for ${PR_TAG}..."
 
