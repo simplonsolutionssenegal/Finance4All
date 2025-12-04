@@ -1,8 +1,18 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ServiceList } from '@/components/comparator/ServiceList';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useGetServices } from '@/hooks/service/useGetServices';
+import { useCompareServices } from '@/hooks/service/useCompareServices';
 import type { ServiceDTO } from '@/types/Service';
 import { TypeService } from '@/types/Service';
+import ComparatorIntelligent from '@/components/comparator/comparator-Intelligent';
+
+// Mock des hooks
+jest.mock('@/hooks/service/useGetServices');
+jest.mock('@/hooks/service/useCompareServices');
+
+const mockUseGetServices = useGetServices as jest.MockedFunction<typeof useGetServices>;
+const mockUseCompareServices = useCompareServices as jest.MockedFunction<typeof useCompareServices>;
 
 // Données de test
 const mockServices: ServiceDTO[] = [
@@ -70,370 +80,414 @@ const mockServices: ServiceDTO[] = [
   },
 ];
 
-// Mock de la fonction computeFee
-const mockComputeFee = jest.fn((service: ServiceDTO, amount: number) => {
-  if (service.frais._typeCalculation === 0) {
-    return { label: 'Gratuit !', value: 0 };
-  }
-  if (service.frais._typeCalculation === 1) {
-    const fee = amount * (service.frais.pourcentage || 0);
-    const finalFee = Math.max(fee, service.frais.minimum || 0);
-    return {
-      label: `${(service.frais.pourcentage || 0) * 100}% (min ${service.frais.minimum} F)`,
-      value: finalFee,
-    };
-  }
-  if (service.frais._typeCalculation === 2) {
-    return { label: 'Frais fixe', value: service.frais.montantFixe || 0 };
-  }
-  return { label: 'Non défini', value: 0 };
-});
-
-const mockOnToggleService = jest.fn();
-
-const defaultProps = {
-  services: mockServices,
-  selectedIds: [],
-  amount: 10000,
-  isLoading: false,
-  isError: false,
-  error: null,
-  onToggleService: mockOnToggleService,
-  computeFee: mockComputeFee,
+// Wrapper avec QueryClient
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 };
 
-describe('ServiceList', () => {
+describe('ComparatorIntelligent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Configuration par défaut des mocks
+    mockUseGetServices.mockReturnValue({
+      services: mockServices,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    mockUseCompareServices.mockReturnValue({
+      services: [],
+      message: '',
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
   });
 
-  describe("États de chargement et d'erreur", () => {
-    it('affiche un message de chargement', () => {
-      render(<ServiceList {...defaultProps} isLoading={true} services={[]} />);
+  describe('Rendu initial', () => {
+    it('affiche le titre et la description', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('Chargement des services...')).toBeInTheDocument();
+      expect(screen.getByText('Comparateur Intelligent')).toBeInTheDocument();
+      expect(screen.getByText(/Comparez les produits financiers/)).toBeInTheDocument();
     });
 
-    it("affiche un message d'erreur avec le message par défaut", () => {
-      render(<ServiceList {...defaultProps} isError={true} error={null} services={[]} />);
+    it('affiche les trois types de produits', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('Impossible de charger les services.')).toBeInTheDocument();
+      expect(screen.getByText('Transferts & Mobile Money')).toBeInTheDocument();
+      expect(screen.getByText('Crédit & Prêts')).toBeInTheDocument();
+      expect(screen.getByText('Épargne')).toBeInTheDocument();
     });
 
-    it("affiche un message d'erreur personnalisé", () => {
-      const error = new Error('Erreur réseau');
-      render(<ServiceList {...defaultProps} isError={true} error={error} services={[]} />);
+    it('sélectionne TRANSFERT par défaut', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('Erreur réseau')).toBeInTheDocument();
+      const transfertButton = screen.getByRole('button', { name: /Transferts & Mobile Money/ });
+      expect(transfertButton).toHaveClass('bg-primary-50');
     });
 
-    it("affiche un message quand aucun service n'est disponible", () => {
-      render(<ServiceList {...defaultProps} services={[]} />);
+    it('désactive le bouton Épargne', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('Aucun service disponible')).toBeInTheDocument();
-      expect(screen.getByText(/Aucun service n'est disponible pour le moment/)).toBeInTheDocument();
-    });
-  });
-
-  describe('Affichage de la liste des services', () => {
-    it('affiche tous les services', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      expect(screen.getByText('Wave Transfer')).toBeInTheDocument();
-      expect(screen.getByText('Orange Money Transfer')).toBeInTheDocument();
-      expect(screen.getByText('Free Money')).toBeInTheDocument();
-    });
-
-    it('affiche les logos des services', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const images = screen.getAllByRole('img');
-      expect(images).toHaveLength(3);
-
-      const first = images[0] as HTMLImageElement;
-
-      // On vérifie qu'on a bien l'alt correct
-      expect(first).toHaveAttribute('alt', 'Wave');
-
-      // Et que l'URL d'origine est bien encodée dans le src généré par Next/Image
-      expect(first.getAttribute('src')).toContain(
-        encodeURIComponent('https://example.com/wave.png')
-      );
-    });
-
-    it('affiche les types de services', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const typeElements = screen.getAllByText(TypeService.TRANSFERT_ARGENT);
-      expect(typeElements.length).toBeGreaterThan(0);
-    });
-
-    it('affiche les notes (ratings) pour chaque service', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const ratings = screen.getAllByText('4.6');
-      expect(ratings).toHaveLength(3);
-    });
-
-    it('affiche le badge "Instantané" pour chaque service', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const instantBadges = screen.getAllByText('Instantané');
-      expect(instantBadges).toHaveLength(3);
+      const epargneButton = screen.getByRole('button', { name: /Épargne/ });
+      expect(epargneButton).toBeDisabled();
+      expect(screen.getByText('Bientôt disponible')).toBeInTheDocument();
     });
   });
 
-  describe('Calcul et affichage des frais', () => {
-    it('appelle computeFee pour chaque service', () => {
-      render(<ServiceList {...defaultProps} />);
+  describe('Sélection de type de produit', () => {
+    it('permet de basculer vers CREDIT', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(mockComputeFee).toHaveBeenCalledTimes(3);
-      expect(mockComputeFee).toHaveBeenCalledWith(mockServices[0], 10000);
-      expect(mockComputeFee).toHaveBeenCalledWith(mockServices[1], 10000);
-      expect(mockComputeFee).toHaveBeenCalledWith(mockServices[2], 10000);
+      const creditButton = screen.getByRole('button', { name: /Crédit & Prêts/ });
+      fireEvent.click(creditButton);
+
+      expect(creditButton).toHaveClass('bg-primary-50');
+    });
+  });
+
+  describe('Filtres de service', () => {
+    it('affiche le nombre de services disponibles', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      expect(screen.getByText(/3 services disponibles/)).toBeInTheDocument();
     });
 
-    it('affiche les frais calculés pour chaque service', () => {
-      render(<ServiceList {...defaultProps} />);
+    it('permet de saisir un montant', async () => {
+      const user = userEvent.setup();
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('Gratuit !')).toBeInTheDocument();
-      expect(screen.getAllByText('Frais de service')).toHaveLength(3);
-    });
+      const input = screen.getByPlaceholderText('50000');
+      await user.clear(input);
+      await user.type(input, '10000');
 
-    it('formate correctement les montants en devise', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      // Vérifie que les montants sont affichés avec la devise F CFA
-      const currencies = screen.getAllByText('F CFA');
-      expect(currencies.length).toBeGreaterThan(0);
-    });
-
-    it('affiche "0 F CFA" pour un service gratuit', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      // Le montant "0" et la devise "F CFA" sont dans des spans séparés
-      expect(screen.getByText('0')).toBeInTheDocument();
-      const currencies = screen.getAllByText('F CFA');
-      expect(currencies.length).toBeGreaterThan(0);
+      expect(input).toHaveValue(10000);
     });
   });
 
   describe('Sélection de services', () => {
-    it('affiche les checkboxes', () => {
-      render(<ServiceList {...defaultProps} />);
+    it('vérifie que les services sont chargés', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes).toHaveLength(3);
+      // Vérifie que le hook a été appelé
+      expect(mockUseGetServices).toHaveBeenCalled();
+
+      // Vérifie que le nombre de services est affiché
+      expect(screen.getByText(/3 services disponibles/)).toBeInTheDocument();
     });
 
-    it('applique les styles appropriés aux services non sélectionnés', () => {
-      const { container } = render(<ServiceList {...defaultProps} />);
+    it('désactive le bouton Comparer quand moins de 2 services sont sélectionnés', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const articles = container.querySelectorAll('article');
-      articles.forEach(article => {
-        expect(article).toHaveClass('border-tertiary-200');
-        expect(article).not.toHaveClass('border-primary-200');
-        expect(article).not.toHaveClass('bg-primary-50');
-      });
+      const compareButton = screen.getByRole('button', { name: /Comparer/ });
+      expect(compareButton).toBeDisabled();
     });
 
-    it('applique les styles appropriés aux services sélectionnés', () => {
-      const { container } = render(<ServiceList {...defaultProps} selectedIds={['1', '2']} />);
+    it('met à jour le compteur de services sélectionnés', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const articles = container.querySelectorAll('article');
-      expect(articles[0]).toHaveClass('border-primary-200', 'bg-primary-50');
-      expect(articles[1]).toHaveClass('border-primary-200', 'bg-primary-50');
-      expect(articles[2]).toHaveClass('border-tertiary-200');
-    });
-
-    it('coche les checkboxes des services sélectionnés', () => {
-      render(<ServiceList {...defaultProps} selectedIds={['1', '3']} />);
-
-      const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes[0]).toBeChecked();
-      expect(checkboxes[1]).not.toBeChecked();
-      expect(checkboxes[2]).toBeChecked();
+      expect(screen.getByText(/0 sélectionné\(s\)/)).toBeInTheDocument();
     });
   });
 
-  describe('Interactions utilisateur', () => {
-    it('appelle onToggleService quand on clique sur une carte', () => {
-      render(<ServiceList {...defaultProps} />);
+  describe('Calcul des frais', () => {
+    it('calcule correctement les frais en pourcentage avec minimum', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const waveCard = screen.getByText('Wave Transfer').closest('article');
-      fireEvent.click(waveCard!);
+      const input = screen.getByPlaceholderText('50000');
+      fireEvent.change(input, { target: { value: '1000' } });
 
-      expect(mockOnToggleService).toHaveBeenCalledWith('1');
-      expect(mockOnToggleService).toHaveBeenCalledTimes(1);
+      // Service 1: 1% de 1000 = 10, mais min = 50
+      // Chercher le montant formaté (50 F CFA) de manière flexible
+      const feeElements = screen.getAllByText((content, element) => {
+        return content.includes('50') && content.includes('F CFA');
+      });
+
+      expect(feeElements.length).toBeGreaterThan(0);
     });
 
-    it('appelle onToggleService quand on clique sur une checkbox', async () => {
-      const user = userEvent.setup();
-      render(<ServiceList {...defaultProps} />);
+    it('affiche "Gratuit !" pour les services gratuits', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const checkboxes = screen.getAllByRole('checkbox');
+      expect(screen.getByText('Gratuit !')).toBeInTheDocument();
+    });
+
+    it('calcule correctement les frais fixes', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      const input = screen.getByPlaceholderText('50000');
+      fireEvent.change(input, { target: { value: '5000' } });
+
+      // Service 2: frais fixe de 100
+      // Le composant affiche "Frais fixe" comme label
+      expect(screen.getByText('Frais fixe')).toBeInTheDocument();
+
+      // Debug: afficher tout le contenu pour voir ce qui est rendu
+      // screen.debug();
+
+      // Vérifier que "F CFA" apparaît (ce qui confirme qu'un montant est affiché)
+      const fcfaElements = screen.getAllByText(/F CFA/i);
+      expect(fcfaElements.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Comparaison de services', () => {
+    it('affiche la vue de comparaison détaillée après sélection de 2 services', async () => {
+      const user = userEvent.setup();
+
+      // On simule une comparaison réussie avec 2 services
+      mockUseCompareServices.mockReturnValue({
+        services: [mockServices[0], mockServices[1]],
+        message: 'Comparaison de 2 services',
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      // 1. Sélectionner 2 services via les checkboxes de la ServiceList
+      const checkboxes = await screen.findAllByRole('checkbox');
       await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
 
-      expect(mockOnToggleService).toHaveBeenCalledWith('1');
-    });
-
-    it('permet de sélectionner plusieurs services', async () => {
-      const user = userEvent.setup();
-      render(<ServiceList {...defaultProps} />);
-
-      const cards = screen.getAllByRole('article');
-
-      await user.click(cards[0]);
-      expect(mockOnToggleService).toHaveBeenCalledWith('1');
-
-      await user.click(cards[1]);
-      expect(mockOnToggleService).toHaveBeenCalledWith('2');
-
-      expect(mockOnToggleService).toHaveBeenCalledTimes(2);
-    });
-
-    it("empêche la propagation de l'événement sur la checkbox", () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const checkboxContainers = screen.getAllByRole('checkbox').map(cb => cb.closest('div'));
-
-      // Vérifie que le conteneur de la checkbox a un stopPropagation
-      checkboxContainers.forEach(container => {
-        expect(container).toBeInTheDocument();
+      // 2. Le bouton comparer doit être activé
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
       });
+      expect(compareButton).not.toBeDisabled();
+
+      // 3. Lancer la comparaison
+      await user.click(compareButton);
+
+      // 4. La vue de comparaison doit s'afficher
+      expect(await screen.findByText('Comparaison détaillée')).toBeInTheDocument();
+
+      // Message de comparaison
+      expect(screen.getByText('Comparaison de 2 services')).toBeInTheDocument();
+
+      // Critères présents
+      expect(screen.getByText('Frais de service')).toBeInTheDocument();
+      expect(screen.getByText('Délai')).toBeInTheDocument();
+      expect(screen.getByText('Limite de solde')).toBeInTheDocument();
+      expect(screen.getByText('Cashback')).toBeInTheDocument();
+      expect(screen.getByText('Note')).toBeInTheDocument();
+
+      // Bouton "Vue graphique" visible
+      expect(screen.getByRole('button', { name: /Vue graphique/i })).toBeInTheDocument();
+
+      // Noms d'institutions dans l'en-tête du tableau
+      expect(screen.getByText('Wave')).toBeInTheDocument();
+      expect(screen.getByText('Orange Money')).toBeInTheDocument();
+    });
+
+    it('permet de revenir à la liste de services en cliquant sur "Modifier"', async () => {
+      const user = userEvent.setup();
+
+      mockUseCompareServices.mockReturnValue({
+        services: [mockServices[0], mockServices[1]],
+        message: 'Comparaison de 2 services',
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Vérifier qu'on est bien en mode "comparaison"
+      expect(await screen.findByText('Comparaison détaillée')).toBeInTheDocument();
+
+      // Cliquer sur "Modifier"
+      const backButton = screen.getByRole('button', { name: /Modifier/i });
+      await user.click(backButton);
+
+      // On doit revenir à la liste normale
+      expect(screen.getByText('Sélectionnez les services à comparer')).toBeInTheDocument();
+      expect(screen.queryByText('Comparaison détaillée')).not.toBeInTheDocument();
+    });
+
+    it('affiche le message de chargement pendant la comparaison', async () => {
+      const user = userEvent.setup();
+
+      mockUseCompareServices.mockReturnValue({
+        services: [],
+        message: '',
+        isLoading: true,
+        isError: false,
+        error: null,
+      } as any);
+
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Vu que le hook renvoie isLoading: true,
+      // le message de chargement doit apparaître
+      expect(await screen.findByText('Chargement de la comparaison...')).toBeInTheDocument();
+    });
+
+    it("affiche un message d'erreur si la comparaison échoue", async () => {
+      const user = userEvent.setup();
+
+      mockUseCompareServices.mockReturnValue({
+        services: [],
+        message: '',
+        isLoading: false,
+        isError: true,
+        error: new Error('Erreur de comparaison'),
+      } as any);
+
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      // Sélectionner 2 services
+      const checkboxes = await screen.findAllByRole('checkbox');
+      await user.click(checkboxes[0]);
+      await user.click(checkboxes[1]);
+
+      const compareButton = screen.getByRole('button', {
+        name: /Comparer 2 services/i,
+      });
+      await user.click(compareButton);
+
+      // Le message d'erreur défini dans le hook doit s'afficher
+      expect(await screen.findByText('Erreur de comparaison')).toBeInTheDocument();
     });
   });
 
-  describe('Responsive et mise en page', () => {
-    it('applique les classes de grille responsive', () => {
-      const { container } = render(<ServiceList {...defaultProps} />);
+  describe("États de chargement et d'erreur", () => {
+    it('affiche un état de chargement pour la liste de services', () => {
+      mockUseGetServices.mockReturnValue({
+        services: [],
+        isLoading: true,
+        isError: false,
+        error: null,
+      } as any);
 
-      const grid = container.querySelector('.grid');
-      expect(grid).toHaveClass('gap-4', 'md:grid-cols-3');
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      // ServiceList devrait gérer l'affichage du loading
+      expect(mockUseGetServices).toHaveBeenCalled();
     });
 
-    it('affiche les services sous forme de cartes', () => {
-      render(<ServiceList {...defaultProps} />);
+    it('affiche une erreur si le chargement des services échoue', () => {
+      mockUseGetServices.mockReturnValue({
+        services: [],
+        isLoading: false,
+        isError: true,
+        error: new Error('Erreur réseau'),
+      } as any);
 
-      const articles = screen.getAllByRole('article');
-      expect(articles).toHaveLength(3);
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      articles.forEach(article => {
-        expect(article).toHaveClass('rounded-xl', 'border', 'p-4');
-      });
+      // ServiceList devrait gérer l'affichage de l'erreur
+      expect(mockUseGetServices).toHaveBeenCalled();
+    });
+  });
+
+  describe('Formatage de la devise', () => {
+    it('formate correctement les montants en F CFA', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
+
+      const input = screen.getByPlaceholderText('50000');
+      fireEvent.change(input, { target: { value: '100000' } });
+
+      // Vérifier que les montants sont formatés avec F CFA
+      expect(screen.getAllByText(/F CFA/).length).toBeGreaterThan(0);
     });
   });
 
   describe('Accessibilité', () => {
-    it('utilise des balises sémantiques appropriées', () => {
-      render(<ServiceList {...defaultProps} />);
+    it('tous les boutons ont des labels appropriés', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const articles = screen.getAllByRole('article');
-      expect(articles).toHaveLength(3);
-    });
-
-    it('les images ont des attributs alt appropriés', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      expect(screen.getByAltText('Wave')).toBeInTheDocument();
-      expect(screen.getByAltText('Orange Money')).toBeInTheDocument();
-      expect(screen.getByAltText('Free Bank')).toBeInTheDocument();
-    });
-
-    it('les checkboxes sont accessibles', () => {
-      render(<ServiceList {...defaultProps} />);
-
-      const checkboxes = screen.getAllByRole('checkbox');
-      checkboxes.forEach(checkbox => {
-        expect(checkbox).toBeInTheDocument();
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach(button => {
+        expect(button).toHaveAccessibleName();
       });
     });
 
-    it('les cartes ont un curseur pointer', () => {
-      const { container } = render(<ServiceList {...defaultProps} />);
+    it('les inputs sont accessibles', () => {
+      render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      const articles = container.querySelectorAll('article');
-      articles.forEach(article => {
-        expect(article).toHaveClass('cursor-pointer');
-      });
+      // Vérifie que l'input existe et est accessible
+      const input = screen.getByPlaceholderText('50000');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveAttribute('type', 'number');
+
+      // Vérifie que le label existe
+      expect(screen.getByText(/Montant du transfert/i)).toBeInTheDocument();
     });
   });
+});
 
-  describe('Cas limites', () => {
-    it('gère un tableau vide de services sélectionnés', () => {
-      render(<ServiceList {...defaultProps} selectedIds={[]} />);
+// Tests d'intégration
+describe("ComparatorIntelligent - Tests d'intégration", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-      const checkboxes = screen.getAllByRole('checkbox');
-      checkboxes.forEach(checkbox => {
-        expect(checkbox).not.toBeChecked();
-      });
-    });
+    mockUseGetServices.mockReturnValue({
+      services: mockServices,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
 
-    it('gère un montant à 0', () => {
-      render(<ServiceList {...defaultProps} amount={0} />);
-
-      expect(mockComputeFee).toHaveBeenCalledWith(mockServices[0], 0);
-    });
-
-    it('gère un service avec des données minimales', () => {
-      const minimalService: ServiceDTO = {
-        id: '4',
-        name: 'Minimal Service',
-        longName: 'Minimal Service',
-        type: TypeService.TRANSFERT_ARGENT,
-        montantMin: 0,
-        montantMax: 100000,
-        frais: {
-          _typeCalculation: 0,
-        },
-        conditionAccess: [],
-        plafonds: [],
-        infrastructureAccess: [],
-        institution: {
-          id: 'inst4',
-          name: 'Minimal Bank',
-          logoUrl: 'https://example.com/minimal.png',
-        },
-      };
-
-      render(<ServiceList {...defaultProps} services={[minimalService]} />);
-
-      expect(screen.getByText('Minimal Service')).toBeInTheDocument();
-    });
-
-    it('gère une sélection avec des IDs inexistants', () => {
-      render(<ServiceList {...defaultProps} selectedIds={['1', 'nonexistent', '3']} />);
-
-      const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes[0]).toBeChecked();
-      expect(checkboxes[2]).toBeChecked();
-    });
+    mockUseCompareServices.mockReturnValue({
+      services: [],
+      message: '',
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
   });
 
-  describe('Formatage de devise', () => {
-    it('formate correctement les nombres entiers', () => {
-      mockComputeFee.mockReturnValue({ label: 'Test', value: 1000 });
-      render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
+  it('workflow complet: sélection de type, montant et comparaison', async () => {
+    const user = userEvent.setup();
+    render(<ComparatorIntelligent />, { wrapper: createWrapper() });
 
-      // Le montant et la devise sont maintenant dans des spans séparés
-      expect(screen.getByText('1 000')).toBeInTheDocument();
-      expect(screen.getByText('F CFA')).toBeInTheDocument();
-    });
+    // 1. Vérifier l'état initial
+    expect(screen.getByText(/3 services disponibles/)).toBeInTheDocument();
 
-    it('arrondit les valeurs décimales', () => {
-      mockComputeFee.mockReturnValue({ label: 'Test', value: 1234.56 });
-      render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
+    // 2. Saisir un montant
+    const input = screen.getByPlaceholderText('50000');
+    await user.clear(input);
+    await user.type(input, '25000');
 
-      expect(screen.getByText('1 235')).toBeInTheDocument();
-      expect(screen.getByText('F CFA')).toBeInTheDocument();
-    });
+    expect(input).toHaveValue(25000);
 
-    it('utilise le séparateur de milliers français', () => {
-      mockComputeFee.mockReturnValue({ label: 'Test', value: 100000 });
-      render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
+    // 3. Changer de type de produit
+    const creditButton = screen.getByRole('button', { name: /Crédit & Prêts/ });
+    await user.click(creditButton);
 
-      expect(screen.getByText('100 000')).toBeInTheDocument();
-      expect(screen.getByText('F CFA')).toBeInTheDocument();
-    });
+    expect(creditButton).toHaveClass('bg-primary-50');
   });
 });

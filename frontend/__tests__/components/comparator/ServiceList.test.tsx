@@ -172,6 +172,7 @@ describe('ServiceList', () => {
       render(<ServiceList {...defaultProps} />);
 
       const ratings = screen.getAllByText('4.6');
+      expect(ratings).toHaveBeenCalled;
       expect(ratings).toHaveLength(3);
     });
 
@@ -293,15 +294,41 @@ describe('ServiceList', () => {
       expect(mockOnToggleService).toHaveBeenCalledTimes(2);
     });
 
-    it("empêche la propagation de l'événement sur la checkbox", () => {
+    it("empêche la propagation de l'événement sur la checkbox", async () => {
+      const user = userEvent.setup();
       render(<ServiceList {...defaultProps} />);
 
-      const checkboxContainers = screen.getAllByRole('checkbox').map(cb => cb.closest('div'));
+      const card = screen.getByText('Wave Transfer').closest('article')!;
+      const checkbox = screen.getAllByRole('checkbox')[0];
 
-      // Vérifie que le conteneur de la checkbox a un stopPropagation
-      checkboxContainers.forEach(container => {
-        expect(container).toBeInTheDocument();
-      });
+      await user.click(checkbox);
+
+      // si la propagation était active, le clic sur la checkbox déclencherait aussi le onClick de la carte
+      // donc on aurait 2 appels au lieu de 1
+      expect(mockOnToggleService).toHaveBeenCalledTimes(1);
+      expect(mockOnToggleService).toHaveBeenCalledWith('1');
+
+      // on clique ensuite sur la carte pour vérifier que le handler de la carte fonctionne toujours
+      await user.click(card);
+      expect(mockOnToggleService).toHaveBeenCalledTimes(2);
+    });
+
+    it('permet de sélectionner un service avec la touche Enter', () => {
+      render(<ServiceList {...defaultProps} />);
+
+      const waveCard = screen.getByText('Wave Transfer').closest('article')!;
+      fireEvent.keyDown(waveCard, { key: 'Enter', code: 'Enter', charCode: 13 });
+
+      expect(mockOnToggleService).toHaveBeenCalledWith('1');
+    });
+
+    it('permet de sélectionner un service avec la barre espace', () => {
+      render(<ServiceList {...defaultProps} />);
+
+      const waveCard = screen.getByText('Wave Transfer').closest('article')!;
+      fireEvent.keyDown(waveCard, { key: ' ', code: 'Space', charCode: 32 });
+
+      expect(mockOnToggleService).toHaveBeenCalledWith('1');
     });
   });
 
@@ -331,6 +358,15 @@ describe('ServiceList', () => {
 
       const articles = screen.getAllByRole('article');
       expect(articles).toHaveLength(3);
+    });
+
+    it('les cartes sont focusables au clavier (tabIndex=0)', () => {
+      render(<ServiceList {...defaultProps} />);
+
+      const articles = screen.getAllByRole('article');
+      articles.forEach(article => {
+        expect(article).toHaveAttribute('tabindex', '0');
+      });
     });
 
     it('les images ont des attributs alt appropriés', () => {
