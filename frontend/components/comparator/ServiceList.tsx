@@ -1,5 +1,6 @@
 import { Star, Zap } from 'lucide-react';
 import Image from 'next/image';
+import type { JSX } from 'react';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import type { ServiceDTO } from '@/types/Service';
@@ -15,12 +16,18 @@ interface ServiceListProps {
   readonly computeFee: (service: ServiceDTO, amount: number) => { label: string; value: number };
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
+function formatCurrency(amount: number): JSX.Element {
+  const formatted = new Intl.NumberFormat('fr-FR', {
+    style: 'decimal',
     maximumFractionDigits: 0,
   }).format(amount);
+
+  return (
+    <>
+      <span className='text-sm  text-bold'>{formatted}</span>
+      <span className='text-[8px]  text-slate-500 ml-1'>F CFA</span>
+    </>
+  );
 }
 
 export function ServiceList(props: Readonly<ServiceListProps>) {
@@ -125,12 +132,12 @@ export function ServiceList(props: Readonly<ServiceListProps>) {
             </div>
 
             <div className='mt-2 flex items-baseline justify-between'>
-              <div className='pl-4 text-xs text-slate-500'>
-                Frais de transfert
-                <div className='text-[11px] text-emerald-600'>{fee.label}</div>
+              <div className='pl-3 text-xs text-slate-500'>
+                Frais de service
+                <div className='text-[11px] text-primary-400'>{fee.label}</div>
               </div>
               <div className='text-right'>
-                <div className='text-lg font-semibold text-slate-900'>
+                <div className='text-right flex items-baseline'>
                   {formatCurrency(Math.round(fee.value))}
                 </div>
               </div>

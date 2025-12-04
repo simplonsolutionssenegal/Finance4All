@@ -36,6 +36,10 @@ interface FraisWithTypeCalc {
   minimum?: number;
   maximum?: number;
   montantFixe?: number;
+  fraisChange?: {
+    fxSurcharge: number;
+    devise: string;
+  };
 }
 
 // Constante pour formater la devise
@@ -95,14 +99,28 @@ const computeFixedFee = (
   frais: FraisWithTypeCalc,
   montant: number
 ): { label: string; value: number } => {
+  // Gestion des frais de change (prioritaire)
+  if (frais.fraisChange) {
+    const { fxSurcharge, devise } = frais.fraisChange;
+    return {
+      label: `Frais de change (${devise})`,
+      value: fxSurcharge,
+    };
+  }
+
+  // Gestion des frais fixes classiques
   const montantFixe = frais.montantFixe ?? 0;
   const pourcentage = frais.pourcentage ?? 0;
+
+  // Si montant fixe est 0 et pas de pourcentage, c'est gratuit
+  if (montantFixe === 0 && pourcentage === 0) {
+    return FREE_FEE;
+  }
+
   const fee = montantFixe + montant * pourcentage;
 
   const label =
-    pourcentage > 0
-      ? `${formatCurrency(montantFixe)} + ${pourcentage * 100}%`
-      : `${formatCurrency(montantFixe)} fixe`;
+    pourcentage > 0 ? `${formatCurrency(montantFixe)} + ${pourcentage * 100}%` : `Frais fixe`;
 
   return {
     label,

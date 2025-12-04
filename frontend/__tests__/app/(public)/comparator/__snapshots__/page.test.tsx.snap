@@ -180,6 +180,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="serviceType"
               >
                 Type de service
               </label>
@@ -192,6 +193,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="serviceType"
                 role="combobox"
                 type="button"
               >
@@ -225,6 +227,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="country"
               >
                 Pays
               </label>
@@ -238,6 +241,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="country"
                 role="combobox"
                 type="button"
               >
@@ -313,8 +317,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
               </svg>
               <span>
                 1
-                 services disponibles •
-                 
+                 services disponibles • 
                 0
                  sélectionné(s)
               </span>
@@ -365,10 +368,11 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
           >
             <article
               class="
-                    relative flex flex-col gap-3 rounded-xl border p-4 
-                    cursor-pointer transition-colors
-                    border-tertiary-200
-                "
+          relative flex flex-col gap-3 rounded-xl border p-4 
+          cursor-pointer transition-colors
+          border-tertiary-200
+        "
+              tabindex="0"
             >
               <div
                 class="flex items-start justify-between gap-3"
@@ -382,7 +386,14 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                     <img
                       alt="Wave"
                       class="h-full w-full object-contain"
-                      src="https://example.com/wave.png"
+                      data-nimg="1"
+                      decoding="async"
+                      height="32"
+                      loading="lazy"
+                      src="/_next/image?url=https%3A%2F%2Fexample.com%2Fwave.png&w=64&q=75"
+                      srcset="/_next/image?url=https%3A%2F%2Fexample.com%2Fwave.png&w=32&q=75 1x, /_next/image?url=https%3A%2F%2Fexample.com%2Fwave.png&w=64&q=75 2x"
+                      style="color: transparent;"
+                      width="32"
                     />
                   </div>
                   <div>
@@ -440,11 +451,11 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                 class="mt-2 flex items-baseline justify-between"
               >
                 <div
-                  class="pl-4 text-xs text-slate-500"
+                  class="pl-3 text-xs text-slate-500"
                 >
-                  Frais de transfert
+                  Frais de service
                   <div
-                    class="text-[11px] text-emerald-600"
+                    class="text-[11px] text-primary-400"
                   >
                     1% du montant (min 50 F CFA · max 5 000 F CFA)
                   </div>
@@ -453,9 +464,18 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                   class="text-right"
                 >
                   <div
-                    class="text-lg font-semibold text-slate-900"
+                    class="text-right flex items-baseline"
                   >
-                    0 F CFA
+                    <span
+                      class="text-sm  text-bold"
+                    >
+                      0
+                    </span>
+                    <span
+                      class="text-[8px]  text-slate-500 ml-1"
+                    >
+                      F CFA
+                    </span>
                   </div>
                 </div>
               </div>
@@ -676,6 +696,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="serviceType"
               >
                 Type de service
               </label>
@@ -688,6 +709,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="serviceType"
                 role="combobox"
                 type="button"
               >
@@ -721,6 +743,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="country"
               >
                 Pays
               </label>
@@ -734,6 +757,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="country"
                 role="combobox"
                 type="button"
               >
@@ -809,8 +833,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
               </svg>
               <span>
                 0
-                 services disponibles •
-                 
+                 services disponibles • 
                 0
                  sélectionné(s)
               </span>
@@ -1048,6 +1071,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
             >
               <label
                 class="text-xs text-slate-500"
+                for="serviceType"
               >
                 Type de service
               </label>
@@ -1060,6 +1084,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="serviceType"
                 role="combobox"
                 type="button"
               >
@@ -1093,6 +1118,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
             >
               <label
                 class="text-xs text-slate-500"
+                for="country"
               >
                 Pays
               </label>
@@ -1106,6 +1132,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
                 data-slot="select-trigger"
                 data-state="closed"
                 dir="ltr"
+                id="country"
                 role="combobox"
                 type="button"
               >
@@ -1181,8 +1208,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
               </svg>
               <span>
                 0
-                 services disponibles •
-                 
+                 services disponibles • 
                 0
                  sélectionné(s)
               </span>

@@ -197,21 +197,25 @@ describe('ServiceList', () => {
       render(<ServiceList {...defaultProps} />);
 
       expect(screen.getByText('Gratuit !')).toBeInTheDocument();
-      expect(screen.getAllByText('Frais de transfert')).toHaveLength(3);
+      // Changement: "Frais de transfert" -> "Frais de service"
+      expect(screen.getAllByText('Frais de service')).toHaveLength(3);
     });
 
     it('formate correctement les montants en devise', () => {
       render(<ServiceList {...defaultProps} />);
 
-      // Vérifie que les montants sont affichés avec le format XOF
-      const amounts = screen.getAllByText(/F CFA/);
-      expect(amounts.length).toBeGreaterThan(0);
+      // Vérifie que les montants sont affichés avec la devise F CFA
+      const currencies = screen.getAllByText('F CFA');
+      expect(currencies.length).toBeGreaterThan(0);
     });
 
     it('affiche "0 F CFA" pour un service gratuit', () => {
       render(<ServiceList {...defaultProps} />);
 
-      expect(screen.getByText('0 F CFA')).toBeInTheDocument();
+      // Le montant "0" et la devise "F CFA" sont dans des spans séparés
+      expect(screen.getByText('0')).toBeInTheDocument();
+      const currencies = screen.getAllByText('F CFA');
+      expect(currencies.length).toBeGreaterThan(0);
     });
   });
 
@@ -412,21 +416,25 @@ describe('ServiceList', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 1000 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
 
-      expect(screen.getByText('1 000 F CFA')).toBeInTheDocument();
+      // Le montant et la devise sont maintenant dans des spans séparés
+      expect(screen.getByText('1 000')).toBeInTheDocument();
+      expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
 
     it('arrondit les valeurs décimales', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 1234.56 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
 
-      expect(screen.getByText('1 235 F CFA')).toBeInTheDocument();
+      expect(screen.getByText('1 235')).toBeInTheDocument();
+      expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
 
     it('utilise le séparateur de milliers français', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 100000 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
 
-      expect(screen.getByText('100 000 F CFA')).toBeInTheDocument();
+      expect(screen.getByText('100 000')).toBeInTheDocument();
+      expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
   });
 });
