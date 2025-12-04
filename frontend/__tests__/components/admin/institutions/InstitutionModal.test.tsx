@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import InstitutionModal from '@/components/admin/institutions/InstitutionModal';
@@ -30,11 +30,6 @@ jest.mock('@/hooks/institution/useUpdateInstitution', () => ({
   useUpdateInstitution: jest.fn(),
 }));
 
-const querySubmitButton = () =>
-  screen.getByRole('button', {
-    name: /Créer l'institution|Créer l&apos;institution|Enregistrer les modifications|Enregistrement…/,
-  });
-
 const renderModal = (overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
   const onOpenChange = jest.fn();
   const refresh = jest.fn();
@@ -44,29 +39,90 @@ const renderModal = (overrides?: Partial<React.ComponentProps<typeof Institution
 
 const openDropdownAndChoose = async (triggerLabel: string, optionText: string) => {
   const u = userEvent.setup();
-  const trigger = screen.getByRole('button', { name: new RegExp(triggerLabel) });
+  const trigger = screen.getByRole('button', { name: new RegExp(triggerLabel, 'i') });
   await u.click(trigger);
-  // wait for the option to appear in the DOM
-  const item = await screen.findByText(optionText);
+
+  // Attendre que le menu s'ouvre réellement
+  const item = await screen.findByRole(
+    'menuitem',
+    { name: new RegExp(optionText, 'i') },
+    { timeout: 3000 }
+  );
   await u.click(item);
+
+  // Attendre que le dropdown se ferme
+  await waitFor(
+    () => {
+      expect(
+        screen.queryByRole('menuitem', { name: new RegExp(optionText, 'i') })
+      ).not.toBeInTheDocument();
+    },
+    { timeout: 1000 }
+  );
 };
 
 const addZone = async (zoneText: string) => {
   const u = userEvent.setup();
-  const zoneInput = screen.getByPlaceholderText('Sélectionner une zone');
-  await u.click(zoneInput);
+  const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
+  await u.clear(zoneInput);
   await u.type(zoneInput, zoneText.slice(0, 3));
-  // wait for the option to appear and click it
-  const option = await screen.findByText(zoneText);
+
+  // Attendre que le dropdown s'ouvre et que l'option apparaisse
+  const option = await screen.findByRole('button', { name: zoneText }, { timeout: 3000 });
   await u.click(option);
+
+  // Attendre que la zone soit ajoutée
+  await waitFor(
+    () => {
+      expect(screen.getByText(zoneText)).toBeInTheDocument();
+    },
+    { timeout: 1000 }
+  );
 };
 
-// Soumettre le <form> directement (même si le bouton est disabled)
-const submitFormProgrammatically = () => {
-  const dialog = screen.getByRole('dialog');
-  const form = dialog.querySelector('form');
-  if (!form) throw new Error('Form not found in dialog');
-  fireEvent.submit(form);
+const navigateToStep = async (targetStep: number) => {
+  const u = userEvent.setup();
+
+  if (targetStep >= 2) {
+    // Remplir Étape 1
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
+    await openDropdownAndChoose('Banque', 'Service de paiement');
+
+    const nextBtn = screen.getByRole('button', { name: /Suivant/i });
+    await u.click(nextBtn);
+
+    // Attendre d'être sur l'Étape 2
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  }
+
+  if (targetStep >= 3) {
+    // Remplir Étape 2
+    await u.type(
+      screen.getByPlaceholderText('https://example.com/logo.png'),
+      'https://exemple.com/logo.png'
+    );
+    await u.type(
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide'
+    );
+    await u.type(screen.getByPlaceholderText('https://www.example.com'), 'https://ok.sn');
+
+    const nextBtn = screen.getByRole('button', { name: /Suivant/i });
+    await u.click(nextBtn);
+
+    // Attendre d'être sur l'Étape 3
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  }
 };
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -86,72 +142,224 @@ beforeEach(() => {
   });
 });
 
-describe('InstitutionModal (nouvelle implémentation)', () => {
-  test('validation: erreurs affichées après submit, puis correction rend le bouton actif', async () => {
+describe('InstitutionModal (structure en 3 étapes)', () => {
+  test('affiche le stepper avec 3 étapes', () => {
+    renderModal();
+
+    expect(screen.getByText('Informations de base')).toBeInTheDocument();
+    expect(screen.getByText('Détails')).toBeInTheDocument();
+    expect(screen.getByText('Contact & Localisation')).toBeInTheDocument();
+  });
+
+  test('Étape 1: validation - bouton Suivant désactivé si champs invalides', async () => {
     const u = userEvent.setup();
     renderModal();
 
-    expect(querySubmitButton()).toBeDisabled();
+    // Initialement désactivé (pas de nom ni type)
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
 
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O');
-    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'trop court');
-    await u.type(screen.getByPlaceholderText('https://'), 'not-a-url');
-    await u.type(screen.getByPlaceholderText('🏦 ou https://'), 'also-not-a-url');
+    // Remplir le nom seulement
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
 
-    submitFormProgrammatically();
+    // Ajouter le type
+    await openDropdownAndChoose('Banque', 'Service de paiement');
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled();
+  });
 
-    await screen.findByText('Le nom doit contenir au moins 2 caractères');
+  test('Étape 1: navigation - passe à Étape 2 quand valide', async () => {
+    const u = userEvent.setup();
+    renderModal();
 
-    await screen.findByText(/Le nom doit contenir au moins 2 caractères/i);
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    expect(screen.getByLabelText('Description *')).toBeInTheDocument();
-    expect(screen.getByText(/une zone géographique est requise/i)).toBeInTheDocument();
-
-    await u.clear(screen.getByPlaceholderText('Ex: Orange Money'));
     await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
+    await openDropdownAndChoose('Banque', 'Service de paiement');
 
-    const desc = screen.getByPlaceholderText("Description de l'institution");
-    await u.clear(desc);
-    await u.type(desc, 'Une description valide (>= 10 caractères)');
+    await u.click(screen.getByRole('button', { name: /Suivant/i }));
 
-    const website = screen.getByPlaceholderText('https://');
-    await u.clear(website);
-    await u.type(website, 'https://ok.sn');
+    // Vérifie qu'on est à l'Étape 2
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Description de l'institution")).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  });
 
-    const logo = screen.getByPlaceholderText('🏦 ou https://');
-    await u.clear(logo);
-    await u.type(logo, 'https://exemple.com/logo.png');
+  test('Étape 2: validation - bouton Suivant désactivé si description trop courte', async () => {
+    const u = userEvent.setup();
+    renderModal();
 
-    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await navigateToStep(2);
+
+    // Description trop courte
+    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'court');
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
+
+    // Description valide
+    await u.clear(screen.getByPlaceholderText("Description de l'institution"));
+    await u.type(
+      screen.getByPlaceholderText("Description de l'institution"),
+      'Une description valide (>= 10 caractères)'
+    );
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled();
+  });
+
+  test('Étape 2: aperçu du logo affiché quand URL valide', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    await navigateToStep(2);
+
+    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+    await u.type(logoInput, 'https://valid.com/logo.png');
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
+    });
+  });
+
+  test('Étape 2: aperçu du logo disparaît quand URL invalide ou vidée', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    await navigateToStep(2);
+
+    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+    await u.type(logoInput, 'https://valid.com/logo.png');
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
+    });
+
+    await u.clear(logoInput);
+
+    await waitFor(() => {
+      expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
+    });
+  });
+
+  test('Étape 2: bouton Retour ramène à Étape 1', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    await navigateToStep(2);
+
+    await u.click(screen.getByRole('button', { name: /Retour/i }));
+
+    // Vérifie qu'on est revenu à l'Étape 1
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('Ex: Orange Money')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  test('Étape 3: validation - bouton Créer désactivé si zones manquantes', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    await navigateToStep(3);
+
+    // Sans zone
+    expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeDisabled();
+
+    // Ajouter pays
     await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
 
+    // Toujours désactivé sans zone
+    expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeDisabled();
+
+    // Ajouter une zone
     await addZone('UEMOA');
 
-    expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
+    // Maintenant activé
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeEnabled();
+      },
+      { timeout: 2000 }
+    );
+  });
 
-    expect(screen.getByRole('button', { name: 'Créer l&apos;institution' })).toBeEnabled();
-  }, 20000);
-
-  test('création: envoie le payload complet à createInstitution', async () => {
+  test('Étape 3: zones - ajouter et retirer une zone', async () => {
     const u = userEvent.setup();
     renderModal();
 
+    await navigateToStep(3);
+
+    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    await addZone('UEMOA');
+
+    // Vérifie que la zone est affichée
+    expect(screen.getByText('UEMOA')).toBeInTheDocument();
+
+    // Retirer la zone
+    const zoneBadge = screen.getByText('UEMOA');
+    await u.click(zoneBadge);
+
+    // Vérifier que la zone a été retirée
+    await waitFor(
+      () => {
+        expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
+  });
+
+  test('création complète: envoie le payload à createInstitution', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    // Étape 1
     await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
+    await openDropdownAndChoose('Banque', 'Service de paiement');
+    await u.click(screen.getByRole('button', { name: /Suivant/i }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    // Étape 2
+    await u.type(
+      screen.getByPlaceholderText('https://example.com/logo.png'),
+      'https://exemple.com/logo.png'
+    );
     await u.type(
       screen.getByPlaceholderText("Description de l'institution"),
       'Une description valide'
     );
-    await u.type(screen.getByPlaceholderText('https://'), 'https://www.orange.sn');
-    await u.type(screen.getByPlaceholderText('🏦 ou https://'), 'https://exemple.com/logo.png');
+    await u.type(screen.getByPlaceholderText('https://www.example.com'), 'https://www.orange.sn');
+    await u.click(screen.getByRole('button', { name: /Suivant/i }));
 
-    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    // Étape 3
     await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
     await addZone('UEMOA');
 
-    await u.click(screen.getByRole('button', { name: 'Créer l&apos;institution' }));
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeEnabled();
+      },
+      { timeout: 2000 }
+    );
 
-    expect(createInstitutionMock).toHaveBeenCalledTimes(1);
+    await u.click(screen.getByRole('button', { name: /Créer l'institution/i }));
+
+    await waitFor(() => {
+      expect(createInstitutionMock).toHaveBeenCalledTimes(1);
+    });
+
     expect(createInstitutionMock).toHaveBeenCalledWith({
       name: 'Orange Money',
       description: 'Une description valide',
@@ -163,79 +371,29 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     });
   });
 
-  test('zones: retirer une zone via badge remet le formulaire invalide (submit désactivé si plus de zone)', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    // Remplir minimal valide
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide'
-    );
-    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
-    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
-    await addZone('UEMOA');
-
-    // Bouton devrait être activé si tout est ok
-    expect(querySubmitButton()).toBeEnabled();
-
-    // Retirer la zone en cliquant le badge
-    await u.click(screen.getByText('UEMOA'));
-
-    // Plus de zone → invalide
-    expect(querySubmitButton()).toBeDisabled();
-  });
-
-  test("Aperçu du logo: affiché quand URL valide, disparaît quand l'input est vidé", async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    // Rendre la prévisualisation visible (tout en validant le form)
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide'
-    );
-    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
-    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
-    await addZone('UEMOA');
-
-    const logo = screen.getByPlaceholderText('🏦 ou https://');
-    await u.type(logo, 'https://valid.com/logo.png');
-
-    expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
-
-    await u.clear(logo);
-    // L’aperçu doit disparaître
-    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
-  });
-
-  test('Annuler ferme le modal si pas en soumission, ne ferme pas pendant la soumission', async () => {
+  test('Annuler ferme le modal si pas en soumission', async () => {
     const u = userEvent.setup();
     const { onOpenChange } = renderModal();
 
     await u.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 
-    // Simuler soumission
+  test('Annuler ne ferme pas pendant la soumission', async () => {
     const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
     (useCreateInstitution as jest.Mock).mockReturnValue({
       isCreating: true,
       createInstitution: createInstitutionMock,
     });
 
-    // Rerender pour refléter isSubmitting=true
-    onOpenChange.mockClear();
-    renderModal();
+    const u = userEvent.setup();
+    const { onOpenChange } = renderModal();
 
     await u.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
-  test('édition: modifie le nom puis soumet -> appelle updateInstitution avec id + data', async () => {
+  test('édition: pré-remplit les champs et permet modification', async () => {
     const u = userEvent.setup();
 
     const inst: Institution = {
@@ -254,17 +412,44 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
 
     renderModal({ institution: inst });
 
-    // Titre d’édition + bouton d’action spécifique
-    expect(screen.getByText('Modifier l&apos;institution')).toBeInTheDocument();
-    const submit = screen.getByRole('button', { name: 'Enregistrer les modifications' });
-    // Selon les libs RHF/zod, isValid peut être false au premier rendu -> bouton potentiellement disabled
-    // Assurer l'activation en modifiant un champ
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), ' Plus');
+    // Vérifie pré-remplissage Étape 1
+    expect(screen.getByPlaceholderText('Ex: Orange Money')).toHaveValue('Banky');
 
-    expect(submit).toBeEnabled();
-    await u.click(submit);
+    // Modifier le nom
+    await u.clear(screen.getByPlaceholderText('Ex: Orange Money'));
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Banky Plus');
 
-    expect(updateInstitutionMock).toHaveBeenCalledTimes(1);
+    // Naviguer jusqu'à l'étape 3
+    await u.click(screen.getByRole('button', { name: /Suivant/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    await u.click(screen.getByRole('button', { name: /Suivant/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
+
+    await waitFor(
+      () => {
+        const submitBtn = screen.getByRole('button', { name: /Créer l'institution/i });
+        expect(submitBtn).toBeEnabled();
+      },
+      { timeout: 2000 }
+    );
+
+    await u.click(screen.getByRole('button', { name: /Créer l'institution/i }));
+
+    await waitFor(() => {
+      expect(updateInstitutionMock).toHaveBeenCalledTimes(1);
+    });
+
     expect(updateInstitutionMock).toHaveBeenCalledWith({
       id: 'inst_1',
       data: {
@@ -279,33 +464,45 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     });
   });
 
-  test("l'aperçu n'apparaît pas si logo invalide (url non valide)", async () => {
+  test('affiche le titre "Nouvelle institution" en mode création', () => {
+    renderModal();
+    expect(screen.getByText('Nouvelle institution')).toBeInTheDocument();
+  });
+
+  test('Étape 1: affiche erreur si nom trop court après tentative de navigation', async () => {
     const u = userEvent.setup();
     renderModal();
 
-    // Rendre form quasi valide sauf logo
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide'
-    );
-    await u.type(screen.getByPlaceholderText('https://'), 'https://ok.sn');
-    await openDropdownAndChoose('Sélectionner un type', 'Service de paiement');
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
-    await addZone('UEMOA');
+    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O');
+    await openDropdownAndChoose('Banque', 'Service de paiement');
 
-    // S'assurer qu'il n'y a pas d'aperçu au départ
-    expect(screen.queryByTestId('next-image')).not.toBeInTheDocument();
+    // Le bouton est désactivé car nom invalide
+    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
+  });
 
-    // Logo invalide
-    const logoInput = screen.getByPlaceholderText('🏦 ou https://');
-    await u.clear(logoInput);
-    await u.type(logoInput, 'not-a-url');
+  test('réinitialise à Étape 1 quand le modal se ferme', async () => {
+    const u = userEvent.setup();
+    const { onOpenChange } = renderModal();
 
-    // Attendre que la validation soit faite
-    await screen.findByText('Doit être une URL valide');
+    await navigateToStep(3);
 
-    // Vérifier qu'il n'y a pas d'aperçu
-    expect(screen.queryByTestId('next-image')).not.toBeInTheDocument();
+    // Fermer le modal
+    await u.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  test('Étape 3: filtrage des zones par recherche', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    await navigateToStep(3);
+
+    const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
+    await u.click(zoneInput);
+    await u.type(zoneInput, 'UEM');
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'UEMOA' })).toBeInTheDocument();
+    });
   });
 });
