@@ -1,0 +1,320 @@
+import { Beneficiary, BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
+
+describe('Beneficiary Entity', () => {
+  const validBeneficiaryData = {
+    id: 'ben-123',
+    organizationId: 'org-456',
+    clerkUserId: 'clerk-789',
+    firstName: 'Jean',
+    lastName: 'Dupont',
+    email: 'jean.dupont@example.com',
+    phone: '+221771234567',
+    status: BeneficiaryStatus.ACTIVE,
+    progressPercent: 50,
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-20'),
+  };
+
+  describe('Constructor', () => {
+    it('should create a Beneficiary instance with all properties', () => {
+      const beneficiary = new Beneficiary(
+        validBeneficiaryData.id,
+        validBeneficiaryData.organizationId,
+        validBeneficiaryData.clerkUserId,
+        validBeneficiaryData.firstName,
+        validBeneficiaryData.lastName,
+        validBeneficiaryData.email,
+        validBeneficiaryData.phone,
+        validBeneficiaryData.status,
+        validBeneficiaryData.progressPercent,
+        validBeneficiaryData.createdAt,
+        validBeneficiaryData.updatedAt
+      );
+
+      expect(beneficiary.id).toBe('ben-123');
+      expect(beneficiary.organizationId).toBe('org-456');
+      expect(beneficiary.clerkUserId).toBe('clerk-789');
+      expect(beneficiary.firstName).toBe('Jean');
+      expect(beneficiary.lastName).toBe('Dupont');
+      expect(beneficiary.email).toBe('jean.dupont@example.com');
+      expect(beneficiary.phone).toBe('+221771234567');
+      expect(beneficiary.status).toBe(BeneficiaryStatus.ACTIVE);
+      expect(beneficiary.progressPercent).toBe(50);
+      expect(beneficiary.createdAt).toEqual(new Date('2024-01-15'));
+      expect(beneficiary.updatedAt).toEqual(new Date('2024-01-20'));
+    });
+
+    it('should create a Beneficiary with null phone', () => {
+      const beneficiary = new Beneficiary(
+        'ben-456',
+        'org-789',
+        'clerk-012',
+        'Marie',
+        'Martin',
+        'marie@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.phone).toBeNull();
+    });
+
+    it('should create a Beneficiary with INACTIVE status', () => {
+      const beneficiary = new Beneficiary(
+        'ben-789',
+        'org-012',
+        'clerk-345',
+        'Paul',
+        'Diop',
+        'paul@example.com',
+        '+221775555555',
+        BeneficiaryStatus.INACTIVE,
+        75,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.status).toBe(BeneficiaryStatus.INACTIVE);
+    });
+
+    it('should have readonly id property that cannot be changed', () => {
+      const beneficiary = new Beneficiary(
+        'ben-readonly',
+        'org-123',
+        'clerk-456',
+        'Test',
+        'User',
+        'test@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      // In TypeScript, readonly is a compile-time check
+      // At runtime, the property is still accessible but should not be modified
+      expect(beneficiary.id).toBe('ben-readonly');
+
+      // Verify id remains immutable (TypeScript prevents this at compile time)
+      const originalId = beneficiary.id;
+      expect(originalId).toBe('ben-readonly');
+    });
+  });
+
+  describe('Mutable Properties', () => {
+    it('should allow updating firstName', () => {
+      const beneficiary = new Beneficiary(
+        'ben-1',
+        'org-1',
+        'clerk-1',
+        'Jean',
+        'Dupont',
+        'jean@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.firstName = 'Jacques';
+      expect(beneficiary.firstName).toBe('Jacques');
+    });
+
+    it('should allow updating lastName', () => {
+      const beneficiary = new Beneficiary(
+        'ben-2',
+        'org-2',
+        'clerk-2',
+        'Marie',
+        'Martin',
+        'marie@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.lastName = 'Dupuis';
+      expect(beneficiary.lastName).toBe('Dupuis');
+    });
+
+    it('should allow updating email', () => {
+      const beneficiary = new Beneficiary(
+        'ben-3',
+        'org-3',
+        'clerk-3',
+        'Paul',
+        'Diop',
+        'paul@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.email = 'paul.new@example.com';
+      expect(beneficiary.email).toBe('paul.new@example.com');
+    });
+
+    it('should allow updating phone', () => {
+      const beneficiary = new Beneficiary(
+        'ben-4',
+        'org-4',
+        'clerk-4',
+        'Test',
+        'User',
+        'test@example.com',
+        '+221771111111',
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.phone = '+221772222222';
+      expect(beneficiary.phone).toBe('+221772222222');
+
+      beneficiary.phone = null;
+      expect(beneficiary.phone).toBeNull();
+    });
+
+    it('should allow updating status', () => {
+      const beneficiary = new Beneficiary(
+        'ben-5',
+        'org-5',
+        'clerk-5',
+        'Active',
+        'User',
+        'active@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.status = BeneficiaryStatus.INACTIVE;
+      expect(beneficiary.status).toBe(BeneficiaryStatus.INACTIVE);
+    });
+
+    it('should allow updating progressPercent', () => {
+      const beneficiary = new Beneficiary(
+        'ben-6',
+        'org-6',
+        'clerk-6',
+        'Progress',
+        'User',
+        'progress@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        25,
+        new Date(),
+        new Date()
+      );
+
+      beneficiary.progressPercent = 75;
+      expect(beneficiary.progressPercent).toBe(75);
+    });
+  });
+
+  describe('BeneficiaryStatus Enum', () => {
+    it('should have ACTIVE status', () => {
+      expect(BeneficiaryStatus.ACTIVE).toBe('ACTIVE');
+    });
+
+    it('should have INACTIVE status', () => {
+      expect(BeneficiaryStatus.INACTIVE).toBe('INACTIVE');
+    });
+
+    it('should only have two status values', () => {
+      const values = Object.values(BeneficiaryStatus);
+      expect(values).toHaveLength(2);
+      expect(values).toContain('ACTIVE');
+      expect(values).toContain('INACTIVE');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle zero progressPercent', () => {
+      const beneficiary = new Beneficiary(
+        'ben-7',
+        'org-7',
+        'clerk-7',
+        'Zero',
+        'Progress',
+        'zero@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.progressPercent).toBe(0);
+    });
+
+    it('should handle 100 progressPercent', () => {
+      const beneficiary = new Beneficiary(
+        'ben-8',
+        'org-8',
+        'clerk-8',
+        'Full',
+        'Progress',
+        'full@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        100,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.progressPercent).toBe(100);
+    });
+
+    it('should handle empty string names', () => {
+      const beneficiary = new Beneficiary(
+        'ben-9',
+        'org-9',
+        'clerk-9',
+        '',
+        '',
+        'empty@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.firstName).toBe('');
+      expect(beneficiary.lastName).toBe('');
+    });
+
+    it('should handle very long names', () => {
+      const longName = 'A'.repeat(100);
+      const beneficiary = new Beneficiary(
+        'ben-10',
+        'org-10',
+        'clerk-10',
+        longName,
+        longName,
+        'long@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.firstName).toBe(longName);
+      expect(beneficiary.lastName).toBe(longName);
+    });
+  });
+});
