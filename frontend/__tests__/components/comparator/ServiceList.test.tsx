@@ -4,7 +4,6 @@ import { ServiceList } from '@/components/comparator/ServiceList';
 import type { ServiceDTO } from '@/types/Service';
 import { TypeService } from '@/types/Service';
 
-// Données de test
 const mockServices: ServiceDTO[] = [
   {
     id: '1',
@@ -70,7 +69,6 @@ const mockServices: ServiceDTO[] = [
   },
 ];
 
-// Mock de la fonction computeFee
 const mockComputeFee = jest.fn((service: ServiceDTO, amount: number) => {
   if (service.frais._typeCalculation === 0) {
     return { label: 'Gratuit !', value: 0 };
@@ -152,10 +150,8 @@ describe('ServiceList', () => {
 
       const first = images[0] as HTMLImageElement;
 
-      // On vérifie qu'on a bien l'alt correct
       expect(first).toHaveAttribute('alt', 'Wave');
 
-      // Et que l'URL d'origine est bien encodée dans le src généré par Next/Image
       expect(first.getAttribute('src')).toContain(
         encodeURIComponent('https://example.com/wave.png')
       );
@@ -198,14 +194,12 @@ describe('ServiceList', () => {
       render(<ServiceList {...defaultProps} />);
 
       expect(screen.getByText('Gratuit !')).toBeInTheDocument();
-      // Changement: "Frais de transfert" -> "Frais de service"
       expect(screen.getAllByText('Frais de service')).toHaveLength(3);
     });
 
     it('formate correctement les montants en devise', () => {
       render(<ServiceList {...defaultProps} />);
 
-      // Vérifie que les montants sont affichés avec la devise F CFA
       const currencies = screen.getAllByText('F CFA');
       expect(currencies.length).toBeGreaterThan(0);
     });
@@ -213,7 +207,6 @@ describe('ServiceList', () => {
     it('affiche "0 F CFA" pour un service gratuit', () => {
       render(<ServiceList {...defaultProps} />);
 
-      // Le montant "0" et la devise "F CFA" sont dans des spans séparés
       expect(screen.getByText('0')).toBeInTheDocument();
       const currencies = screen.getAllByText('F CFA');
       expect(currencies.length).toBeGreaterThan(0);
@@ -303,12 +296,9 @@ describe('ServiceList', () => {
 
       await user.click(checkbox);
 
-      // si la propagation était active, le clic sur la checkbox déclencherait aussi le onClick de la carte
-      // donc on aurait 2 appels au lieu de 1
       expect(mockOnToggleService).toHaveBeenCalledTimes(1);
       expect(mockOnToggleService).toHaveBeenCalledWith('1');
 
-      // on clique ensuite sur la carte pour vérifier que le handler de la carte fonctionne toujours
       await user.click(card);
       expect(mockOnToggleService).toHaveBeenCalledTimes(2);
     });
@@ -452,7 +442,6 @@ describe('ServiceList', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 1000 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
 
-      // Le montant et la devise sont maintenant dans des spans séparés
       expect(screen.getByText('1 000')).toBeInTheDocument();
       expect(screen.getByText('F CFA')).toBeInTheDocument();
     });

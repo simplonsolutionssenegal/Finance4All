@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { JSX } from 'react';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { formatCurrency } from '@/lib/format-utils';
 import type { ServiceDTO } from '@/types/Service';
 
 interface ServiceListProps {
@@ -16,16 +17,15 @@ interface ServiceListProps {
   readonly computeFee: (service: ServiceDTO, amount: number) => { label: string; value: number };
 }
 
-function formatCurrency(amount: number): JSX.Element {
-  const formatted = new Intl.NumberFormat('fr-FR', {
-    style: 'decimal',
-    maximumFractionDigits: 0,
-  }).format(amount);
+function formatCurrencyDisplay(amount: number): JSX.Element {
+  const formatted = formatCurrency(amount)
+    .replace(/\s*(F\s*CFA|XOF)\s*/gi, '')
+    .trim();
 
   return (
     <>
-      <span className='text-sm  text-bold'>{formatted}</span>
-      <span className='text-[8px]  text-slate-500 ml-1'>F CFA</span>
+      <span className='text-sm text-bold'>{formatted}</span>
+      <span className='text-[8px] text-slate-500 ml-1'>F CFA</span>
     </>
   );
 }
@@ -138,7 +138,7 @@ export function ServiceList(props: Readonly<ServiceListProps>) {
               </div>
               <div className='text-right'>
                 <div className='text-right flex items-baseline'>
-                  {formatCurrency(Math.round(fee.value))}
+                  {formatCurrencyDisplay(Math.round(fee.value))}
                 </div>
               </div>
             </div>

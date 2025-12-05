@@ -22,133 +22,14 @@ import {
 } from '@/components/ui/select';
 import { useCompareServices } from '@/hooks/service/useCompareServices';
 import { useGetServices } from '@/hooks/service/useGetServices';
+import { formatCurrency } from '@/lib/format-utils';
 import { type ServiceDTO, TypeService } from '@/types/Service';
+
+import { computeFee } from '../ui/FeeCalculator';
 
 import { ServiceList } from './ServiceList';
 
 type ProductType = 'TRANSFERT' | 'CREDIT' | 'EPARGNE';
-
-// Type for the fee calculation type
-interface FraisWithTypeCalc {
-  _typeCalculation?: number;
-  typeCalculation?: number;
-  pourcentage?: number;
-  minimum?: number;
-  maximum?: number;
-  montantFixe?: number;
-  fraisChange?: {
-    fxSurcharge: number;
-    devise: string;
-  };
-}
-
-// Constante pour formater la devise
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-const DEFAULT_FEE = { label: 'Non défini', value: 0 };
-const FREE_FEE = { label: 'Gratuit !', value: 0 };
-
-const getTypeCalculation = (frais: FraisWithTypeCalc): number | undefined =>
-  frais._typeCalculation ?? frais.typeCalculation;
-
-const computePercentageFee = (
-  frais: FraisWithTypeCalc,
-  montant: number
-): { label: string; value: number } => {
-  const pourcentage = frais.pourcentage ?? 0;
-
-  let fee = montant * pourcentage;
-
-  const min = typeof frais.minimum === 'number' ? frais.minimum : undefined;
-  const max = typeof frais.maximum === 'number' ? frais.maximum : undefined;
-
-  if (montant > 0) {
-    if (min !== undefined) {
-      fee = Math.max(fee, min);
-    }
-    if (max !== undefined) {
-      fee = Math.min(fee, max);
-    }
-  } else {
-    fee = 0;
-  }
-
-  const intervalParts: string[] = [];
-  if (min !== undefined) {
-    intervalParts.push(`min ${formatCurrency(min)}`);
-  }
-  if (max !== undefined) {
-    intervalParts.push(`max ${formatCurrency(max)}`);
-  }
-
-  const intervalText = intervalParts.length > 0 ? ` (${intervalParts.join(' · ')})` : '';
-
-  return {
-    label: `${pourcentage * 100}% du montant${intervalText}`,
-    value: fee,
-  };
-};
-
-const computeFixedFee = (
-  frais: FraisWithTypeCalc,
-  montant: number
-): { label: string; value: number } => {
-  // Gestion des frais de change (prioritaire)
-  if (frais.fraisChange) {
-    const { fxSurcharge, devise } = frais.fraisChange;
-    return {
-      label: `Frais de change (${devise})`,
-      value: fxSurcharge,
-    };
-  }
-
-  // Gestion des frais fixes classiques
-  const montantFixe = frais.montantFixe ?? 0;
-  const pourcentage = frais.pourcentage ?? 0;
-
-  // Si montant fixe est 0 et pas de pourcentage, c'est gratuit
-  if (montantFixe === 0 && pourcentage === 0) {
-    return FREE_FEE;
-  }
-
-  const fee = montantFixe + montant * pourcentage;
-
-  const label =
-    pourcentage > 0 ? `${formatCurrency(montantFixe)} + ${pourcentage * 100}%` : `Frais fixe`;
-
-  return {
-    label,
-    value: fee,
-  };
-};
-
-// Constante pour calculer les frais
-const computeFee = (service: ServiceDTO, montant: number): { label: string; value: number } => {
-  const frais = service.frais as FraisWithTypeCalc | undefined;
-
-  if (!frais) {
-    return DEFAULT_FEE;
-  }
-
-  const typeCalc = getTypeCalculation(frais);
-
-  switch (typeCalc) {
-    case 0:
-      return FREE_FEE;
-    case 1:
-      return computePercentageFee(frais, montant);
-    case 2:
-      return computeFixedFee(frais, montant);
-    default:
-      return DEFAULT_FEE;
-  }
-};
 
 export default function ComparatorIntelligent() {
   const [selectedType, setSelectedType] = useState<string>('');
@@ -157,7 +38,6 @@ export default function ComparatorIntelligent() {
   const [productType, setProductType] = useState<ProductType>('TRANSFERT');
   const [isComparing, setIsComparing] = useState(false);
 
-  // Récupération de la liste des services
   const {
     services: allServices,
     isLoading,
@@ -169,7 +49,6 @@ export default function ComparatorIntelligent() {
     type: selectedType || undefined,
   });
 
-  // Récupération de la comparaison (uniquement si on compare)
   const {
     services: comparedServices,
     message: compareMessage,
@@ -178,12 +57,10 @@ export default function ComparatorIntelligent() {
     error: compareError,
   } = useCompareServices(isComparing ? selectedIds : []);
 
-  // Liste des types de service pour le select
   const serviceTypes = useMemo(() => {
     return Object.values(TypeService) as string[];
   }, []);
 
-  // Les services fournis par le backend sont déjà filtrés par `type`
   const filteredServices = useMemo(() => allServices, [allServices]);
 
   function toggleSelected(id: string) {
@@ -200,7 +77,6 @@ export default function ComparatorIntelligent() {
       : 'bg-primary-200 text-white hover:bg-primary-500',
   ].join(' ');
 
-  // Lignes de critères pour le tableau façon maquette
   const criteriaRows = [
     {
       key: 'fees',
@@ -266,7 +142,6 @@ export default function ComparatorIntelligent() {
   return (
     <div className='min-h-screen bg-slate-50 py-10'>
       <main className='mx-auto flex max-w-6xl flex-col gap-6 px-4'>
-        {/* HEADER */}
         <section className='rounded-3xl py-4'>
           <div className='mb-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs text-primary-400'>
             <Funnel className='h-4 w-4' />
@@ -284,7 +159,6 @@ export default function ComparatorIntelligent() {
           </div>
         </section>
 
-        {/* FILTRES : Type de produit */}
         <section className='rounded-xl bg-white p-6 shadow-sm'>
           <h2 className='mb-4 text-sm text-slate-800'>Type de produit</h2>
 
@@ -335,10 +209,8 @@ export default function ComparatorIntelligent() {
           </div>
         </section>
 
-        {/* FILTRES DÉTAILLÉS */}
         <section className='space-y-6 rounded-xl bg-white p-6 shadow-sm'>
           <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
-            {/* Type de service */}
             <div className='flex flex-col gap-1'>
               <label className='text-xs text-slate-500' htmlFor='serviceType'>
                 Type de service
@@ -377,8 +249,6 @@ export default function ComparatorIntelligent() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Pays (placeholder) */}
             <div className='flex flex-col gap-1'>
               <label className='text-xs text-slate-500' htmlFor='country'>
                 Pays
@@ -394,7 +264,6 @@ export default function ComparatorIntelligent() {
               </Select>
             </div>
 
-            {/* Montant du transfert */}
             <div className='flex flex-col gap-1'>
               <label className='text-xs text-slate-500'>Montant du transfert (F CFA)</label>
               <input
@@ -410,7 +279,6 @@ export default function ComparatorIntelligent() {
 
           <Separator className='my-1 h-[0.5px] bg-gray-200' />
 
-          {/* Résumé + bouton comparer */}
           <div className='mt-4 flex items-center justify-between'>
             <div className='flex items-center gap-2 text-xs text-slate-400'>
               <Funnel className='h-4 w-4' />
@@ -433,7 +301,6 @@ export default function ComparatorIntelligent() {
           </div>
         </section>
 
-        {/* LISTE DES SERVICES */}
         {!isComparing && (
           <section className='space-y-4'>
             <h2 className='text-lg  text-slate-900'>Sélectionnez les services à comparer</h2>
@@ -451,7 +318,6 @@ export default function ComparatorIntelligent() {
           </section>
         )}
 
-        {/* RÉSULTAT DE COMPARAISON */}
         {isComparing && (
           <>
             <div className='flex items-center justify-between'>
