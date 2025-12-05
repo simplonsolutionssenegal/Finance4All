@@ -9,6 +9,7 @@ import { InstitutionStatus } from '@/types/Institution';
 import { TypeService } from '@/types/Service';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
+import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
 
 const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
