@@ -398,8 +398,8 @@ export default function BeneficiaryManagement() {
               }
             : undefined
         }
-        isCreating={mode === 'create' ? createBeneficiary.isPending : false}
-        isUpdating={mode === 'edit' ? false : false}
+        isCreating={mode === 'create' && createBeneficiary.isPending}
+        isUpdating={false}
         onSubmit={onSubmit}
       />
     </div>
