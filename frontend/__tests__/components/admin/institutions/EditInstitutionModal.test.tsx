@@ -381,6 +381,19 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     const u = userEvent.setup();
     renderModal();
 
+    // Modifier tous les champs
+    const nameInput = screen.getByPlaceholderText('Ex: Orange Money');
+    await u.clear(nameInput);
+    await u.type(nameInput, 'Nouveau nom');
+
+    const descInput = screen.getByPlaceholderText("Description de l'institution");
+    await u.clear(descInput);
+    await u.type(descInput, 'Nouvelle description longue');
+
+    const websiteInput = screen.getByPlaceholderText('https://www.example.com');
+    await u.clear(websiteInput);
+    await u.type(websiteInput, 'https://nouveau-site.com');
+
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
     await u.clear(logoInput);
     await u.type(logoInput, 'https://example.com/new-logo.png');
