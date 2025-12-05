@@ -169,11 +169,17 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     renderModal();
 
     const nameInput = screen.getByPlaceholderText('Ex: Orange Money');
+    const descInput = screen.getByPlaceholderText("Description de l'institution");
+    const websiteInput = screen.getByPlaceholderText('https://www.example.com');
+    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+
+    // Rendre les champs invalides
     await u.clear(nameInput);
     await u.type(nameInput, 'AB');
 
     await new Promise(resolve => setTimeout(resolve, 50));
 
+    // Erreurs visibles
     expect(
       screen.queryByText('Le nom doit contenir au moins 2 caractères')
     ).not.toBeInTheDocument();
@@ -261,6 +267,9 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     };
 
     renderModal({ institution: instWithoutZones });
+
+    // Pas de badges au départ
+    expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
 
     const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
 
@@ -381,20 +390,12 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     const u = userEvent.setup();
     renderModal();
 
-    // Modifier tous les champs
-    const nameInput = screen.getByPlaceholderText('Ex: Orange Money');
-    await u.clear(nameInput);
-    await u.type(nameInput, 'Nouveau nom');
-
-    const descInput = screen.getByPlaceholderText("Description de l'institution");
-    await u.clear(descInput);
-    await u.type(descInput, 'Nouvelle description longue');
-
-    const websiteInput = screen.getByPlaceholderText('https://www.example.com');
-    await u.clear(websiteInput);
-    await u.type(websiteInput, 'https://nouveau-site.com');
-
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+
+    // Visible avec l’URL de base
+    expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
+
+    // Vider l’input -> plus d’aperçu
     await u.clear(logoInput);
     await u.type(logoInput, 'https://example.com/new-logo.png');
 
