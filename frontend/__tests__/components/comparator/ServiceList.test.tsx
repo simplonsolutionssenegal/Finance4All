@@ -206,7 +206,6 @@ describe('ServiceList', () => {
 
     it('affiche "0 F CFA" pour un service gratuit', () => {
       render(<ServiceList {...defaultProps} />);
-
       expect(screen.getByText('0')).toBeInTheDocument();
       const currencies = screen.getAllByText('F CFA');
       expect(currencies.length).toBeGreaterThan(0);
@@ -441,16 +440,25 @@ describe('ServiceList', () => {
     it('formate correctement les nombres entiers', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 1000 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
-
-      expect(screen.getByText('1 000')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          (content, element) =>
+            element?.tagName.toLowerCase() === 'span' && /\b1\s000\b/.test(content)
+        )
+      ).toBeInTheDocument();
       expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
 
     it('arrondit les valeurs décimales', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 1234.56 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
+      expect(
+        screen.getByText(
+          (content, element) =>
+            element?.tagName.toLowerCase() === 'span' && /\b1\s235\b/.test(content)
+        )
+      ).toBeInTheDocument();
 
-      expect(screen.getByText('1 235')).toBeInTheDocument();
       expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
 
@@ -458,7 +466,13 @@ describe('ServiceList', () => {
       mockComputeFee.mockReturnValue({ label: 'Test', value: 100000 });
       render(<ServiceList {...defaultProps} services={[mockServices[0]]} />);
 
-      expect(screen.getByText('100 000')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          (content, element) =>
+            element?.tagName.toLowerCase() === 'span' && /100\s000/.test(content)
+        )
+      ).toBeInTheDocument();
+
       expect(screen.getByText('F CFA')).toBeInTheDocument();
     });
   });

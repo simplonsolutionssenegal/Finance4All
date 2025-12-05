@@ -3,7 +3,7 @@ import Image from 'next/image';
 import type { JSX } from 'react';
 
 import { Checkbox } from '@/components/ui/checkbox';
-import { formatCurrency } from '@/lib/format-utils';
+import { formatAmount } from '@/lib/format-utils';
 import type { ServiceDTO } from '@/types/Service';
 
 interface ServiceListProps {
@@ -18,14 +18,12 @@ interface ServiceListProps {
 }
 
 function formatCurrencyDisplay(amount: number): JSX.Element {
-  const formatted = formatCurrency(amount)
-    .replace(/\s*(F\s*CFA|XOF)\s*/gi, '')
-    .trim();
+  const formatted = formatAmount(amount);
 
   return (
     <>
       <span className='text-sm text-bold'>{formatted}</span>
-      <span className='text-[8px] text-slate-500 ml-1'>F CFA</span>
+      <span className='ml-1 text-[8px] text-slate-500'>F CFA</span>
     </>
   );
 }

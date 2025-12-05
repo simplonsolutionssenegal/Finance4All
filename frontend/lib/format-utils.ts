@@ -15,6 +15,12 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+export const formatAmount = (amount: number): string => {
+  return new Intl.NumberFormat('fr-FR', {
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
 /**
  * Formate une durée selon l'unité
  * @param value - Valeur de la durée
