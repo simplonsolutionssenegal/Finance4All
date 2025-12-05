@@ -99,6 +99,12 @@ jest.mock('@/components/admin/institutions/ServiceItem', () => ({
   default: jest.fn(() => <div>Service List Mock</div>),
 }));
 
+// Mock EditInstitutionModal so we can assert it's rendered with open=true
+jest.mock('@/components/admin/institutions/EditInstitutionModal', () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+}));
+
 const mockRefetch = jest.fn();
 const mockUseGetInstitution = useGetInstitution as jest.Mock;
 
@@ -366,6 +372,76 @@ describe('InstitutionDetailsComponent', () => {
     });
   });
 
+  describe('Additional branches', () => {
+    it('ServiceItem onEdit and onDelete call console.warn', () => {
+      const ServiceItemMock = ServiceItem as jest.Mock;
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const lastCall = ServiceItemMock.mock.calls.slice(-1)[0];
+      const mockService = { id: 'svc-1', name: 'Service 1' } as any;
+
+      act(() => {
+        lastCall[0].onEdit(mockService);
+        lastCall[0].onDelete(mockService);
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Modifier le service:', mockService);
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Supprimer le service:', mockService);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('renders raw createdAt when date is invalid', () => {
+      const badDateInstitution = {
+        ...mockInstitution,
+        createdAt: 'not-a-date',
+        updatedAt: 'also-bad',
+      } as any;
+      mockUseGetInstitution.mockReturnValue({
+        institution: badDateInstitution,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+      expect(screen.getByText('not-a-date')).toBeInTheDocument();
+      expect(screen.getByText('also-bad')).toBeInTheDocument();
+    });
+
+    it('renders no status chip for unknown status', () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, status: 'UNKNOWN' } as any,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+      expect(screen.queryByText('Actif')).not.toBeInTheDocument();
+      expect(screen.queryByText('Inactif')).not.toBeInTheDocument();
+      expect(screen.queryByText('En attente')).not.toBeInTheDocument();
+    });
+
+    it('renders — for website when website is undefined (href true but no value)', () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, website: undefined } as any,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+      // should render fallback '—' somewhere
+      expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   describe('Geographic Zones', () => {
     it('displays all geographic zones', () => {
       render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
@@ -496,6 +572,78 @@ describe('InstitutionDetailsComponent', () => {
       lastCall[0].refresh();
 
       expect(mockRefetch).toHaveBeenCalled();
+    });
+
+    it('opens EditInstitutionModal when Modifier is clicked', async () => {
+      const EditInstitutionModalMock =
+        require('@/components/admin/institutions/EditInstitutionModal').default as jest.Mock;
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const modifyButton = screen.getByText('Modifier');
+      await userEvent.click(modifyButton);
+
+      const lastCall = EditInstitutionModalMock.mock.calls.slice(-1)[0];
+      expect(lastCall).toBeDefined();
+      expect(lastCall[0].open).toBe(true);
+      expect(lastCall[0].institution).toEqual(mockInstitution);
+    });
+
+    it('opens ServiceDetailsModal when ServiceItem onView is called', () => {
+      const ServiceItemMock = ServiceItem as jest.Mock;
+      const ServiceDetailsModalMock = require('@/components/admin/institutions/ServiceDetailsModal')
+        .default as jest.Mock;
+
+      const mockService = {
+        id: 'svc-1',
+        name: 'Service 1',
+        longName: 'Service 1 Long Name',
+        type: TypeService.PAIEMENT_MARCHAND,
+        frais: { montantFixe: 100 },
+        conditionAccess: ['Condition 1'],
+        plafonds: ['Plafond 1'],
+        infrastructureAccess: ['Infra 1'],
+        institutionId: '1',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+      const lastCall = ServiceItemMock.mock.calls.slice(-1)[0];
+      // call the onView prop passed to ServiceItem
+      act(() => {
+        lastCall[0].onView(mockService);
+      });
+
+      const lastModalCall = ServiceDetailsModalMock.mock.calls.slice(-1)[0];
+      expect(lastModalCall).toBeDefined();
+      expect(lastModalCall[0].open).toBe(true);
+      expect(lastModalCall[0].service).toEqual(mockService);
+    });
+  });
+
+  describe('Edge cases & anchors', () => {
+    it('renders website as anchor with correct attributes', () => {
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+      const link = screen.getByText('https://test.com');
+      expect(link.closest('a')).toHaveAttribute('href', 'https://test.com');
+      expect(link.closest('a')).toHaveAttribute('target', '_blank');
+      expect(link.closest('a')).toHaveAttribute('rel', 'noreferrer');
+    });
+
+    it('shows — when description is missing', () => {
+      mockUseGetInstitution.mockReturnValue({
+        institution: { ...mockInstitution, description: '' },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: mockRefetch,
+      });
+
+      render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+      // InfoBlock uses '—' for missing description
+      expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
     });
   });
 
