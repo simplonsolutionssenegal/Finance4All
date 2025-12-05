@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
+import EditInstitutionModal from '@/components/admin/institutions/EditInstitutionModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +92,8 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
   const [showUpdateStateModal, setShowUpdateStateModal] = useState(false);
   const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
+
+  const [openEditModal, setOpenEditModal] = useState(false);
 
   const [openServiceDetails, setOpenServiceDetails] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -246,7 +249,11 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
         </div>
 
         <div className='flex items-center gap-3'>
-          <Button variant='outline' className='gap-2 bg-primary-300 text-white hover:bg-customBlue'>
+          <Button
+            variant='outline'
+            className='gap-2 bg-primary-300 text-white hover:bg-customBlue'
+            onClick={() => setOpenEditModal(true)}
+          >
             <Edit className='w-5 h-5' />
             Modifier
           </Button>
@@ -359,6 +366,13 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditInstitutionModal
+        open={openEditModal}
+        onOpenChange={setOpenEditModal}
+        refresh={() => refetch()}
+        institution={institution}
+      />
 
       <ConfirmUpdateStatusModal
         isOpen={showUpdateStateModal}
