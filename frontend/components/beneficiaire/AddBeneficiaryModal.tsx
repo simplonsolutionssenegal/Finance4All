@@ -47,6 +47,44 @@ interface AddBeneficiaryModalProps {
   isCreating?: boolean;
   isUpdating?: boolean;
 }
+
+const isPhoneValid = (phone: string): boolean => {
+  return (
+    phone.trim().length === 0 ||
+    phone.trim().startsWith('+221', 0) ||
+    phone.trim().startsWith('+237', 0)
+  );
+};
+
+const isCreateModeValid = (
+  organizationId: string,
+  firstName: string,
+  lastName: string,
+  email: string,
+  phone: string
+): boolean => {
+  const phoneOk = isPhoneValid(phone);
+  const baseOk =
+    !!organizationId && firstName.trim().length > 0 && lastName.trim().length > 0 && phoneOk;
+
+  return baseOk && email.trim().length > 0 && email.includes('@');
+};
+
+// ✅ Extraction : Validation en mode édition
+const isEditModeValid = (
+  organizationId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  initialId?: string
+): boolean => {
+  const phoneOk = isPhoneValid(phone);
+  const baseOk =
+    !!organizationId && firstName.trim().length > 0 && lastName.trim().length > 0 && phoneOk;
+
+  return baseOk && !!initialId;
+};
+
 export default function AddBeneficiaryModal({
   isOpen,
   onClose,
@@ -77,16 +115,10 @@ export default function AddBeneficiaryModal({
   }, [isOpen, mode, initialValues]);
 
   const isValid = useMemo(() => {
-    const phoneOk = phone.trim().length === 0 || phone.trim().startsWith('+');
-    const baseOk =
-      !!organizationId && firstName.trim().length > 0 && lastName.trim().length > 0 && phoneOk;
-
     if (mode === 'create') {
-      return baseOk && email.trim().length > 0 && email.includes('@');
+      return isCreateModeValid(organizationId, firstName, lastName, email, phone);
     }
-
-    // mode edit : email souvent non modifiable côté Clerk => pas obligatoire de le valider
-    return baseOk && !!initialValues?.id;
+    return isEditModeValid(organizationId, firstName, lastName, phone, initialValues?.id);
   }, [organizationId, firstName, lastName, email, phone, mode, initialValues?.id]);
 
   const handleSubmit = async () => {
@@ -147,7 +179,7 @@ export default function AddBeneficiaryModal({
           {!organizationId ? (
             <div className='rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800'>
               Aucune organisation active. Sélectionne une organisation dans Clerk avant
-              d’ajouter/modifier.
+              ajouter/modifier.
             </div>
           ) : null}
 
