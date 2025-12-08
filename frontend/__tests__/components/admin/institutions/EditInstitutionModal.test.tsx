@@ -253,7 +253,7 @@ describe('EditInstitutionModal', () => {
     expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
   });
 
-  test('ferme la liste des zones sur clic extérieur', async () => {
+  test('ferme la liste des zones sur clic extérieur (et reste ouverte sur clic intérieur)', async () => {
     const u = userEvent.setup();
     const instWithoutZones: Institution = {
       ...baseInstitution,
@@ -268,9 +268,12 @@ describe('EditInstitutionModal', () => {
     const option = await screen.findByRole('button', { name: 'UEMOA' });
     expect(option).toBeInTheDocument();
 
-    // Clic à l’extérieur du dropdown
-    fireEvent.mouseDown(document.body);
+    // Clic à l'intérieur du dropdown (dans l'input) -> ne doit PAS fermer
+    fireEvent.mouseDown(zoneInput);
+    expect(screen.getByRole('button', { name: 'UEMOA' })).toBeInTheDocument();
 
+    // Clic à l’extérieur du dropdown -> fermeture
+    fireEvent.mouseDown(document.body);
     expect(screen.queryByRole('button', { name: 'UEMOA' })).not.toBeInTheDocument();
   });
 
@@ -315,6 +318,8 @@ describe('EditInstitutionModal', () => {
 
     expect(screen.getByPlaceholderText('Ex: Orange Money')).toBeDisabled();
     expect(querySubmitButton()).toBeDisabled();
+    // Texte conditionnel du bouton
+    expect(querySubmitButton()).toHaveTextContent('Enregistrement…');
   });
 
   test("sélection du type via dropdown met à jour l'affichage", async () => {
@@ -326,13 +331,14 @@ describe('EditInstitutionModal', () => {
       name: /Service de paiement|Banque|Banque numérique/i,
     });
     await u.click(typeButton);
+
     // Choisir 'Banque numérique'
     const bankOption = await screen.findByText('Banque numérique');
     await u.click(bankOption);
     expect(screen.getByText('Banque numérique')).toBeInTheDocument();
   });
 
-  // country selection rendering can be tested separately if needed
+  // country selection rendering est maintenant testée plus bas
 
   test("affiche 'Aucune zone trouvée' quand la recherche ne matche rien", async () => {
     const u = userEvent.setup();
@@ -372,5 +378,124 @@ describe('EditInstitutionModal', () => {
     // Tenter de le cliquer (ne doit pas le retirer)
     await u.click(badge);
     expect(screen.getByText('UEMOA')).toBeInTheDocument();
+  });
+
+  test("le bouton 'Ajouter' ouvre puis ferme le dropdown des zones", async () => {
+    const u = userEvent.setup();
+    const instWithoutZones: Institution = {
+      ...baseInstitution,
+      geographicZones: [],
+    };
+
+    renderModal({ institution: instWithoutZones });
+
+    const addButton = screen.getByRole('button', { name: 'Ajouter' });
+
+    // Au départ, le dropdown n'est pas visible
+    expect(screen.queryByRole('button', { name: 'UEMOA' })).not.toBeInTheDocument();
+
+    // Premier clic -> ouverture
+    await u.click(addButton);
+    const option = await screen.findByRole('button', { name: 'UEMOA' });
+    expect(option).toBeInTheDocument();
+
+    // Second clic -> fermeture
+    await u.click(addButton);
+    expect(screen.queryByRole('button', { name: 'UEMOA' })).not.toBeInTheDocument();
+  });
+
+  test("sélection du pays via dropdown met à jour l'affichage (Cameroun)", async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    // Bouton actuel affiche Sénégal
+    const paysButton = screen.getByRole('button', { name: /Sénégal/ });
+    await u.click(paysButton);
+
+    // Choisir Cameroun
+    const cameroonOption = await screen.findByText('Cameroun');
+    await u.click(cameroonOption);
+
+    // On doit voir Cameroun + le drapeau 🇨🇲
+    expect(screen.getByText('Cameroun')).toBeInTheDocument();
+    expect(screen.getByText('🇨🇲')).toBeInTheDocument();
+  });
+
+  test("l'aperçu du logo utilise l'URL trimée (espaces en début/fin ignorés)", async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+
+    await u.clear(logoInput);
+    await u.type(logoInput, '  https://site.sn/logo.png  ');
+
+    const img = await screen.findByAltText('Aperçu du logo');
+    expect(img).toHaveAttribute('src', 'https://site.sn/logo.png');
+  });
+
+  test("affiche 'Banque' par défaut quand le type est indéfini", () => {
+    const instWithoutType: Institution = {
+      ...baseInstitution,
+      type: undefined as any,
+    };
+
+    renderModal({ institution: instWithoutType });
+
+    // Le bouton doit afficher le label par défaut "Banque"
+    expect(screen.getByRole('button', { name: /Banque/ })).toBeInTheDocument();
+  });
+
+  test("affiche 'Sélectionner un pays' quand aucun pays n'est défini", () => {
+    const instWithoutCountry: Institution = {
+      ...baseInstitution,
+      pays: undefined as any,
+    };
+
+    renderModal({ institution: instWithoutCountry });
+
+    expect(screen.getByRole('button', { name: /Sélectionner un pays/ })).toBeInTheDocument();
+  });
+
+  test('gère une institution sans logo, sans site et sans zones', () => {
+    const instPartial: Institution = {
+      ...baseInstitution,
+      website: undefined as any,
+      logoUrl: undefined as any,
+      geographicZones: undefined as any,
+    };
+
+    renderModal({ institution: instPartial });
+
+    // Site web vide
+    expect(screen.getByPlaceholderText('https://www.example.com')).toHaveValue('');
+    // Logo vide et pas d’aperçu
+    expect(screen.getByPlaceholderText('https://example.com/logo.png')).toHaveValue('');
+    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
+    // Aucune zone affichée
+    expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
+    expect(screen.queryByText('CEMAC')).not.toBeInTheDocument();
+  });
+
+  test('au succès: ignore les erreurs de document.querySelector dans le bloc try/catch', async () => {
+    const u = userEvent.setup();
+    const { onOpenChange, refresh } = renderModal();
+
+    await u.click(querySubmitButton());
+    expect(updateInstitutionMock).toHaveBeenCalledTimes(1);
+
+    const originalQuerySelector = document.querySelector;
+    try {
+      (document as any).querySelector = jest.fn(() => {
+        throw new Error('test');
+      });
+
+      expect(() => capturedOnSuccess?.()).not.toThrow();
+    } finally {
+      document.querySelector = originalQuerySelector;
+    }
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

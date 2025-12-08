@@ -1,3 +1,4 @@
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,6 +11,7 @@ import { TypeService } from '@/types/Service';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
+import EditInstitutionModal from '@/components/admin/institutions/EditInstitutionModal';
 
 const queryClient = new QueryClient();
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -704,8 +706,6 @@ describe('InstitutionDetailsComponent - Tests de couverture supplémentaires', (
   });
 
   test('multiples appels à renderStatusChip avec tous les statuts', () => {
-    // Test ACTIVE déjà fait dans les tests de base
-
     // Test INACTIVE
     mockUseGetInstitution.mockReturnValue({
       institution: { ...mockInstitution, status: InstitutionStatus.INACTIVE },
@@ -740,5 +740,164 @@ describe('InstitutionDetailsComponent - Tests de couverture supplémentaires', (
 
     // Vérifier que le hook est appelé avec le bon ID
     expect(mockUseGetInstitution).toHaveBeenCalledWith('different-id');
+  });
+
+  // ===== Nouveaux tests pour couvrir les dernières branches =====
+
+  test('ouvre le modal de détails de service via onView de ServiceItem', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: { ...mockInstitution, services: [] },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    const serviceItemProps = (ServiceItem as jest.Mock).mock.calls.slice(-1)[0][0];
+
+    const service = {
+      id: 'svc-99',
+      name: 'Service test',
+      longName: 'Service test long',
+      type: TypeService.PAIEMENT_MARCHAND,
+      frais: { montantFixe: 100 },
+      conditionAccess: [],
+      plafonds: [],
+      infrastructureAccess: [],
+      institutionId: '1',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    act(() => {
+      serviceItemProps.onView(service);
+    });
+
+    const lastCall = (ServiceDetailsModal as jest.Mock).mock.calls.slice(-1)[0];
+    expect(lastCall[0].open).toBe(true);
+    expect(lastCall[0].service).toEqual(service);
+
+    act(() => {
+      lastCall[0].onOpenChange(false);
+    });
+
+    const afterClose = (ServiceDetailsModal as jest.Mock).mock.calls.slice(-1)[0];
+    expect(afterClose[0].open).toBe(false);
+  });
+
+  test('onEdit et onDelete de ServiceItem appellent console.warn', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: { ...mockInstitution, services: [] },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    const serviceItemProps = (ServiceItem as jest.Mock).mock.calls.slice(-1)[0][0];
+
+    const service = {
+      id: 'svc-100',
+      name: 'Service pour édition',
+      longName: 'Service pour édition long',
+      type: TypeService.TRANSFERT_ARGENT,
+      frais: { montantFixe: 50 },
+      conditionAccess: [],
+      plafonds: [],
+      infrastructureAccess: [],
+      institutionId: '1',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    serviceItemProps.onEdit(service);
+    serviceItemProps.onDelete(service);
+
+    expect(consoleWarnSpy).toHaveBeenNthCalledWith(1, 'Modifier le service:', service);
+    expect(consoleWarnSpy).toHaveBeenNthCalledWith(2, 'Supprimer le service:', service);
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  test("clic sur le bouton Modifier ouvre le modal d'édition, permet de rafraîchir et de le fermer", async () => {
+    const u = userEvent.setup();
+
+    render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    // Premier appel : open = false
+    const firstCall = (EditInstitutionModal as jest.Mock).mock.calls[0][0];
+    expect(firstCall.open).toBe(false);
+    expect(firstCall.institution).toEqual(expect.objectContaining({ id: '1' }));
+
+    await u.click(screen.getByText('Modifier'));
+
+    const lastCall = (EditInstitutionModal as jest.Mock).mock.calls.slice(-1)[0];
+    expect(lastCall[0].open).toBe(true);
+
+    act(() => {
+      lastCall[0].refresh();
+    });
+    expect(mockRefetch).toHaveBeenCalled();
+
+    act(() => {
+      lastCall[0].onOpenChange(false);
+    });
+    const afterClose = (EditInstitutionModal as jest.Mock).mock.calls.slice(-1)[0];
+    expect(afterClose[0].open).toBe(false);
+  });
+
+  test('retourne null quand institution est undefined et pas en erreur', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    const { container } = render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  test('status inconnu ne rend aucun badge de statut', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: { ...mockInstitution, status: 'UNKNOWN' as InstitutionStatus },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    expect(screen.queryByText('Actif')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inactif')).not.toBeInTheDocument();
+    expect(screen.queryByText('En attente')).not.toBeInTheDocument();
+  });
+
+  test('formatDate retourne la chaîne originale si la date est invalide', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: {
+        ...mockInstitution,
+        createdAt: 'date-invalide',
+        updatedAt: 'date-invalide',
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
+
+    const invalids = screen.getAllByText('date-invalide');
+    expect(invalids.length).toBeGreaterThanOrEqual(1);
   });
 });
