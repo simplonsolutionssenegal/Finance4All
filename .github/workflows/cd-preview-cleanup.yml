@@ -88,10 +88,20 @@ jobs:
       - name: Stop and remove containers
         run: |
           cd ${{ github.workspace }}
+          PR_NUM=${{ needs.check-cleanup-request.outputs.pr-number }}
+          PROJECT_NAME="finance4all-preview-pr-${PR_NUM}"
+
           if [ -f docker-compose.preview.yml ]; then
-            echo "Stopping and removing containers for PR-${{ needs.check-cleanup-request.outputs.pr-number }}..."
-            docker compose -f docker-compose.preview.yml --env-file .env.preview down -v --remove-orphans || echo "No containers to remove"
+            echo "🛑 Stopping and removing containers for PR #${PR_NUM} (project: ${PROJECT_NAME})..."
+            docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview down -v --remove-orphans || echo "No containers to remove"
           fi
+
+          # Fallback: Remove containers by exact name match
+          for container in $(docker ps -a --format "{{.Names}}" | grep -E "^finance4all-(postgres|backend|frontend)-pr-${PR_NUM}$"); do
+            echo "Removing container: ${container}"
+            docker stop "${container}" 2>/dev/null || true
+            docker rm -v "${container}" 2>/dev/null || true
+          done
 
       - name: Remove local Docker images
         continue-on-error: true

@@ -154,47 +154,39 @@ jobs:
 
 
       # --------------------------------------------------
-      # SAFE REMOVE ONLY THIS PR’S IMAGES (bug fixed!)
+      # SAFE REMOVE ONLY THIS PR'S CONTAINERS (bug fixed!)
       # --------------------------------------------------
       - name: Stop and remove old preview environment (safe)
         continue-on-error: true
         run: |
-          PR_TAG="pr-${{ needs.check-preview-request.outputs.pr-number }}"
+          PR_NUM=${{ needs.check-preview-request.outputs.pr-number }}
+          PROJECT_NAME="finance4all-preview-pr-${PR_NUM}"
           REPO="${REPO_LOWER}"
 
-          echo "🛑 Stopping containers for ${PR_TAG}..."
+          echo "🛑 Stopping environment for PR #${PR_NUM} (project: ${PROJECT_NAME})..."
 
-          # Stop and remove ONLY containers for this specific PR
-          docker ps -a --filter "label=com.docker.compose.project=finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}" -q | xargs -r docker stop
-          docker ps -a --filter "label=com.docker.compose.project=finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}" -q | xargs -r docker rm
+          # Use docker-compose down with explicit project name to stop ONLY this PR's containers
+          if [ -f docker-compose.preview.yml ]; then
+            docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans || true
+          fi
 
-          # Also stop containers by name pattern (fallback)
-          docker ps -a --format "{{.Names}}" | grep "pr-${{ needs.check-preview-request.outputs.pr-number }}" | xargs -r docker stop
-          docker ps -a --format "{{.Names}}" | grep "pr-${{ needs.check-preview-request.outputs.pr-number }}" | xargs -r docker rm
+          # Fallback: Stop containers by exact name match
+          for container in $(docker ps -a --format "{{.Names}}" | grep -E "^finance4all-(postgres|backend|frontend)-pr-${PR_NUM}$"); do
+            echo "Stopping container: ${container}"
+            docker stop "${container}" 2>/dev/null || true
+            docker rm "${container}" 2>/dev/null || true
+          done
 
-          echo "🗑 Removing ONLY images for ${PR_TAG}..."
+          echo "🗑 Removing ONLY images for pr-${PR_NUM}..."
 
-          # Backend exact matches
+          # Remove old images for this specific PR
           docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}$" \
-            | xargs -r docker rmi -f
+            | grep -E "^ghcr.io/${REPO}/(backend|frontend):pr-${PR_NUM}(-[a-f0-9]+)?$" \
+            | xargs -r docker rmi -f || true
 
-          docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep "^ghcr.io/${REPO}/backend:${PR_TAG}-" \
-            | xargs -r docker rmi -f
-
-          # Frontend exact matches
-          docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}$" \
-            | xargs -r docker rmi -f
-
-          docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep "^ghcr.io/${REPO}/frontend:${PR_TAG}-" \
-            | xargs -r docker rmi -f
-
-          echo "Pulling fresh images..."
-          docker pull ghcr.io/${REPO}/backend:${PR_TAG}
-          docker pull ghcr.io/${REPO}/frontend:${PR_TAG}
+          echo "📥 Pulling fresh images..."
+          docker pull ghcr.io/${REPO}/backend:pr-${PR_NUM}
+          docker pull ghcr.io/${REPO}/frontend:pr-${PR_NUM}
 
 
       # --------------------------------------------------
@@ -245,11 +237,15 @@ jobs:
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          docker compose -f docker-compose.preview.yml --env-file .env.preview up -d
+          PROJECT_NAME="finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}"
+          echo "🚀 Deploying preview with project name: ${PROJECT_NAME}"
+          docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview up -d
 
       - name: Wait for services to be healthy
         run: |
-          timeout 120 sh -c 'until docker compose -f docker-compose.preview.yml ps | grep -q "healthy"; do sleep 5; done' || echo "Health check timeout"
+          PROJECT_NAME="finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}"
+          echo "⏳ Waiting for services to be healthy..."
+          timeout 120 sh -c "until docker compose -p ${PROJECT_NAME} -f docker-compose.preview.yml ps | grep -q 'healthy'; do sleep 5; done" || echo "⚠️ Health check timeout"
 
 
       # --------------------------------------------------
