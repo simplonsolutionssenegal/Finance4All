@@ -85,7 +85,7 @@ const Countries = {
   CAMEROUN: 'Cameroun',
 } as const;
 
-const removeZone = (zones: string[] | undefined, zoneToRemove: string): string[] => {
+export const removeZone = (zones: string[] | undefined, zoneToRemove: string): string[] => {
   return zones?.filter(z => z !== zoneToRemove) || [];
 };
 
