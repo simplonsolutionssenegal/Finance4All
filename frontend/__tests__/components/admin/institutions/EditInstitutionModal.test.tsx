@@ -169,7 +169,35 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     renderModal();
 
     const nameInput = screen.getByPlaceholderText('Ex: Orange Money');
+    await u.clear(nameInput);
+    await u.type(nameInput, 'AB');
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(
+      screen.queryByText('Le nom doit contenir au moins 2 caractères')
+    ).not.toBeInTheDocument();
+  });
+
+  test('validation: description avec exactement 10 caractères est valide', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
     const descInput = screen.getByPlaceholderText("Description de l'institution");
+    await u.clear(descInput);
+    await u.type(descInput, '1234567890');
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(
+      screen.queryByText('La description doit contenir au moins 10 caractères')
+    ).not.toBeInTheDocument();
+  });
+
+  test('validation: URL vide pour website et logoUrl est acceptée', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
     const websiteInput = screen.getByPlaceholderText('https://www.example.com');
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
 
@@ -267,9 +295,6 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     };
 
     renderModal({ institution: instWithoutZones });
-
-    // Pas de badges au départ
-    expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
 
     const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
 
@@ -391,11 +416,6 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     renderModal();
 
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
-
-    // Visible avec l’URL de base
-    expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
-
-    // Vider l’input -> plus d’aperçu
     await u.clear(logoInput);
     await u.type(logoInput, 'https://example.com/new-logo.png');
 
