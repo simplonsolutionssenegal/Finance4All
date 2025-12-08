@@ -3,6 +3,38 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 
 import EditInstitutionModal from '@/components/admin/institutions/EditInstitutionModal';
+
+const AVAILABLE_ZONES = [
+  'EURO',
+  'USD',
+  'Franc Suisse',
+  'Roupie indienne',
+  'Australie',
+  'Caraïbes orientales',
+  'Sud Africain',
+  'UEMOA',
+  'CEMAC',
+  'Pacifique',
+];
+
+const INSTITUTION_TYPE_OPTIONS = [
+  { value: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE', label: 'Établissement de monnaie électronique' },
+  { value: 'PORTEFEUILLE_NUMERIQUE', label: 'Portefeuille numérique' },
+  { value: 'SERVICE_PAIEMENT_ELECTRONIQUE', label: 'Service de paiement' },
+  { value: 'BANQUE_NUMERIQUE', label: 'Banque numérique' },
+  { value: 'SERVICE_FINANCIER_DECENTRALISE', label: 'SFD' },
+  { value: 'SERVICE_FINANCEMENT_PARTICIPATIF', label: 'Financement participatif' },
+  { value: 'SERVICE_INVESTISSEMENT', label: 'Investissement' },
+  { value: 'SERVICE_GESTION_FINANCIERE', label: 'Gestion financière' },
+  { value: 'SERVICE_ASSURANCE_NUMERIQUE', label: 'Assurance numérique' },
+];
+
+const INSTITUTION_TYPE_LABELS = INSTITUTION_TYPE_OPTIONS.map(o => o.label);
+
+// Build a loose regex to find the type trigger button by matching any label text
+const TYPE_LABEL_REGEX = new RegExp(
+  INSTITUTION_TYPE_LABELS.map(l => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+);
 import type { Institution } from '@/types/Institution';
 
 // Mock next/image
@@ -71,11 +103,7 @@ const renderModal = (
 
 // Helper pour retrouver le bouton du dropdown "Type" de façon robuste
 const findTypeTrigger = () =>
-  Array.from(screen.getAllByRole('button')).find(b =>
-    /Établissement de monnaie électronique|Portefeuille numérique|Service de paiement|Banque numérique|SFD|Financement participatif|Investissement|Gestion financière|Assurance numérique/.test(
-      b.textContent || ''
-    )
-  );
+  Array.from(screen.getAllByRole('button')).find(b => TYPE_LABEL_REGEX.test(b.textContent || ''));
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -293,22 +321,7 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
   // ===== Tests pour tous les types d'institution =====
 
   test("tous les types d'institution sont sélectionnables", async () => {
-    const types = [
-      {
-        value: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
-        label: 'Établissement de monnaie électronique',
-      },
-      { value: 'PORTEFEUILLE_NUMERIQUE', label: 'Portefeuille numérique' },
-      { value: 'SERVICE_PAIEMENT_ELECTRONIQUE', label: 'Service de paiement' },
-      { value: 'BANQUE_NUMERIQUE', label: 'Banque numérique' },
-      { value: 'SERVICE_FINANCIER_DECENTRALISE', label: 'SFD' },
-      { value: 'SERVICE_FINANCEMENT_PARTICIPATIF', label: 'Financement participatif' },
-      { value: 'SERVICE_INVESTISSEMENT', label: 'Investissement' },
-      { value: 'SERVICE_GESTION_FINANCIERE', label: 'Gestion financière' },
-      { value: 'SERVICE_ASSURANCE_NUMERIQUE', label: 'Assurance numérique' },
-    ];
-
-    for (const type of types) {
+    for (const type of INSTITUTION_TYPE_OPTIONS) {
       const { onOpenChange } = renderModal({
         institution: { ...baseInstitution, type: type.value as any },
       });
@@ -325,18 +338,7 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     const u = userEvent.setup();
     renderModal();
 
-    const types = [
-      'Établissement de monnaie électronique',
-      'Portefeuille numérique',
-      'Banque numérique',
-      'SFD',
-      'Financement participatif',
-      'Investissement',
-      'Gestion financière',
-      'Assurance numérique',
-    ];
-
-    for (const typeLabel of types) {
+    for (const typeLabel of INSTITUTION_TYPE_LABELS) {
       const typeButton = findTypeTrigger();
       if (!typeButton) throw new Error('Type trigger not found');
       await u.click(typeButton);
@@ -542,22 +544,9 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
 
     renderModal({ institution: instWithoutZones });
 
-    const zones = [
-      'EURO',
-      'USD',
-      'Franc Suisse',
-      'Roupie indienne',
-      'Australie',
-      'Caraïbes orientales',
-      'Sud Africain',
-      'UEMOA',
-      'CEMAC',
-      'Pacifique',
-    ];
-
     const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
 
-    for (const zone of zones) {
+    for (const zone of AVAILABLE_ZONES) {
       await u.clear(zoneInput);
       await u.type(zoneInput, zone);
       expect(await screen.findByRole('button', { name: zone })).toBeInTheDocument();
