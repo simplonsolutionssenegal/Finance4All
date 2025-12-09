@@ -2,6 +2,43 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import AddBeneficiaryModal from '@/components/beneficiaire/AddBeneficiaryModal';
 
+// Mock validation module
+jest.mock('@/lib/validations/beneficiaire-validations', () => {
+  const z = require('zod');
+
+  const createBeneficiarySchema = z.object({
+    organizationId: z.string().min(1),
+    firstName: z.string().min(1, 'Prénom requis'),
+    lastName: z.string().min(1, 'Nom requis'),
+    email: z.string().email('Email invalide'),
+    phone: z.string().startsWith('+').optional().or(z.literal('')),
+    generateTempPassword: z.boolean(),
+    role: z.literal('org:recipient'),
+  });
+
+  const updateBeneficiarySchema = z.object({
+    id: z.string().min(1),
+    organizationId: z.string().min(1),
+    firstName: z.string().min(1, 'Prénom requis'),
+    lastName: z.string().min(1, 'Nom requis'),
+    phone: z.string().startsWith('+').optional().or(z.literal('')),
+  });
+
+  return {
+    createBeneficiarySchema,
+    updateBeneficiarySchema,
+    zodErrorsToFieldErrors: (error: any) => {
+      const fieldErrors: any = {};
+      error.errors.forEach((err: any) => {
+        if (err.path.length > 0) {
+          fieldErrors[err.path[0]] = err.message;
+        }
+      });
+      return fieldErrors;
+    },
+  };
+});
+
 // Mock UI components
 jest.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }: any) => (open ? <div data-testid='dialog'>{children}</div> : null),
@@ -55,7 +92,7 @@ describe('AddBeneficiaryModal', () => {
       render(<AddBeneficiaryModal {...defaultProps} mode='create' />);
 
       const checkbox = screen.getByRole('button', { name: /Mot de passe temporaire/i });
-      expect(checkbox).toHaveClass('bg-sky-50');
+      expect(checkbox).toHaveClass('bg-[#F8FCFF]');
     });
 
     it('should toggle temp password checkbox', () => {
@@ -64,7 +101,7 @@ describe('AddBeneficiaryModal', () => {
       const checkbox = screen.getByRole('button', { name: /Mot de passe temporaire/i });
       fireEvent.click(checkbox);
 
-      expect(checkbox).not.toHaveClass('bg-sky-50');
+      expect(checkbox).not.toHaveClass('bg-[#F8FCFF]');
     });
   });
 
@@ -87,7 +124,7 @@ describe('AddBeneficiaryModal', () => {
         />
       );
 
-      expect(screen.getByText('Modifier le bénéficiaire')).toBeInTheDocument();
+      expect(screen.getByText('Modifier un bénéficiaire')).toBeInTheDocument();
       expect(screen.getByText(/Modifiez les informations/i)).toBeInTheDocument();
     });
 
@@ -139,7 +176,7 @@ describe('AddBeneficiaryModal', () => {
     it('should require firstName', () => {
       render(<AddBeneficiaryModal {...defaultProps} mode='create' />);
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).toBeDisabled();
     });
 
@@ -149,7 +186,7 @@ describe('AddBeneficiaryModal', () => {
       const firstNameInput = screen.getByPlaceholderText('Awa');
       fireEvent.change(firstNameInput, { target: { value: 'Test' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).toBeDisabled();
     });
 
@@ -162,7 +199,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(firstNameInput, { target: { value: 'Test' } });
       fireEvent.change(lastNameInput, { target: { value: 'User' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).toBeDisabled();
     });
 
@@ -177,7 +214,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(lastNameInput, { target: { value: 'User' } });
       fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).toBeDisabled();
     });
 
@@ -192,7 +229,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(lastNameInput, { target: { value: 'User' } });
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).not.toBeDisabled();
     });
 
@@ -209,7 +246,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(phoneInput, { target: { value: '123456' } }); // Invalid - no +
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).toBeDisabled();
     });
 
@@ -226,7 +263,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(phoneInput, { target: { value: '+221771234567' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).not.toBeDisabled();
     });
 
@@ -241,7 +278,7 @@ describe('AddBeneficiaryModal', () => {
       fireEvent.change(lastNameInput, { target: { value: 'User' } });
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       expect(saveButton).not.toBeDisabled();
     });
   });
@@ -256,7 +293,7 @@ describe('AddBeneficiaryModal', () => {
         target: { value: 'test@example.com' },
       });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
@@ -312,7 +349,7 @@ describe('AddBeneficiaryModal', () => {
         target: { value: '  test@example.com  ' },
       });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
@@ -336,7 +373,7 @@ describe('AddBeneficiaryModal', () => {
       });
       fireEvent.change(screen.getByPlaceholderText(/\+221/i), { target: { value: '   ' } });
 
-      const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
+      const saveButton = screen.getByRole('button', { name: /Créer le compte/i });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
@@ -455,11 +492,9 @@ describe('AddBeneficiaryModal', () => {
       );
 
       const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
-      fireEvent.click(saveButton);
 
-      await waitFor(() => {
-        expect(mockOnSubmit).not.toHaveBeenCalled();
-      });
+      // Le bouton devrait être désactivé sans beneficiaryId
+      expect(saveButton).toBeDisabled();
     });
   });
 });

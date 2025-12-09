@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { BeneficiaryController } from '@/infrastructure/web/controllers/BeneficiaryController';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
+import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import { BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
 import {
   createBeneficiarySchema,
@@ -22,6 +23,7 @@ describe('BeneficiaryController', () => {
   let controller: BeneficiaryController;
   let mockCreateUC: jest.Mocked<CreateBeneficiaryUseCase>;
   let mockUpdateUC: jest.Mocked<UpdateBeneficiaryUseCase>;
+  let mockRepo: jest.Mocked<BeneficiaryRepository>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
 
@@ -34,7 +36,16 @@ describe('BeneficiaryController', () => {
       execute: jest.fn(),
     };
 
-    controller = new BeneficiaryController(mockCreateUC, mockUpdateUC);
+    mockRepo = {
+      findByOrgId: jest.fn(),
+      findById: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      findByEmail: jest.fn(),
+    } as any;
+
+    controller = new BeneficiaryController(mockCreateUC, mockUpdateUC, mockRepo);
 
     mockRequest = {
       body: {},
@@ -47,6 +58,259 @@ describe('BeneficiaryController', () => {
     };
 
     jest.clearAllMocks();
+  });
+
+  describe('list', () => {
+    beforeEach(() => {
+      mockRequest.query = {};
+    });
+
+    describe('validation errors', () => {
+      it('should return 400 when organizationId is missing', async () => {
+        mockRequest.query = {};
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.findByOrgId).not.toHaveBeenCalled();
+      });
+
+      it('should return 400 when organizationId is undefined', async () => {
+        mockRequest.query = { organizationId: undefined };
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.findByOrgId).not.toHaveBeenCalled();
+      });
+
+      it('should return 400 when organizationId is empty string', async () => {
+        mockRequest.query = { organizationId: '' };
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.findByOrgId).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('successful list', () => {
+      it('should return list of beneficiaries for organization', async () => {
+        const now = new Date();
+        mockRequest.query = { organizationId: 'org-123' };
+
+        const mockBeneficiaries = [
+          {
+            id: 'ben-1',
+            organizationId: 'org-123',
+            clerkUserId: 'clerk-1',
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'john@example.com',
+            phone: '+221771234567',
+            status: BeneficiaryStatus.ACTIVE,
+            progressPercent: 50,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            id: 'ben-2',
+            organizationId: 'org-123',
+            clerkUserId: 'clerk-2',
+            firstName: 'Jane',
+            lastName: 'Smith',
+            email: 'jane@example.com',
+            phone: null,
+            status: BeneficiaryStatus.INACTIVE,
+            progressPercent: 75,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ];
+
+        mockRepo.findByOrgId.mockResolvedValue(mockBeneficiaries);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.findByOrgId).toHaveBeenCalledWith('org-123');
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          data: [
+            {
+              id: 'ben-1',
+              clerkUserId: 'clerk-1',
+              firstName: 'John',
+              lastName: 'Doe',
+              email: 'john@example.com',
+              phone: '+221771234567',
+              status: BeneficiaryStatus.ACTIVE,
+              progressPercent: 50,
+              createdAt: now,
+            },
+            {
+              id: 'ben-2',
+              clerkUserId: 'clerk-2',
+              firstName: 'Jane',
+              lastName: 'Smith',
+              email: 'jane@example.com',
+              phone: null,
+              status: BeneficiaryStatus.INACTIVE,
+              progressPercent: 75,
+              createdAt: now,
+            },
+          ],
+        });
+      });
+
+      it('should return empty array when no beneficiaries found', async () => {
+        mockRequest.query = { organizationId: 'org-456' };
+        mockRepo.findByOrgId.mockResolvedValue([]);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.findByOrgId).toHaveBeenCalledWith('org-456');
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          data: [],
+        });
+      });
+
+      it('should exclude updatedAt from response', async () => {
+        const now = new Date();
+        mockRequest.query = { organizationId: 'org-789' };
+
+        const mockBeneficiary = {
+          id: 'ben-1',
+          organizationId: 'org-789',
+          clerkUserId: 'clerk-1',
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+          phone: '+221771234567',
+          status: BeneficiaryStatus.ACTIVE,
+          progressPercent: 30,
+          createdAt: now,
+          updatedAt: new Date('2024-12-09'),
+        };
+
+        mockRepo.findByOrgId.mockResolvedValue([mockBeneficiary]);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        const response = (mockResponse.json as jest.Mock).mock.calls[0][0];
+        expect(response.data[0]).not.toHaveProperty('updatedAt');
+        expect(response.data[0].createdAt).toBe(now);
+      });
+
+      it('should handle multiple beneficiaries with different statuses', async () => {
+        mockRequest.query = { organizationId: 'org-multi' };
+
+        const mockBeneficiaries = [
+          {
+            id: 'ben-1',
+            organizationId: 'org-multi',
+            clerkUserId: 'clerk-1',
+            firstName: 'Active',
+            lastName: 'User',
+            email: 'active@example.com',
+            phone: '+221771111111',
+            status: BeneficiaryStatus.ACTIVE,
+            progressPercent: 100,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 'ben-2',
+            organizationId: 'org-multi',
+            clerkUserId: 'clerk-2',
+            firstName: 'Inactive',
+            lastName: 'User',
+            email: 'inactive@example.com',
+            phone: '+221772222222',
+            status: BeneficiaryStatus.INACTIVE,
+            progressPercent: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ];
+
+        mockRepo.findByOrgId.mockResolvedValue(mockBeneficiaries);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        const response = (mockResponse.json as jest.Mock).mock.calls[0][0];
+        expect(response.data).toHaveLength(2);
+        expect(response.data[0].status).toBe(BeneficiaryStatus.ACTIVE);
+        expect(response.data[1].status).toBe(BeneficiaryStatus.INACTIVE);
+      });
+    });
+
+    describe('error handling', () => {
+      it('should return 500 when repository throws error', async () => {
+        mockRequest.query = { organizationId: 'org-error' };
+        const error = new Error('Database connection failed');
+        mockRepo.findByOrgId.mockRejectedValue(error);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Database connection failed',
+        });
+      });
+
+      it('should return 500 with generic message for unknown error type', async () => {
+        mockRequest.query = { organizationId: 'org-unknown' };
+        mockRepo.findByOrgId.mockRejectedValue('String error');
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Erreur serveur',
+        });
+      });
+
+      it('should return 500 when repository throws timeout error', async () => {
+        mockRequest.query = { organizationId: 'org-timeout' };
+        const error = new Error('Query timeout exceeded');
+        mockRepo.findByOrgId.mockRejectedValue(error);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Query timeout exceeded',
+        });
+      });
+
+      it('should log error to console when repository fails', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        mockRequest.query = { organizationId: 'org-log' };
+        const error = new Error('Repository error');
+        mockRepo.findByOrgId.mockRejectedValue(error);
+
+        await controller.list(mockRequest as Request, mockResponse as Response);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith('  - Erreur:', error);
+        consoleErrorSpy.mockRestore();
+      });
+    });
   });
 
   describe('create', () => {
@@ -364,10 +628,10 @@ describe('BeneficiaryController', () => {
     describe('validation errors', () => {
       it('should return 400 when schema validation fails', async () => {
         mockRequest.params = {
-          organizationId: 'org-123',
           beneficiaryId: 'ben-123',
         };
         mockRequest.body = {
+          organizationId: 'org-123',
           firstName: '',
         };
 
@@ -387,15 +651,40 @@ describe('BeneficiaryController', () => {
         });
         expect(mockUpdateUC.execute).not.toHaveBeenCalled();
       });
+
+      it('should return 400 when organizationId is missing', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {
+          firstName: 'Test',
+        };
+
+        (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
+          success: true,
+          data: {
+            firstName: 'Test',
+          },
+        });
+
+        await controller.update(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockUpdateUC.execute).not.toHaveBeenCalled();
+      });
     });
 
     describe('successful update', () => {
       it('should update beneficiary with partial data', async () => {
         mockRequest.params = {
-          organizationId: 'org-123',
           beneficiaryId: 'ben-123',
         };
         mockRequest.body = {
+          organizationId: 'org-123',
           firstName: 'Updated',
           lastName: 'Name',
         };
@@ -403,6 +692,7 @@ describe('BeneficiaryController', () => {
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-123',
             firstName: 'Updated',
             lastName: 'Name',
           },
@@ -450,16 +740,17 @@ describe('BeneficiaryController', () => {
 
       it('should update only status field', async () => {
         mockRequest.params = {
-          organizationId: 'org-456',
           beneficiaryId: 'ben-456',
         };
         mockRequest.body = {
+          organizationId: 'org-456',
           status: 'INACTIVE',
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-456',
             status: 'INACTIVE',
           },
         });
@@ -497,16 +788,17 @@ describe('BeneficiaryController', () => {
 
       it('should update phone to null', async () => {
         mockRequest.params = {
-          organizationId: 'org-789',
           beneficiaryId: 'ben-789',
         };
         mockRequest.body = {
+          organizationId: 'org-789',
           phone: null,
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-789',
             phone: null,
           },
         });
@@ -539,10 +831,10 @@ describe('BeneficiaryController', () => {
 
       it('should update all fields together', async () => {
         mockRequest.params = {
-          organizationId: 'org-all',
           beneficiaryId: 'ben-all',
         };
         mockRequest.body = {
+          organizationId: 'org-all',
           firstName: 'All',
           lastName: 'Updated',
           phone: '+221775555555',
@@ -552,6 +844,7 @@ describe('BeneficiaryController', () => {
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-all',
             firstName: 'All',
             lastName: 'Updated',
             phone: '+221775555555',
@@ -604,16 +897,17 @@ describe('BeneficiaryController', () => {
     describe('error handling', () => {
       it('should return 400 when use case throws error', async () => {
         mockRequest.params = {
-          organizationId: 'org-error',
           beneficiaryId: 'ben-error',
         };
         mockRequest.body = {
+          organizationId: 'org-error',
           firstName: 'Error',
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-error',
             firstName: 'Error',
           },
         });
@@ -631,16 +925,17 @@ describe('BeneficiaryController', () => {
 
       it('should handle unknown error type', async () => {
         mockRequest.params = {
-          organizationId: 'org-unknown',
           beneficiaryId: 'ben-unknown',
         };
         mockRequest.body = {
+          organizationId: 'org-unknown',
           firstName: 'Unknown',
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-unknown',
             firstName: 'Unknown',
           },
         });
@@ -658,16 +953,17 @@ describe('BeneficiaryController', () => {
 
       it('should handle access denied error', async () => {
         mockRequest.params = {
-          organizationId: 'org-wrong',
           beneficiaryId: 'ben-123',
         };
         mockRequest.body = {
+          organizationId: 'org-wrong',
           firstName: 'Denied',
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
           success: true,
           data: {
+            organizationId: 'org-wrong',
             firstName: 'Denied',
           },
         });

@@ -21,6 +21,36 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/hooks/beneficiary/useBeneficiaries');
 jest.mock('@/hooks/beneficiary/useCreateBeneficiaryAdmin');
 
+// Mock sonner toast
+jest.mock('sonner', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+// Mock BeneficiaryTable
+jest.mock('@/components/beneficiaire/BeneficiaryTable', () => {
+  return jest.fn(({ rows, isLoading, onEdit }) => {
+    if (isLoading) return <div>Chargement...</div>;
+    if (rows.length === 0) return <div>Aucun bénéficiaire trouvé.</div>;
+    return (
+      <div>
+        {rows.map((b: any) => (
+          <div key={b.id}>
+            <span>
+              {b.firstName} {b.lastName}
+            </span>
+            <button onClick={() => onEdit(b)} title='Modifier'>
+              edit
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  });
+});
+
 // On garde une référence aux props du dernier rendu du modal
 let lastModalProps: any = null;
 
@@ -142,7 +172,7 @@ describe('BeneficiaryManagement', () => {
   it('shows loading state', () => {
     (useBeneficiaries as jest.Mock).mockReturnValue({ data: [], isLoading: true });
     render(<BeneficiaryManagement />);
-    expect(screen.getByText(/Chargement/i)).toBeInTheDocument();
+    expect(screen.getByText('Chargement...')).toBeInTheDocument();
   });
 
   describe('search', () => {
@@ -271,7 +301,8 @@ describe('BeneficiaryManagement', () => {
   });
 
   describe('create beneficiary', () => {
-    it('calls mutateAsync then refresh', async () => {
+    it('calls mutateAsync then refresh and shows success toast', async () => {
+      const { toast } = require('sonner');
       const mutateAsync = jest.fn().mockResolvedValue({});
       (useCreateBeneficiaryAdmin as jest.Mock).mockReturnValue({
         mutateAsync,
@@ -286,12 +317,15 @@ describe('BeneficiaryManagement', () => {
       await waitFor(() => {
         expect(mutateAsync).toHaveBeenCalledTimes(1);
         expect(mockRouter.refresh).toHaveBeenCalled();
+        expect(toast.success).toHaveBeenCalledWith('Bénéficiaire ajouté avec succès ✅');
       });
     });
   });
 
   describe('update beneficiary', () => {
-    it('calls PATCH fetch and refresh', async () => {
+    it('calls PATCH fetch, refresh and shows success toast', async () => {
+      const { toast } = require('sonner');
+
       render(<BeneficiaryManagement />);
 
       const editBtn = screen.getAllByTitle('Modifier')[0];
@@ -311,17 +345,19 @@ describe('BeneficiaryManagement', () => {
           })
         );
         expect(mockRouter.refresh).toHaveBeenCalled();
+        expect(toast.success).toHaveBeenCalledWith('Bénéficiaire mis à jour avec succès ✅');
       });
     });
 
-    it('handles PATCH errors with alert', async () => {
+    it('handles PATCH errors with toast', async () => {
+      const { toast } = require('sonner');
+
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 400,
         text: jest.fn().mockResolvedValue('Update failed'),
       });
 
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       render(<BeneficiaryManagement />);
@@ -330,11 +366,10 @@ describe('BeneficiaryManagement', () => {
       fireEvent.click(screen.getByLabelText('submit-modal'));
 
       await waitFor(() => {
-        expect(alertSpy).toHaveBeenCalledWith('Update failed');
+        expect(toast.error).toHaveBeenCalledWith('Update failed');
         expect(consoleSpy).toHaveBeenCalled();
       });
 
-      alertSpy.mockRestore();
       consoleSpy.mockRestore();
     });
   });
@@ -343,7 +378,7 @@ describe('BeneficiaryManagement', () => {
     it('shows empty message when no beneficiaries', () => {
       (useBeneficiaries as jest.Mock).mockReturnValue({ data: [], isLoading: false });
       render(<BeneficiaryManagement />);
-      expect(screen.getByText(/Aucun bénéficiaire/i)).toBeInTheDocument();
+      expect(screen.getByText('Aucun bénéficiaire trouvé.')).toBeInTheDocument();
     });
 
     it('shows empty state when search has no results', () => {
@@ -351,7 +386,7 @@ describe('BeneficiaryManagement', () => {
       fireEvent.change(screen.getByPlaceholderText('Rechercher...'), {
         target: { value: 'NonExistentName' },
       });
-      expect(screen.getByText(/Aucun bénéficiaire trouvé/i)).toBeInTheDocument();
+      expect(screen.getByText('Aucun bénéficiaire trouvé.')).toBeInTheDocument();
     });
   });
 

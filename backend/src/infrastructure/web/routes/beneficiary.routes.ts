@@ -10,9 +10,11 @@ export const beneficiaryRoutes = (): Router => {
   const controller = container.get<BeneficiaryController>(TYPES.BeneficiaryController);
 
   const boundController = {
+    list: controller.list.bind(controller),
     create: controller.create.bind(controller),
     update: controller.update.bind(controller),
   };
+  router.get('/', requireSameActiveOrg, boundController.list);
   router.post('/', requireSameActiveOrg, handleValidationErrors, boundController.create);
   router.patch(
     '/:beneficiaryId',

@@ -43,6 +43,7 @@ describe('beneficiaryRoutes', () => {
 
     // Mock controller
     mockController = {
+      list: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     } as any;
@@ -67,6 +68,71 @@ describe('beneficiaryRoutes', () => {
 
       // Assert
       expect(container.get).toHaveBeenCalledWith(TYPES.BeneficiaryController);
+    });
+  });
+
+  describe('GET / route', () => {
+    it('should register GET / route', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      expect(mockRouter.get).toHaveBeenCalledWith('/', requireSameActiveOrg, expect.any(Function));
+    });
+
+    it('should use correct middleware order for GET /', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      const handlers = routeHandlers.get('GET /');
+      expect(handlers).toHaveLength(2);
+      expect(handlers[0]).toBe(requireSameActiveOrg);
+      expect(typeof handlers[1]).toBe('function');
+    });
+
+    it('should bind controller.list method correctly', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      const handlers = routeHandlers.get('GET /');
+      const listHandler = handlers[1];
+
+      // Verify it's a bound function by checking if it calls the controller method
+      const mockReq = {} as any;
+      const mockRes = {} as any;
+      const mockNext = jest.fn();
+
+      listHandler(mockReq, mockRes, mockNext);
+
+      expect(mockController.list).toHaveBeenCalledWith(mockReq, mockRes, mockNext);
+    });
+
+    it('should have correct context binding for list handler', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      const handlers = routeHandlers.get('GET /');
+      const listHandler = handlers[1];
+
+      // Call handler multiple times to ensure binding is consistent
+      const mockReq1 = { query: { organizationId: 'org-1' } } as any;
+      const mockRes1 = {} as any;
+      const mockNext1 = jest.fn();
+
+      listHandler(mockReq1, mockRes1, mockNext1);
+      expect(mockController.list).toHaveBeenCalledTimes(1);
+      expect(mockController.list).toHaveBeenCalledWith(mockReq1, mockRes1, mockNext1);
+
+      const mockReq2 = { query: { organizationId: 'org-2' } } as any;
+      const mockRes2 = {} as any;
+      const mockNext2 = jest.fn();
+
+      listHandler(mockReq2, mockRes2, mockNext2);
+      expect(mockController.list).toHaveBeenCalledTimes(2);
+      expect(mockController.list).toHaveBeenCalledWith(mockReq2, mockRes2, mockNext2);
     });
   });
 
@@ -213,14 +279,14 @@ describe('beneficiaryRoutes', () => {
   });
 
   describe('Route configuration', () => {
-    it('should register exactly 2 routes', () => {
+    it('should register exactly 3 routes', () => {
       // Act
       beneficiaryRoutes();
 
       // Assert
+      expect(mockRouter.get).toHaveBeenCalledTimes(1);
       expect(mockRouter.post).toHaveBeenCalledTimes(1);
       expect(mockRouter.patch).toHaveBeenCalledTimes(1);
-      expect(mockRouter.get).not.toHaveBeenCalled();
       expect(mockRouter.delete).not.toHaveBeenCalled();
     });
 
@@ -229,21 +295,27 @@ describe('beneficiaryRoutes', () => {
       beneficiaryRoutes();
 
       // Assert
+      const getHandlers = routeHandlers.get('GET /');
       const postHandlers = routeHandlers.get('POST /');
       const patchHandlers = routeHandlers.get('PATCH /:beneficiaryId');
 
+      expect(getHandlers[0]).toBe(requireSameActiveOrg);
       expect(postHandlers[0]).toBe(requireSameActiveOrg);
       expect(patchHandlers[0]).toBe(requireSameActiveOrg);
     });
 
-    it('should use handleValidationErrors middleware on all routes', () => {
+    it('should use handleValidationErrors middleware on POST and PATCH routes', () => {
       // Act
       beneficiaryRoutes();
 
       // Assert
+      const getHandlers = routeHandlers.get('GET /');
       const postHandlers = routeHandlers.get('POST /');
       const patchHandlers = routeHandlers.get('PATCH /:beneficiaryId');
 
+      // GET route should not have handleValidationErrors
+      expect(getHandlers[1]).not.toBe(handleValidationErrors);
+      // POST and PATCH routes should have handleValidationErrors
       expect(postHandlers[1]).toBe(handleValidationErrors);
       expect(patchHandlers[1]).toBe(handleValidationErrors);
     });
@@ -262,14 +334,16 @@ describe('beneficiaryRoutes', () => {
   });
 
   describe('Bound controller methods', () => {
-    it('should create bound controller with create and update methods', () => {
+    it('should create bound controller with list, create and update methods', () => {
       // Act
       beneficiaryRoutes();
 
       // Assert
+      const getHandlers = routeHandlers.get('GET /');
       const postHandlers = routeHandlers.get('POST /');
       const patchHandlers = routeHandlers.get('PATCH /:beneficiaryId');
 
+      expect(typeof getHandlers[1]).toBe('function');
       expect(typeof postHandlers[2]).toBe('function');
       expect(typeof patchHandlers[2]).toBe('function');
     });
@@ -279,13 +353,17 @@ describe('beneficiaryRoutes', () => {
       beneficiaryRoutes();
 
       // Assert
+      const getHandlers = routeHandlers.get('GET /');
       const postHandlers = routeHandlers.get('POST /');
       const patchHandlers = routeHandlers.get('PATCH /:beneficiaryId');
 
+      const listHandler = getHandlers[1];
       const createHandler = postHandlers[2];
       const updateHandler = patchHandlers[2];
 
+      expect(listHandler).not.toBe(createHandler);
       expect(createHandler).not.toBe(updateHandler);
+      expect(listHandler).not.toBe(updateHandler);
     });
 
     it('should preserve controller method behavior through binding', () => {
@@ -317,54 +395,72 @@ describe('beneficiaryRoutes', () => {
 
     it('should use the same controller instance for all routes', () => {
       // Arrange
-      const controller1Mock = { create: jest.fn(), update: jest.fn() };
+      const controller1Mock = { list: jest.fn(), create: jest.fn(), update: jest.fn() };
       (container.get as jest.Mock).mockReturnValue(controller1Mock);
 
       // Act
       beneficiaryRoutes();
 
       // Assert
+      const getHandlers = routeHandlers.get('GET /');
       const postHandlers = routeHandlers.get('POST /');
       const patchHandlers = routeHandlers.get('PATCH /:beneficiaryId');
 
+      getHandlers[1]({} as any, {} as any, jest.fn());
       postHandlers[2]({} as any, {} as any, jest.fn());
       patchHandlers[2]({} as any, {} as any, jest.fn());
 
+      expect(controller1Mock.list).toHaveBeenCalledTimes(1);
       expect(controller1Mock.create).toHaveBeenCalledTimes(1);
       expect(controller1Mock.update).toHaveBeenCalledTimes(1);
     });
 
     it('should handle multiple router instances independently', () => {
       // Arrange
-      const controller1Mock = { create: jest.fn(), update: jest.fn() };
-      const controller2Mock = { create: jest.fn(), update: jest.fn() };
+      const controller1Mock = { list: jest.fn(), create: jest.fn(), update: jest.fn() };
+      const controller2Mock = { list: jest.fn(), create: jest.fn(), update: jest.fn() };
 
-      // Act
+      // Create first router
       (container.get as jest.Mock).mockReturnValueOnce(controller1Mock);
       const router1 = beneficiaryRoutes();
 
-      // Reset route handlers for second router
-      routeHandlers.clear();
-      mockRouter = {
+      // Create second router with fresh mocks
+      const mockRouter2 = {
         post: jest.fn((path: string, ...handlers: any[]) => {
           routeHandlers.set(`POST ${path}`, handlers);
         }),
         patch: jest.fn((path: string, ...handlers: any[]) => {
           routeHandlers.set(`PATCH ${path}`, handlers);
         }),
+        get: jest.fn((path: string, ...handlers: any[]) => {
+          routeHandlers.set(`GET ${path}`, handlers);
+        }),
+        delete: jest.fn((path: string, ...handlers: any[]) => {
+          routeHandlers.set(`DELETE ${path}`, handlers);
+        }),
       };
-      (Router as unknown as jest.Mock).mockReturnValue(mockRouter);
 
+      (Router as unknown as jest.Mock).mockReturnValueOnce(mockRouter2);
       (container.get as jest.Mock).mockReturnValueOnce(controller2Mock);
       const router2 = beneficiaryRoutes();
 
       // Assert
+      expect(router1).toBe(mockRouter);
+      expect(router2).toBe(mockRouter2);
       expect(router1).not.toBe(router2);
       expect(container.get).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('Route paths', () => {
+    it('should use root path for GET list route', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      expect(mockRouter.get).toHaveBeenCalledWith('/', expect.anything(), expect.anything());
+    });
+
     it('should use root path for POST create route', () => {
       // Act
       beneficiaryRoutes();
@@ -432,6 +528,17 @@ describe('beneficiaryRoutes', () => {
   });
 
   describe('Middleware execution order', () => {
+    it('should ensure middleware executes in correct order for GET /', () => {
+      // Act
+      beneficiaryRoutes();
+
+      // Assert
+      const callArgs = mockRouter.get.mock.calls[0];
+      expect(callArgs[0]).toBe('/');
+      expect(callArgs[1]).toBe(requireSameActiveOrg);
+      expect(typeof callArgs[2]).toBe('function');
+    });
+
     it('should ensure middleware executes in correct order for POST /', () => {
       // Act
       beneficiaryRoutes();

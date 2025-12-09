@@ -8,7 +8,6 @@ export class UpdateBeneficiaryUseCaseImpl implements UpdateBeneficiaryUseCase {
   async execute(cmd: UpdateBeneficiaryCommand) {
     const current = await this.repo.findByIdInOrg(cmd.organizationId, cmd.beneficiaryId);
     if (!current) throw new Error('Bénéficiaire introuvable.');
-
     return this.repo.updateInOrg({
       organizationId: cmd.organizationId,
       beneficiaryId: cmd.beneficiaryId,

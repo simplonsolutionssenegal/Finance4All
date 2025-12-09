@@ -9,6 +9,7 @@ export const createBeneficiarySchema = z.object({
 });
 
 export const updateBeneficiarySchema = z.object({
+  organizationId: z.string().min(1, 'organizationId requis'),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().nullable().optional(),

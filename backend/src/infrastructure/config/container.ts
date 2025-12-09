@@ -293,8 +293,9 @@ container
   .toDynamicValue(context => {
     const createUC = context.get<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase);
     const updateUC = context.get<UpdateBeneficiaryUseCase>(TYPES.UpdateBeneficiaryUseCase);
+    const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
 
-    return new BeneficiaryController(createUC, updateUC);
+    return new BeneficiaryController(createUC, updateUC, repo);
   })
   .inSingletonScope();
 

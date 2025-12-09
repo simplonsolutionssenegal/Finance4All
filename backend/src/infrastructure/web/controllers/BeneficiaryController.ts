@@ -4,14 +4,52 @@ import {
   createBeneficiarySchema,
   updateBeneficiarySchema,
 } from '../validators/beneficiary.validator';
+import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
 
 export class BeneficiaryController {
   constructor(
     private readonly createUC: CreateBeneficiaryUseCase,
-    private readonly updateUC: UpdateBeneficiaryUseCase
+    private readonly updateUC: UpdateBeneficiaryUseCase,
+    private readonly repo: BeneficiaryRepository
   ) {}
+
+  async list(req: Request, res: Response): Promise<void> {
+    try {
+      const organizationId = req.query.organizationId as string | undefined;
+
+      if (!organizationId) {
+        res.status(400).json({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        return;
+      }
+      const beneficiaries = await this.repo.findByOrgId(organizationId);
+
+      res.json({
+        success: true,
+        data: beneficiaries.map(b => ({
+          id: b.id,
+          clerkUserId: b.clerkUserId,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          email: b.email,
+          phone: b.phone,
+          status: b.status,
+          progressPercent: b.progressPercent,
+          createdAt: b.createdAt,
+        })),
+      });
+    } catch (error: unknown) {
+      console.error('  - Erreur:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur serveur',
+      });
+    }
+  }
 
   async create(req: Request, res: Response): Promise<void> {
     const { organizationId } = req.body as { organizationId?: string };
@@ -62,18 +100,26 @@ export class BeneficiaryController {
   }
 
   async update(req: Request, res: Response) {
-    const { organizationId, beneficiaryId } = req.params;
+    const { beneficiaryId } = req.params;
 
     const parsed = updateBeneficiarySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ success: false, message: parsed.error.message });
     }
 
+    const { organizationId, firstName, lastName, phone, status } = parsed.data;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: 'organizationId manquant' });
+    }
+
     try {
       const updated = await this.updateUC.execute({
         organizationId,
         beneficiaryId,
-        ...parsed.data,
+        firstName,
+        lastName,
+        phone,
+        status,
       });
 
       return res.json({
