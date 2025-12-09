@@ -132,7 +132,7 @@ describe('Beneficiary interface', () => {
 
     it('should accept valid beneficiary with number id', () => {
       const beneficiary: Beneficiary = {
-        id: 12345,
+        id: '12345',
         firstName: 'Jane',
         lastName: 'Smith',
         email: 'jane.smith@example.com',
