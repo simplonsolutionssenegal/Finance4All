@@ -31,20 +31,16 @@ interface ComparisonChartsViewProps {
 const SERVICE_COLORS = ['#38bdf8', '#22c55e', '#f97316'];
 const RADAR_TEXT_COLOR_CLASSES = ['text-sky-400', 'text-emerald-400', 'text-orange-400'];
 
-// 🔎 Petit helper déterministe pour générer une variation [-10, 10]
 function hashStringToVariation(value: string, salt: number): number {
   let hash = 0;
 
   for (let i = 0; i < value.length; i += 1) {
     hash = (hash + value.charCodeAt(i) * (i + 1 + salt)) % 1000;
   }
-
-  // variation entre -10 et +10
   const variation = (hash % 21) - 10;
   return variation;
 }
 
-// 🔎 Clamp pour garder les scores entre 0 et 100
 function clampScore(score: number): number {
   if (Number.isNaN(score)) return 0;
   if (score < 0) return 0;
