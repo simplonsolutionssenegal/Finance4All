@@ -31,6 +31,27 @@ interface ComparisonChartsViewProps {
 const SERVICE_COLORS = ['#38bdf8', '#22c55e', '#f97316'];
 const RADAR_TEXT_COLOR_CLASSES = ['text-sky-400', 'text-emerald-400', 'text-orange-400'];
 
+// 🔎 Petit helper déterministe pour générer une variation [-10, 10]
+function hashStringToVariation(value: string, salt: number): number {
+  let hash = 0;
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash + value.charCodeAt(i) * (i + 1 + salt)) % 1000;
+  }
+
+  // variation entre -10 et +10
+  const variation = (hash % 21) - 10;
+  return variation;
+}
+
+// 🔎 Clamp pour garder les scores entre 0 et 100
+function clampScore(score: number): number {
+  if (Number.isNaN(score)) return 0;
+  if (score < 0) return 0;
+  if (score > 100) return 100;
+  return Math.round(score);
+}
+
 export function ComparatorChartsView({
   comparedServices,
   amount,
@@ -71,7 +92,7 @@ export function ComparatorChartsView({
         costScores[f.name] = 75;
       } else {
         const ratio = (f.fee - minFee) / (maxFee - minFee);
-        costScores[f.name] = Math.round(100 - ratio * 80);
+        costScores[f.name] = clampScore(100 - ratio * 80);
       }
     });
 
@@ -82,18 +103,29 @@ export function ComparatorChartsView({
     criteriaLabels.forEach(label => {
       const row: { critere: string; [key: string]: number | string } = { critere: label };
 
-      comparedServices.forEach(s => {
+      comparedServices.forEach((s, index) => {
         const key = s.institution.name;
+        const serviceKey = `${s.id}-${index}`;
+
         if (label === 'Coût') {
           row[key] = costScores[key] ?? 60;
         } else if (label === 'Rapidité') {
-          row[key] = 75 + (Math.random() * 20 - 10);
+          const base = 75;
+          const variation = hashStringToVariation(serviceKey, 1);
+          row[key] = clampScore(base + variation);
         } else if (label === 'Couverture') {
-          row[key] = 70 + (Math.random() * 20 - 10);
+          const base = 70;
+          const variation = hashStringToVariation(serviceKey, 2);
+          row[key] = clampScore(base + variation);
         } else if (label === 'Fiabilité') {
-          row[key] = 80 + (Math.random() * 15 - 7);
+          const base = 80;
+          const variation = hashStringToVariation(serviceKey, 3);
+          row[key] = clampScore(base + variation * 0.7);
         } else {
-          row[key] = 65 + (Math.random() * 20 - 10);
+          // Innovation
+          const base = 65;
+          const variation = hashStringToVariation(serviceKey, 4);
+          row[key] = clampScore(base + variation);
         }
       });
 
