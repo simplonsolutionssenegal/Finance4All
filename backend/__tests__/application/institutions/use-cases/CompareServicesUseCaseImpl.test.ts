@@ -5,6 +5,7 @@ import { ServiceComparisonError } from '@/domain/institutions/errors/ServiceComp
 import { TypeService } from '@/domain/institutions/entities/Service';
 import { TypeCalculation } from '@/domain/institutions/entities/Frais';
 import { CompareServicesUseCaseImpl } from '@/application/institutions/use-cases/CompareServicesUseCaseImpl';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 describe('CompareServicesUseCaseImpl', () => {
   let useCase: CompareServicesUseCaseImpl;
@@ -50,6 +51,7 @@ describe('CompareServicesUseCaseImpl', () => {
         id: `inst-${id}`,
         name: institutionName,
         logoUrl: 'https://example.com/logo.png',
+        pays: Country.SENEGAL,
       },
     });
 
@@ -270,6 +272,7 @@ describe('CompareServicesUseCaseImpl', () => {
               id: 'inst-1',
               name: 'Orange Money',
               logoUrl: 'https://example.com/orange.png',
+              pays: Country.SENEGAL,
             },
           },
           {
@@ -290,6 +293,7 @@ describe('CompareServicesUseCaseImpl', () => {
               id: 'inst-2',
               name: 'Wave',
               logoUrl: null,
+              pays: Country.SENEGAL,
             },
           },
         ];
@@ -318,6 +322,7 @@ describe('CompareServicesUseCaseImpl', () => {
               id: 'inst-2',
               name: 'Bank B',
               logoUrl: null,
+              pays: Country.SENEGAL,
             },
           },
         ];

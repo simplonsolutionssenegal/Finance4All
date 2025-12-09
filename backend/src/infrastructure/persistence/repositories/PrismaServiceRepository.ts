@@ -16,6 +16,7 @@ import type {
 import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceRepository';
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
 import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/ComparedServiceDTO';
+import type { Country, CountryType } from '@/domain/institutions/value-objects/Country';
 
 type FraisChangeData = {
   fxSurcharge: number;
@@ -33,6 +34,12 @@ type FraisData = {
 };
 
 type ServiceWithInstitution = PrismaService & { institution: PrismaInstitution };
+
+// Type étendu pour les paramètres de pagination avec filtres
+type ServicePaginationParams = PaginationParams & {
+  type?: TypeService;
+  pays?: string;
+};
 
 class ServiceTypeMapper {
   private static readonly TYPE_MAP: Record<TypeService, PrismaTypeService> = {
@@ -166,10 +173,18 @@ export class PrismaServiceRepository implements ServiceRepository {
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<ComparedServiceDTO>> {
     const where: Prisma.ServiceWhereInput = {};
-    const typeFilter = (params as any).type as TypeService | undefined;
+    const extendedParams = params as ServicePaginationParams;
+    const typeFilter = extendedParams.type;
+    const paysFilter = extendedParams.pays;
 
     if (typeFilter) {
       where.type = ServiceTypeMapper.toPrisma(typeFilter);
+    }
+
+    if (paysFilter) {
+      where.institution = {
+        pays: paysFilter as Country,
+      };
     }
 
     return this.findPaginated<ServiceWithInstitution, ComparedServiceDTO>(
@@ -286,6 +301,7 @@ export class PrismaServiceRepository implements ServiceRepository {
         id: prismaService.institution.id,
         name: prismaService.institution.name,
         logoUrl: prismaService.institution.logoUrl,
+        pays: prismaService.institution.pays as CountryType,
       },
     };
   }

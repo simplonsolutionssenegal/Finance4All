@@ -5,6 +5,7 @@ import type { ComparedServiceDTO } from '@/domain/institutions/value-objects/Com
 import { TypeService } from '@/domain/institutions/entities/Service';
 import { TypeCalculation } from '@/domain/institutions/entities/Frais';
 import { GetServicesUseCaseImpl } from '@/application/institutions/use-cases/GetServicesUseCaseImpl';
+import { Country } from '@/domain/institutions/value-objects/Country';
 
 describe('GetServicesUseCaseImpl', () => {
   let useCase: GetServicesUseCaseImpl;
@@ -57,6 +58,7 @@ describe('GetServicesUseCaseImpl', () => {
             id: 'inst-1',
             name: 'Orange Money',
             logoUrl: 'https://example.com/logo.png',
+            pays: Country.SENEGAL,
           },
         },
         {
@@ -77,6 +79,7 @@ describe('GetServicesUseCaseImpl', () => {
             id: 'inst-2',
             name: 'Wave',
             logoUrl: null,
+            pays: Country.SENEGAL,
           },
         },
       ];
@@ -163,6 +166,7 @@ describe('GetServicesUseCaseImpl', () => {
               id: 'inst-3',
               name: 'Free Money',
               logoUrl: 'https://example.com/free.png',
+              pays: Country.SENEGAL,
             },
           },
         ],
@@ -211,6 +215,7 @@ describe('GetServicesUseCaseImpl', () => {
               id: 'inst-4',
               name: 'Banque X',
               logoUrl: null,
+              pays: Country.SENEGAL,
             },
           },
         ],

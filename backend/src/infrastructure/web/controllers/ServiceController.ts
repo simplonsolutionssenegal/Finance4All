@@ -3,6 +3,7 @@ import type { GetServicesUseCase } from '@/domain/institutions/ports/in/GetServi
 import type { TypeService } from '@/domain/institutions/entities/Service';
 import type { CompareServicesUseCase } from '@/domain/institutions/ports/in/CompareServicesUseCase';
 import { ServiceComparisonError } from '@/domain/institutions/errors/ServiceComparisonError';
+import type { CountryType } from '@/domain/institutions/value-objects/Country';
 
 export class ServiceController {
   constructor(
@@ -15,11 +16,13 @@ export class ServiceController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const type = req.query.type as TypeService | undefined;
+      const pays = req.query.pays as CountryType | undefined;
 
       const result = await this.getServicesUseCase.execute({
         page,
         limit,
         type,
+        pays,
       });
 
       res.status(200).json({

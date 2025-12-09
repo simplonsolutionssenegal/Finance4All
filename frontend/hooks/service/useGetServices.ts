@@ -22,13 +22,14 @@ interface GetServicesParams {
   page?: number;
   limit?: number;
   type?: string;
+  pays?: string;
 }
 
 const getServices = async (
   params: GetServicesParams,
   token: string | null
 ): Promise<GetServicesResponse> => {
-  const { page = 1, limit = 50, type } = params;
+  const { page = 1, limit = 50, type, pays } = params;
 
   const query = new URLSearchParams({
     page: String(page),
@@ -39,6 +40,10 @@ const getServices = async (
     query.append('type', type);
   }
 
+  if (pays && pays !== 'ALL') {
+    query.append('pays', pays);
+  }
+
   // apiClient rajoute déjà /api/v1 comme pour institutions
   return apiClient<GetServicesResponse>(`services?${query.toString()}`, 'GET', token);
 };
@@ -47,7 +52,7 @@ export const useGetServices = (params: GetServicesParams = {}) => {
   const { getToken } = useAuth();
 
   const query = useQuery({
-    queryKey: ['services', params.page, params.limit, params.type],
+    queryKey: ['services', params.page, params.limit, params.type, params.pays],
     queryFn: async () => {
       const token = await getToken();
       return getServices(params, token);

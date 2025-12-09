@@ -4,6 +4,7 @@ import { TypeService } from '@/domain/institutions/entities/Service';
 import type { GetServicesUseCase } from '@/domain/institutions/ports/in/GetServicesUseCase';
 import type { CompareServicesUseCase } from '@/domain/institutions/ports/in/CompareServicesUseCase';
 import { ServiceController } from '@/infrastructure/web/controllers/ServiceController';
+import type { CountryType } from '@/domain/institutions/value-objects/Country';
 
 describe('ServiceController', () => {
   const createMockResponse = () => {
@@ -65,6 +66,7 @@ describe('ServiceController', () => {
       page: 2,
       limit: 25,
       type: TypeService.PAIEMENT_MARCHAND,
+      pays: undefined,
     });
 
     expect(res.status).toHaveBeenCalledWith(200);
@@ -97,6 +99,84 @@ describe('ServiceController', () => {
     expect(next).toHaveBeenCalledWith(error);
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
+  });
+
+  it('getAll - doit filtrer par pays quand le paramètre est fourni', async () => {
+    const req = {
+      query: {
+        page: '1',
+        limit: '10',
+        type: TypeService.PAIEMENT_MARCHAND,
+        pays: 'SENEGAL' as CountryType,
+      },
+    } as unknown as Request;
+
+    const res = createMockResponse();
+
+    const useCaseResult = {
+      data: [{ id: 's1', pays: 'SENEGAL' }],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+
+    getServicesUseCase.execute.mockResolvedValueOnce(useCaseResult as any);
+
+    await controller.getAll(req, res, next);
+
+    expect(getServicesUseCase.execute).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+      type: TypeService.PAIEMENT_MARCHAND,
+      pays: 'SENEGAL',
+    });
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      ...useCaseResult,
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('getAll - doit gérer plusieurs filtres incluant le pays', async () => {
+    const req = {
+      query: {
+        page: '3',
+        limit: '20',
+        type: TypeService.PAIEMENT_MARCHAND,
+        pays: 'CAMEROUN' as CountryType,
+      },
+    } as unknown as Request;
+
+    const res = createMockResponse();
+
+    const useCaseResult = {
+      data: [{ id: 's2', pays: 'CAMEROUN' }],
+      pagination: {
+        page: 3,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+      },
+    };
+
+    getServicesUseCase.execute.mockResolvedValueOnce(useCaseResult as any);
+
+    await controller.getAll(req, res, next);
+
+    expect(getServicesUseCase.execute).toHaveBeenCalledWith({
+      page: 3,
+      limit: 20,
+      type: TypeService.PAIEMENT_MARCHAND,
+      pays: 'CAMEROUN',
+    });
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(next).not.toHaveBeenCalled();
   });
 
   // ---------------------------------------------------------------------------
