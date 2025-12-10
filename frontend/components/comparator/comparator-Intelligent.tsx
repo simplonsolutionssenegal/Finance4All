@@ -2,6 +2,7 @@
 
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { ArrowRight, DollarSign, Funnel, TrendingDown, ArrowLeft, ChartColumn } from 'lucide-react';
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
 import {
@@ -23,16 +24,19 @@ import { ServiceList } from './ServiceList';
 
 type ProductType = 'TRANSFERT' | 'CREDIT' | 'EPARGNE';
 
-// 🌍 Enum des pays (à synchroniser avec votre backend)
 enum Country {
   SENEGAL = 'SENEGAL',
   CAMEROUN = 'CAMEROUN',
 }
 
-// 🌍 Labels pour affichage
 const COUNTRY_LABELS: Record<Country, string> = {
   [Country.SENEGAL]: 'Sénégal',
   [Country.CAMEROUN]: 'Cameroun',
+};
+
+const COUNTRY_FLAGS: Record<Country, string> = {
+  [Country.SENEGAL]: '/senegal.png',
+  [Country.CAMEROUN]: '/cameroon.png',
 };
 
 export default function ComparatorIntelligent() {
@@ -53,7 +57,7 @@ export default function ComparatorIntelligent() {
     page: 1,
     limit: 50,
     type: selectedType || undefined,
-    pays: selectedCountry || undefined, // 👈 Ajout du filtre pays
+    pays: selectedCountry || undefined,
   });
 
   const {
@@ -204,7 +208,7 @@ export default function ComparatorIntelligent() {
               </Select>
             </div>
 
-            {/* 🌍 SELECT PAYS - MAINTENANT FONCTIONNEL */}
+            {/* 🌍 SELECT PAYS */}
             <div className='flex flex-col gap-1'>
               <label className='text-xs text-slate-500' htmlFor='country'>
                 Pays
@@ -226,7 +230,22 @@ export default function ComparatorIntelligent() {
                   size='default'
                   className='h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11'
                 >
-                  <SelectValue placeholder='Tous les pays' />
+                  <SelectValue className='flex items-center gap-2'>
+                    {selectedCountry ? (
+                      <span className='flex items-center gap-2'>
+                        <Image
+                          src={COUNTRY_FLAGS[selectedCountry as Country]}
+                          alt={COUNTRY_LABELS[selectedCountry as Country]}
+                          width={25}
+                          height={20}
+                          className='rounded-sm border border-slate-200 object-cover'
+                        />
+                        <span>{COUNTRY_LABELS[selectedCountry as Country]}</span>
+                      </span>
+                    ) : (
+                      <span className='text-slate-500'>Tous les pays</span>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
 
                 <SelectContent className='max-h-64 rounded-xl border border-cyan-200 bg-cyan-50'>
@@ -238,7 +257,16 @@ export default function ComparatorIntelligent() {
                       value={country}
                       className='group relative pl-3 pr-8 text-gray-900 hover:bg-cyan-100 focus:bg-cyan-100 data-[state=checked]:bg-cyan-200'
                     >
-                      {COUNTRY_LABELS[country as Country] || country}
+                      <div className='flex items-center gap-2'>
+                        <Image
+                          src={COUNTRY_FLAGS[country as Country]}
+                          alt={COUNTRY_LABELS[country as Country] || country}
+                          width={25}
+                          height={20}
+                          className='rounded-sm border border-slate-200 object-cover'
+                        />
+                        <span>{COUNTRY_LABELS[country as Country] || country}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

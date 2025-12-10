@@ -186,15 +186,30 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
       fireEvent.click(typeSelect);
     });
   });
+
   describe('Filtrage par pays', () => {
-    it('filtre les services par pays (SENEGAL)', async () => {
+    it('affiche "Tous les pays" par défaut et appelle useGetServices avec pays undefined', () => {
+      render(<ComparatorIntelligent />);
+
+      // Le label existe
+      const paysSelect = screen.getByLabelText(/Pays/i);
+      expect(paysSelect).toBeInTheDocument();
+
+      // ✅ Nouveau : le texte "Tous les pays" doit être visible par défaut
+      expect(screen.getAllByText('Tous les pays').length).toBeGreaterThan(0);
+
+      // Le hook est bien appelé sans filtre pays
+      expect(mockUseGetServices).toHaveBeenCalledWith(expect.objectContaining({ pays: undefined }));
+    });
+
+    it('ouvre le select pays (interaction basique)', async () => {
       render(<ComparatorIntelligent />);
 
       const paysSelect = screen.getByLabelText(/Pays/i);
       fireEvent.click(paysSelect);
 
-      expect(paysSelect).toBeInTheDocument();
-      expect(mockUseGetServices).toHaveBeenCalledWith(expect.objectContaining({ pays: undefined }));
+      // On reste sur "Tous les pays" tant que rien n'est sélectionné
+      expect(screen.getAllByText('Tous les pays').length).toBeGreaterThan(0);
     });
 
     it('réinitialise isComparing et isGraphView lors du changement de pays', async () => {
@@ -221,6 +236,7 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
       render(<ComparatorIntelligent />);
 
       const paysSelect = screen.getByLabelText(/Pays/i);
+      expect(paysSelect).toBeInTheDocument();
 
       expect(mockUseGetServices).toHaveBeenCalledWith(expect.objectContaining({ pays: undefined }));
     });
@@ -382,6 +398,7 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
       expect(mockUseCompareServices).toHaveBeenCalledWith([]);
     });
   });
+
   describe('Vue graphique - Toggle multiple fois', () => {
     beforeEach(() => {
       mockUseCompareServices.mockReturnValue({
@@ -449,6 +466,7 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
       expect(screen.getByText('Comparaison détaillée')).toBeInTheDocument();
     });
   });
+
   describe('useMemo - serviceTypes et countries', () => {
     it('calcule correctement serviceTypes', () => {
       render(<ComparatorIntelligent />);
@@ -476,11 +494,14 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
   });
 
   describe('Labels de pays - COUNTRY_LABELS', () => {
-    it('affiche le label "Sénégal" pour SENEGAL', () => {
+    it('affiche bien le select pays et le label associé', () => {
       render(<ComparatorIntelligent />);
 
       const paysSelect = screen.getByLabelText(/Pays/i);
       expect(paysSelect).toBeInTheDocument();
+
+      // "Tous les pays" est le label par défaut
+      expect(screen.getAllByText('Tous les pays').length).toBeGreaterThan(0);
     });
   });
 
@@ -755,10 +776,13 @@ describe('ComparatorIntelligent - Tests supplémentaires pour 90%+ couverture', 
       expect(mockUseGetServices).toHaveBeenCalledWith(expect.objectContaining({ type: undefined }));
     });
 
-    it('selectedCountry est vide par défaut', () => {
+    it('selectedCountry est vide par défaut et affiche "Tous les pays"', () => {
       render(<ComparatorIntelligent />);
 
       expect(mockUseGetServices).toHaveBeenCalledWith(expect.objectContaining({ pays: undefined }));
+
+      // ✅ Nouveau : vérifier l'affichage de "Tous les pays"
+      expect(screen.getAllByText('Tous les pays').length).toBeGreaterThan(0);
     });
 
     it('amount est 0 par défaut', () => {
