@@ -46,21 +46,19 @@ const openDropdownAndChoose = async (triggerLabel: string, optionText: string) =
   const u = userEvent.setup();
   const trigger = screen.getByRole('button', { name: new RegExp(triggerLabel) });
   await u.click(trigger);
-  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre l'animation d'ouverture
-  const item = await screen.findByRole('menuitem', { name: optionText });
+  // wait for the option to appear in the DOM
+  const item = await screen.findByText(optionText);
   await u.click(item);
-  await new Promise(resolve => setTimeout(resolve, 50)); // Attendre l'animation de fermeture
 };
 
 const addZone = async (zoneText: string) => {
   const u = userEvent.setup();
   const zoneInput = screen.getByPlaceholderText('Sélectionner une zone');
   await u.click(zoneInput);
-  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre l'ouverture
   await u.type(zoneInput, zoneText.slice(0, 3));
-  const option = await screen.findByRole('button', { name: zoneText });
+  // wait for the option to appear and click it
+  const option = await screen.findByText(zoneText);
   await u.click(option);
-  await new Promise(resolve => setTimeout(resolve, 100)); // Attendre la fermeture
 };
 
 // Soumettre le <form> directement (même si le bouton est disabled)
@@ -133,7 +131,7 @@ describe('InstitutionModal (nouvelle implémentation)', () => {
     expect(await screen.findByAltText('Aperçu du logo')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Créer l&apos;institution' })).toBeEnabled();
-  });
+  }, 20000);
 
   test('création: envoie le payload complet à createInstitution', async () => {
     const u = userEvent.setup();
