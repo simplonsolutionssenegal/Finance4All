@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -114,15 +113,12 @@ const EditInstitutionModal = ({
       }}
     >
       <DialogContent
-        className='
-          w-[95vw] sm:w-[512px]
-          p-0 bg-white
-          rounded-xl shadow-xl border border-gray-200
-          max-h-[600px] overflow-hidden flex flex-col
-        '
+        className={
+          'w-[95vw] sm:w-[512px] p-0 bg-white rounded-xl shadow-xl border border-gray-200 h-[620.4px] sm:h-[620.4px] overflow-hidden flex flex-col'
+        }
       >
-        <DialogHeader className='items-start p-6 pb-4'>
-          <div className='flex items-center gap-3 mb-2'>
+        <DialogHeader className='items-start p-4 pb-2'>
+          <div className='flex items-center gap-3 mb-1'>
             <DialogTitle className='text-xl font-semibold text-tertiary-400'>
               Modifier l&apos;institution
             </DialogTitle>
@@ -135,7 +131,7 @@ const EditInstitutionModal = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className='flex-1 overflow-y-auto px-6 pb-24 space-y-4'
+            className='flex-1 overflow-y-auto px-4 space-y-3'
           >
             <InstitutionFormFields
               control={form.control}
@@ -144,19 +140,20 @@ const EditInstitutionModal = ({
               disabled={isUpdating}
               variant='compact'
             />
-
-            <div className='sticky bottom-0 py-4 border-t border-gray-200 bg-white rounded-b-xl'>
-              <Button
-                type='submit'
-                disabled={isUpdating || !form.formState.isValid}
-                className='w-full h-11 rounded-[10px] bg-primary-300 text-white hover:bg-primary-400 pl-4 gap-2 justify-start'
-              >
-                <Check className='w-4 h-4' />
-                {isUpdating ? 'Enregistrement…' : 'Enregistrer les modifications'}
-              </Button>
-            </div>
           </form>
         </Form>
+
+        <div className='py-3 px-4 border-t border-gray-200 bg-white rounded-b-xl'>
+          <Button
+            type='submit'
+            form={undefined}
+            onClick={() => form.handleSubmit(onSubmit)()}
+            disabled={isUpdating || !form.formState.isValid}
+            className='w-full h-10 rounded-[10px] bg-primary-300 text-white hover:bg-primary-400 pl-3 gap-2 justify-start text-sm'
+          >
+            {isUpdating ? 'Enregistrement…' : 'Enregistrer les modifications'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
