@@ -47,26 +47,27 @@ const ConfirmUpdateStatusModal = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className='sm:max-w-md'>
+      <AlertDialogContent className='sm:max-w-md bg-white'>
         <AlertDialogHeader className='text-center'>
           <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-4'>
             <AlertTriangle className='h-6 w-6 text-orange-600' />
           </div>
-          <AlertDialogTitle className='text-xl font-semibold text-gray-900'>
+          <AlertDialogTitle className='text-xl font-semibold text-secondary-300'>
             Attention
           </AlertDialogTitle>
-          <AlertDialogDescription className='text-base text-gray-700 mt-2'>
+          <AlertDialogDescription className='text-base text-tertiary-300 mt-2'>
             Vous allez {status === InstitutionStatus.ACTIVE ? 'activer' : 'désactiver'}{' '}
-            l&apos;institution <span className='font-medium text-gray-900'>{institution.name}</span>
+            l&apos;institution{' '}
+            <span className='font-medium text-tertiary-400'>{institution.name}</span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className='flex-row justify-center space-x-4 mt-6'>
-          <AlertDialogCancel className='px-6 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg'>
+          <AlertDialogCancel className='px-6 py-2 text-tertiary-400 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg'>
             Annuler
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className={`px-6 py-2 ${status === InstitutionStatus.ACTIVE ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg`}
+            className={`px-6 py-2 ${status === InstitutionStatus.ACTIVE ? 'bg-primary-300 hover:bg-primary-400' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg`}
           >
             {status === InstitutionStatus.ACTIVE ? 'Activer' : 'Désactiver'}
           </AlertDialogAction>

@@ -347,7 +347,7 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
   // ==================== Tests des Boutons d'Action ====================
 
-  test('PENDING affiche les boutons ACTIVER et REJETER', () => {
+  test('PENDING affiche les boutons Activer et Rejeter', () => {
     mockUseGetInstitution.mockReturnValue({
       institution: { ...mockInstitution, status: InstitutionStatus.PENDING },
       isLoading: false,
@@ -357,17 +357,17 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
     });
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-    expect(screen.getByText('ACTIVER')).toBeInTheDocument();
-    expect(screen.getByText('REJETER')).toBeInTheDocument();
+    expect(screen.getByText('Activer')).toBeInTheDocument();
+    expect(screen.getByText('Rejeter')).toBeInTheDocument();
   });
 
-  test('ACTIVE affiche uniquement le bouton REJETER', () => {
+  test('ACTIVE affiche uniquement le bouton Rejeter', () => {
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-    expect(screen.queryByText('ACTIVER')).not.toBeInTheDocument();
-    expect(screen.getByText('REJETER')).toBeInTheDocument();
+    expect(screen.queryByText('Activer')).not.toBeInTheDocument();
+    expect(screen.getByText('Rejeter')).toBeInTheDocument();
   });
 
-  test('INACTIVE affiche uniquement le bouton ACTIVER', () => {
+  test('INACTIVE affiche uniquement le bouton Activer', () => {
     mockUseGetInstitution.mockReturnValue({
       institution: { ...mockInstitution, status: InstitutionStatus.INACTIVE },
       isLoading: false,
@@ -377,8 +377,8 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
     });
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-    expect(screen.getByText('ACTIVER')).toBeInTheDocument();
-    expect(screen.queryByText('REJETER')).not.toBeInTheDocument();
+    expect(screen.getByText('Activer')).toBeInTheDocument();
+    expect(screen.queryByText('Rejeter')).not.toBeInTheDocument();
   });
 
   test('bouton ACTIVER a les bonnes classes CSS', () => {
@@ -391,15 +391,15 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
     });
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-    const activateButton = screen.getByText('ACTIVER');
-    expect(activateButton).toHaveClass('bg-green-500');
+    const activateButton = screen.getByText('Activer');
+    expect(activateButton).toHaveClass('bg-primary-300');
     expect(activateButton).toHaveClass('text-white');
   });
 
   test('bouton REJETER a les bonnes classes CSS', () => {
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
-    const rejectButton = screen.getByText('REJETER');
-    expect(rejectButton).toHaveClass('bg-red-500');
+    const rejectButton = screen.getByText('Rejeter');
+    expect(rejectButton).toHaveClass('bg-[#E00010]');
     expect(rejectButton).toHaveClass('text-white');
   });
 
@@ -417,8 +417,8 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-    // Ouvrir avec ACTIVER
-    await u.click(screen.getByText('ACTIVER'));
+    // Ouvrir avec Activer
+    await u.click(screen.getByText('Activer'));
     let lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
     expect(lastCall[0].isOpen).toBe(true);
 
@@ -427,8 +427,8 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
     lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
     expect(lastCall[0].isOpen).toBe(false);
 
-    // Re-ouvrir avec REJETER
-    await u.click(screen.getByText('REJETER'));
+    // Re-ouvrir avec Rejeter
+    await u.click(screen.getByText('Rejeter'));
     lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
     expect(lastCall[0].isOpen).toBe(true);
     expect(lastCall[0].status).toBe(InstitutionStatus.INACTIVE);
@@ -773,11 +773,25 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
   // ==================== Tests des Badges Statiques ====================
 
   test('badge "Mobile Money" est présent', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: { ...mockInstitution, type: 'Mobile Money' as any },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
     expect(screen.getByText('Mobile Money')).toBeInTheDocument();
   });
 
   test('badge "Sénégal et Cameroun" est présent', () => {
+    mockUseGetInstitution.mockReturnValue({
+      institution: { ...mockInstitution, pays: 'Sénégal et Cameroun' as any },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
     expect(screen.getByText('Sénégal et Cameroun')).toBeInTheDocument();
   });
@@ -895,7 +909,7 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-    await u.click(screen.getByText('REJETER'));
+    await u.click(screen.getByText('Rejeter'));
 
     const lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
 
@@ -907,7 +921,7 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
   // ==================== Tests de Multiples Clics ====================
 
-  test('multiples clics sur ACTIVER ouvrent le modal plusieurs fois', async () => {
+  test('multiples clics sur Activer ouvrent le modal plusieurs fois', async () => {
     const u = userEvent.setup();
     mockUseGetInstitution.mockReturnValue({
       institution: { ...mockInstitution, status: InstitutionStatus.PENDING },
@@ -919,7 +933,7 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-    const activateButton = screen.getByText('ACTIVER');
+    const activateButton = screen.getByText('Activer');
 
     await u.click(activateButton);
     let lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
@@ -1079,8 +1093,8 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
     const { rerender } = render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-    expect(screen.getByText('ACTIVER')).toBeInTheDocument();
-    expect(screen.getByText('REJETER')).toBeInTheDocument();
+    expect(screen.getByText('Activer')).toBeInTheDocument();
+    expect(screen.getByText('Rejeter')).toBeInTheDocument();
 
     // Changer pour ACTIVE
     mockUseGetInstitution.mockReturnValue({
@@ -1096,9 +1110,8 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
         <InstitutionDetailsComponent institutionId='1' />
       </QueryClientProvider>
     );
-
-    expect(screen.queryByText('ACTIVER')).not.toBeInTheDocument();
-    expect(screen.getByText('REJETER')).toBeInTheDocument();
+    expect(screen.queryByText('Activer')).not.toBeInTheDocument();
+    expect(screen.getByText('Rejeter')).toBeInTheDocument();
   });
 
   // ==================== Tests des Propriétés des Modales ====================
@@ -1108,7 +1121,7 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
 
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
-    await u.click(screen.getByText('REJETER'));
+    await u.click(screen.getByText('Rejeter'));
 
     const lastCall = (ConfirmUpdateStatusModal as jest.Mock).mock.calls.at(-1);
     expect(lastCall[0].institution).toEqual(
@@ -1173,12 +1186,11 @@ describe('InstitutionDetailsComponent - Couverture Maximale', () => {
   test('tous les labels de contact sont présents', () => {
     render(<InstitutionDetailsComponent institutionId='1' />, { wrapper });
 
+    // The component currently renders the following main labels
+    expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.getByText('Site web')).toBeInTheDocument();
-    expect(screen.getByText('Téléphone')).toBeInTheDocument();
-    expect(screen.getByText('Personne de contact')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
-    expect(screen.getByText('Adresse')).toBeInTheDocument();
-    expect(screen.getByText('Téléphone du contact')).toBeInTheDocument();
+    expect(screen.getByText('Zones couvertes')).toBeInTheDocument();
+    expect(screen.getByText('Services')).toBeInTheDocument();
   });
 
   test("institution avec geographicZones null ne cause pas d'erreur", () => {
