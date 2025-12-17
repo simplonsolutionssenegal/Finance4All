@@ -92,3 +92,214 @@ body {
   color: var(--foreground);
   font-family: var(--font-barlow), system-ui, sans-serif;
 }
+
+/* Grey color palette */
+.bg-grey-50 {
+  background-color: #f9fafb;
+}
+
+.bg-grey-200 {
+  background-color: #e5e7eb;
+}
+
+.text-grey-600 {
+  color: #6b7280;
+}
+
+.text-grey-700 {
+  color: #374151;
+}
+
+.text-grey-900 {
+  color: #111827;
+}
+
+.border-grey-200 {
+  border-color: #e5e7eb;
+}
+
+/* Primary gradient utilities */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #46bcc9 0%, #0097a7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #46bcc9 0%, #0097a7 100%);
+}
+
+/* Success colors */
+.bg-success-100 {
+  background-color: #d1fae5;
+}
+
+.bg-success-400 {
+  background-color: #34d399;
+}
+
+.text-success-600 {
+  color: #059669;
+}
+
+.text-success-700 {
+  color: #047857;
+}
+
+.border-success-200 {
+  border-color: #a7f3d0;
+}
+
+/* Warning colors */
+.bg-warning-100 {
+  background-color: #fef3c7;
+}
+
+.bg-warning-400 {
+  background-color: #fbbf24;
+}
+
+.bg-warning-500 {
+  background-color: #f59e0b;
+}
+
+.text-warning-700 {
+  color: #b45309;
+}
+
+.text-warning-500 {
+  color: #f59e0b;
+}
+
+.border-warning-200 {
+  border-color: #fde68a;
+}
+
+.fill-warning-500 {
+  fill: #f59e0b;
+}
+
+/* Grey colors extended */
+.fill-grey-200 {
+  fill: #e5e7eb;
+}
+
+.text-grey-200 {
+  color: #e5e7eb;
+}
+
+.bg-grey-100 {
+  background-color: #f3f4f6;
+}
+
+.bg-grey-300 {
+  background-color: #d1d5db;
+}
+
+.text-grey-400 {
+  color: #9ca3af;
+}
+
+.text-grey-800 {
+  color: #1f2937;
+}
+
+.bg-grey-900 {
+  background-color: #111827;
+}
+
+.border-grey-800 {
+  border-color: #1f2937;
+}
+
+/* Primary colors */
+.bg-primary-50 {
+  background-color: #e0f7fa;
+}
+
+.bg-primary-100 {
+  background-color: #b2eef5;
+}
+
+.bg-primary-200 {
+  background-color: #81e6f0;
+}
+
+.bg-primary-400 {
+  background-color: #0097a7;
+}
+
+.text-primary-600 {
+  color: #0097a7;
+}
+
+.text-primary-700 {
+  color: #00838f;
+}
+
+/* Gradient utilities for "from-to" classes */
+.from-success-500 {
+  --tw-gradient-from: #10b981;
+  --tw-gradient-to: rgb(16 185 129 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.to-success-600 {
+  --tw-gradient-to: #059669;
+}
+
+.from-primary-500 {
+  --tw-gradient-from: #14b8a6;
+  --tw-gradient-to: rgb(20 184 166 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.to-primary-600 {
+  --tw-gradient-to: #0097a7;
+}
+
+.from-warning-500 {
+  --tw-gradient-from: #f59e0b;
+  --tw-gradient-to: rgb(245 158 11 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.to-warning-600 {
+  --tw-gradient-to: #d97706;
+}
+
+/* Shadow utilities */
+.shadow-primary {
+  box-shadow:
+    0 4px 6px -1px rgba(70, 188, 201, 0.1),
+    0 2px 4px -1px rgba(70, 188, 201, 0.06);
+}
+
+.shadow-primary-lg {
+  box-shadow:
+    0 10px 15px -3px rgba(70, 188, 201, 0.2),
+    0 4px 6px -2px rgba(70, 188, 201, 0.1);
+}
+
+/* Border utilities */
+.border-primary-200 {
+  border-color: #81e6f0;
+}
+
+.border-grey-300 {
+  border-color: #d1d5db;
+}
+
+.hover\:bg-grey-50:hover {
+  background-color: #f9fafb;
+}
+
+/* Font weights to match reference */
+h2 {
+  font-weight: 700;
+}
+
+h3 {
+  font-weight: 600;
+}
