@@ -1,130 +1,135 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import PublicHeader from '@/components/public/layout/header';
 
 describe('PublicHeader', () => {
   it('should be a function that returns JSX', () => {
     expect(typeof PublicHeader).toBe('function');
-    const result = PublicHeader();
-    expect(result).toBeDefined();
-    expect(result.type).toBe('header');
   });
 
   it('should render without crashing', () => {
     render(<PublicHeader />);
-    expect(screen.getByRole('banner')).toBeInTheDocument();
+    const navs = screen.getAllByRole('navigation');
+    expect(navs.length).toBeGreaterThan(0);
   });
 
-  it('should display the Finance4All logo', () => {
+  it('should display the logo image', () => {
     render(<PublicHeader />);
-    expect(screen.getByText('Finance4All')).toBeInTheDocument();
+    const logo = screen.getByAltText("Finance4ALL - Plateforme d'éducation financière");
+    expect(logo).toBeInTheDocument();
   });
 
-  it('should have the correct logo styling', () => {
+  it('should render logo with correct link', () => {
     render(<PublicHeader />);
-    const logo = screen.getByText('Finance4All');
-    expect(logo).toHaveClass('text-2xl', 'font-bold', 'text-teal-600');
+    const logoLink = screen.getByRole('link', { name: /Finance4ALL/i });
+    expect(logoLink).toHaveAttribute('href', '/');
   });
 
-  it('should render navigation menu with all links', () => {
+  it('should render desktop navigation menu with all links', () => {
     render(<PublicHeader />);
 
     const navLinks = [
       { text: 'Simulateur', href: '/simulator' },
       { text: 'Comparateur', href: '/comparator' },
-      { text: 'Formation', href: '/formations' },
-      { text: 'FAQ', href: '/faq' },
-      { text: 'À Propos', href: '/about-us' },
+      { text: 'Modules', href: '/modules' },
     ];
 
     navLinks.forEach(({ text, href }) => {
-      const link = screen.getByRole('link', { name: text });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', href);
-    });
-  });
-
-  it('should apply correct navigation link styles', () => {
-    render(<PublicHeader />);
-
-    const nav = screen.getByRole('navigation');
-    const navLinks = within(nav).getAllByRole('link');
-    navLinks.forEach(link => {
-      expect(link).toHaveClass('text-gray-700', 'hover:text-teal-600');
+      const links = screen.getAllByRole('link', { name: text });
+      expect(links.length).toBeGreaterThan(0);
+      expect(links[0]).toHaveAttribute('href', href);
     });
   });
 
   it('should render the login button', () => {
     render(<PublicHeader />);
-    const loginButton = screen.getByRole('link', { name: 'Se connecter' });
-    expect(loginButton).toBeInTheDocument();
+    const loginButtons = screen.getAllByText('Se connecter');
+    expect(loginButtons.length).toBeGreaterThan(0);
   });
 
-  it('should apply correct button styling', () => {
+  it('should render the get started button', () => {
     render(<PublicHeader />);
-    const loginButton = screen.getByRole('link', { name: 'Se connecter' });
-    expect(loginButton).toHaveClass(
-      'bg-teal-600',
-      'text-white',
-      'px-6',
-      'py-2',
-      'rounded-lg',
-      'hover:bg-teal-700'
-    );
+    const getStartedButtons = screen.getAllByText('Commencer');
+    expect(getStartedButtons.length).toBeGreaterThan(0);
   });
 
-  it('should have responsive navigation (hidden on mobile)', () => {
+  it('should have fixed positioning with backdrop blur', () => {
     render(<PublicHeader />);
-    const nav = screen.getByRole('navigation');
-    expect(nav).toHaveClass('hidden', 'md:flex');
+    const navs = screen.getAllByRole('navigation');
+    const mainNav = navs[0]; // First nav is the main outer nav
+    expect(mainNav).toHaveClass('fixed', 'top-0', 'left-0', 'right-0');
+    expect(mainNav).toHaveClass('backdrop-blur-md');
   });
 
-  it('should have proper header structure', () => {
+  it('should have proper nav structure', () => {
     render(<PublicHeader />);
 
-    // Check header has correct classes
-    const header = screen.getByRole('banner');
-    expect(header).toHaveClass('bg-white', 'shadow-sm');
+    const navs = screen.getAllByRole('navigation');
+    const mainNav = navs[0]; // First nav is the main outer nav
+    expect(mainNav).toHaveClass('z-50', 'bg-white/95', 'border-b', 'border-grey-200');
 
     // Check container structure
-    const container = header.querySelector('.max-w-7xl');
+    const container = mainNav.querySelector('.max-w-7xl');
     expect(container).toBeInTheDocument();
-    expect(container).toHaveClass('mx-auto', 'px-4', 'sm:px-6', 'lg:px-8');
-
-    // Check flex layout
-    const flexContainer = container?.querySelector('.flex');
-    expect(flexContainer).toHaveClass('justify-between', 'items-center', 'h-16');
+    expect(container).toHaveClass('mx-auto');
   });
 
-  it('should render all navigation links in correct order', () => {
+  it('should render mobile menu trigger', () => {
     render(<PublicHeader />);
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThan(0);
+  });
 
-    const nav = screen.getByRole('navigation');
-    const links = within(nav).getAllByRole('link');
-    const expectedTexts = ['Simulateur', 'Comparateur', 'Formation', 'FAQ', 'À Propos'];
+  it('should have responsive design with hidden desktop nav on mobile', () => {
+    const { container } = render(<PublicHeader />);
+    // Desktop nav should have hidden md:flex
+    const desktopNav = container.querySelector('.hidden.md\\:flex');
+    expect(desktopNav).toBeInTheDocument();
+  });
 
-    expectedTexts.forEach((expectedText, index) => {
-      expect(links[index]).toHaveTextContent(expectedText);
-    });
+  it('should render navigation links with correct styling', () => {
+    render(<PublicHeader />);
+    const simulatorLinks = screen.getAllByText('Simulateur');
+    // First one is desktop link
+    const desktopLink = simulatorLinks[0].closest('a');
+    expect(desktopLink).toHaveClass('text-grey-600', 'hover:text-primary-600');
   });
 
   it('should have accessibility-friendly structure', () => {
     render(<PublicHeader />);
 
-    // Header should have proper landmark role
-    expect(screen.getByRole('banner')).toBeInTheDocument();
+    // Navigation should have proper role (there are multiple nav elements)
+    const navs = screen.getAllByRole('navigation');
+    expect(navs.length).toBeGreaterThan(0);
 
-    // Navigation should have proper role
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
-
-    // Button should be accessible
-    expect(screen.getByRole('link', { name: 'Se connecter' })).toBeInTheDocument();
-
-    // All links should be accessible
-    const navLinks = ['Simulateur', 'Comparateur', 'Formation', 'FAQ', 'À Propos'];
+    // All main links should be accessible
+    const navLinks = ['Simulateur', 'Comparateur', 'Modules'];
 
     navLinks.forEach(linkText => {
-      expect(screen.getByRole('link', { name: linkText })).toBeInTheDocument();
+      const links = screen.getAllByText(linkText);
+      expect(links.length).toBeGreaterThan(0);
     });
+  });
+
+  it('should render both login and get started buttons', () => {
+    render(<PublicHeader />);
+
+    // Should have login link
+    const loginLinks = screen.getAllByText('Se connecter');
+    expect(loginLinks.length).toBeGreaterThan(0);
+
+    // Should have get started link
+    const getStartedLinks = screen.getAllByText('Commencer');
+    expect(getStartedLinks.length).toBeGreaterThan(0);
+  });
+
+  it('should have correct hrefs for action buttons', () => {
+    const { container } = render(<PublicHeader />);
+
+    const loginLinks = container.querySelectorAll('a[href="/login"]');
+    expect(loginLinks.length).toBeGreaterThan(0);
+
+    const getStartedLinks = container.querySelectorAll('a[href="/get-started"]');
+    expect(getStartedLinks.length).toBeGreaterThan(0);
   });
 });

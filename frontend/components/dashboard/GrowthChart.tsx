@@ -96,7 +96,10 @@ export default function GrowthChart() {
                   borderRadius: '8px',
                   color: 'white',
                 }}
-                formatter={(value: number) => [`${value.toLocaleString()}`, 'Value']}
+                formatter={(value: string | number | (string | number)[] | undefined) => [
+                  `${typeof value === 'number' ? value.toLocaleString() : (value ?? 0)}`,
+                  'Value',
+                ]}
               />
               <Line
                 type='monotone'
