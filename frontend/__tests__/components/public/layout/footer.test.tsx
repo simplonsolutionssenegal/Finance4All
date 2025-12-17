@@ -9,7 +9,7 @@ describe('PublicFooter', () => {
     expect(result).toBeDefined();
     expect(result.type).toBe('footer');
     expect(result.props).toBeDefined();
-    expect(result.props.className).toContain('bg-gray-900');
+    expect(result.props.className).toContain('bg-grey-900');
   });
 
   it('should render without crashing', () => {
@@ -21,22 +21,47 @@ describe('PublicFooter', () => {
     render(<PublicFooter />);
     expect(screen.getByText('Finance4All')).toBeInTheDocument();
     expect(
-      screen.getByText('Votre partenaire pour une meilleure gestion financière.')
+      screen.getByText("Votre partenaire pour l'inclusion financière au Sénégal et au Cameroun.")
     ).toBeInTheDocument();
   });
 
-  it('should render Services section with all links', () => {
+  it('should display country badges', () => {
+    render(<PublicFooter />);
+    expect(screen.getByText('🇸🇳 Sénégal')).toBeInTheDocument();
+    expect(screen.getByText('🇨🇲 Cameroun')).toBeInTheDocument();
+  });
+
+  it('should render Produits section with all links', () => {
     render(<PublicFooter />);
 
-    expect(screen.getByText('Services')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Produits' })).toBeInTheDocument();
 
-    const serviceLinks = [
-      { text: 'Comparator', href: '/comparator' },
-      { text: 'Formation', href: '/formations' },
-      { text: 'Conseil', href: '/conseil' },
+    const productLinks = [
+      { text: 'Comparateur', href: '/comparator' },
+      { text: 'Simulateur', href: '/simulator' },
+      { text: 'Catalogue de modules', href: '/modules' },
+      { text: 'Certificats', href: '/certificates' },
     ];
 
-    serviceLinks.forEach(({ text, href }) => {
+    productLinks.forEach(({ text, href }) => {
+      const link = screen.getByRole('link', { name: text });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', href);
+    });
+  });
+
+  it('should render Entreprise section with all links', () => {
+    render(<PublicFooter />);
+
+    expect(screen.getByRole('heading', { name: 'Entreprise' })).toBeInTheDocument();
+
+    const companyLinks = [
+      { text: 'À propos', href: '/about' },
+      { text: 'Partenaires', href: '/partners' },
+      { text: 'Blog', href: '/blog' },
+    ];
+
+    companyLinks.forEach(({ text, href }) => {
       const link = screen.getByRole('link', { name: text });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', href);
@@ -46,12 +71,13 @@ describe('PublicFooter', () => {
   it('should render Support section with all links', () => {
     render(<PublicFooter />);
 
-    expect(screen.getByText('Support')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Support' })).toBeInTheDocument();
 
     const supportLinks = [
-      { text: 'FAQ', href: '/faq' },
+      { text: "Centre d'aide", href: '/help' },
       { text: 'Contact', href: '/contact' },
-      { text: 'Aide', href: '/help' },
+      { text: "Conditions d'utilisation", href: '/terms' },
+      { text: 'Confidentialité', href: '/privacy' },
     ];
 
     supportLinks.forEach(({ text, href }) => {
@@ -61,23 +87,23 @@ describe('PublicFooter', () => {
     });
   });
 
-  it('should render Contact section with contact information', () => {
-    render(<PublicFooter />);
-
-    expect(screen.getByRole('heading', { name: 'Contact' })).toBeInTheDocument();
-    expect(screen.getByText(/\+221 77 123 45 67/)).toBeInTheDocument();
-    expect(screen.getByText(/contact@finance4all\.sn/)).toBeInTheDocument();
-  });
-
   it('should render copyright section', () => {
     render(<PublicFooter />);
-    expect(screen.getByText('© 2024 Finance4All. Tous droits réservés.')).toBeInTheDocument();
+    expect(
+      screen.getByText('© 2024 Finance4All. Tous droits réservés. Powered by Simplon Solutions.')
+    ).toBeInTheDocument();
+  });
+
+  it('should render bottom action buttons', () => {
+    render(<PublicFooter />);
+    expect(screen.getByRole('button', { name: 'Politique de cookies' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mentions légales' })).toBeInTheDocument();
   });
 
   it('should have proper footer styling', () => {
     render(<PublicFooter />);
     const footer = screen.getByRole('contentinfo');
-    expect(footer).toHaveClass('bg-gray-900', 'text-white', 'py-16');
+    expect(footer).toHaveClass('bg-grey-900', 'text-white', 'py-16');
   });
 
   it('should have responsive grid layout', () => {
@@ -86,70 +112,32 @@ describe('PublicFooter', () => {
 
     // Check main container classes
     const container = footer.querySelector('.max-w-7xl');
-    expect(container).toHaveClass('mx-auto', 'px-4', 'sm:px-6', 'lg:px-8');
+    expect(container).toHaveClass('mx-auto');
 
     // Check grid layout
     const gridContainer = container?.querySelector('.grid');
-    expect(gridContainer).toHaveClass('grid-cols-1', 'md:grid-cols-4', 'gap-8');
+    expect(gridContainer).toHaveClass('md:grid-cols-4', 'gap-12');
   });
 
   it('should style section headings correctly', () => {
     render(<PublicFooter />);
 
-    const brandHeading = screen.getByRole('heading', { name: 'Finance4All' });
-    expect(brandHeading).toHaveClass('text-xl', 'font-bold', 'mb-4');
+    const produitsHeading = screen.getByRole('heading', { name: 'Produits' });
+    expect(produitsHeading).toHaveClass('font-semibold', 'mb-4', 'text-white');
 
-    const servicesHeading = screen.getByRole('heading', { name: 'Services' });
-    expect(servicesHeading).toHaveClass('font-bold', 'mb-4');
+    const entrepriseHeading = screen.getByRole('heading', { name: 'Entreprise' });
+    expect(entrepriseHeading).toHaveClass('font-semibold', 'mb-4', 'text-white');
 
     const supportHeading = screen.getByRole('heading', { name: 'Support' });
-    expect(supportHeading).toHaveClass('font-bold', 'mb-4');
-
-    const contactHeading = screen.getByRole('heading', { name: 'Contact' });
-    expect(contactHeading).toHaveClass('font-bold', 'mb-4');
-  });
-
-  it('should style links correctly', () => {
-    render(<PublicFooter />);
-
-    const serviceLinks = [
-      screen.getByRole('link', { name: 'Comparator' }),
-      screen.getByRole('link', { name: 'Formation' }),
-      screen.getByRole('link', { name: 'Conseil' }),
-    ];
-
-    serviceLinks.forEach(link => {
-      expect(link.closest('li')).toBeInTheDocument();
-      expect(link.closest('ul')).toHaveClass('space-y-2', 'text-sm', 'text-gray-400');
-    });
+    expect(supportHeading).toHaveClass('font-semibold', 'mb-4', 'text-white');
   });
 
   it('should style brand description correctly', () => {
     render(<PublicFooter />);
-    const description = screen.getByText('Votre partenaire pour une meilleure gestion financière.');
-    expect(description).toHaveClass('text-gray-400', 'text-sm');
-  });
-
-  it('should style contact information correctly', () => {
-    render(<PublicFooter />);
-    const contactInfo = screen.getByText(/\+221 77 123 45 67/);
-    expect(contactInfo).toHaveClass('text-gray-400', 'text-sm');
-  });
-
-  it('should have proper copyright section styling', () => {
-    render(<PublicFooter />);
-    const copyrightSection = screen
-      .getByText('© 2024 Finance4All. Tous droits réservés.')
-      .closest('div');
-    expect(copyrightSection).toHaveClass(
-      'border-t',
-      'border-gray-800',
-      'mt-12',
-      'pt-8',
-      'text-center',
-      'text-gray-400',
-      'text-sm'
+    const description = screen.getByText(
+      "Votre partenaire pour l'inclusion financière au Sénégal et au Cameroun."
     );
+    expect(description).toHaveClass('text-grey-400', 'text-sm');
   });
 
   it('should render all sections in correct structure', () => {
@@ -171,12 +159,17 @@ describe('PublicFooter', () => {
 
     // All section links should be accessible
     const allLinks = [
-      'Comparator',
-      'Formation',
-      'Conseil', // Services
-      'FAQ',
+      'Comparateur',
+      'Simulateur',
+      'Catalogue de modules',
+      'Certificats', // Produits
+      'À propos',
+      'Partenaires',
+      'Blog', // Entreprise
+      "Centre d'aide",
       'Contact',
-      'Aide', // Support
+      "Conditions d'utilisation",
+      'Confidentialité', // Support
     ];
 
     allLinks.forEach(linkText => {
@@ -184,29 +177,41 @@ describe('PublicFooter', () => {
     });
   });
 
-  it('should contain contact information with proper formatting', () => {
+  it('should have proper navigation structure for product links', () => {
     render(<PublicFooter />);
 
-    // Check phone number format
-    expect(screen.getByText(/📞 \+221 77 123 45 67/)).toBeInTheDocument();
-
-    // Check email format
-    expect(screen.getByText(/📧 contact@finance4all\.sn/)).toBeInTheDocument();
+    const produitsSection = screen.getByRole('heading', { name: 'Produits' }).parentElement;
+    const produitsNav = produitsSection?.querySelector('nav');
+    expect(produitsNav).toBeInTheDocument();
+    expect(produitsNav).toHaveClass('flex', 'flex-col', 'gap-3');
   });
 
-  it('should have proper list structure for navigation links', () => {
+  it('should have proper navigation structure for company links', () => {
     render(<PublicFooter />);
 
-    // Check Services list
-    const servicesSection = screen.getByRole('heading', { name: 'Services' }).parentElement;
-    const servicesList = servicesSection?.querySelector('ul');
-    expect(servicesList).toBeInTheDocument();
-    expect(servicesList?.children).toHaveLength(3);
+    const entrepriseSection = screen.getByRole('heading', { name: 'Entreprise' }).parentElement;
+    const entrepriseNav = entrepriseSection?.querySelector('nav');
+    expect(entrepriseNav).toBeInTheDocument();
+    expect(entrepriseNav).toHaveClass('flex', 'flex-col', 'gap-3');
+  });
 
-    // Check Support list
+  it('should have proper navigation structure for support links', () => {
+    render(<PublicFooter />);
+
     const supportSection = screen.getByRole('heading', { name: 'Support' }).parentElement;
-    const supportList = supportSection?.querySelector('ul');
-    expect(supportList).toBeInTheDocument();
-    expect(supportList?.children).toHaveLength(3);
+    const supportNav = supportSection?.querySelector('nav');
+    expect(supportNav).toBeInTheDocument();
+    expect(supportNav).toHaveClass('flex', 'flex-col', 'gap-3');
+  });
+
+  it('should render F4A logo', () => {
+    render(<PublicFooter />);
+    expect(screen.getByText('F4A')).toBeInTheDocument();
+  });
+
+  it('should have gradient background on logo', () => {
+    render(<PublicFooter />);
+    const logo = screen.getByText('F4A').parentElement;
+    expect(logo).toHaveClass('bg-gradient-primary', 'rounded-2xl');
   });
 });

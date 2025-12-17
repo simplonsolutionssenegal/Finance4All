@@ -14,83 +14,76 @@ jest.mock('@/components/public/layout/footer', () => {
   };
 });
 
+jest.mock('@/components/public/HeroSection', () => {
+  return function MockHeroSection() {
+    return (
+      <section data-testid='hero-section'>
+        <h1>
+          Prenez le contrôle de <span>votre avenir financier</span>
+        </h1>
+        <p>
+          Finance4All vous accompagne dans votre parcours d&apos;inclusion financière avec des
+          outils intelligents, des formations gratuites et un accompagnement personnalisé.
+        </p>
+        <button>Commencer gratuitement</button>
+        <button>Voir le comparateur</button>
+      </section>
+    );
+  };
+});
+
+jest.mock('@/components/public/StatsSection', () => {
+  return function MockStatsSection() {
+    return <section data-testid='stats-section'>Stats</section>;
+  };
+});
+
+jest.mock('@/components/public/FeaturesSection', () => {
+  return function MockFeaturesSection() {
+    return <section data-testid='features-section'>Features</section>;
+  };
+});
+
+jest.mock('@/components/public/EducationSection', () => {
+  return function MockEducationSection() {
+    return <section data-testid='education-section'>Education</section>;
+  };
+});
+
+jest.mock('@/components/public/HowItWorks', () => {
+  return function MockHowItWorks() {
+    return <section data-testid='how-it-works'>How It Works</section>;
+  };
+});
+
+jest.mock('@/components/public/VisionSection', () => {
+  return function MockVisionSection() {
+    return <section data-testid='vision-section'>Vision</section>;
+  };
+});
+
+jest.mock('@/components/public/TestimonialSection', () => {
+  return function MockTestimonialSection() {
+    return <section data-testid='testimonial-section'>Testimonials</section>;
+  };
+});
+
+jest.mock('@/components/public/CTASection', () => {
+  return function MockCTASection() {
+    return (
+      <section data-testid='cta-section'>
+        <h2>Prêt à transformer votre vie financière ?</h2>
+        <button>Créer mon compte gratuit</button>
+      </section>
+    );
+  };
+});
+
 describe('Home Page', () => {
   it('renders without crashing', () => {
     render(<Home />);
     expect(screen.getByTestId('public-header')).toBeInTheDocument();
     expect(screen.getByTestId('public-footer')).toBeInTheDocument();
-  });
-
-  it('displays the main title', () => {
-    render(<Home />);
-    expect(screen.getByText(/Finance4All/)).toBeInTheDocument();
-    expect(screen.getByText(/Prenez le pouvoir/)).toBeInTheDocument();
-    expect(screen.getByText(/sur vos finances/)).toBeInTheDocument();
-  });
-
-  it('displays the hero section subtitle', () => {
-    render(<Home />);
-    expect(screen.getByText(/Formez-vous, simulez, et choisissez/)).toBeInTheDocument();
-    expect(screen.getByText(/les meilleures solutions financières/)).toBeInTheDocument();
-    expect(screen.getByText(/en toute autonomie/)).toBeInTheDocument();
-  });
-
-  it('renders the trust section', () => {
-    render(<Home />);
-    expect(screen.getByText('Ils font confiance à Finance4or all')).toBeInTheDocument();
-  });
-
-  it('displays about us section', () => {
-    render(<Home />);
-    expect(screen.getByText('À PROPOS DE NOUS')).toBeInTheDocument();
-    expect(screen.getByText('Lire Plus')).toBeInTheDocument();
-  });
-
-  it('renders education section', () => {
-    render(<Home />);
-    expect(screen.getByText('Education financière')).toBeInTheDocument();
-    expect(screen.getAllByText('Gestion de finance')).toHaveLength(3);
-    expect(screen.getAllByText('20 heures')).toHaveLength(3);
-    expect(screen.getAllByText('Voir Plus')).toHaveLength(3);
-  });
-
-  it('displays compare section', () => {
-    render(<Home />);
-    expect(screen.getByText('Comparer selon vos besoins')).toBeInTheDocument();
-    expect(screen.getAllByText(/Service \d/)).toHaveLength(4); // 4 in compare section
-    expect(screen.getAllByText('En savoir plus →')).toHaveLength(4);
-  });
-
-  it('renders testimonials section', () => {
-    render(<Home />);
-    expect(screen.getByText('Ils témoignent')).toBeInTheDocument();
-    expect(screen.getAllByText('John Doe')).toHaveLength(3);
-  });
-
-  it('displays newsletter section', () => {
-    render(<Home />);
-    expect(
-      screen.getByText('Abonnez-vous à notre newsletter pour rester informé')
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Votre email')).toBeInTheDocument();
-    expect(screen.getByText("S'abonner")).toBeInTheDocument();
-  });
-
-  it('renders services icons section', () => {
-    render(<Home />);
-    expect(screen.getAllByText(/Service \d/)).toHaveLength(4); // 4 in compare section
-  });
-
-  it('has correct structure with header and footer', () => {
-    const { container } = render(<Home />);
-    expect(container.querySelector('[data-testid="public-header"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-testid="public-footer"]')).toBeInTheDocument();
-  });
-
-  it('contains all main sections', () => {
-    const { container } = render(<Home />);
-    const sections = container.querySelectorAll('section');
-    expect(sections).toHaveLength(7); // Hero, Trust, About, Education, Compare, Testimonials, Newsletter
   });
 
   it('should be a function that returns JSX', () => {
@@ -106,15 +99,63 @@ describe('Home Page', () => {
     expect(mainDiv).toHaveClass('min-h-screen');
   });
 
-  it('renders email input with correct attributes', () => {
-    render(<Home />);
-    const emailInput = screen.getByPlaceholderText('Votre email');
-    expect(emailInput).toHaveAttribute('type', 'email');
+  it('has correct structure with header and footer', () => {
+    const { container } = render(<Home />);
+    expect(container.querySelector('[data-testid="public-header"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="public-footer"]')).toBeInTheDocument();
   });
 
-  it('displays placeholder content for graphics', () => {
+  it('renders all section components', () => {
     render(<Home />);
-    expect(screen.getByText('Graphiques financiers')).toBeInTheDocument();
-    expect(screen.getByText('Image gratte-ciels + graphiques')).toBeInTheDocument();
+    expect(screen.getByTestId('hero-section')).toBeInTheDocument();
+    expect(screen.getByTestId('stats-section')).toBeInTheDocument();
+    expect(screen.getByTestId('features-section')).toBeInTheDocument();
+    expect(screen.getByTestId('education-section')).toBeInTheDocument();
+    expect(screen.getByTestId('how-it-works')).toBeInTheDocument();
+    expect(screen.getByTestId('vision-section')).toBeInTheDocument();
+    expect(screen.getByTestId('testimonial-section')).toBeInTheDocument();
+    expect(screen.getByTestId('cta-section')).toBeInTheDocument();
+  });
+
+  it('contains all main sections', () => {
+    const { container } = render(<Home />);
+    const sections = container.querySelectorAll('section');
+    expect(sections.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('displays hero section content', () => {
+    render(<Home />);
+    expect(screen.getByText(/Prenez le contrôle de/)).toBeInTheDocument();
+    expect(screen.getByText(/votre avenir financier/)).toBeInTheDocument();
+    expect(screen.getByText(/Finance4All vous accompagne dans votre parcours/)).toBeInTheDocument();
+  });
+
+  it('displays hero section CTA buttons', () => {
+    render(<Home />);
+    expect(screen.getByText('Commencer gratuitement')).toBeInTheDocument();
+    expect(screen.getByText('Voir le comparateur')).toBeInTheDocument();
+  });
+
+  it('displays CTA section content', () => {
+    render(<Home />);
+    expect(screen.getByText(/Prêt à transformer votre vie financière/)).toBeInTheDocument();
+    expect(screen.getByText('Créer mon compte gratuit')).toBeInTheDocument();
+  });
+
+  it('renders sections in correct order', () => {
+    const { container } = render(<Home />);
+    const sections = Array.from(container.querySelectorAll('section'));
+    const testIds = sections.map(section => section.getAttribute('data-testid')).filter(Boolean);
+
+    expect(testIds).toEqual([
+      'hero-section',
+      'stats-section',
+      'features-section',
+      'education-section',
+      'how-it-works',
+      'vision-section',
+      'testimonial-section',
+      'cta-section',
+    ]);
   });
 });
