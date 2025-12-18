@@ -119,7 +119,10 @@ container
 // ========== Beneficiaires repositories ==========
 container
   .bind<BeneficiaryRepository>(TYPES.BeneficiaryRepository)
-  .to(PrismaBeneficiaryRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaBeneficiaryRepository(prismaClient);
+  })
   .inSingletonScope();
 
 container

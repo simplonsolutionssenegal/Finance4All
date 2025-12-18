@@ -1,15 +1,16 @@
 import type { BeneficiaryRepository } from '@/domain/Beneficiary/repositories/BeneficiaryRepository';
 import { Beneficiary, BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
-import { prisma } from '@/infrastructure/config/prismaClient';
+import type { PrismaClient } from '@prisma/client';
 
-// Fonction helper pour convertir le status Prisma vers le domain
 function toDomainStatus(prismaStatus: string): BeneficiaryStatus {
   return prismaStatus === 'ACTIVE' ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.INACTIVE;
 }
 
 export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
   async findByOrgId(organizationId: string) {
-    const rows = await prisma.beneficiary.findMany({
+    const rows = await this.prisma.beneficiary.findMany({
       where: { organizationId },
       orderBy: { createdAt: 'desc' },
     });
@@ -33,9 +34,8 @@ export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
   }
 
   async findByOrgAndEmail(organizationId: string, email: string) {
-    const r = await prisma.beneficiary.findFirst({ where: { organizationId, email } });
+    const r = await this.prisma.beneficiary.findFirst({ where: { organizationId, email } });
     if (!r) return null;
-
     return new Beneficiary(
       r.id,
       r.organizationId,
@@ -52,7 +52,7 @@ export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
   }
 
   async findByIdInOrg(organizationId: string, beneficiaryId: string) {
-    const r = await prisma.beneficiary.findFirst({
+    const r = await this.prisma.beneficiary.findFirst({
       where: { id: beneficiaryId, organizationId },
     });
     if (!r) return null;
@@ -80,7 +80,7 @@ export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
     email: string;
     phone?: string | null;
   }) {
-    const r = await prisma.beneficiary.create({
+    const r = await this.prisma.beneficiary.create({
       data: {
         organizationId: input.organizationId,
         clerkUserId: input.clerkUserId,
@@ -114,13 +114,12 @@ export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
     phone?: string | null;
     status?: 'ACTIVE' | 'INACTIVE';
   }) {
-    // Sécurité : s'assurer que l'id appartient à cette org avant update
-    const exists = await prisma.beneficiary.findFirst({
+    const exists = await this.prisma.beneficiary.findFirst({
       where: { id: input.beneficiaryId, organizationId: input.organizationId },
     });
     if (!exists) throw new Error('Accès refusé (organisation) ou bénéficiaire introuvable.');
 
-    const r = await prisma.beneficiary.update({
+    const r = await this.prisma.beneficiary.update({
       where: { id: input.beneficiaryId },
       data: {
         ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
@@ -143,5 +142,12 @@ export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
       r.createdAt,
       r.updatedAt
     );
+  }
+
+  async deleteByIdAndOrgId(beneficiaryId: string, organizationId: string): Promise<boolean> {
+    const result = await this.prisma.beneficiary.deleteMany({
+      where: { id: beneficiaryId, organizationId },
+    });
+    return result.count > 0;
   }
 }

@@ -38,11 +38,11 @@ describe('BeneficiaryController', () => {
 
     mockRepo = {
       findByOrgId: jest.fn(),
-      findById: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      findByEmail: jest.fn(),
+      findByOrgAndEmail: jest.fn(),
+      findByIdInOrg: jest.fn(),
+      create: jest.fn(),
+      updateInOrg: jest.fn(),
+      deleteByIdAndOrgId: jest.fn(),
     } as any;
 
     controller = new BeneficiaryController(mockCreateUC, mockUpdateUC, mockRepo);
@@ -979,6 +979,280 @@ describe('BeneficiaryController', () => {
           success: false,
           message: 'Accès refusé (organisation) ou bénéficiaire introuvable.',
         });
+      });
+    });
+  });
+
+  describe('delete', () => {
+    beforeEach(() => {
+      mockResponse.send = jest.fn().mockReturnThis();
+    });
+
+    describe('validation errors', () => {
+      it('should return 400 when beneficiaryId is missing', async () => {
+        mockRequest.params = {};
+        mockRequest.body = {
+          organizationId: 'org-123',
+        };
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'beneficiaryId manquant',
+        });
+        expect(mockRepo.deleteByIdAndOrgId).not.toHaveBeenCalled();
+      });
+
+      it('should return 400 when organizationId is missing from body and query', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {};
+        mockRequest.query = {};
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.deleteByIdAndOrgId).not.toHaveBeenCalled();
+      });
+
+      it('should return 400 when organizationId is empty string', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {
+          organizationId: '',
+        };
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.deleteByIdAndOrgId).not.toHaveBeenCalled();
+      });
+
+      it('should return 400 when organizationId is whitespace only', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {
+          organizationId: '   ',
+        };
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'organizationId manquant',
+        });
+        expect(mockRepo.deleteByIdAndOrgId).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('successful deletion', () => {
+      it('should delete beneficiary from body organizationId', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {
+          organizationId: 'org-123',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(true);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-123', 'org-123');
+        expect(mockResponse.status).toHaveBeenCalledWith(204);
+        expect(mockResponse.send).toHaveBeenCalled();
+      });
+
+      it('should delete beneficiary from query organizationId', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-456',
+        };
+        mockRequest.body = {};
+        mockRequest.query = {
+          organizationId: 'org-456',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(true);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-456', 'org-456');
+        expect(mockResponse.status).toHaveBeenCalledWith(204);
+        expect(mockResponse.send).toHaveBeenCalled();
+      });
+
+      it('should prioritize body organizationId over query', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-789',
+        };
+        mockRequest.body = {
+          organizationId: 'org-body',
+        };
+        mockRequest.query = {
+          organizationId: 'org-query',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(true);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-789', 'org-body');
+      });
+
+      it('should trim organizationId from body', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-trim',
+        };
+        mockRequest.body = {
+          organizationId: '  org-trimmed  ',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(true);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-trim', 'org-trimmed');
+        expect(mockResponse.status).toHaveBeenCalledWith(204);
+      });
+
+      it('should trim organizationId from query', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-query',
+        };
+        mockRequest.body = {};
+        mockRequest.query = {
+          organizationId: '  org-query-trimmed  ',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(true);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-query', 'org-query-trimmed');
+      });
+    });
+
+    describe('not found handling', () => {
+      it('should return 404 when beneficiary not found', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-nonexistent',
+        };
+        mockRequest.body = {
+          organizationId: 'org-123',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(false);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Bénéficiaire introuvable pour cette organisation',
+        });
+        expect(mockResponse.send).not.toHaveBeenCalled();
+      });
+
+      it('should return 404 when beneficiary belongs to different organization', async () => {
+        mockRequest.params = {
+          beneficiaryId: 'ben-123',
+        };
+        mockRequest.body = {
+          organizationId: 'org-wrong',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockResolvedValue(false);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-123', 'org-wrong');
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Bénéficiaire introuvable pour cette organisation',
+        });
+      });
+    });
+
+    describe('error handling', () => {
+      it('should return 500 when repository throws error', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        mockRequest.params = {
+          beneficiaryId: 'ben-error',
+        };
+        mockRequest.body = {
+          organizationId: 'org-error',
+        };
+
+        const error = new Error('Database connection failed');
+        mockRepo.deleteByIdAndOrgId.mockRejectedValue(error);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Database connection failed',
+        });
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Erreur suppression bénéficiaire', error);
+        consoleErrorSpy.mockRestore();
+      });
+
+      it('should return 500 with generic message for unknown error type', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        mockRequest.params = {
+          beneficiaryId: 'ben-unknown',
+        };
+        mockRequest.body = {
+          organizationId: 'org-unknown',
+        };
+
+        mockRepo.deleteByIdAndOrgId.mockRejectedValue('String error');
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Erreur serveur',
+        });
+        consoleErrorSpy.mockRestore();
+      });
+
+      it('should return 500 when repository throws timeout error', async () => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+        mockRequest.params = {
+          beneficiaryId: 'ben-timeout',
+        };
+        mockRequest.body = {
+          organizationId: 'org-timeout',
+        };
+
+        const error = new Error('Query timeout exceeded');
+        mockRepo.deleteByIdAndOrgId.mockRejectedValue(error);
+
+        await controller.delete(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: false,
+          message: 'Query timeout exceeded',
+        });
+        consoleErrorSpy.mockRestore();
       });
     });
   });

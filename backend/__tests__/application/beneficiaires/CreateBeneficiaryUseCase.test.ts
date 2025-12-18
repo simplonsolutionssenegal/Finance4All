@@ -1,7 +1,8 @@
 import type { CreateBeneficiaryUseCase } from '@/application/beneficiaires/use-cases/CreateBeneficiaryUseCase';
-import type {
-  CreateBeneficiaryCommand,
-  CreateBeneficiaryResult,
+import {
+  BeneficiaryStatus,
+  type CreateBeneficiaryCommand,
+  type CreateBeneficiaryResult,
 } from '@/domain/Beneficiary/entities/Beneficiary';
 
 describe('CreateBeneficiaryUseCase Interface', () => {
@@ -25,7 +26,7 @@ describe('CreateBeneficiaryUseCase Interface', () => {
         lastName: 'Dupont',
         email: 'jean@example.com',
         phone: '+221771234567',
-        status: 'ACTIVE',
+        status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -65,7 +66,7 @@ describe('CreateBeneficiaryUseCase Interface', () => {
         lastName: 'Martin',
         email: 'marie@example.com',
         phone: null,
-        status: 'ACTIVE',
+        status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -104,7 +105,7 @@ describe('CreateBeneficiaryUseCase Interface', () => {
         lastName: 'Diop',
         email: 'paul@example.com',
         phone: '+221775555555',
-        status: 'ACTIVE',
+        status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -4,6 +4,7 @@ export interface BeneficiaryRepository {
   findByOrgId(organizationId: string): Promise<Beneficiary[]>;
   findByOrgAndEmail(organizationId: string, email: string): Promise<Beneficiary | null>;
   findByIdInOrg(organizationId: string, beneficiaryId: string): Promise<Beneficiary | null>;
+  deleteByIdAndOrgId(beneficiaryId: string, organizationId: string): Promise<boolean>;
 
   create(input: {
     organizationId: string;

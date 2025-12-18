@@ -79,30 +79,6 @@ describe('Beneficiary Entity', () => {
 
       expect(beneficiary.status).toBe(BeneficiaryStatus.INACTIVE);
     });
-
-    it('should have readonly id property that cannot be changed', () => {
-      const beneficiary = new Beneficiary(
-        'ben-readonly',
-        'org-123',
-        'clerk-456',
-        'Test',
-        'User',
-        'test@example.com',
-        null,
-        BeneficiaryStatus.ACTIVE,
-        0,
-        new Date(),
-        new Date()
-      );
-
-      // In TypeScript, readonly is a compile-time check
-      // At runtime, the property is still accessible but should not be modified
-      expect(beneficiary.id).toBe('ben-readonly');
-
-      // Verify id remains immutable (TypeScript prevents this at compile time)
-      const originalId = beneficiary.id;
-      expect(originalId).toBe('ben-readonly');
-    });
   });
 
   describe('Mutable Properties', () => {
@@ -315,6 +291,246 @@ describe('Beneficiary Entity', () => {
 
       expect(beneficiary.firstName).toBe(longName);
       expect(beneficiary.lastName).toBe(longName);
+    });
+
+    it('should handle negative progressPercent', () => {
+      const beneficiary = new Beneficiary(
+        'ben-11',
+        'org-11',
+        'clerk-11',
+        'Negative',
+        'Progress',
+        'negative@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        -10,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.progressPercent).toBe(-10);
+    });
+
+    it('should handle progressPercent greater than 100', () => {
+      const beneficiary = new Beneficiary(
+        'ben-12',
+        'org-12',
+        'clerk-12',
+        'Over',
+        'Progress',
+        'over@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        150,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.progressPercent).toBe(150);
+    });
+
+    it('should handle special characters in names', () => {
+      const beneficiary = new Beneficiary(
+        'ben-13',
+        'org-13',
+        'clerk-13',
+        "Jean-Pierre O'Connor",
+        'Ndao-Sène',
+        'special@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.firstName).toBe("Jean-Pierre O'Connor");
+      expect(beneficiary.lastName).toBe('Ndao-Sène');
+    });
+
+    it('should handle Unicode characters in names', () => {
+      const beneficiary = new Beneficiary(
+        'ben-14',
+        'org-14',
+        'clerk-14',
+        'Françoise',
+        'Mbëkk',
+        'unicode@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.firstName).toBe('Françoise');
+      expect(beneficiary.lastName).toBe('Mbëkk');
+    });
+
+    it('should preserve date instance references', () => {
+      const createdDate = new Date('2024-01-15');
+      const updatedDate = new Date('2024-01-20');
+
+      const beneficiary = new Beneficiary(
+        'ben-15',
+        'org-15',
+        'clerk-15',
+        'Date',
+        'Test',
+        'date@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        createdDate,
+        updatedDate
+      );
+
+      expect(beneficiary.createdAt).toBe(createdDate);
+      expect(beneficiary.updatedAt).toBe(updatedDate);
+    });
+
+    it('should handle same createdAt and updatedAt dates', () => {
+      const sameDate = new Date('2024-01-15');
+
+      const beneficiary = new Beneficiary(
+        'ben-16',
+        'org-16',
+        'clerk-16',
+        'Same',
+        'Date',
+        'same@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        sameDate,
+        sameDate
+      );
+
+      expect(beneficiary.createdAt).toEqual(sameDate);
+      expect(beneficiary.updatedAt).toEqual(sameDate);
+    });
+  });
+
+  describe('Property Types', () => {
+    it('should have correct property types', () => {
+      const beneficiary = new Beneficiary(
+        'ben-type',
+        'org-type',
+        'clerk-type',
+        'Type',
+        'Test',
+        'type@example.com',
+        '+221771234567',
+        BeneficiaryStatus.ACTIVE,
+        50,
+        new Date(),
+        new Date()
+      );
+
+      expect(typeof beneficiary.id).toBe('string');
+      expect(typeof beneficiary.organizationId).toBe('string');
+      expect(typeof beneficiary.clerkUserId).toBe('string');
+      expect(typeof beneficiary.firstName).toBe('string');
+      expect(typeof beneficiary.lastName).toBe('string');
+      expect(typeof beneficiary.email).toBe('string');
+      expect(typeof beneficiary.phone).toBe('string');
+      expect(typeof beneficiary.status).toBe('string');
+      expect(typeof beneficiary.progressPercent).toBe('number');
+      expect(beneficiary.createdAt).toBeInstanceOf(Date);
+      expect(beneficiary.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should handle phone as null correctly', () => {
+      const beneficiary = new Beneficiary(
+        'ben-null-phone',
+        'org-null',
+        'clerk-null',
+        'Null',
+        'Phone',
+        'null@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary.phone).toBeNull();
+      expect(typeof beneficiary.phone).toBe('object');
+    });
+  });
+
+  describe('Multiple Instances', () => {
+    it('should create independent instances', () => {
+      const beneficiary1 = new Beneficiary(
+        'ben-1',
+        'org-1',
+        'clerk-1',
+        'First',
+        'User',
+        'first@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        25,
+        new Date('2024-01-01'),
+        new Date('2024-01-02')
+      );
+
+      const beneficiary2 = new Beneficiary(
+        'ben-2',
+        'org-2',
+        'clerk-2',
+        'Second',
+        'User',
+        'second@example.com',
+        '+221771234567',
+        BeneficiaryStatus.INACTIVE,
+        75,
+        new Date('2024-02-01'),
+        new Date('2024-02-02')
+      );
+
+      expect(beneficiary1.id).not.toBe(beneficiary2.id);
+      expect(beneficiary1.firstName).not.toBe(beneficiary2.firstName);
+      expect(beneficiary1.status).not.toBe(beneficiary2.status);
+
+      beneficiary1.firstName = 'Changed';
+      expect(beneficiary2.firstName).toBe('Second');
+    });
+
+    it('should allow creating beneficiaries with duplicate data', () => {
+      const beneficiary1 = new Beneficiary(
+        'ben-1',
+        'org-same',
+        'clerk-1',
+        'Duplicate',
+        'User',
+        'duplicate@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      const beneficiary2 = new Beneficiary(
+        'ben-2',
+        'org-same',
+        'clerk-2',
+        'Duplicate',
+        'User',
+        'duplicate@example.com',
+        null,
+        BeneficiaryStatus.ACTIVE,
+        0,
+        new Date(),
+        new Date()
+      );
+
+      expect(beneficiary1.organizationId).toBe(beneficiary2.organizationId);
+      expect(beneficiary1.firstName).toBe(beneficiary2.firstName);
+      expect(beneficiary1.email).toBe(beneficiary2.email);
+      expect(beneficiary1.id).not.toBe(beneficiary2.id);
     });
   });
 });

@@ -10,7 +10,7 @@ export function useBeneficiaries() {
   const { getToken } = useAuth();
   const organizationId = organization?.id;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['beneficiaries', organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
@@ -39,5 +39,5 @@ export function useBeneficiaries() {
     enabled: !!organizationId,
   });
 
-  return { data: data ?? [], isLoading };
+  return { data: data ?? [], isLoading, error };
 }

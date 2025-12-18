@@ -15,6 +15,7 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
       findByOrgId: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
+      deleteByIdAndOrgId: jest.fn(),
     } as jest.Mocked<BeneficiaryRepository>;
 
     mockOrgIdentity = {

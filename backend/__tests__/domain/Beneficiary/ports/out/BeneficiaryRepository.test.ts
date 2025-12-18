@@ -12,6 +12,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       expect(mockRepo).toHaveProperty('findByOrgId');
@@ -25,6 +26,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       expect(mockRepo).toHaveProperty('findByOrgAndEmail');
@@ -38,6 +40,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       expect(mockRepo).toHaveProperty('findByIdInOrg');
@@ -51,6 +54,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       expect(mockRepo).toHaveProperty('create');
@@ -64,10 +68,25 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       expect(mockRepo).toHaveProperty('updateInOrg');
       expect(typeof mockRepo.updateInOrg).toBe('function');
+    });
+
+    it('should define deleteByIdAndOrgId method', () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
+      };
+
+      expect(mockRepo).toHaveProperty('deleteByIdAndOrgId');
+      expect(typeof mockRepo.deleteByIdAndOrgId).toBe('function');
     });
   });
 
@@ -79,6 +98,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = mockRepo.findByOrgId('org-123');
@@ -123,6 +143,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByOrgId('org-123');
@@ -139,6 +160,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByOrgId('org-empty');
@@ -156,6 +178,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = mockRepo.findByOrgAndEmail('org-123', 'test@example.com');
@@ -185,6 +208,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByOrgAndEmail('org-456', 'found@example.com');
@@ -201,6 +225,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByOrgAndEmail('org-789', 'notfound@example.com');
@@ -217,6 +242,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = mockRepo.findByIdInOrg('org-123', 'ben-123');
@@ -246,6 +272,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn().mockResolvedValue(beneficiary),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByIdInOrg('org-123', 'ben-123');
@@ -262,6 +289,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByIdInOrg('org-456', 'ben-nonexistent');
@@ -276,6 +304,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.findByIdInOrg('org-wrong', 'ben-123');
@@ -292,6 +321,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn().mockResolvedValue({} as Beneficiary),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const input = {
@@ -330,6 +360,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn().mockResolvedValue(createdBeneficiary),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.create({
@@ -371,6 +402,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn().mockResolvedValue(createdBeneficiary),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.create({
@@ -393,6 +425,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue({} as Beneficiary),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const input = {
@@ -428,6 +461,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.updateInOrg({
@@ -462,6 +496,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.updateInOrg({
@@ -494,6 +529,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.updateInOrg({
@@ -526,6 +562,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const result = await mockRepo.updateInOrg({
@@ -552,6 +589,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const validInput = {
@@ -575,6 +613,7 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         findByIdInOrg: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn(),
       };
 
       const validInput = {
@@ -587,6 +626,88 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       mockRepo.updateInOrg(validInput);
 
       expect(mockRepo.updateInOrg).toHaveBeenCalledWith(validInput);
+    });
+  });
+
+  describe('deleteByIdAndOrgId', () => {
+    it('should accept beneficiaryId and organizationId, return Promise<boolean>', () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
+      };
+
+      const result = mockRepo.deleteByIdAndOrgId('ben-123', 'org-123');
+
+      expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-123', 'org-123');
+      expect(result).toBeInstanceOf(Promise);
+    });
+
+    it('should return true when beneficiary is deleted', async () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
+      };
+
+      const result = await mockRepo.deleteByIdAndOrgId('ben-123', 'org-123');
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when beneficiary not found', async () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn().mockResolvedValue(false),
+      };
+
+      const result = await mockRepo.deleteByIdAndOrgId('ben-nonexistent', 'org-123');
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when beneficiary belongs to different organization', async () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn().mockResolvedValue(false),
+      };
+
+      const result = await mockRepo.deleteByIdAndOrgId('ben-123', 'org-wrong');
+
+      expect(result).toBe(false);
+    });
+
+    it('should enforce correct parameter order (beneficiaryId first, organizationId second)', async () => {
+      const mockRepo: BeneficiaryRepository = {
+        findByOrgId: jest.fn(),
+        findByOrgAndEmail: jest.fn(),
+        findByIdInOrg: jest.fn(),
+        create: jest.fn(),
+        updateInOrg: jest.fn(),
+        deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
+      };
+
+      await mockRepo.deleteByIdAndOrgId('ben-delete', 'org-delete');
+
+      expect(mockRepo.deleteByIdAndOrgId).toHaveBeenCalledWith('ben-delete', 'org-delete');
+      // Verify order: first arg is beneficiaryId, second is organizationId
+      const callArgs = (mockRepo.deleteByIdAndOrgId as jest.Mock).mock.calls[0];
+      expect(callArgs[0]).toBe('ben-delete');
+      expect(callArgs[1]).toBe('org-delete');
     });
   });
 });

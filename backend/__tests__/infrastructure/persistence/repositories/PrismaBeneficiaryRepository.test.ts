@@ -1,24 +1,23 @@
 import { PrismaBeneficiaryRepository } from '@/infrastructure/persistence/repositories/PrismaBeneficiaryRepository';
 import { Beneficiary, BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
-import { prisma } from '@/infrastructure/config/prismaClient';
-
-// Mock Prisma client
-jest.mock('@/infrastructure/config/prismaClient', () => ({
-  prisma: {
-    beneficiary: {
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-  },
-}));
+import type { PrismaClient } from '@prisma/client';
 
 describe('PrismaBeneficiaryRepository', () => {
   let repository: PrismaBeneficiaryRepository;
+  let mockPrisma: any;
 
   beforeEach(() => {
-    repository = new PrismaBeneficiaryRepository();
+    mockPrisma = {
+      beneficiary: {
+        findMany: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+    };
+
+    repository = new PrismaBeneficiaryRepository(mockPrisma as PrismaClient);
     jest.clearAllMocks();
   });
 
@@ -53,11 +52,11 @@ describe('PrismaBeneficiaryRepository', () => {
         },
       ];
 
-      (prisma.beneficiary.findMany as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findMany.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgId('org-123');
 
-      expect(prisma.beneficiary.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findMany).toHaveBeenCalledWith({
         where: { organizationId: 'org-123' },
         orderBy: { createdAt: 'desc' },
       });
@@ -70,7 +69,7 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should return empty array when no beneficiaries found', async () => {
-      (prisma.beneficiary.findMany as jest.Mock).mockResolvedValue([]);
+      mockPrisma.beneficiary.findMany.mockResolvedValue([]);
 
       const result = await repository.findByOrgId('org-empty');
 
@@ -79,11 +78,11 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should order results by createdAt desc', async () => {
-      (prisma.beneficiary.findMany as jest.Mock).mockResolvedValue([]);
+      mockPrisma.beneficiary.findMany.mockResolvedValue([]);
 
       await repository.findByOrgId('org-123');
 
-      expect(prisma.beneficiary.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findMany).toHaveBeenCalledWith({
         where: { organizationId: 'org-123' },
         orderBy: { createdAt: 'desc' },
       });
@@ -106,11 +105,11 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date('2024-02-02'),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgAndEmail('org-456', 'found@example.com');
 
-      expect(prisma.beneficiary.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findFirst).toHaveBeenCalledWith({
         where: { organizationId: 'org-456', email: 'found@example.com' },
       });
       expect(result).not.toBeNull();
@@ -120,7 +119,7 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should return null when beneficiary not found', async () => {
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(null);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(null);
 
       const result = await repository.findByOrgAndEmail('org-789', 'notfound@example.com');
 
@@ -142,7 +141,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgAndEmail('org-123', 'status@example.com');
 
@@ -166,11 +165,11 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByIdInOrg('org-123', 'ben-123');
 
-      expect(prisma.beneficiary.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findFirst).toHaveBeenCalledWith({
         where: { id: 'ben-123', organizationId: 'org-123' },
       });
       expect(result).not.toBeNull();
@@ -180,7 +179,7 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should return null when beneficiary not found', async () => {
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(null);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(null);
 
       const result = await repository.findByIdInOrg('org-456', 'ben-nonexistent');
 
@@ -188,11 +187,11 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should return null when beneficiary belongs to different organization', async () => {
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(null);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(null);
 
       const result = await repository.findByIdInOrg('org-wrong', 'ben-123');
 
-      expect(prisma.beneficiary.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findFirst).toHaveBeenCalledWith({
         where: { id: 'ben-123', organizationId: 'org-wrong' },
       });
       expect(result).toBeNull();
@@ -216,7 +215,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: now,
       };
 
-      (prisma.beneficiary.create as jest.Mock).mockResolvedValue(mockCreated);
+      mockPrisma.beneficiary.create.mockResolvedValue(mockCreated);
 
       const input = {
         organizationId: 'org-123',
@@ -229,7 +228,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.create(input);
 
-      expect(prisma.beneficiary.create).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.create).toHaveBeenCalledWith({
         data: {
           organizationId: 'org-123',
           clerkUserId: 'clerk-new',
@@ -264,7 +263,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.create as jest.Mock).mockResolvedValue(mockCreated);
+      mockPrisma.beneficiary.create.mockResolvedValue(mockCreated);
 
       const input = {
         organizationId: 'org-456',
@@ -276,7 +275,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.create(input);
 
-      expect(prisma.beneficiary.create).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.create).toHaveBeenCalledWith({
         data: {
           organizationId: 'org-456',
           clerkUserId: 'clerk-456',
@@ -304,7 +303,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.create as jest.Mock).mockResolvedValue(mockCreated);
+      mockPrisma.beneficiary.create.mockResolvedValue(mockCreated);
 
       const input = {
         organizationId: 'org-789',
@@ -317,7 +316,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.create(input);
 
-      expect(prisma.beneficiary.create).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           phone: null,
         }),
@@ -349,8 +348,8 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockExists);
-      (prisma.beneficiary.update as jest.Mock).mockResolvedValue(mockUpdated);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
 
       const input = {
         organizationId: 'org-123',
@@ -361,10 +360,10 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.updateInOrg(input);
 
-      expect(prisma.beneficiary.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findFirst).toHaveBeenCalledWith({
         where: { id: 'ben-update', organizationId: 'org-123' },
       });
-      expect(prisma.beneficiary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
         where: { id: 'ben-update' },
         data: {
           firstName: 'Updated',
@@ -397,8 +396,8 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockExists);
-      (prisma.beneficiary.update as jest.Mock).mockResolvedValue(mockUpdated);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
 
       const input = {
         organizationId: 'org-456',
@@ -408,7 +407,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.updateInOrg(input);
 
-      expect(prisma.beneficiary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
         where: { id: 'ben-status' },
         data: {
           status: 'INACTIVE',
@@ -438,8 +437,8 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockExists);
-      (prisma.beneficiary.update as jest.Mock).mockResolvedValue(mockUpdated);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
 
       const input = {
         organizationId: 'org-789',
@@ -449,7 +448,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.updateInOrg(input);
 
-      expect(prisma.beneficiary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
         where: { id: 'ben-remove-phone' },
         data: {
           phone: null,
@@ -459,7 +458,7 @@ describe('PrismaBeneficiaryRepository', () => {
     });
 
     it('should throw error when beneficiary not found', async () => {
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(null);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(null);
 
       const input = {
         organizationId: 'org-123',
@@ -471,11 +470,11 @@ describe('PrismaBeneficiaryRepository', () => {
         'Accès refusé (organisation) ou bénéficiaire introuvable.'
       );
 
-      expect(prisma.beneficiary.update).not.toHaveBeenCalled();
+      expect(mockPrisma.beneficiary.update).not.toHaveBeenCalled();
     });
 
     it('should throw error when beneficiary belongs to different organization', async () => {
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(null);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(null);
 
       const input = {
         organizationId: 'org-wrong',
@@ -487,7 +486,7 @@ describe('PrismaBeneficiaryRepository', () => {
         'Accès refusé (organisation) ou bénéficiaire introuvable.'
       );
 
-      expect(prisma.beneficiary.findFirst).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.findFirst).toHaveBeenCalledWith({
         where: { id: 'ben-123', organizationId: 'org-wrong' },
       });
     });
@@ -516,8 +515,8 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockExists);
-      (prisma.beneficiary.update as jest.Mock).mockResolvedValue(mockUpdated);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
 
       const input = {
         organizationId: 'org-all',
@@ -530,7 +529,7 @@ describe('PrismaBeneficiaryRepository', () => {
 
       const result = await repository.updateInOrg(input);
 
-      expect(prisma.beneficiary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
         where: { id: 'ben-all' },
         data: {
           firstName: 'All',
@@ -566,8 +565,8 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockExists);
-      (prisma.beneficiary.update as jest.Mock).mockResolvedValue(mockUpdated);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
 
       const input = {
         organizationId: 'org-123',
@@ -578,13 +577,48 @@ describe('PrismaBeneficiaryRepository', () => {
 
       await repository.updateInOrg(input);
 
-      expect(prisma.beneficiary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
         where: { id: 'ben-partial' },
         data: {
           firstName: 'OnlyThis',
           // No other fields
         },
       });
+    });
+  });
+
+  describe('deleteByIdAndOrgId', () => {
+    it('should delete beneficiary and return true when found', async () => {
+      mockPrisma.beneficiary.deleteMany.mockResolvedValue({ count: 1 });
+
+      const result = await repository.deleteByIdAndOrgId('ben-123', 'org-123');
+
+      expect(mockPrisma.beneficiary.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'ben-123', organizationId: 'org-123' },
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should return false when beneficiary not found', async () => {
+      mockPrisma.beneficiary.deleteMany.mockResolvedValue({ count: 0 });
+
+      const result = await repository.deleteByIdAndOrgId('ben-nonexistent', 'org-123');
+
+      expect(mockPrisma.beneficiary.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'ben-nonexistent', organizationId: 'org-123' },
+      });
+      expect(result).toBe(false);
+    });
+
+    it('should return false when beneficiary belongs to different organization', async () => {
+      mockPrisma.beneficiary.deleteMany.mockResolvedValue({ count: 0 });
+
+      const result = await repository.deleteByIdAndOrgId('ben-123', 'org-wrong');
+
+      expect(mockPrisma.beneficiary.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'ben-123', organizationId: 'org-wrong' },
+      });
+      expect(result).toBe(false);
     });
   });
 
@@ -604,7 +638,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgAndEmail('org-123', 'active@example.com');
 
@@ -626,7 +660,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgAndEmail('org-123', 'inactive@example.com');
 
@@ -648,7 +682,7 @@ describe('PrismaBeneficiaryRepository', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.beneficiary.findFirst as jest.Mock).mockResolvedValue(mockData);
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockData);
 
       const result = await repository.findByOrgAndEmail('org-123', 'other@example.com');
 

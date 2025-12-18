@@ -13,6 +13,7 @@ export const beneficiaryRoutes = (): Router => {
     list: controller.list.bind(controller),
     create: controller.create.bind(controller),
     update: controller.update.bind(controller),
+    delete: controller.delete.bind(controller),
   };
   router.get('/', requireSameActiveOrg, boundController.list);
   router.post('/', requireSameActiveOrg, handleValidationErrors, boundController.create);
@@ -22,6 +23,7 @@ export const beneficiaryRoutes = (): Router => {
     handleValidationErrors,
     boundController.update
   );
+  router.delete('/:beneficiaryId', requireSameActiveOrg, boundController.delete);
 
   return router;
 };

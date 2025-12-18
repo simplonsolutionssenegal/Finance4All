@@ -1,9 +1,17 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import BeneficiaryTable from '@/components/beneficiaire/BeneficiaryTable';
 import { BeneficiaryStatus } from '@/types/beneficiaire/beneficiary';
 // eslint-disable-next-line no-duplicate-imports
 import type { Beneficiary } from '@/types/beneficiaire/beneficiary';
+
+// Mock sonner toast
+jest.mock('sonner', () => ({
+  toast: {
+    custom: jest.fn(),
+    dismiss: jest.fn(),
+  },
+}));
 
 describe('BeneficiaryTable', () => {
   const mockUuidToInt = jest.fn((uuid: string) => {
@@ -175,16 +183,20 @@ describe('BeneficiaryTable', () => {
   });
 
   describe('Action Buttons', () => {
-    it('should render all action buttons', () => {
+    it('should render all action buttons for mixed statuses', () => {
       render(<BeneficiaryTable {...defaultProps} />);
 
       const viewButtons = screen.getAllByTitle('Voir');
       const editButtons = screen.getAllByTitle('Modifier');
-      const deleteButtons = screen.getAllByTitle('Supprimer');
 
       expect(viewButtons).toHaveLength(2);
       expect(editButtons).toHaveLength(2);
-      expect(deleteButtons).toHaveLength(2);
+
+      // John (ACTIVE) a un bouton Désactiver
+      expect(screen.getByTitle('Désactiver')).toBeInTheDocument();
+
+      // Jane (INACTIVE) a un bouton Réactiver
+      expect(screen.getByTitle('Réactiver')).toBeInTheDocument();
     });
 
     it('should call onView when view button is clicked', () => {
@@ -207,14 +219,62 @@ describe('BeneficiaryTable', () => {
       expect(onEdit).toHaveBeenCalledWith(mockBeneficiaries[0]);
     });
 
-    it('should call onDelete when delete button is clicked', () => {
+    it('should show confirmation toast when deactivate button is clicked', () => {
+      const { toast } = require('sonner');
+      render(<BeneficiaryTable {...defaultProps} />);
+
+      const deactivateButton = screen.getByTitle('Désactiver');
+      fireEvent.click(deactivateButton);
+
+      expect(toast.custom).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ duration: 8000 })
+      );
+    });
+
+    it('should call onDelete when confirmation is accepted', () => {
+      const { toast } = require('sonner');
       const onDelete = jest.fn();
+
       render(<BeneficiaryTable {...defaultProps} onDelete={onDelete} />);
 
-      const deleteButton = screen.getAllByTitle('Supprimer')[0];
-      fireEvent.click(deleteButton);
+      const deactivateButton = screen.getByTitle('Désactiver');
+      fireEvent.click(deactivateButton);
 
+      // Get the toast render function
+      const toastCall = (toast.custom as jest.Mock).mock.calls[0];
+      const toastRenderFn = toastCall[0];
+
+      // Render the toast content
+      const { getByText } = render(toastRenderFn({ id: 'test-toast' }));
+
+      // Click confirm button
+      const confirmButton = getByText('Désactiver');
+      fireEvent.click(confirmButton);
+
+      expect(toast.dismiss).toHaveBeenCalled();
       expect(onDelete).toHaveBeenCalledWith(mockBeneficiaries[0]);
+    });
+
+    it('should dismiss toast when cancel is clicked', () => {
+      const { toast } = require('sonner');
+      const onDelete = jest.fn();
+
+      render(<BeneficiaryTable {...defaultProps} onDelete={onDelete} />);
+
+      const deactivateButton = screen.getByTitle('Désactiver');
+      fireEvent.click(deactivateButton);
+
+      const toastCall = (toast.custom as jest.Mock).mock.calls[0];
+      const toastRenderFn = toastCall[0];
+
+      const { getByText } = render(toastRenderFn({ id: 'test-toast' }));
+
+      const cancelButton = getByText('Annuler');
+      fireEvent.click(cancelButton);
+
+      expect(toast.dismiss).toHaveBeenCalled();
+      expect(onDelete).not.toHaveBeenCalled();
     });
 
     it('should not crash when callbacks are undefined', () => {
@@ -222,13 +282,123 @@ describe('BeneficiaryTable', () => {
 
       const viewButton = screen.getAllByTitle('Voir')[0];
       const editButton = screen.getAllByTitle('Modifier')[0];
-      const deleteButton = screen.getAllByTitle('Supprimer')[0];
+      const deactivateButton = screen.getByTitle('Désactiver');
 
       expect(() => {
         fireEvent.click(viewButton);
         fireEvent.click(editButton);
-        fireEvent.click(deleteButton);
+        fireEvent.click(deactivateButton);
       }).not.toThrow();
+    });
+  });
+
+  describe('Reactivate Button', () => {
+    it('should show reactivate button for inactive beneficiaries', () => {
+      const inactiveBeneficiaries: Beneficiary[] = [
+        { ...mockBeneficiaries[1], status: BeneficiaryStatus.INACTIVE },
+      ];
+
+      render(<BeneficiaryTable {...defaultProps} rows={inactiveBeneficiaries} />);
+
+      expect(screen.getByTitle('Réactiver')).toBeInTheDocument();
+      expect(screen.queryByTitle('Désactiver')).not.toBeInTheDocument();
+    });
+
+    it('should show confirmation toast when reactivate button is clicked', () => {
+      const { toast } = require('sonner');
+      const inactiveBeneficiaries: Beneficiary[] = [
+        { ...mockBeneficiaries[1], status: BeneficiaryStatus.INACTIVE },
+      ];
+
+      render(<BeneficiaryTable {...defaultProps} rows={inactiveBeneficiaries} />);
+
+      const reactivateButton = screen.getByTitle('Réactiver');
+      fireEvent.click(reactivateButton);
+
+      expect(toast.custom).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ duration: 8000 })
+      );
+    });
+
+    it('should call onReactivate when confirmation is accepted', async () => {
+      const { toast } = require('sonner');
+      const onReactivate = jest.fn().mockResolvedValue(undefined);
+      const inactiveBeneficiaries: Beneficiary[] = [
+        { ...mockBeneficiaries[1], status: BeneficiaryStatus.INACTIVE },
+      ];
+
+      render(
+        <BeneficiaryTable
+          {...defaultProps}
+          rows={inactiveBeneficiaries}
+          onReactivate={onReactivate}
+        />
+      );
+
+      const reactivateButton = screen.getByTitle('Réactiver');
+      fireEvent.click(reactivateButton);
+
+      const toastCall = (toast.custom as jest.Mock).mock.calls[0];
+      const toastRenderFn = toastCall[0];
+
+      const { getByText } = render(toastRenderFn({ id: 'test-toast' }));
+
+      const confirmButton = getByText('Réactiver');
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(toast.dismiss).toHaveBeenCalled();
+        expect(onReactivate).toHaveBeenCalledWith(inactiveBeneficiaries[0]);
+      });
+    });
+
+    it('should show correct beneficiary name in reactivate confirmation', () => {
+      const { toast } = require('sonner');
+      const inactiveBeneficiaries: Beneficiary[] = [
+        { ...mockBeneficiaries[1], status: BeneficiaryStatus.INACTIVE },
+      ];
+
+      render(<BeneficiaryTable {...defaultProps} rows={inactiveBeneficiaries} />);
+
+      const reactivateButton = screen.getByTitle('Réactiver');
+      fireEvent.click(reactivateButton);
+
+      const toastCall = (toast.custom as jest.Mock).mock.calls[0];
+      const toastRenderFn = toastCall[0];
+
+      const { getByText } = render(toastRenderFn({ id: 'test-toast' }));
+
+      expect(getByText(/Réactiver le bénéficiaire Jane Smith/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Deactivate Button', () => {
+    it('should show deactivate button for active beneficiaries', () => {
+      const activeBeneficiaries: Beneficiary[] = [
+        { ...mockBeneficiaries[0], status: BeneficiaryStatus.ACTIVE },
+      ];
+
+      render(<BeneficiaryTable {...defaultProps} rows={activeBeneficiaries} />);
+
+      expect(screen.getByTitle('Désactiver')).toBeInTheDocument();
+      expect(screen.queryByTitle('Réactiver')).not.toBeInTheDocument();
+    });
+
+    it('should show correct beneficiary name in deactivate confirmation', () => {
+      const { toast } = require('sonner');
+
+      render(<BeneficiaryTable {...defaultProps} />);
+
+      const deactivateButton = screen.getByTitle('Désactiver');
+      fireEvent.click(deactivateButton);
+
+      const toastCall = (toast.custom as jest.Mock).mock.calls[0];
+      const toastRenderFn = toastCall[0];
+
+      const { getByText } = render(toastRenderFn({ id: 'test-toast' }));
+
+      expect(getByText(/Désactiver le bénéficiaire John Doe/)).toBeInTheDocument();
     });
   });
 
@@ -275,6 +445,8 @@ describe('BeneficiaryTable', () => {
 
       // Should show initials as just last name initial
       expect(screen.getByText('D')).toBeInTheDocument();
+      // Name should still display properly with space
+      expect(screen.getByText(/Doe/)).toBeInTheDocument();
     });
 
     it('should handle beneficiary with missing lastName', () => {
@@ -339,7 +511,8 @@ describe('BeneficiaryTable', () => {
 
       expect(screen.getAllByLabelText('Voir')).toHaveLength(2);
       expect(screen.getAllByLabelText('Modifier')).toHaveLength(2);
-      expect(screen.getAllByLabelText('Supprimer')).toHaveLength(2);
+      expect(screen.getByLabelText('Désactiver')).toBeInTheDocument();
+      expect(screen.getByLabelText('Réactiver')).toBeInTheDocument();
     });
 
     it('should have title attributes for tooltips', () => {
@@ -347,11 +520,13 @@ describe('BeneficiaryTable', () => {
 
       const viewButton = screen.getAllByTitle('Voir')[0];
       const editButton = screen.getAllByTitle('Modifier')[0];
-      const deleteButton = screen.getAllByTitle('Supprimer')[0];
+      const deactivateButton = screen.getByTitle('Désactiver');
+      const reactivateButton = screen.getByTitle('Réactiver');
 
       expect(viewButton).toHaveAttribute('title', 'Voir');
       expect(editButton).toHaveAttribute('title', 'Modifier');
-      expect(deleteButton).toHaveAttribute('title', 'Supprimer');
+      expect(deactivateButton).toHaveAttribute('title', 'Désactiver');
+      expect(reactivateButton).toHaveAttribute('title', 'Réactiver');
     });
 
     it('should render buttons with proper type attribute', () => {

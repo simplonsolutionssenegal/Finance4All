@@ -141,4 +141,42 @@ export class BeneficiaryController {
         .json({ success: false, message: e instanceof Error ? e.message : 'Erreur update' });
     }
   }
+
+  async delete(req: Request, res: Response): Promise<void> {
+    const { beneficiaryId } = req.params;
+
+    const organizationId = String(
+      (req.body?.organizationId ?? req.query?.organizationId ?? '') || ''
+    ).trim();
+
+    if (!beneficiaryId) {
+      res.status(400).json({ success: false, message: 'beneficiaryId manquant' });
+      return;
+    }
+
+    if (!organizationId) {
+      res.status(400).json({ success: false, message: 'organizationId manquant' });
+      return;
+    }
+
+    try {
+      const deleted = await this.repo.deleteByIdAndOrgId(beneficiaryId, organizationId);
+
+      if (!deleted) {
+        res
+          .status(404)
+          .json({ success: false, message: 'Bénéficiaire introuvable pour cette organisation' });
+        return;
+      }
+
+      // pas de contenu, juste 204
+      res.status(204).send();
+    } catch (error: unknown) {
+      console.error('Erreur suppression bénéficiaire', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur serveur',
+      });
+    }
+  }
 }

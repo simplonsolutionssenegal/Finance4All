@@ -130,7 +130,7 @@ describe('Beneficiary interface', () => {
       expect(beneficiary.createdAt).toBe('2024-01-01T00:00:00Z');
     });
 
-    it('should accept valid beneficiary with number id', () => {
+    it('should accept valid beneficiary with numeric string id', () => {
       const beneficiary: Beneficiary = {
         id: '12345',
         firstName: 'Jane',
@@ -141,8 +141,8 @@ describe('Beneficiary interface', () => {
         createdAt: '2024-01-02T00:00:00Z',
       };
 
-      expect(beneficiary.id).toBe(12345);
-      expect(typeof beneficiary.id).toBe('number');
+      expect(beneficiary.id).toBe('12345');
+      expect(typeof beneficiary.id).toBe('string');
     });
 
     it('should accept beneficiary with phone', () => {

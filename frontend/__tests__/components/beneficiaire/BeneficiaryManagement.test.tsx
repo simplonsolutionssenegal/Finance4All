@@ -31,7 +31,7 @@ jest.mock('sonner', () => ({
 
 // Mock BeneficiaryTable
 jest.mock('@/components/beneficiaire/BeneficiaryTable', () => {
-  return jest.fn(({ rows, isLoading, onEdit }) => {
+  return jest.fn(({ rows, isLoading, onEdit, onView, onDelete, onReactivate }) => {
     if (isLoading) return <div>Chargement...</div>;
     if (rows.length === 0) return <div>Aucun bénéficiaire trouvé.</div>;
     return (
@@ -43,6 +43,15 @@ jest.mock('@/components/beneficiaire/BeneficiaryTable', () => {
             </span>
             <button onClick={() => onEdit(b)} title='Modifier'>
               edit
+            </button>
+            <button onClick={() => onView(b)} title='Voir'>
+              view
+            </button>
+            <button onClick={() => onDelete(b)} title='Supprimer'>
+              delete
+            </button>
+            <button onClick={() => onReactivate(b)} title='Réactiver'>
+              reactivate
             </button>
           </div>
         ))}
@@ -160,8 +169,12 @@ describe('BeneficiaryManagement', () => {
   it('renders title + table rows', () => {
     render(<BeneficiaryManagement />);
     expect(screen.getByText(/Gestion des bénéficiaires/i)).toBeInTheDocument();
+
+    // Par défaut, le filtre est ACTIVE, donc seul John Doe (ACTIVE) est visible
     expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+
+    // Jane Smith est INACTIVE, donc pas visible par défaut
+    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
   });
 
   it('renders search input', () => {
@@ -178,6 +191,8 @@ describe('BeneficiaryManagement', () => {
   describe('search', () => {
     it('filters by name', () => {
       render(<BeneficiaryManagement />);
+
+      // Par défaut le filtre est ACTIVE, donc John Doe est visible
       fireEvent.change(screen.getByPlaceholderText('Rechercher...'), { target: { value: 'John' } });
 
       expect(screen.getByText('John Doe')).toBeInTheDocument();
@@ -186,6 +201,11 @@ describe('BeneficiaryManagement', () => {
 
     it('filters by email', () => {
       render(<BeneficiaryManagement />);
+
+      // Passer au filtre ALL pour voir tous les bénéficiaires
+      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' })); // ACTIVE -> INACTIVE
+      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' })); // INACTIVE -> ALL
+
       fireEvent.change(screen.getByPlaceholderText('Rechercher...'), {
         target: { value: 'jane.smith@' },
       });
@@ -196,33 +216,26 @@ describe('BeneficiaryManagement', () => {
   });
 
   describe('status filter (cycle button "Filtrer")', () => {
-    it('cycle: ALL -> ACTIVE (keeps only Active)', () => {
+    it('starts with ACTIVE filter by default (shows only active users)', () => {
       render(<BeneficiaryManagement />);
 
-      // initial: both present
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-
-      // click once => ACTIVE
-      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
+      // Par défaut, le filtre est ACTIVE
       expect(screen.getByText('John Doe')).toBeInTheDocument();
       expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
     });
 
-    it('cycle: ALL -> ACTIVE -> INACTIVE (keeps only Inactive)', () => {
+    it('cycle: ACTIVE -> INACTIVE (shows only inactive users)', () => {
       render(<BeneficiaryManagement />);
 
+      // click once => INACTIVE
       fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
-
       expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
 
-    it('cycle back to ALL', () => {
+    it('cycle: ACTIVE -> INACTIVE -> ALL (shows all users)', () => {
       render(<BeneficiaryManagement />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' })); // ACTIVE
       fireEvent.click(screen.getByRole('button', { name: 'Filtrer' })); // INACTIVE
       fireEvent.click(screen.getByRole('button', { name: 'Filtrer' })); // ALL
 
@@ -391,13 +404,291 @@ describe('BeneficiaryManagement', () => {
   });
 
   describe('organization handling', () => {
-    it('disables add button when no organization', () => {
+    it('shows tooltip on add button when no organization', () => {
       (useOrganization as jest.Mock).mockReturnValue({ organization: null });
 
       render(<BeneficiaryManagement />);
 
       const addBtn = screen.getByRole('button', { name: /Ajouter un bénéficiaire/i });
-      expect(addBtn).toBeDisabled();
+      expect(addBtn).toHaveAttribute('title', "Sélectionne une organisation d'abord");
+    });
+
+    it('shows organization name in header', () => {
+      render(<BeneficiaryManagement />);
+      expect(screen.getByText(/Org Test/)).toBeInTheDocument();
+    });
+
+    it('shows "Aucune organisation" when no organization', () => {
+      (useOrganization as jest.Mock).mockReturnValue({ organization: null });
+      render(<BeneficiaryManagement />);
+      expect(screen.getByText(/Aucune organisation/)).toBeInTheDocument();
+    });
+  });
+
+  describe('delete beneficiary (set to INACTIVE)', () => {
+    it('calls PATCH with INACTIVE status and removes from list', async () => {
+      const { toast } = require('sonner');
+
+      render(<BeneficiaryManagement />);
+
+      // John Doe est présent initialement
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+
+      // On clique sur supprimer
+      fireEvent.click(screen.getAllByTitle('Supprimer')[0]);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          'https://api.example.com/beneficiaries/1',
+          expect.objectContaining({
+            method: 'PATCH',
+            headers: expect.objectContaining({
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer mock-token',
+            }),
+            body: JSON.stringify({
+              organizationId: 'org_123',
+              status: 'INACTIVE',
+            }),
+          })
+        );
+        expect(toast.success).toHaveBeenCalledWith('Bénéficiaire désactivé avec succès ✅');
+      });
+
+      // John Doe devrait être retiré de la liste locale
+      await waitFor(() => {
+        expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows error toast when delete fails', async () => {
+      const { toast } = require('sonner');
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: jest.fn().mockResolvedValue('Server error'),
+      });
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Supprimer')[0]);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Server error');
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('shows error when no organization for delete', async () => {
+      const { toast } = require('sonner');
+      (useOrganization as jest.Mock).mockReturnValue({ organization: null });
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Supprimer')[0]);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Aucune organisation active.');
+      });
+    });
+  });
+
+  describe('reactivate beneficiary (set to ACTIVE)', () => {
+    it('calls PATCH with ACTIVE status and updates local state', async () => {
+      const { toast } = require('sonner');
+
+      render(<BeneficiaryManagement />);
+
+      // Jane Smith est INACTIVE, on va la réactiver
+      fireEvent.click(screen.getAllByTitle('Réactiver')[0]);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          'https://api.example.com/beneficiaries/1',
+          expect.objectContaining({
+            method: 'PATCH',
+            headers: expect.objectContaining({
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer mock-token',
+            }),
+            body: JSON.stringify({
+              organizationId: 'org_123',
+              status: 'ACTIVE',
+            }),
+          })
+        );
+        expect(toast.success).toHaveBeenCalledWith('Bénéficiaire réactivé avec succès ✅');
+      });
+    });
+
+    it('shows error toast when reactivate fails', async () => {
+      const { toast } = require('sonner');
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: jest.fn().mockResolvedValue('Reactivation failed'),
+      });
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Réactiver')[0]);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Reactivation failed');
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('shows error when no organization for reactivate', async () => {
+      const { toast } = require('sonner');
+      (useOrganization as jest.Mock).mockReturnValue({ organization: null });
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Réactiver')[0]);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Aucune organisation active.');
+      });
+    });
+  });
+
+  describe('view beneficiary', () => {
+    it('navigates to beneficiary detail page on view click', () => {
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Voir')[0]);
+
+      expect(mockRouter.push).toHaveBeenCalledWith('/beneficiaires/1');
+    });
+  });
+
+  describe('search with phone', () => {
+    it('filters by phone number', () => {
+      render(<BeneficiaryManagement />);
+
+      fireEvent.change(screen.getByPlaceholderText('Rechercher...'), {
+        target: { value: '+221771234567' },
+      });
+
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('search with ID', () => {
+    it('filters by beneficiary ID', () => {
+      render(<BeneficiaryManagement />);
+
+      fireEvent.change(screen.getByPlaceholderText('Rechercher...'), {
+        target: { value: '1' },
+      });
+
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('combined search and filter', () => {
+    it('applies both search query and status filter', () => {
+      render(<BeneficiaryManagement />);
+
+      // Filtre INACTIVE (par défaut c'est ACTIVE)
+      fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
+
+      // Recherche "Jane"
+      fireEvent.change(screen.getByPlaceholderText('Rechercher...'), {
+        target: { value: 'Jane' },
+      });
+
+      expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
+  });
+
+  describe('error handling', () => {
+    it('handles create beneficiary error', async () => {
+      const { toast } = require('sonner');
+      const mutateAsync = jest.fn().mockRejectedValue(new Error('Creation failed'));
+      (useCreateBeneficiaryAdmin as jest.Mock).mockReturnValue({
+        mutateAsync,
+        isPending: false,
+      });
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Ajouter un bénéficiaire/i }));
+      fireEvent.click(screen.getByLabelText('submit-modal'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Creation failed');
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('handles missing API URL for update', async () => {
+      const { toast } = require('sonner');
+      delete process.env.NEXT_PUBLIC_API_URL;
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Modifier')[0]);
+      fireEvent.click(screen.getByLabelText('submit-modal'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('NEXT_PUBLIC_API_URL non défini');
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      consoleSpy.mockRestore();
+      process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
+    });
+  });
+
+  describe('modal props', () => {
+    it('passes correct props for create mode', () => {
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Ajouter un bénéficiaire/i }));
+
+      expect(lastModalProps.mode).toBe('create');
+      expect(lastModalProps.organizationId).toBe('org_123');
+      expect(lastModalProps.beneficiaryId).toBeUndefined();
+      expect(lastModalProps.initialValues).toBeUndefined();
+      expect(lastModalProps.isCreating).toBe(false);
+    });
+
+    it('passes correct props for edit mode', () => {
+      render(<BeneficiaryManagement />);
+
+      fireEvent.click(screen.getAllByTitle('Modifier')[0]);
+
+      expect(lastModalProps.mode).toBe('edit');
+      expect(lastModalProps.organizationId).toBe('org_123');
+      expect(lastModalProps.beneficiaryId).toBe('1');
+      expect(lastModalProps.initialValues).toEqual({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        phone: '+221771234567',
+      });
+      expect(lastModalProps.isUpdating).toBe(false);
     });
   });
 });

@@ -75,7 +75,7 @@ describe('BeneficiaireDashboardPage', () => {
       // Assert
       expect(auth).toHaveBeenCalled();
       expect(redirect).not.toHaveBeenCalled();
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, expect.anything());
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, undefined);
     });
 
     it('should pass userId to BeneficiaireDashboard component', async () => {
@@ -88,7 +88,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, expect.anything());
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, undefined);
     });
 
     it('should handle different userId formats', async () => {
@@ -101,7 +101,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, expect.anything());
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: mockUserId }, undefined);
       expect(redirect).not.toHaveBeenCalled();
     });
   });
@@ -203,7 +203,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: 'user_123' }, expect.anything());
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: 'user_123' }, undefined);
       expect(redirect).not.toHaveBeenCalled();
     });
   });
@@ -231,10 +231,7 @@ describe('BeneficiaireDashboardPage', () => {
       // Assert
       // Whitespace is truthy, so it should be treated as authenticated
       expect(redirect).not.toHaveBeenCalled();
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        { userId: whitespaceUserId },
-        expect.anything()
-      );
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: whitespaceUserId }, undefined);
     });
 
     it('should handle very long userId strings', async () => {
@@ -247,7 +244,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: longUserId }, expect.anything());
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: longUserId }, undefined);
       expect(redirect).not.toHaveBeenCalled();
     });
 
@@ -261,10 +258,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        { userId: specialUserId },
-        expect.anything()
-      );
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: specialUserId }, undefined);
     });
   });
 
@@ -310,10 +304,7 @@ describe('BeneficiaireDashboardPage', () => {
 
       // Assert
       expect(endTime - startTime).toBeGreaterThanOrEqual(100);
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        { userId: 'user_slow' },
-        expect.anything()
-      );
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: 'user_slow' }, undefined);
     });
   });
 
@@ -346,10 +337,7 @@ describe('BeneficiaireDashboardPage', () => {
       render(result);
 
       // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        { userId: 'valid_user_123' },
-        expect.anything()
-      );
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith({ userId: 'valid_user_123' }, undefined);
     });
   });
 });

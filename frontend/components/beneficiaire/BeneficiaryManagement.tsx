@@ -73,15 +73,22 @@ export default function BeneficiaryManagement() {
 
   const { organization } = useOrganization();
   const organizationId = organization?.id ?? '';
-
   const createBeneficiary = useCreateBeneficiaryAdmin();
 
   const [q, setQ] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | BeneficiaryStatus>('ALL');
+  // const [statusFilter, setStatusFilter] = useState<'ALL' | BeneficiaryStatus>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | BeneficiaryStatus>(
+    BeneficiaryStatus.ACTIVE
+  );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
   const [editing, setEditing] = useState<Beneficiary | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleView = (beneficiaire: Beneficiary) => {
+    router.push(`/beneficiaires/${beneficiaire.id}`);
+  };
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -177,6 +184,91 @@ export default function BeneficiaryManagement() {
       setIsUpdating(false);
     }
   };
+  const handleDelete = async (beneficiaire: Beneficiary) => {
+    if (!organizationId) {
+      toast.error('Aucune organisation active.');
+      return;
+    }
+    try {
+      const token = await getToken();
+      const base = process.env.NEXT_PUBLIC_API_URL;
+      if (!base) throw new Error('NEXT_PUBLIC_API_URL non défini');
+
+      const res = await fetch(`${base}/beneficiaries/${beneficiaire.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          organizationId,
+          status: 'INACTIVE',
+        }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Erreur PATCH (${res.status})`);
+      }
+
+      // On enlève le bénéficiaire de la liste locale (car maintenant INACTIVE)
+      setRows(curr => curr.filter(b => String(b.id) !== String(beneficiaire.id)));
+
+      toast.success('Bénéficiaire désactivé avec succès ✅');
+      // optionnel : si tu veux, tu peux garder ou enlever ce refresh
+      // router.refresh();
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e instanceof Error && e.message?.trim()
+          ? e.message
+          : "Une erreur s'est produite lors de la désactivation.";
+      toast.error(msg);
+    }
+  };
+  const handleReactivate = async (beneficiaire: Beneficiary) => {
+    if (!organizationId) {
+      toast.error('Aucune organisation active.');
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      const base = process.env.NEXT_PUBLIC_API_URL;
+      if (!base) throw new Error('NEXT_PUBLIC_API_URL non défini');
+
+      const res = await fetch(`${base}/beneficiaries/${beneficiaire.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          organizationId,
+          status: 'ACTIVE',
+        }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Erreur PATCH (${res.status})`);
+      }
+      setRows(curr =>
+        curr.map(b =>
+          String(b.id) === String(beneficiaire.id) ? { ...b, status: BeneficiaryStatus.ACTIVE } : b
+        )
+      );
+
+      toast.success('Bénéficiaire réactivé avec succès ✅');
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e instanceof Error && e.message?.trim()
+          ? e.message
+          : "Une erreur s'est produite lors de la réactivation.";
+      toast.error(msg);
+    }
+  };
 
   return (
     <div className='space-y-5'>
@@ -191,7 +283,6 @@ export default function BeneficiaryManagement() {
         <Button
           className='rounded-xl bg-primary-300 text-white hover:bg-primary-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
           onClick={openCreate}
-          disabled={!organizationId}
           title={!organizationId ? "Sélectionne une organisation d'abord" : undefined}
         >
           <User className='mr-2 h-4 w-4' />
@@ -269,6 +360,9 @@ export default function BeneficiaryManagement() {
               isLoading={isLoading}
               uuidToInt={uuidToInt}
               onEdit={openEdit}
+              onView={handleView}
+              onDelete={handleDelete}
+              onReactivate={handleReactivate}
             />
           </div>
         </CardContent>

@@ -94,6 +94,7 @@ describe('useBeneficiaries', () => {
       // Initial state
       expect(result.current.isLoading).toBe(true);
       expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeNull();
 
       // Wait for data to load
       await waitFor(() => {
@@ -101,6 +102,7 @@ describe('useBeneficiaries', () => {
       });
 
       expect(result.current.data).toEqual(mockBeneficiaries);
+      expect(result.current.error).toBeNull();
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.example.com/beneficiaries?organizationId=org_123',
         expect.objectContaining({
@@ -169,6 +171,37 @@ describe('useBeneficiaries', () => {
           }),
         })
       );
+    });
+
+    it('should use correct query key with organizationId', async () => {
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Verify that the query was cached with correct key
+      const cachedData = queryClient.getQueryData(['beneficiaries', 'org_123']);
+      expect(cachedData).toEqual(mockBeneficiaries);
+    });
+
+    it('should handle data property correctly from API response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          success: true,
+          data: mockBeneficiaries,
+          total: 2,
+        }),
+      });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toEqual(mockBeneficiaries);
     });
   });
 
@@ -246,6 +279,7 @@ describe('useBeneficiaries', () => {
       });
 
       expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
       expect(consoleErrorSpy).toHaveBeenCalledWith('  - Error:', 'Internal Server Error');
 
       consoleErrorSpy.mockRestore();
@@ -261,6 +295,71 @@ describe('useBeneficiaries', () => {
       });
 
       expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+    });
+
+    it('should handle 404 not found error', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: jest.fn().mockResolvedValue('Not Found'),
+      });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('  - Error:', 'Not Found');
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle 401 unauthorized error', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: jest.fn().mockResolvedValue('Unauthorized'),
+      });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle 403 forbidden error', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 403,
+        text: jest.fn().mockResolvedValue('Forbidden'),
+      });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should throw error when NEXT_PUBLIC_API_URL is not defined', async () => {
@@ -273,6 +372,8 @@ describe('useBeneficiaries', () => {
       });
 
       expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+      expect(result.current.error?.message).toContain('NEXT_PUBLIC_API_URL non défini');
     });
 
     it('should handle malformed JSON response', async () => {
@@ -370,6 +471,13 @@ describe('useBeneficiaries', () => {
       expect(beneficiary).toHaveProperty('status');
       expect(beneficiary).toHaveProperty('progressPercent');
       expect(beneficiary).toHaveProperty('createdAt');
+
+      // Vérifier les types
+      expect(typeof beneficiary.id).toBe('string');
+      expect(typeof beneficiary.firstName).toBe('string');
+      expect(typeof beneficiary.lastName).toBe('string');
+      expect(typeof beneficiary.email).toBe('string');
+      expect(typeof beneficiary.progressPercent).toBe('number');
     });
 
     it('should handle missing optional fields', async () => {
@@ -393,6 +501,98 @@ describe('useBeneficiaries', () => {
       });
 
       expect(result.current.data[0].phone).toBeNull();
+    });
+
+    it('should return array of beneficiaries', async () => {
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(Array.isArray(result.current.data)).toBe(true);
+      expect(result.current.data.length).toBe(2);
+    });
+
+    it('should preserve beneficiary status types', async () => {
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data[0].status).toBe(BeneficiaryStatus.ACTIVE);
+      expect(result.current.data[1].status).toBe(BeneficiaryStatus.INACTIVE);
+    });
+  });
+
+  describe('Return value structure', () => {
+    it('should return object with data, isLoading, and error properties', async () => {
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      expect(result.current).toHaveProperty('data');
+      expect(result.current).toHaveProperty('isLoading');
+      expect(result.current).toHaveProperty('error');
+    });
+
+    it('should default to empty array for data', () => {
+      mockUseOrganization.mockReturnValue({ organization: null });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      expect(result.current.data).toEqual([]);
+      expect(Array.isArray(result.current.data)).toBe(true);
+    });
+  });
+
+  describe('Token refresh', () => {
+    it('should call getToken on each fetch', async () => {
+      const getTokenMock = jest.fn().mockResolvedValue('token-1');
+      mockUseAuth.mockReturnValue({ getToken: getTokenMock });
+
+      renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(getTokenMock).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle token retrieval failure', async () => {
+      const getTokenMock = jest.fn().mockRejectedValue(new Error('Token error'));
+      mockUseAuth.mockReturnValue({ getToken: getTokenMock });
+
+      const { result } = renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toEqual([]);
+      expect(result.current.error).toBeTruthy();
+    });
+  });
+
+  describe('Query parameters', () => {
+    it('should include organizationId in query params', async () => {
+      renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('organizationId=org_123'),
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('should construct correct URL with base API URL', async () => {
+      renderHook(() => useBeneficiaries(), { wrapper });
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          'https://api.example.com/beneficiaries?organizationId=org_123',
+          expect.any(Object)
+        );
+      });
     });
   });
 });

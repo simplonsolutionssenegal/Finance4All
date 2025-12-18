@@ -1,7 +1,8 @@
 'use client';
 
-import { Eye, Edit, Trash2, Mail, Phone } from 'lucide-react';
+import { Eye, Edit, Trash2, Mail, Phone, RotateCcw } from 'lucide-react';
 import React from 'react';
+import { toast } from 'sonner';
 
 import type { Beneficiary } from '@/types/beneficiaire/beneficiary';
 // eslint-disable-next-line no-duplicate-imports
@@ -67,6 +68,7 @@ type Props = {
   onView?: (beneficiaire: Beneficiary) => void;
   onEdit?: (beneficiaire: Beneficiary) => void;
   onDelete?: (beneficiaire: Beneficiary) => void;
+  onReactivate?: (beneficiaire: Beneficiary) => void;
 };
 
 export default function BeneficiaryTable({
@@ -76,6 +78,7 @@ export default function BeneficiaryTable({
   onView,
   onEdit,
   onDelete,
+  onReactivate,
 }: Props) {
   return (
     <div className='overflow-x-auto overflow-y-hidden'>
@@ -182,15 +185,93 @@ export default function BeneficiaryTable({
                         <Edit className='h-4 w-4' />
                       </button>
 
-                      <button
-                        type='button'
-                        onClick={() => onDelete?.(beneficiaire)}
-                        className='grid h-8 w-8 place-items-center rounded-md text-red-500 hover:bg-red-50 cursor-pointer'
-                        aria-label='Supprimer'
-                        title='Supprimer'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
+                      {beneficiaire.status === BeneficiaryStatus.ACTIVE ? (
+                        <button
+                          type='button'
+                          onClick={() => {
+                            toast.custom(
+                              t => (
+                                <div className='w-[360px] rounded-lg border border-primary-200 bg-primary-400 p-4 shadow-lg'>
+                                  <div className='text-sm font-medium text-white'>
+                                    Désactiver le bénéficiaire {beneficiaire.firstName}{' '}
+                                    {beneficiaire.lastName} ?
+                                  </div>
+
+                                  <div className='mt-3 flex justify-end gap-2'>
+                                    <button
+                                      className='rounded-md border border-white/30 bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20'
+                                      onClick={() => toast.dismiss(t)}
+                                      type='button'
+                                    >
+                                      Annuler
+                                    </button>
+
+                                    <button
+                                      className='rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700'
+                                      onClick={() => {
+                                        toast.dismiss(t);
+                                        onDelete?.(beneficiaire);
+                                      }}
+                                      type='button'
+                                    >
+                                      Désactiver
+                                    </button>
+                                  </div>
+                                </div>
+                              ),
+                              { duration: 8000 }
+                            );
+                          }}
+                          className='grid h-8 w-8 place-items-center rounded-md text-red-500 hover:bg-red-50 cursor-pointer'
+                          aria-label='Désactiver'
+                          title='Désactiver'
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </button>
+                      ) : (
+                        <button
+                          type='button'
+                          onClick={() => {
+                            toast.custom(
+                              t => (
+                                <div className='w-[360px] rounded-lg border border-emerald-200 bg-emerald-600 p-4 shadow-lg'>
+                                  <div className='text-sm font-medium text-white'>
+                                    Réactiver le bénéficiaire {beneficiaire.firstName}{' '}
+                                    {beneficiaire.lastName} ?
+                                  </div>
+
+                                  <div className='mt-3 flex justify-end gap-2'>
+                                    <button
+                                      className='rounded-md border border-white/30 bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20'
+                                      onClick={() => toast.dismiss(t)}
+                                      type='button'
+                                    >
+                                      Annuler
+                                    </button>
+
+                                    <button
+                                      className='rounded-md bg-white px-3 py-1 text-sm font-semibold text-emerald-700 hover:bg-emerald-50'
+                                      onClick={async () => {
+                                        toast.dismiss(t);
+                                        await onReactivate?.(beneficiaire);
+                                      }}
+                                      type='button'
+                                    >
+                                      Réactiver
+                                    </button>
+                                  </div>
+                                </div>
+                              ),
+                              { duration: 8000 }
+                            );
+                          }}
+                          className='grid h-8 w-8 place-items-center rounded-md text-emerald-600 hover:bg-emerald-50 cursor-pointer'
+                          aria-label='Réactiver'
+                          title='Réactiver'
+                        >
+                          <RotateCcw className='h-4 w-4' />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

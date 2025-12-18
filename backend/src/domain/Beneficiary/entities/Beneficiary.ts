@@ -22,7 +22,7 @@ export interface UpdateBeneficiaryCommand {
 }
 
 export interface CreateBeneficiaryResult {
-  beneficiary: any;
+  beneficiary: Beneficiary;
   tempPassword?: string;
 }
 
