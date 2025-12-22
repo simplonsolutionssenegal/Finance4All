@@ -13,7 +13,7 @@ jest.mock('@/hooks/useSimulator', () => ({
   useSimulator: jest.fn(),
 }));
 
-jest.mock('@/components/ui/FeeCalculator', () => ({
+jest.mock('@/types/FeeCalculator', () => ({
   computeFee: jest.fn(),
 }));
 
