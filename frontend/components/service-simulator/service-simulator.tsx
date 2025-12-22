@@ -18,8 +18,8 @@ import { useSimulator } from '@/hooks/useSimulator';
 import type { DropdownOption } from '@/lib/dropdown-types';
 import { formatCurrency, validateValue } from '@/lib/format-utils';
 import type { Institution, Service } from '@/lib/simulator-types';
-import { computeFee } from '@/types/FeeCalculator';
 import type { RecentSim, ServiceDTO } from '@/types/Service';
+import { computeFee } from '@/types/utils/FeeCalculator';
 
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
