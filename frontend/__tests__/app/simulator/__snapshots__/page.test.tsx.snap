@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ServiceSimulatorPage Snapshot correspond au snapshot 1`] = `
+<div
+  class="min-h-screen overflow-visible"
+>
+  <div
+    data-testid="service-simulator"
+  >
+    ServiceSimulator Component
+  </div>
+</div>
+`;

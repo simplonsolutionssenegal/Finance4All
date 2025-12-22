@@ -47,6 +47,25 @@ export interface Service {
   updatedAt: string;
 }
 
+export interface InstitutionDTO {
+  id: string;
+  name: string;
+  logoUrl: string;
+}
+
+export interface ServiceDTO {
+  id: string;
+  name: string;
+  longName: string;
+  type: string;
+  montantMin: number;
+  montantMax: number;
+  frais: Frais;
+  conditionAccess: string[];
+  plafonds: string[];
+  infrastructureAccess: string[];
+  institution: InstitutionDTO;
+}
 export enum TypeService {
   PAIEMENT_MARCHAND = 'paiement marchand',
   ACHAT_CREDIT = 'achat de crédit',
@@ -62,3 +81,13 @@ export enum TypeService {
   ASSURANCE = 'assurance',
   AUTRES = 'autres services',
 }
+
+export type RecentSim = {
+  key: string;
+  institution: string;
+  service: string;
+  amount: number;
+  fees: number;
+  total: number;
+  time: string;
+};
