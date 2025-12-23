@@ -1,5 +1,5 @@
 import type { ServiceDTO, Frais } from '@/types/Service';
-import { computeFee } from '@/types/utils/FeeCalculator';
+import { computeFee } from '@/lib/FeeCalculator';
 
 // Mock du module format-utils
 jest.mock('@/lib/format-utils', () => ({
