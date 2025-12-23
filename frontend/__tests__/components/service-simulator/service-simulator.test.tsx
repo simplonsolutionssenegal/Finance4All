@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useSimulator } from '@/hooks/useSimulator';
 import { useRouter } from 'next/navigation';
 import { ServiceSimulator } from '@/components/service-simulator/service-simulator';
-import { computeFee } from '@/components/ui/FeeCalculator';
+import { computeFee } from '@/types/utils/FeeCalculator';
 
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
@@ -13,7 +13,7 @@ jest.mock('@/hooks/useSimulator', () => ({
   useSimulator: jest.fn(),
 }));
 
-jest.mock('@/components/ui/FeeCalculator', () => ({
+jest.mock('@/types/utils/FeeCalculator', () => ({
   computeFee: jest.fn(),
 }));
 

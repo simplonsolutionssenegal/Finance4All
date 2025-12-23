@@ -14,12 +14,12 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { computeFee } from '@/components/ui/FeeCalculator';
 import { useSimulator } from '@/hooks/useSimulator';
 import type { DropdownOption } from '@/lib/dropdown-types';
 import { formatCurrency, validateValue } from '@/lib/format-utils';
 import type { Institution, Service } from '@/lib/simulator-types';
 import type { RecentSim, ServiceDTO } from '@/types/Service';
+import { computeFee } from '@/types/utils/FeeCalculator';
 
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
