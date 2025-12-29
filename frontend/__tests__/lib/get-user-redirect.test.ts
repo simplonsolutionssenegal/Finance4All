@@ -78,6 +78,37 @@ describe('get-user-redirect', () => {
         '/custom-beneficiary'
       );
     });
+
+    it('should return /beneficiaire-dashboard for beneficiary without organization', () => {
+      const userMetadata = {
+        unsafeMetadata: { role: 'beneficiary' },
+        publicMetadata: {},
+        externalAccounts: [],
+      };
+      expect(getUserRedirectPath(null, null, {}, userMetadata)).toBe('/beneficiaire-dashboard');
+    });
+
+    it('should return /beneficiaire-dashboard for beneficiary with BENEFICIAIRE role', () => {
+      const userMetadata = {
+        unsafeMetadata: { role: 'BENEFICIAIRE' },
+        publicMetadata: {},
+        externalAccounts: [],
+      };
+      expect(getUserRedirectPath(null, null, {}, userMetadata)).toBe('/beneficiaire-dashboard');
+    });
+
+    it('should prioritize organization membership over beneficiary metadata', () => {
+      const userMetadata = {
+        unsafeMetadata: { role: 'beneficiary' },
+        publicMetadata: {},
+        externalAccounts: [],
+      };
+      const memberships = [{ role: 'org:admin' }];
+      // Si dans une organisation, on suit le rôle de l'organisation
+      expect(getUserRedirectPath(null, memberships, {}, userMetadata)).toBe(
+        '/organisation-dashboard'
+      );
+    });
   });
 
   describe('useGetUserRedirect', () => {

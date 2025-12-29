@@ -12,7 +12,12 @@ interface UserRedirectOptions {
 export function getUserRedirectPath(
   userRoles: string[] | null,
   organizationMemberships?: Array<{ role: string }> | null,
-  options: UserRedirectOptions = {}
+  options: UserRedirectOptions = {},
+  userMetadata?: {
+    unsafeMetadata?: Record<string, unknown>;
+    publicMetadata?: Record<string, unknown>;
+    externalAccounts?: Array<unknown>;
+  } | null
 ): string {
   const {
     adminDashboardPath = '/dashboard',
@@ -20,31 +25,36 @@ export function getUserRedirectPath(
     beneficiaryDashboardPath = '/beneficiaire-dashboard',
   } = options;
 
-  // 1. Vérifier d'abord si l'utilisateur est admin global (rôle dans les métadonnées)
-  const isGlobalAdmin = userRoles?.includes('admin');
-
-  if (isGlobalAdmin) {
-    // Si admin global ET pas dans une organisation → dashboard admin
+  const isSystemAdmin = userRoles?.includes('admin');
+  if (isSystemAdmin) {
     if (!organizationMemberships || organizationMemberships.length === 0) {
       return adminDashboardPath;
     }
   }
 
-  // 2. Vérifier si l'utilisateur est membre d'une organisation
   if (organizationMemberships && organizationMemberships.length > 0) {
     const hasRecipientRole = organizationMemberships.some(
       membership => membership.role === 'org:recipient'
     );
-
     if (hasRecipientRole) {
       return beneficiaryDashboardPath;
     }
 
-    // Si dans une organisation avec rôle org:admin ou org:member
     return organizationDashboardPath;
   }
 
-  // 3. Par défaut (pas d'organisation)
+  const unsafeRole = userMetadata?.unsafeMetadata?.role as string | undefined;
+  const publicRole = userMetadata?.publicMetadata?.role as string | undefined;
+  const isBeneficiary =
+    unsafeRole === 'beneficiary' ||
+    unsafeRole === 'BENEFICIAIRE' ||
+    publicRole === 'beneficiary' ||
+    publicRole === 'BENEFICIAIRE';
+
+  if (isBeneficiary) {
+    return beneficiaryDashboardPath;
+  }
+
   return beneficiaryDashboardPath;
 }
 
@@ -78,10 +88,20 @@ export function useGetUserRedirect(options: UserRedirectOptions = {}): {
     };
   }
 
+  // Préparer les métadonnées de l'utilisateur pour la détection des bénéficiaires
+  const userMetadata = user
+    ? {
+        unsafeMetadata: user.unsafeMetadata as Record<string, unknown> | undefined,
+        publicMetadata: user.publicMetadata as Record<string, unknown> | undefined,
+        externalAccounts: user.externalAccounts || [],
+      }
+    : null;
+
   const redirectUrl = getUserRedirectPath(
     userRoles,
     userMemberships?.data?.map(m => ({ role: m.role })),
-    options
+    options,
+    userMetadata
   );
 
   return {

@@ -48,8 +48,8 @@ describe('useSocialAuth', () => {
 
       expect(mockAuthenticateWithRedirect).toHaveBeenCalledWith({
         strategy: 'oauth_google',
-        redirectUrl: '/beneficiaire-dashboard',
-        redirectUrlComplete: '/beneficiaire-dashboard',
+        redirectUrl: '/auth-redirect',
+        redirectUrlComplete: '/auth-redirect',
       });
     });
 
@@ -62,8 +62,8 @@ describe('useSocialAuth', () => {
 
       expect(mockAuthenticateWithRedirect).toHaveBeenCalledWith({
         strategy: 'oauth_facebook',
-        redirectUrl: '/beneficiaire-dashboard',
-        redirectUrlComplete: '/beneficiaire-dashboard',
+        redirectUrl: '/auth-redirect',
+        redirectUrlComplete: '/auth-redirect',
       });
     });
 
@@ -76,8 +76,8 @@ describe('useSocialAuth', () => {
 
       expect(mockAuthenticateWithRedirect).toHaveBeenCalledWith({
         strategy: 'oauth_apple',
-        redirectUrl: '/beneficiaire-dashboard',
-        redirectUrlComplete: '/beneficiaire-dashboard',
+        redirectUrl: '/auth-redirect',
+        redirectUrlComplete: '/auth-redirect',
       });
     });
 
@@ -214,8 +214,8 @@ describe('useSocialAuth', () => {
 
       expect(mockAuthenticateWithRedirect).toHaveBeenCalledWith({
         strategy: 'oauth_google',
-        redirectUrl: '/beneficiaire-dashboard',
-        redirectUrlComplete: '/beneficiaire-dashboard',
+        redirectUrl: '/auth-redirect',
+        redirectUrlComplete: '/auth-redirect',
       });
     });
 
