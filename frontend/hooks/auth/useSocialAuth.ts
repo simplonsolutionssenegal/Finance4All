@@ -48,8 +48,8 @@ export function useSocialAuth(mode: SocialAuthMode = 'login'): UseSocialAuthRetu
 
           await signIn.authenticateWithRedirect({
             strategy,
-            redirectUrl: '/dashboard',
-            redirectUrlComplete: '/dashboard',
+            redirectUrl: '/beneficiaire-dashboard',
+            redirectUrlComplete: '/beneficiaire-dashboard',
           });
         } else {
           // Mode register
@@ -61,8 +61,8 @@ export function useSocialAuth(mode: SocialAuthMode = 'login'): UseSocialAuthRetu
 
           await signUp.authenticateWithRedirect({
             strategy,
-            redirectUrl: '/dashboard',
-            redirectUrlComplete: '/dashboard',
+            redirectUrl: '/beneficiaire-dashboard',
+            redirectUrlComplete: '/beneficiaire-dashboard',
           });
         }
       } catch (err) {

@@ -9,6 +9,7 @@ import { SocialAuthButton } from '@/components/social-auth-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRegisterFormStep } from '@/contexts/register-form-context';
 import { useSocialAuth } from '@/hooks/auth/useSocialAuth';
 import {
   useCreateBeneficiary,
@@ -16,7 +17,7 @@ import {
 } from '@/hooks/beneficiary/useCreateBeneficiary';
 
 export function RegisterForm() {
-  const [step, setStep] = useState(1); // 1: Saisie des informations, 2: Vérification email
+  const { step, setStep } = useRegisterFormStep();
   const [verificationCode, setVerificationCode] = useState('');
   const [allowBackToStep1, setAllowBackToStep1] = useState(false);
 
@@ -84,7 +85,7 @@ export function RegisterForm() {
             Créer votre compte
           </h1>
           <p className='text-muted-foreground text-sm text-gray-500'>
-            Rejoignez Finance4All dès maintenant
+            Connexion sécurisée par OTP (SMS & Email)
           </p>
         </div>
       )}
@@ -361,26 +362,31 @@ export function RegisterForm() {
           </p>
         </div>
       ) : (
-        <div className='text-center'>
-          <p className='text-sm text-muted-foreground text-gray-500'>
-            Code non reçu ?{' '}
-            <button
-              type='button'
-              onClick={() => void handleResendCode()}
-              className='text-primary-300 cursor-pointer font-semibold hover:text-primary-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-              disabled={isResending || isVerifying}
-            >
-              {isResending ? (
-                <span className='flex items-center gap-2'>
-                  <span className='inline-flex size-3 animate-spin rounded-full border-2 border-primary-300 border-b-transparent' />
-                  <span>Envoi en cours...</span>
-                </span>
-              ) : (
-                'Renvoyer le code'
-              )}
-            </button>
-          </p>
-        </div>
+        <>
+          <div className='my-6'>
+            <hr className='border-gray-100' />
+          </div>
+          <div className='text-center'>
+            <p className='text-sm text-muted-foreground text-gray-500'>
+              Code non reçu ?{' '}
+              <button
+                type='button'
+                onClick={() => void handleResendCode()}
+                className='text-primary-300 cursor-pointer font-semibold hover:text-primary-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                disabled={isResending || isVerifying}
+              >
+                {isResending ? (
+                  <span className='flex items-center gap-2'>
+                    <span className='inline-flex size-3 animate-spin rounded-full border-2 border-primary-300 border-b-transparent' />
+                    <span>Envoi en cours...</span>
+                  </span>
+                ) : (
+                  'Renvoyer le code'
+                )}
+              </button>
+            </p>
+          </div>
+        </>
       )}
     </div>
   );
