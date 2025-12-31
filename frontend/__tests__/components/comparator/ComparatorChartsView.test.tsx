@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ServiceDTO } from '@/types/Service';
 import { TypeService } from '@/types/Service';
-import * as FeeCalculator from '@/components/ui/FeeCalculator';
+import * as FeeCalculator from '@/lib/FeeCalculator';
 import { ComparatorChartsView } from '@/components/comparator/ComparatorChartsView';
 
 // 🧊 Mock Recharts pour contrôler le rendu et appeler le formatter de Legend
@@ -30,7 +30,7 @@ jest.mock('recharts', () => {
 });
 
 // 🧮 Mock FeeCalculator
-jest.mock('@/components/ui/FeeCalculator');
+jest.mock('@/lib/FeeCalculator');
 
 const mockComputeFee = FeeCalculator.computeFee as jest.MockedFunction<
   typeof FeeCalculator.computeFee

@@ -18,7 +18,7 @@ import {
 
 import { type ServiceDTO } from '@/types/Service';
 
-import { computeFee } from '../ui/FeeCalculator';
+import { computeFee } from '../../lib/FeeCalculator';
 
 interface ComparisonChartsViewProps {
   comparedServices: ServiceDTO[];

@@ -16,7 +16,7 @@ import { useCompareServices } from '@/hooks/service/useCompareServices';
 import { useGetServices } from '@/hooks/service/useGetServices';
 import { TypeService } from '@/types/Service';
 
-import { computeFee } from '../ui/FeeCalculator';
+import { computeFee } from '../../lib/FeeCalculator';
 
 import { ComparatorChartsView } from './ComparatorChartsView';
 import { ComparatorTableView } from './ComparatorTableView';

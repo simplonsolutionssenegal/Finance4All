@@ -3,12 +3,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useGetServices } from '@/hooks/service/useGetServices';
 import { useCompareServices } from '@/hooks/service/useCompareServices';
 import { type ServiceDTO, TypeService } from '@/types/Service';
-import { computeFee } from '@/components/ui/FeeCalculator';
+import { computeFee } from '@/lib/FeeCalculator';
 import ComparatorIntelligent from '@/components/comparator/comparator-Intelligent';
 
 jest.mock('@/hooks/service/useGetServices');
 jest.mock('@/hooks/service/useCompareServices');
-jest.mock('@/components/ui/FeeCalculator');
+jest.mock('@/lib/FeeCalculator');
 
 jest.mock('next/image', () => ({
   __esModule: true,

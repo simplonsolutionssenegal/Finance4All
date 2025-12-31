@@ -3,12 +3,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { ServiceDTO } from '@/types/Service';
 import { TypeService } from '@/types/Service';
-import * as FeeCalculator from '@/components/ui/FeeCalculator';
+import * as FeeCalculator from '@/lib/FeeCalculator';
 import * as FormatUtils from '@/lib/format-utils';
 import { ComparatorTableView } from '@/components/comparator/ComparatorTableView';
 
 // Mock les modules
-jest.mock('@/components/ui/FeeCalculator');
+jest.mock('@/lib/FeeCalculator');
 jest.mock('@/lib/format-utils');
 jest.mock('next/image', () => ({
   __esModule: true,

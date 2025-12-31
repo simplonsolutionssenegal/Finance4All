@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { formatCurrency } from '@/lib/format-utils';
 import { type ServiceDTO } from '@/types/Service';
 
-import { computeFee } from '../ui/FeeCalculator';
+import { computeFee } from '../../lib/FeeCalculator';
 
 interface ComparaisonTableViewProps {
   comparedServices: ServiceDTO[];
