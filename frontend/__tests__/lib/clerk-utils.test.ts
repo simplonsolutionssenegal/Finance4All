@@ -2,7 +2,6 @@ import { useOrganization, useAuth } from '@clerk/nextjs';
 import { renderHook, act } from '@testing-library/react';
 import { toast } from 'sonner';
 
-import { useLoader } from '@/contexts/LoaderContext';
 import { useRemoveUserFromOrganization, useUpdateUserRole, useCreateUser } from '@/lib/clerk-utils';
 
 // Mock dependencies
@@ -18,22 +17,14 @@ jest.mock('sonner', () => ({
   },
 }));
 
-jest.mock('@/contexts/LoaderContext', () => ({
-  useLoader: jest.fn(),
-}));
-
 // Mock global fetch
 global.fetch = jest.fn();
 
 const useOrganizationMock = useOrganization as jest.Mock;
 const useAuthMock = useAuth as jest.Mock;
-const useLoaderMock = useLoader as jest.Mock;
 const toastSuccessMock = toast.success as jest.Mock;
 const toastErrorMock = toast.error as jest.Mock;
 const fetchMock = global.fetch as jest.Mock;
-
-const mockShowLoader = jest.fn();
-const mockHideLoader = jest.fn();
 
 describe('useRemoveUserFromOrganization', () => {
   const userId = 'user_123';
@@ -41,10 +32,6 @@ describe('useRemoveUserFromOrganization', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useLoaderMock.mockReturnValue({
-      showLoader: mockShowLoader,
-      hideLoader: mockHideLoader,
-    });
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -58,7 +45,6 @@ describe('useRemoveUserFromOrganization', () => {
 
     await expect(result.current.removeUser(userId)).rejects.toThrow('Aucune organisation active');
     expect(toastErrorMock).toHaveBeenCalledWith('Aucune organisation active');
-    expect(mockShowLoader).not.toHaveBeenCalled();
   });
 
   it('should handle successful user removal via API', async () => {
@@ -76,9 +62,7 @@ describe('useRemoveUserFromOrganization', () => {
       hookResult = await result.current.removeUser(userId);
     });
 
-    expect(mockShowLoader).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(mockHideLoader).toHaveBeenCalledTimes(1);
     expect(toastSuccessMock).toHaveBeenCalledWith(
       'Utilisateur supprimé avec succès',
       expect.any(Object)
@@ -179,7 +163,6 @@ describe('useRemoveUserFromOrganization', () => {
         "Impossible de supprimer l'utilisateur après plusieurs tentatives."
       );
     });
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith('Échec de la suppression', expect.any(Object));
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Erreur lors du fallback de suppression:',
@@ -228,10 +211,6 @@ describe('useUpdateUserRole', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockReload.mockClear();
-    useLoaderMock.mockReturnValue({
-      showLoader: mockShowLoader,
-      hideLoader: mockHideLoader,
-    });
     useAuthMock.mockReturnValue({
       getToken: mockGetToken,
     });
@@ -252,7 +231,6 @@ describe('useUpdateUserRole', () => {
       'Aucune organisation active'
     );
     expect(toastErrorMock).toHaveBeenCalledWith('Aucune organisation active');
-    expect(mockShowLoader).not.toHaveBeenCalled();
   });
 
   it('should handle successful role update via API', async () => {
@@ -270,7 +248,6 @@ describe('useUpdateUserRole', () => {
       hookResult = await result.current.updateUserRole(userId, newRole);
     });
 
-    expect(mockShowLoader).toHaveBeenCalledTimes(1);
     expect(mockGetToken).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/users/user_123'),
@@ -286,7 +263,6 @@ describe('useUpdateUserRole', () => {
         }),
       })
     );
-    expect(mockHideLoader).toHaveBeenCalledTimes(1);
     expect(toastSuccessMock).toHaveBeenCalledWith(
       'Rôle mis à jour avec succès',
       expect.objectContaining({
@@ -423,7 +399,6 @@ describe('useUpdateUserRole', () => {
       );
     });
 
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith(
       'Échec de la mise à jour',
       expect.objectContaining({
@@ -496,6 +471,7 @@ describe('useCreateUser', () => {
     lastName: 'Doe',
     email: 'john.doe@example.com',
     role: 'org:member',
+    organizationId: 'org_123',
   };
   let consoleErrorSpy: jest.SpyInstance;
   const mockGetToken = jest.fn();
@@ -511,7 +487,6 @@ describe('useCreateUser', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useLoaderMock.mockReturnValue({ showLoader: mockShowLoader, hideLoader: mockHideLoader });
     useAuthMock.mockReturnValue({ getToken: mockGetToken });
     mockGetToken.mockResolvedValue('mock_token');
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -522,18 +497,20 @@ describe('useCreateUser', () => {
     jest.clearAllTimers();
   });
 
-  it('should throw error if no active organization', async () => {
-    useOrganizationMock.mockReturnValue({ organization: null });
+  it('should throw error if no organizationId provided', async () => {
+    const userDataWithoutOrg = {
+      ...userData,
+      organizationId: '',
+    };
     const { result } = renderHook(() => useCreateUser({ reloadFn: mockReload }));
 
-    await expect(result.current.createUser(userData)).rejects.toThrow('Aucune organisation active');
-    expect(toastErrorMock).toHaveBeenCalledWith('Aucune organisation active');
-    expect(mockShowLoader).not.toHaveBeenCalled();
+    await expect(result.current.createUser(userDataWithoutOrg)).rejects.toThrow(
+      'Aucune organisation sélectionnée'
+    );
+    expect(toastErrorMock).toHaveBeenCalledWith('Aucune organisation sélectionnée');
   });
 
   it('should handle successful user creation', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
 
     const { result } = renderHook(() => useCreateUser({ reloadFn: mockReload }));
@@ -543,9 +520,7 @@ describe('useCreateUser', () => {
       hookResult = await result.current.createUser(userData);
     });
 
-    expect(mockShowLoader).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(mockHideLoader).toHaveBeenCalledTimes(1);
     expect(toastSuccessMock).toHaveBeenCalledWith(
       'Utilisateur créé avec succès',
       expect.any(Object)
@@ -557,8 +532,6 @@ describe('useCreateUser', () => {
   });
 
   it('should handle API failure', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 400,
@@ -572,13 +545,10 @@ describe('useCreateUser', () => {
       await expect(result.current.createUser(userData)).rejects.toThrow('Invalid data');
     });
 
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith('Échec de la création', expect.any(Object));
   });
 
   it('should handle API success but operation failure', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: false, message: 'User already exists' }),
@@ -590,13 +560,10 @@ describe('useCreateUser', () => {
       await expect(result.current.createUser(userData)).rejects.toThrow('User already exists');
     });
 
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith('Échec de la création', expect.any(Object));
   });
 
   it('should handle non-json error response', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -614,13 +581,10 @@ describe('useCreateUser', () => {
       );
     });
 
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith('Échec de la création', expect.any(Object));
   });
 
   it('should handle network error', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     const networkError = new Error('Network failure');
     fetchMock.mockRejectedValueOnce(networkError);
 
@@ -630,13 +594,10 @@ describe('useCreateUser', () => {
       await expect(result.current.createUser(userData)).rejects.toThrow('Network failure');
     });
 
-    expect(mockHideLoader).toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith('Échec de la création', expect.any(Object));
   });
 
   it('should work without auth token', async () => {
-    const mockOrganization = { id: 'org_123' };
-    useOrganizationMock.mockReturnValue({ organization: mockOrganization });
     mockGetToken.mockResolvedValue(null);
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
 

@@ -1,4 +1,4 @@
-import { useOrganizationList } from '@clerk/nextjs';
+import { useOrganization } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -17,18 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type OrganizationUser from '@/types/OrganizationUser';
 
-interface AddUserModalProps {
+interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateUser: (userData: {
+  onUpdateUser: (userData: {
+    userId: string;
     firstName: string;
     lastName: string;
     email: string;
     role: string;
     organizationId: string;
   }) => void;
-  isCreating?: boolean;
+  user: OrganizationUser | null;
+  isUpdating?: boolean;
 }
 
 const AVAILABLE_ROLES = [
@@ -37,12 +40,13 @@ const AVAILABLE_ROLES = [
   { value: 'org:member', label: 'Organisation' },
 ];
 
-export default function AddUserModal({
+export default function EditUserModal({
   isOpen,
   onClose,
-  onCreateUser,
-  isCreating = false,
-}: Readonly<AddUserModalProps>) {
+  onUpdateUser,
+  user,
+  isUpdating = false,
+}: Readonly<EditUserModalProps>) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,17 +54,7 @@ export default function AddUserModal({
   const [role, setRole] = useState('');
   const [organizationId, setOrganizationId] = useState('');
 
-  const { userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    },
-  });
-
-  const organizations =
-    userMemberships?.data?.map(membership => ({
-      id: membership.organization.id,
-      name: membership.organization.name,
-    })) || [];
+  const { organization } = useOrganization();
 
   useEffect(() => {
     if (!isOpen) {
@@ -70,34 +64,53 @@ export default function AddUserModal({
       setPhone('');
       setRole('');
       setOrganizationId('');
+      return;
     }
-  }, [isOpen]);
+
+    if (user && organization) {
+      // Extraire prénom et nom depuis fullName
+      const nameParts = user.fullName.split(' ');
+      setFirstName(nameParts[0] || '');
+      setLastName(nameParts.slice(1).join(' ') || '');
+      setEmail(user.emailAddress || '');
+      setPhone(user.phoneNumber || '');
+      if (user.role) {
+        setRole(user.role);
+      }
+      setOrganizationId(organization.id);
+    }
+  }, [user, isOpen, organization]);
 
   const handleSubmit = async () => {
-    onCreateUser({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      role,
-      organizationId,
-    });
+    if (user && organizationId) {
+      onUpdateUser({
+        userId: user.id,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        role,
+        organizationId,
+      });
+    }
   };
 
   const handleClose = () => {
     onClose();
   };
 
-  const isFormValid = firstName.trim() && lastName.trim() && email.trim() && role && organizationId;
+  const isFormValid = role && organizationId;
+
+  if (!user) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className='sm:max-w-lg border-0 rounded-2xl'>
         <DialogHeader>
           <DialogTitle className='text-xl font-semibold text-gray-900'>
-            Créer un nouvel utilisateur
+            Modifier l&apos;utilisateur
           </DialogTitle>
           <DialogDescription className='text-sm text-gray-600'>
-            Les identifiants seront envoyés automatiquement par email
+            Mettez à jour les informations de l&apos;utilisateur
           </DialogDescription>
         </DialogHeader>
 
@@ -106,7 +119,7 @@ export default function AddUserModal({
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <label htmlFor='firstName' className='text-sm font-medium text-gray-700 block'>
-                  Prénom <span className='text-red-500'>*</span>
+                  Prénom
                 </label>
                 <Input
                   id='firstName'
@@ -114,12 +127,12 @@ export default function AddUserModal({
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   className='w-full bg-gray-50 border-0'
-                  disabled={isCreating}
+                  disabled={isUpdating}
                 />
               </div>
               <div className='space-y-2'>
                 <label htmlFor='lastName' className='text-sm font-medium text-gray-700 block'>
-                  Nom <span className='text-red-500'>*</span>
+                  Nom
                 </label>
                 <Input
                   id='lastName'
@@ -127,14 +140,14 @@ export default function AddUserModal({
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   className='w-full bg-gray-50 border-0'
-                  disabled={isCreating}
+                  disabled={isUpdating}
                 />
               </div>
             </div>
 
             <div className='space-y-2'>
               <label htmlFor='email' className='text-sm font-medium text-gray-700 block'>
-                Email <span className='text-red-500'>*</span>
+                Email
               </label>
               <Input
                 id='email'
@@ -143,7 +156,7 @@ export default function AddUserModal({
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className='w-full bg-gray-50 border-0'
-                disabled={isCreating}
+                disabled={isUpdating}
               />
             </div>
 
@@ -158,15 +171,15 @@ export default function AddUserModal({
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 className='w-full bg-gray-50 border-0'
-                disabled={isCreating}
+                disabled={isUpdating}
               />
             </div>
 
             <div className='space-y-2'>
               <label htmlFor='role' className='text-sm font-medium text-gray-700 block'>
-                Rôle <span className='text-red-500'>*</span>
+                Rôle
               </label>
-              <Select value={role} onValueChange={setRole} disabled={isCreating}>
+              <Select value={role} onValueChange={setRole} disabled={isUpdating} key={user?.id}>
                 <SelectTrigger id='role' className='w-full bg-gray-50 border-0 cursor-pointer'>
                   <SelectValue placeholder='Sélectionner un rôle' />
                 </SelectTrigger>
@@ -183,41 +196,6 @@ export default function AddUserModal({
                 </SelectContent>
               </Select>
             </div>
-
-            <div className='space-y-2'>
-              <label htmlFor='organization' className='text-sm font-medium text-gray-700 block'>
-                Organisation <span className='text-red-500'>*</span>
-              </label>
-              <Select
-                value={organizationId}
-                onValueChange={setOrganizationId}
-                disabled={isCreating}
-              >
-                <SelectTrigger
-                  id='organization'
-                  className='w-full bg-gray-50 border-0 cursor-pointer'
-                >
-                  <SelectValue placeholder='Sélectionner une organisation' />
-                </SelectTrigger>
-                <SelectContent className='bg-white border-0 rounded-lg shadow-xl'>
-                  {organizations.length > 0 ? (
-                    organizations.map(org => (
-                      <SelectItem
-                        key={org.id}
-                        value={org.id}
-                        className='cursor-pointer hover:bg-gray-100'
-                      >
-                        {org.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value='none' disabled className='text-gray-400'>
-                      Aucune organisation disponible
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className='flex justify-end space-x-3 pt-4'>
@@ -225,22 +203,22 @@ export default function AddUserModal({
               onClick={handleClose}
               variant='outline'
               className='border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
-              disabled={isCreating}
+              disabled={isUpdating}
             >
               Annuler
             </Button>
             <Button
               onClick={handleSubmit}
               className='bg-primary-300 cursor-pointer hover:bg-primary-400 text-white'
-              disabled={isCreating || !isFormValid}
+              disabled={isUpdating || !isFormValid}
             >
-              {isCreating ? (
+              {isUpdating ? (
                 <span className='flex items-center gap-2'>
                   <span className='inline-flex size-4 animate-spin rounded-full border-2 border-white border-b-transparent' />
-                  <span>Création...</span>
+                  <span>Mise à jour...</span>
                 </span>
               ) : (
-                "Créer l'utilisateur"
+                'Mettre à jour'
               )}
             </Button>
           </div>

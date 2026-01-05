@@ -1,8 +1,6 @@
 import { useOrganization, useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 
-import { useLoader } from '@/contexts/LoaderContext';
-
 // Define interfaces for API responses to avoid 'any'
 interface BackendResponse {
   success: boolean;
@@ -15,7 +13,6 @@ interface BackendErrorResponse {
 
 export const useRemoveUserFromOrganization = () => {
   const { organization } = useOrganization();
-  const { showLoader, hideLoader } = useLoader();
 
   // Extracted fallback logic to handle user removal via Clerk directly
   const fallbackRemoveMember = async (userId: string, primaryError?: unknown) => {
@@ -28,21 +25,18 @@ export const useRemoveUserFromOrganization = () => {
 
     try {
       if (!organization) {
-        hideLoader();
         toast.error('Échec de la suppression', {
           description: "Impossible de supprimer l'utilisateur. Veuillez réessayer.",
         });
         throw new Error("Impossible de supprimer l'utilisateur après plusieurs tentatives.");
       }
       await organization.removeMember(userId);
-      hideLoader();
       toast.success("Utilisateur retiré de l'organisation", {
         description: "L'utilisateur a été retiré de l'organisation (suppression partielle).",
       });
       return { success: true };
     } catch (fallbackError: unknown) {
       console.error('Erreur lors du fallback de suppression:', fallbackError);
-      hideLoader();
       toast.error('Échec de la suppression', {
         description: "Impossible de supprimer l'utilisateur. Veuillez réessayer.",
       });
@@ -56,11 +50,9 @@ export const useRemoveUserFromOrganization = () => {
       throw new Error('Aucune organisation active');
     }
 
-    showLoader();
-
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/users/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users/${userId}`,
         {
           method: 'DELETE',
           headers: {
@@ -85,7 +77,6 @@ export const useRemoveUserFromOrganization = () => {
         return await fallbackRemoveMember(userId, result);
       }
 
-      hideLoader();
       toast.success('Utilisateur supprimé avec succès', {
         description: "L'utilisateur a été retiré de l'organisation et son compte a été supprimé.",
       });
@@ -99,12 +90,16 @@ export const useRemoveUserFromOrganization = () => {
   return { removeUser };
 };
 
-export const useUpdateUserRole = ({
-  reloadFn = window.location.reload,
-}: { reloadFn?: () => void } = {}) => {
+export const useUpdateUserRole = ({ reloadFn }: { reloadFn?: () => void } = {}) => {
+  const defaultReloadFn = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+
+  const reload = reloadFn || defaultReloadFn;
   const { organization } = useOrganization();
   const { getToken } = useAuth();
-  const { showLoader, hideLoader } = useLoader();
 
   // Fallback vers l'API Clerk directement
   const fallbackUpdateRole = async (userId: string, newRole: string, primaryError?: unknown) => {
@@ -117,7 +112,6 @@ export const useUpdateUserRole = ({
 
     try {
       if (!organization) {
-        hideLoader();
         toast.error('Échec de la mise à jour', {
           description: "Impossible de mettre à jour le rôle de l'utilisateur. Veuillez réessayer.",
         });
@@ -129,20 +123,18 @@ export const useUpdateUserRole = ({
         role: newRole as 'org:admin' | 'org:member',
       });
 
-      hideLoader();
       toast.success('Rôle mis à jour avec succès', {
         description: `Le rôle de l'utilisateur a été modifié vers ${newRole === 'org:admin' ? 'Admin' : 'Member'}.`,
       });
 
       // Recharger la page après un court délai
       setTimeout(() => {
-        reloadFn();
+        reload();
       }, 1500);
 
       return { success: true };
     } catch (fallbackError: unknown) {
       console.error('Erreur lors du fallback de mise à jour:', fallbackError);
-      hideLoader();
       toast.error('Échec de la mise à jour', {
         description: "Impossible de mettre à jour le rôle de l'utilisateur. Veuillez réessayer.",
       });
@@ -156,10 +148,8 @@ export const useUpdateUserRole = ({
       throw new Error('Aucune organisation active');
     }
 
-    showLoader();
-
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/users/${userId}`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users/${userId}`;
 
       // Obtenir le token d'authentification Clerk
       const token = await getToken();
@@ -195,14 +185,13 @@ export const useUpdateUserRole = ({
         return await fallbackUpdateRole(userId, newRole, result);
       }
 
-      hideLoader();
       toast.success('Rôle mis à jour avec succès', {
         description: `Le rôle de l'utilisateur a été modifié vers ${newRole === 'org:admin' ? 'Admin' : 'Member'}.`,
       });
 
       // Recharger la page après un court délai pour permettre à l'utilisateur de voir le toast
       setTimeout(() => {
-        reloadFn();
+        reload();
       }, 1500);
 
       return { success: true };
@@ -216,33 +205,35 @@ export const useUpdateUserRole = ({
 };
 
 export const useCreateUser = (options?: { reloadFn?: () => void }) => {
-  const { organization } = useOrganization();
   const { getToken } = useAuth();
-  const { showLoader, hideLoader } = useLoader();
-  const reloadFn = options?.reloadFn || (() => window.location.reload());
+  const defaultReloadFn = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
+  const reload = options?.reloadFn || defaultReloadFn;
 
   const createUser = async (userData: {
     firstName: string;
     lastName: string;
     email: string;
     role: string;
+    organizationId: string;
   }) => {
-    if (!organization) {
-      toast.error('Aucune organisation active');
-      throw new Error('Aucune organisation active');
+    if (!userData.organizationId) {
+      toast.error('Aucune organisation sélectionnée');
+      throw new Error('Aucune organisation sélectionnée');
     }
 
-    showLoader();
-
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/users`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users`;
 
       // Obtenir le token d'authentification Clerk
       const token = await getToken();
 
       const body = {
         email: userData.email,
-        organizationId: organization.id,
+        organizationId: userData.organizationId,
         role: userData.role,
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -270,8 +261,6 @@ export const useCreateUser = (options?: { reloadFn?: () => void }) => {
           errorData = { message: `Erreur HTTP ${response.status}: ${response.statusText}` };
         }
 
-        hideLoader();
-
         toast.error('Échec de la création', {
           description:
             errorData.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
@@ -284,27 +273,23 @@ export const useCreateUser = (options?: { reloadFn?: () => void }) => {
       const result: BackendResponse = await response.json();
 
       if (!result.success) {
-        hideLoader();
         toast.error('Échec de la création', {
           description: result.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
         });
         throw new Error(result.message || "L'API a retourné success: false");
       }
 
-      hideLoader();
       toast.success('Utilisateur créé avec succès', {
         description: `${userData.firstName} ${userData.lastName} a été ajouté à l'organisation.`,
       });
 
       // Recharger la page après un court délai
       setTimeout(() => {
-        reloadFn();
+        reload();
       }, 1500);
 
       return { success: true };
     } catch (error: unknown) {
-      hideLoader();
-
       if (error instanceof Error) {
         toast.error('Échec de la création', {
           description: error.message || "Impossible de créer l'utilisateur. Veuillez réessayer.",
