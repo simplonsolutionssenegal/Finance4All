@@ -11,6 +11,13 @@ export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'XOF',
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+export const formatAmount = (amount: number): string => {
+  return new Intl.NumberFormat('fr-FR', {
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 

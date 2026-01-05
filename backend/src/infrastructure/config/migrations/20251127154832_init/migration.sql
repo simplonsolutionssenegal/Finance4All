@@ -5,7 +5,19 @@ CREATE TYPE "public"."InstitutionStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING
 CREATE TYPE "public"."TypeService" AS ENUM ('PAIEMENT_MARCHAND', 'ACHAT_CREDIT', 'PAIEMENT_FACTURES', 'DEPOT_SIMPLE', 'DEPOT_RETRAIT_SIMPLE', 'RETRAIT_SIMPLE', 'TRANSFERT_ARGENT', 'BANQUE_WALLET', 'WALLET_BANQUE', 'EPARGNE', 'CREDIT', 'ASSURANCE', 'AUTRES');
 
 -- CreateEnum
-CREATE TYPE "public"."TypeCalculation" AS ENUM ('FREE', 'POURCENTAGE', 'FIX');
+CREATE TYPE "public"."InstitutionType" AS ENUM ('ETABLISSEMENT_MONNAIE_ELECTRONIQUE', 'PORTEFEUILLE_NUMERIQUE', 'SERVICE_PAIEMENT_ELECTRONIQUE', 'BANQUE_NUMERIQUE', 'SERVICE_FINANCIER_DECENTRALISE', 'SERVICE_FINANCEMENT_PARTICIPATIF', 'SERVICE_INVESTISSEMENT', 'SERVICE_GESTION_FINANCIERE', 'SERVICE_ASSURANCE_NUMERIQUE');
+
+-- CreateEnum
+CREATE TYPE "public"."Country" AS ENUM ('SENEGAL', 'CAMEROUN');
+
+-- CreateEnum
+CREATE TYPE "public"."Thematic" AS ENUM ('FINANCIAL_EDUCATION', 'PERSONAL_DEVELOPMENT', 'FINANCIAL_LOAN', 'BANK_CREDIT', 'INVESTMENT', 'BUDGET_MANAGEMENT', 'SAVING', 'ENTREPRENEURSHIP', 'TAXATION', 'INSURANCE');
+
+-- CreateEnum
+CREATE TYPE "public"."ModuleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "public"."DifficultyLevel" AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT');
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -24,6 +36,8 @@ CREATE TABLE "public"."Institution" (
     "website" TEXT,
     "geographicZones" TEXT[],
     "logoUrl" TEXT,
+    "type" "public"."InstitutionType" NOT NULL DEFAULT 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+    "pays" "public"."Country" NOT NULL DEFAULT 'SENEGAL',
     "status" "public"."InstitutionStatus" NOT NULL DEFAULT 'PENDING',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -41,14 +55,29 @@ CREATE TABLE "public"."Service" (
     "conditionAccess" TEXT[],
     "plafonds" TEXT[],
     "infrastructureAccess" TEXT[],
-    "typeFrais" "public"."TypeCalculation",
-    "montantMin" DECIMAL(10,2),
-    "montantMax" DECIMAL(10,2),
+    "montantMin" DOUBLE PRECISION,
+    "montantMax" DOUBLE PRECISION,
     "institutionId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Service_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Module" (
+    "id" TEXT NOT NULL,
+    "title" VARCHAR(200) NOT NULL,
+    "description" TEXT NOT NULL,
+    "thematics" "public"."Thematic"[],
+    "imageUrl" VARCHAR(500),
+    "difficultyLevel" "public"."DifficultyLevel" NOT NULL,
+    "estimatedDuration" DOUBLE PRECISION NOT NULL,
+    "status" "public"."ModuleStatus" NOT NULL DEFAULT 'DRAFT',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Module_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -59,6 +88,15 @@ CREATE UNIQUE INDEX "Institution_name_key" ON "public"."Institution"("name");
 
 -- CreateIndex
 CREATE INDEX "Service_institutionId_idx" ON "public"."Service"("institutionId");
+
+-- CreateIndex
+CREATE INDEX "Module_status_idx" ON "public"."Module"("status");
+
+-- CreateIndex
+CREATE INDEX "Module_difficultyLevel_idx" ON "public"."Module"("difficultyLevel");
+
+-- CreateIndex
+CREATE INDEX "Module_createdAt_idx" ON "public"."Module"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "public"."Service" ADD CONSTRAINT "Service_institutionId_fkey" FOREIGN KEY ("institutionId") REFERENCES "public"."Institution"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
