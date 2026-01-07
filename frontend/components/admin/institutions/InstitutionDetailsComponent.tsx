@@ -1,29 +1,16 @@
 'use client';
 
-import {
-  type LucideIcon,
-  ArrowLeft,
-  Edit,
-  Plus,
-  Building2,
-  Settings,
-  Mail,
-  Phone,
-  User,
-  MapPin,
-  Globe,
-} from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Building2, Settings, MapPin, Globe, Check, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import ConfirmUpdateStatusModal from '@/components/admin/institutions/ConfirmUpdateStatusModal';
+import EditInstitutionModal from '@/components/admin/institutions/EditInstitutionModal';
 import ServiceDetailsModal from '@/components/admin/institutions/ServiceDetailsModal';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitution } from '@/hooks/institution/useGetInstitution';
@@ -34,63 +21,14 @@ type InstitutionDetailsComponentProps = {
   institutionId: string;
 };
 
-const Stat = ({ label, value }: { readonly label: string; readonly value: string }) => {
-  return (
-    <div className=''>
-      <p className='text-xs text-gray-500'>{label}</p>
-      <p className='mt-1 text-xl text-gray-900'>{value}</p>
-    </div>
-  );
-};
-
-const InfoBlock = ({ title, value }: { readonly title: string; readonly value?: string }) => {
-  return (
-    <div>
-      <Label className='font-semibold'>{title}</Label>
-      <p className='mt-2 text-sm break-words'>{value || '—'}</p>
-    </div>
-  );
-};
-
-const InfoRow = ({
-  Icon,
-  label,
-  value,
-  href,
-}: {
-  readonly Icon: LucideIcon;
-  readonly label: string;
-  readonly value?: string;
-  readonly href?: boolean;
-}) => {
-  return (
-    <div className='space-y-1'>
-      <div className='flex items-center gap-2'>
-        <Icon className='h-4 w-4 text-gray-500' />
-        <Label className='text-sm text-gray-500'>{label}</Label>
-      </div>
-      {href && value ? (
-        <a
-          href={value}
-          target='_blank'
-          rel='noreferrer'
-          className='block text-sm text-cyan-700 hover:underline break-words'
-        >
-          {value}
-        </a>
-      ) : (
-        <p className='text-sm text-gray-900 break-words'>{value || '—'}</p>
-      )}
-    </div>
-  );
-};
-
 const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsComponentProps) => {
   const { showLoader, hideLoader } = useLoader();
   const { institution, isLoading, isError, error, refetch } = useGetInstitution(institutionId);
 
   const [showUpdateStateModal, setShowUpdateStateModal] = useState(false);
   const [newStatus, setNewStatus] = useState<InstitutionStatus>(InstitutionStatus.PENDING);
+
+  const [openEditModal, setOpenEditModal] = useState(false);
 
   const [openServiceDetails, setOpenServiceDetails] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -174,25 +112,29 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
 
   const activationButton = (
     <Button
+      type='button'
       onClick={() => {
         setNewStatus(InstitutionStatus.ACTIVE);
         setShowUpdateStateModal(true);
       }}
-      className='bg-green-500 text-white font-bold text-sm hover:bg-green-600'
+      className='h-8 rounded-xl bg-primary-300 px-4 text-[14px] font-medium text-white shadow-sm hover:bg-primary-400 active:bg-primary-400'
     >
-      ACTIVER
+      <Check className='mr-2 h-4 w-4' />
+      Activer
     </Button>
   );
 
   const desactivationButton = (
     <Button
+      type='button'
       onClick={() => {
         setNewStatus(InstitutionStatus.INACTIVE);
         setShowUpdateStateModal(true);
       }}
-      className='bg-red-500 text-white font-bold text-sm hover:bg-red-600'
+      className='h-8 rounded-xl bg-[#E00010] px-4 text-[14px] font-medium text-white shadow-sm hover:bg-[#C8000E] active:bg-[#B0000C]'
     >
-      REJETER
+      <X className='mr-2 h-4 w-4' />
+      Rejeter
     </Button>
   );
 
@@ -219,34 +161,38 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
                 className='object-contain'
               />
             ) : (
-              <div className='text-gray-400 text-3xl font-bold'>
+              <div className='text-tertiary-400 text-3xl font-semibold'>
                 {institution.name.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
 
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>{institution.name}</h1>
+            <h2 className='text-3xl font-semibold text-tertiary-400'>{institution.name}</h2>
             <div className='mt-2 flex flex-wrap items-center gap-2'>
               <Badge
                 variant='outline'
                 className='bg-white text-gray-900 border border-gray-200 rounded-xl'
               >
-                Mobile Money
+                {institution.type}
               </Badge>
               <div className='flex items-center gap-3'>{renderStatusChip(institution.status)}</div>
               <Badge
                 variant='outline'
                 className='bg-white text-gray-900 border border-gray-200 rounded-xl'
               >
-                Sénégal et Cameroun
+                {institution.pays}
               </Badge>
             </div>
           </div>
         </div>
 
         <div className='flex items-center gap-3'>
-          <Button variant='outline' className='gap-2 bg-primary-300 text-white hover:bg-customBlue'>
+          <Button
+            variant='outline'
+            className='gap-2 bg-primary-300 text-white hover:bg-primary-400'
+            onClick={() => setOpenEditModal(true)}
+          >
             <Edit className='w-5 h-5' />
             Modifier
           </Button>
@@ -278,60 +224,92 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
           </TabsList>
 
           <TabsContent value='details' className='mt-4'>
-            <div className='rounded-2xl bg-white p-4 sm:p-6 shadow-md'>
-              <div className='mb-4'>
-                <InfoBlock title='Description' value={institution.description || '—'} />
+            <div className='rounded-2xl bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.10)] border border-[#E5E7EB]'>
+              {/* Description */}
+              <div>
+                <p className='text-[14px] font-medium text-tertiary-400/60'>Description</p>
+                <p className='mt-1 text-[18px] text-tertiary-400'>
+                  {institution.description || '—'}
+                </p>
               </div>
-              <div className='grid gap-6 md:grid-cols-2'>
-                <div className='space-y-3'>
-                  <InfoRow Icon={Globe} label='Site web' value={institution.website} href />
-                  <InfoRow Icon={Phone} label='Téléphone' value='+221 33 869 60 00' />
-                  <InfoRow Icon={User} label='Personne de contact' value='Amadou Diallo' />
+
+              {/* Site web */}
+              <div className='mt-6'>
+                <div className='flex items-center gap-2'>
+                  <Globe className='h-4 w-4 text-[#9CA3AF]' />
+                  <p className='text-[14px] font-medium text-tertiary-400/60'>Site web</p>
                 </div>
 
-                <div className='space-y-3'>
-                  <InfoRow Icon={Mail} label='Email' value='contact@orangemoney.sn' />
-                  <InfoRow Icon={MapPin} label='Adresse' value='Dakar, Sénégal' />
-                  <InfoRow Icon={Phone} label='Téléphone du contact' value='+221 77 123 45 67' />
-                </div>
-              </div>
-              <div className='mt-3 flex flex-wrap gap-2'>
-                {institution.geographicZones?.map(zone => (
-                  <Badge
-                    key={zone}
-                    variant='outline'
-                    className='inline-flex items-center gap-1.5
-                 border border-[#EAEAEA] bg-white text-gray-800
-                rounded-xl px-2 py-1'
+                {institution.website ? (
+                  <a
+                    href={institution.website}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='mt-1 block text-[18px] text-primary-300 hover:underline break-words'
                   >
-                    <MapPin className='h-3.5 w-3.5 text-gray-600' aria-hidden='true' />
-                    <span className='leading-none'>{zone}</span>
-                  </Badge>
-                ))}
-              </div>
-              <Separator className='border border-gray-200 my-4' />
-              <div className='rounded-xl p-4 bg-gray-50 mt-2 grid gap-4 sm:grid-cols-3'>
-                <Stat label='Services' value={serviceCount.toString()} />
-                <Stat label='Créée le' value={formatDate(institution.createdAt)} />
-                <Stat label='Mise à jour' value={formatDate(institution.updatedAt)} />
+                    {institution.website}
+                  </a>
+                ) : (
+                  <p className='mt-1 text-[18px] text-[#111827]'>—</p>
+                )}
               </div>
 
-              <Separator className='border border-gray-300 my-2' />
-              <div className='flex items-center justify-between'>
-                {/* <div className='flex items-center gap-3'>
-                  {renderStatusChip(institution.status)}
-                </div> */}
+              {/* Zones couvertes */}
+              <div className='mt-6'>
+                <p className='text-[14px] font-medium text-tertiary-400/60'>Zones couvertes</p>
 
-                <div className='flex gap-3'>
-                  {institution.status === InstitutionStatus.PENDING && (
-                    <>
-                      {desactivationButton}
-                      {activationButton}
-                    </>
+                <div className='mt-1 flex flex-wrap gap-2'>
+                  {institution.geographicZones?.length ? (
+                    institution.geographicZones.map(zone => (
+                      <span
+                        key={zone}
+                        className='inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-[14px] font-medium text-tertiary-400'
+                      >
+                        <MapPin className='h-3.5 w-3.5 text-[14px] text-tertiary-400' />
+                        {zone}
+                      </span>
+                    ))
+                  ) : (
+                    <span className='text-sm text-[#111827]'>—</span>
                   )}
-                  {institution.status === InstitutionStatus.ACTIVE && desactivationButton}
-                  {institution.status === InstitutionStatus.INACTIVE && activationButton}
                 </div>
+              </div>
+
+              {/* Séparateur */}
+              <div className='mt-6 h-px w-full bg-[#E5E7EB]' />
+
+              {/* Stats */}
+              <div className='mt-6 grid gap-8 sm:grid-cols-3'>
+                <div>
+                  <p className='text-[14px] font-medium text-tertiary-400/60'>Services</p>
+                  <p className='mt-1 text-[16px] font-medium text-tertiary-400'>{serviceCount}</p>
+                </div>
+
+                <div>
+                  <p className='text-[14px] font-medium text-tertiary-400/60'>Créée le</p>
+                  <p className='mt-1 text-[16px] font-medium text-tertiary-400'>
+                    {formatDate(institution.createdAt)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className='text-[14px] font-medium text-tertiary-400/60'>Mise à jour</p>
+                  <p className='mt-1 text-[16px] font-medium text-tertiary-400'>
+                    {formatDate(institution.updatedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className='mt-6 flex items-center gap-12'>
+                {institution.status === InstitutionStatus.PENDING && (
+                  <>
+                    {activationButton}
+                    {desactivationButton}
+                  </>
+                )}
+
+                {institution.status === InstitutionStatus.ACTIVE && desactivationButton}
+                {institution.status === InstitutionStatus.INACTIVE && activationButton}
               </div>
             </div>
           </TabsContent>
@@ -359,6 +337,13 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditInstitutionModal
+        open={openEditModal}
+        onOpenChange={setOpenEditModal}
+        refresh={() => refetch()}
+        institution={institution}
+      />
 
       <ConfirmUpdateStatusModal
         isOpen={showUpdateStateModal}
