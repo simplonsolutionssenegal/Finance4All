@@ -201,6 +201,38 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     const websiteInput = screen.getByPlaceholderText('https://www.example.com');
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
 
+    // Vider les champs d'URL
+    await u.clear(websiteInput);
+    await u.clear(logoInput);
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Pas d'erreur de validation d'URL
+    expect(screen.queryByText('Doit être une URL valide')).not.toBeInTheDocument();
+  });
+
+  test('validation: description avec exactement 10 caractères est valide', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    const descInput = screen.getByPlaceholderText("Description de l'institution");
+    await u.clear(descInput);
+    await u.type(descInput, '1234567890');
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(
+      screen.queryByText('La description doit contenir au moins 10 caractères')
+    ).not.toBeInTheDocument();
+  });
+
+  test('validation: URL vide pour website et logoUrl est acceptée', async () => {
+    const u = userEvent.setup();
+    renderModal();
+
+    const websiteInput = screen.getByPlaceholderText('https://www.example.com');
+    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
+
     await u.clear(websiteInput);
     await u.clear(logoInput);
 
