@@ -1,4 +1,6 @@
-import { useOrganizationList, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
+
+import { useUserRoles } from '@/hooks/useUserRoles';
 
 interface UserRedirectOptions {
   adminDashboardPath?: string;
@@ -7,7 +9,7 @@ interface UserRedirectOptions {
 }
 
 /**
- * Version synchrone pour déterminer la route de redirection selon le rôle de l'utilisateur
+ * Utilise la même logique que useUserRoles
  */
 export function getUserRedirectPath(
   userRoles: string[] | null,
@@ -25,17 +27,19 @@ export function getUserRedirectPath(
     beneficiaryDashboardPath = '/beneficiaire-dashboard',
   } = options;
 
-  const isSystemAdmin = userRoles?.includes('admin');
-  if (isSystemAdmin) {
-    if (!organizationMemberships || organizationMemberships.length === 0) {
-      return adminDashboardPath;
-    }
+  // Utiliser la même logique que useUserRoles pour déterminer le rôle système
+  const isSystemAdmin = userRoles?.includes('admin') ?? false;
+  const hasOrganization = (organizationMemberships?.length ?? 0) > 0;
+
+  if (isSystemAdmin && !hasOrganization) {
+    return adminDashboardPath;
   }
 
-  if (organizationMemberships && organizationMemberships.length > 0) {
+  if (hasOrganization && organizationMemberships) {
     const hasRecipientRole = organizationMemberships.some(
       membership => membership.role === 'org:recipient'
     );
+
     if (hasRecipientRole) {
       return beneficiaryDashboardPath;
     }
@@ -59,7 +63,7 @@ export function getUserRedirectPath(
 }
 
 /**
- * Hook React pour déterminer la route de redirection
+ * Utilise useUserRoles pour une gestion cohérente des rôles
  */
 export function useGetUserRedirect(options: UserRedirectOptions = {}): {
   redirectUrl: string;
@@ -67,17 +71,11 @@ export function useGetUserRedirect(options: UserRedirectOptions = {}): {
   userRoles: string[];
   hasOrganization: boolean;
 } {
+  // Utiliser useUserRoles pour obtenir toutes les informations sur les rôles
+  const { userRoles, organizationMemberships, hasOrganization, isLoaded } = useUserRoles();
+
+  // Récupérer les métadonnées de l'utilisateur pour la détection des bénéficiaires
   const { user } = useUser();
-  const { userMemberships, isLoaded: orgListLoaded } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    },
-  });
-
-  // Extraire les rôles globaux de l'utilisateur depuis les métadonnées
-  const userRoles = (user?.publicMetadata?.roles as string[]) || [];
-
-  const isLoaded = orgListLoaded && !!user;
 
   if (!isLoaded) {
     return {
@@ -97,9 +95,14 @@ export function useGetUserRedirect(options: UserRedirectOptions = {}): {
       }
     : null;
 
+  // Convertir organizationMemberships au format attendu par getUserRedirectPath
+  const membershipsForRedirect = organizationMemberships.map(m => ({
+    role: m.role,
+  }));
+
   const redirectUrl = getUserRedirectPath(
     userRoles,
-    userMemberships?.data?.map(m => ({ role: m.role })),
+    membershipsForRedirect.length > 0 ? membershipsForRedirect : null,
     options,
     userMetadata
   );
@@ -108,6 +111,6 @@ export function useGetUserRedirect(options: UserRedirectOptions = {}): {
     redirectUrl,
     isLoaded: true,
     userRoles,
-    hasOrganization: (userMemberships?.data?.length || 0) > 0,
+    hasOrganization,
   };
 }

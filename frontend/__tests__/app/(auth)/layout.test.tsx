@@ -2,12 +2,7 @@ import { render, screen } from '@testing-library/react';
 
 import AuthLayout from '@/app/(auth)/layout';
 
-// Mock Header and Sidebar
-jest.mock('@/components/dashboard/Header', () => {
-  return function MockHeader() {
-    return <header>Header</header>;
-  };
-});
+// Mock Sidebar
 jest.mock('@/components/dashboard/Sidebar', () => {
   return function MockSidebar() {
     return <aside>Sidebar</aside>;

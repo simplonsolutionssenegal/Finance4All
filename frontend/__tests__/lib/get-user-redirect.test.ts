@@ -1,12 +1,16 @@
-import { useOrganizationList, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { renderHook } from '@testing-library/react';
 
+import { useUserRoles } from '@/hooks/useUserRoles';
 import { getUserRedirectPath, useGetUserRedirect } from '@/lib/get-user-redirect';
 
-// Mock Clerk hooks
+// Mock hooks
 jest.mock('@clerk/nextjs', () => ({
-  useOrganizationList: jest.fn(),
   useUser: jest.fn(),
+}));
+
+jest.mock('@/hooks/useUserRoles', () => ({
+  useUserRoles: jest.fn(),
 }));
 
 describe('get-user-redirect', () => {
@@ -112,31 +116,34 @@ describe('get-user-redirect', () => {
   });
 
   describe('useGetUserRedirect', () => {
-    const mockUseOrganizationList = useOrganizationList as jest.MockedFunction<
-      typeof useOrganizationList
-    >;
+    const mockUseUserRoles = useUserRoles as jest.MockedFunction<typeof useUserRoles>;
     const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
 
     beforeEach(() => {
       jest.clearAllMocks();
-      // Mock par défaut pour useUser
+      // Mock par défaut pour useUser (utilisé pour les métadonnées)
       mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
+        user: {
+          unsafeMetadata: {},
+          publicMetadata: {},
+          externalAccounts: [],
+        },
         isLoaded: true,
       } as any);
     });
 
     it('should return loading state when data is not loaded', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: undefined,
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: [],
+        organizationMemberships: [],
+        hasOrganization: false,
+        roleLabel: 'Utilisateur',
         isLoaded: false,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: null,
-        isLoaded: false,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(false);
@@ -146,16 +153,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /beneficiaire-dashboard when no memberships and no admin role', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: undefined,
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: [],
+        organizationMemberships: [],
+        hasOrganization: false,
+        roleLabel: 'Utilisateur',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -165,16 +173,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /dashboard when user is global admin and not in organization', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: ['admin'],
+        isSystemAdmin: true,
+        organizationRoles: [],
+        organizationMemberships: [],
+        hasOrganization: false,
+        roleLabel: 'Super Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: { roles: ['admin'] } },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn((role: string) => role === 'admin'),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -184,16 +193,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /organisation-dashboard when user is global admin but also in organization', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [{ role: 'org:admin' }],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: ['admin'],
+        isSystemAdmin: true,
+        organizationRoles: ['org:admin'],
+        organizationMemberships: [{ role: 'org:admin', organizationId: 'org_1' }],
+        hasOrganization: true,
+        roleLabel: 'Super Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: { roles: ['admin'] } },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn((role: string) => role === 'admin'),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -203,16 +213,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /beneficiaire-dashboard when memberships array is empty and no admin role', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: [],
+        organizationMemberships: [],
+        hasOrganization: false,
+        roleLabel: 'Utilisateur',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -222,16 +233,19 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /beneficiaire-dashboard when user has recipient role', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [{ role: 'org:recipient' }],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: ['org:recipient'],
+        organizationMemberships: [{ role: 'org:recipient', organizationId: 'org_1' }],
+        hasOrganization: true,
+        roleLabel: 'Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(
+          (role: string) => role === 'recipient' || role === 'org:recipient'
+        ),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -240,16 +254,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /organisation-dashboard when user has admin role', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [{ role: 'org:admin' }],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: ['org:admin'],
+        organizationMemberships: [{ role: 'org:admin', organizationId: 'org_1' }],
+        hasOrganization: true,
+        roleLabel: 'Super Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn((role: string) => role === 'admin' || role === 'org:admin'),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -258,16 +273,17 @@ describe('get-user-redirect', () => {
     });
 
     it('should return /organisation-dashboard when user has member role', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [{ role: 'org:member' }],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: ['org:member'],
+        organizationMemberships: [{ role: 'org:member', organizationId: 'org_1' }],
+        hasOrganization: true,
+        roleLabel: 'Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn((role: string) => role === 'member' || role === 'org:member'),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -275,45 +291,45 @@ describe('get-user-redirect', () => {
       expect(result.current.hasOrganization).toBe(true);
     });
 
-    it('should map userMemberships data correctly', () => {
-      const mockMemberships = [
-        { role: 'org:admin', id: '1' },
-        { role: 'org:member', id: '2' },
-      ];
-
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: mockMemberships,
-        },
+    it('should map organizationMemberships data correctly', () => {
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: ['org:admin', 'org:member'],
+        organizationMemberships: [
+          { role: 'org:admin', organizationId: 'org_1' },
+          { role: 'org:member', organizationId: 'org_2' },
+        ],
+        hasOrganization: true,
+        roleLabel: 'Super Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
       expect(result.current.redirectUrl).toBe('/organisation-dashboard');
       expect(result.current.hasOrganization).toBe(true);
-      expect(mockUseOrganizationList).toHaveBeenCalledWith({
-        userMemberships: {
-          infinite: true,
-        },
-      });
+      expect(mockUseUserRoles).toHaveBeenCalled();
     });
 
     it('should return /beneficiaire-dashboard when recipient role is present with other roles', () => {
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [{ role: 'org:admin' }, { role: 'org:recipient' }, { role: 'org:member' }],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: [],
+        isSystemAdmin: false,
+        organizationRoles: ['org:admin', 'org:recipient', 'org:member'],
+        organizationMemberships: [
+          { role: 'org:admin', organizationId: 'org_1' },
+          { role: 'org:recipient', organizationId: 'org_2' },
+          { role: 'org:member', organizationId: 'org_3' },
+        ],
+        hasOrganization: true,
+        roleLabel: 'Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: {} },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn(),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect());
       expect(result.current.isLoaded).toBe(true);
@@ -328,16 +344,17 @@ describe('get-user-redirect', () => {
         beneficiaryDashboardPath: '/custom-beneficiary',
       };
 
-      mockUseOrganizationList.mockReturnValue({
-        userMemberships: {
-          data: [],
-        },
+      mockUseUserRoles.mockReturnValue({
+        userRoles: ['admin'],
+        isSystemAdmin: true,
+        organizationRoles: [],
+        organizationMemberships: [],
+        hasOrganization: false,
+        roleLabel: 'Super Admin',
         isLoaded: true,
-      } as any);
-      mockUseUser.mockReturnValue({
-        user: { publicMetadata: { roles: ['admin'] } },
-        isLoaded: true,
-      } as any);
+        hasRole: jest.fn((role: string) => role === 'admin'),
+        hasOrganizationRole: jest.fn(),
+      });
 
       const { result } = renderHook(() => useGetUserRedirect(options));
       expect(result.current.redirectUrl).toBe('/custom-admin');
