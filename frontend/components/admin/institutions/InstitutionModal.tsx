@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check, ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -8,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
@@ -19,7 +20,6 @@ import type { Institution } from '@/types/Institution';
 
 import { InstitutionFormFields } from './shared/InstitutionFormFields';
 import { institutionSchema, type InstitutionFormData } from './shared/InstitutionFormSchema';
-import { ArrowLeft, ArrowRight, Building2, Check } from 'lucide-react';
 
 interface InstitutionModalProps {
   open: boolean;
@@ -220,15 +220,49 @@ const InstitutionModal = ({ open, onOpenChange, refresh, institution }: Institut
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='p-6 pt-5 space-y-4'>
-            <div className='space-y-4'>
-              <InstitutionFormFields
-                control={form.control}
-                watch={form.watch}
-                errors={form.formState.errors}
-                disabled={isSubmitting}
-                variant='default'
-              />
+          <form onSubmit={form.handleSubmit(onSubmit)} className='flex-1 overflow-y-auto'>
+            <div className='px-6 pb-6 space-y-4'>
+              {/* Étape 1: Informations de base */}
+              {currentStep === 1 && (
+                <div className='space-y-4'>
+                  <InstitutionFormFields
+                    control={form.control}
+                    watch={form.watch}
+                    errors={form.formState.errors}
+                    disabled={isSubmitting}
+                    variant='compact'
+                    step={1}
+                  />
+                </div>
+              )}
+
+              {/* Étape 2: Détails */}
+              {currentStep === 2 && (
+                <div className='space-y-4'>
+                  <InstitutionFormFields
+                    control={form.control}
+                    watch={form.watch}
+                    errors={form.formState.errors}
+                    disabled={isSubmitting}
+                    variant='compact'
+                    step={2}
+                  />
+                </div>
+              )}
+
+              {/* Étape 3: Contact & Localisation */}
+              {currentStep === 3 && (
+                <div className='space-y-4'>
+                  <InstitutionFormFields
+                    control={form.control}
+                    watch={form.watch}
+                    errors={form.formState.errors}
+                    disabled={isSubmitting}
+                    variant='compact'
+                    step={3}
+                  />
+                </div>
+              )}
             </div>
 
             <DialogFooter className='sticky bottom-0 px-6 py-4 border-t border-gray-200 bg-white rounded-b-xl'>
