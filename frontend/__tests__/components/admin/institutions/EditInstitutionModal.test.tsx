@@ -201,16 +201,14 @@ describe('EditInstitutionModal - Tests complémentaires', () => {
     const websiteInput = screen.getByPlaceholderText('https://www.example.com');
     const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
 
-    // Rendre les champs invalides
-    await u.clear(nameInput);
-    await u.type(nameInput, 'AB');
+    // Vider les champs d'URL
+    await u.clear(websiteInput);
+    await u.clear(logoInput);
 
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Erreurs visibles
-    expect(
-      screen.queryByText('Le nom doit contenir au moins 2 caractères')
-    ).not.toBeInTheDocument();
+    // Pas d'erreur de validation d'URL
+    expect(screen.queryByText('Doit être une URL valide')).not.toBeInTheDocument();
   });
 
   test('validation: description avec exactement 10 caractères est valide', async () => {
