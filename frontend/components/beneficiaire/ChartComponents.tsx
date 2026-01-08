@@ -22,6 +22,7 @@ interface StatCardProps {
   value: string | number;
   label: string;
   trend?: string;
+  trendClassName?: string;
   trendUp?: boolean;
   bgColor?: string;
   iconBgColor?: string;
@@ -36,6 +37,7 @@ export function StatCard({
   value,
   label,
   trend,
+  trendClassName = 'text-green-500',
   trendUp = true,
   bgColor = 'bg-white',
   iconBgColor = 'bg-blue-50',
@@ -45,6 +47,8 @@ export function StatCard({
   progressColor = 'bg-emerald-500',
   showProgress = true,
 }: StatCardProps) {
+  const defaultTrendText = trendUp ? 'text-green-600' : 'text-red-600';
+  const defaultTrendBg = trendUp ? 'bg-green-50' : 'bg-red-50';
   const safeProgress =
     typeof progress === 'number' ? Math.min(100, Math.max(0, progress)) : undefined;
 
@@ -61,8 +65,8 @@ export function StatCard({
           {trend && (
             <span
               className={`text-xs font-medium px-2 py-1 rounded-full ${
-                trendUp ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-              }`}
+                defaultTrendBg
+              } ${trendClassName ?? defaultTrendText}`}
             >
               {trend}
             </span>

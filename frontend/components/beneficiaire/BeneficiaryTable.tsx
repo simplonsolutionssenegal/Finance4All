@@ -119,11 +119,11 @@ export default function BeneficiaryTable({
                   {/* Beneficiaire */}
                   <td className='px-5 py-4'>
                     <div className='flex items-center gap-3'>
-                      <div className='flex h-9 w-9 items-center justify-center rounded-full bg-sky-50 text-[12px] font-semibold text-sky-700'>
+                      <div className='flex h-9 w-9 items-center justify-center rounded-full bg-[#6EC1E41A] text-[12px] font-semibold text-[#6EC1E4]'>
                         {initialsOf(beneficiaire)}
                       </div>
-                      <div className='leading-tight'>
-                        <div className='text-[13px] font-semibold text-tertiary-900'>
+                      <div className='leading-tight space-y-1'>
+                        <div className='text-[13px] font-semibold text-tertiary-600'>
                           {beneficiaire.firstName} {beneficiaire.lastName}
                         </div>
                         <div className='text-[11px] text-tertiary-500'>

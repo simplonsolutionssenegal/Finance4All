@@ -97,6 +97,7 @@ export default function BeneficiaireDashboard({ userId: _userId }: BeneficiaireD
           value={`${stats.quizzesPassed.current}/${stats.quizzesPassed.total}`}
           label='Quiz réussis'
           trend='80% de réussite'
+          trendClassName='text-black'
           iconBgColor='bg-purple-50'
           iconColor='text-purple-600'
           progress={(12 / 15) * 100}
