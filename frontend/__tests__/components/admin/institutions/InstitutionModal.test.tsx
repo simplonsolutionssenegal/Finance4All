@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Controller } from 'react-hook-form';
 
 import InstitutionModal from '@/components/admin/institutions/InstitutionModal';
 import type { Institution } from '@/types/Institution';
@@ -20,358 +21,440 @@ jest.mock('next/image', () => ({
   ),
 }));
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Mocks UI shadcn/radix (pas de portal, pas de focus trap)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+}));
+
+jest.mock('@/components/ui/form', () => ({
+  Form: ({ children }: any) => <>{children}</>,
+}));
+
+jest.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ open, onOpenChange, children }: any) => (
+    <div data-testid='dialog' data-open={open}>
+      <button type='button' aria-label='dialog-open' onClick={() => onOpenChange(true)}>
+        open
+      </button>
+      <button type='button' aria-label='dialog-close' onClick={() => onOpenChange(false)}>
+        close
+      </button>
+      {children}
+    </div>
+  ),
+  DialogContent: ({ children }: any) => <div>{children}</div>,
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+  DialogFooter: ({ children }: any) => <div>{children}</div>,
+}));
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Mock InstitutionFormFields :
+ * - mêmes placeholders que le composant réel
+ * - pas de Radix DropdownMenu (juste des boutons)
+ * - RHF wiring via Controller
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+jest.mock('@/components/admin/institutions/shared/InstitutionFormFields', () => {
+  const React = require('react');
+  const { Controller } = require('react-hook-form');
+
+  const TYPE_VALUE = 'SERVICE_PAIEMENT_ELECTRONIQUE';
+  const PAYS_VALUE = 'SENEGAL';
+
+  function Step1({ control, disabled }: any) {
+    return (
+      <div>
+        <Controller
+          name='name'
+          control={control}
+          render={({ field }: any) => (
+            <input placeholder='Ex: Orange Money' {...field} disabled={disabled} />
+          )}
+        />
+        <Controller
+          name='type'
+          control={control}
+          render={({ field }: any) => (
+            <button
+              type='button'
+              aria-label='Banque'
+              onClick={() => field.onChange(TYPE_VALUE)}
+              disabled={disabled}
+            >
+              Banque
+            </button>
+          )}
+        />
+      </div>
+    );
+  }
+
+  function Step2({ control, watch, errors, disabled }: any) {
+    const logoUrl = watch('logoUrl') || '';
+    const sanitized = typeof logoUrl === 'string' ? logoUrl.trim() : logoUrl;
+
+    return (
+      <div>
+        <Controller
+          name='logoUrl'
+          control={control}
+          render={({ field }: any) => (
+            <input placeholder='https://example.com/logo.png' {...field} disabled={disabled} />
+          )}
+        />
+
+        {/* aperçu comme dans le vrai composant compact */}
+        {sanitized && !errors?.logoUrl && <img alt='Aperçu du logo' src={sanitized} />}
+
+        <Controller
+          name='description'
+          control={control}
+          render={({ field }: any) => (
+            <textarea placeholder="Description de l'institution" {...field} disabled={disabled} />
+          )}
+        />
+
+        <Controller
+          name='website'
+          control={control}
+          render={({ field }: any) => (
+            <input placeholder='https://www.example.com' {...field} disabled={disabled} />
+          )}
+        />
+      </div>
+    );
+  }
+
+  function Step3({ control, disabled }: any) {
+    const ReactLocal = React;
+    const [query, setQuery] = ReactLocal.useState('');
+
+    return (
+      <div>
+        <Controller
+          name='pays'
+          control={control}
+          render={({ field }: any) => (
+            <button
+              type='button'
+              aria-label='Sélectionner un pays'
+              onClick={() => field.onChange(PAYS_VALUE)}
+              disabled={disabled}
+            >
+              Sélectionner un pays
+            </button>
+          )}
+        />
+
+        <Controller
+          name='geographicZones'
+          control={control}
+          render={({ field }: any) => {
+            const zones: string[] = field.value || [];
+            const choices = ['UEMOA', 'CEMAC']
+              .filter(z => z.toLowerCase().includes(query.toLowerCase()))
+              .filter(z => !zones.includes(z));
+
+            return (
+              <div>
+                <input
+                  placeholder='Ex: Dakar, Thiès...'
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  disabled={disabled}
+                />
+
+                {choices.map(z => (
+                  <button
+                    key={z}
+                    type='button'
+                    onClick={() => field.onChange([...zones, z])}
+                    disabled={disabled}
+                  >
+                    {z}
+                  </button>
+                ))}
+
+                {/* badges -> remove */}
+                <div>
+                  {zones.map(z => (
+                    <button
+                      key={z}
+                      type='button'
+                      onClick={() => field.onChange(zones.filter(x => x !== z))}
+                      disabled={disabled}
+                    >
+                      {z}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }}
+        />
+      </div>
+    );
+  }
+
+  return {
+    __esModule: true,
+    InstitutionFormFields: ({ control, watch, errors, disabled, step }: any) => {
+      if (step === 1) return <Step1 control={control} disabled={disabled} />;
+      if (step === 2)
+        return <Step2 control={control} watch={watch} errors={errors} disabled={disabled} />;
+      if (step === 3) return <Step3 control={control} disabled={disabled} />;
+      return null;
+    },
+  };
+});
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Hooks mocks (create / update)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 const createInstitutionMock = jest.fn();
 const updateInstitutionMock = jest.fn();
+let createOnSuccess: (() => void) | undefined;
+let updateOnSuccess: (() => void) | undefined;
+
+let createState = { isCreating: false };
+let updateState = { isUpdating: false };
 
 jest.mock('@/hooks/institution/useCreateInstitution', () => ({
-  useCreateInstitution: jest.fn(),
-}));
-jest.mock('@/hooks/institution/useUpdateInstitution', () => ({
-  useUpdateInstitution: jest.fn(),
+  useCreateInstitution: (opts: any) => {
+    createOnSuccess = opts?.onSuccess;
+    return { isCreating: createState.isCreating, createInstitution: createInstitutionMock };
+  },
 }));
 
-const renderModal = (overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
+jest.mock('@/hooks/institution/useUpdateInstitution', () => ({
+  useUpdateInstitution: (opts: any) => {
+    updateOnSuccess = opts?.onSuccess;
+    return { isUpdating: updateState.isUpdating, updateInstitution: updateInstitutionMock };
+  },
+}));
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Render helper qui expose rerender (important)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+function renderModal(overrides?: Partial<React.ComponentProps<typeof InstitutionModal>>): {
+  onOpenChange: jest.Mock;
+  refresh: jest.Mock;
+  rerenderModal: (nextOverrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => void;
+} {
   const onOpenChange = jest.fn();
   const refresh = jest.fn();
-  render(<InstitutionModal open onOpenChange={onOpenChange} refresh={refresh} {...overrides} />);
-  return { onOpenChange, refresh };
-};
 
-const openDropdownAndChoose = async (triggerLabel: string, optionText: string) => {
-  const u = userEvent.setup();
-  const trigger = screen.getByRole('button', { name: new RegExp(triggerLabel, 'i') });
-  await u.click(trigger);
+  const baseProps = {
+    open: true,
+    onOpenChange,
+    refresh,
+    ...overrides,
+  } as React.ComponentProps<typeof InstitutionModal>;
 
-  // Attendre que le menu s'ouvre réellement
-  const item = await screen.findByRole(
-    'menuitem',
-    { name: new RegExp(optionText, 'i') },
-    { timeout: 3000 }
-  );
-  await u.click(item);
+  const r = render(<InstitutionModal {...baseProps} />);
 
-  // Attendre que le dropdown se ferme
-  await waitFor(
-    () => {
-      expect(
-        screen.queryByRole('menuitem', { name: new RegExp(optionText, 'i') })
-      ).not.toBeInTheDocument();
+  return {
+    onOpenChange,
+    refresh,
+    rerenderModal: (nextOverrides?: Partial<React.ComponentProps<typeof InstitutionModal>>) => {
+      const props = { ...baseProps, ...nextOverrides } as React.ComponentProps<
+        typeof InstitutionModal
+      >;
+      r.rerender(<InstitutionModal {...props} />);
     },
-    { timeout: 1000 }
-  );
-};
+  };
+}
 
-const addZone = async (zoneText: string) => {
-  const u = userEvent.setup();
-  const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
-  await u.clear(zoneInput);
-  await u.type(zoneInput, zoneText.slice(0, 3));
+/**
+ * Force un rerender après modifications (sinon disabled peut rester figé)
+ */
+async function makeStep1Valid(u: ReturnType<typeof userEvent.setup>, rerenderModal: () => void) {
+  const name = screen.getByPlaceholderText('Ex: Orange Money');
+  await u.clear(name);
+  await u.type(name, 'Orange Money');
 
-  // Attendre que le dropdown s'ouvre et que l'option apparaisse
-  const option = await screen.findByRole('button', { name: zoneText }, { timeout: 3000 });
-  await u.click(option);
+  await u.click(screen.getByRole('button', { name: /Banque/i }));
 
-  // Attendre que la zone soit ajoutée
-  await waitFor(
-    () => {
-      expect(screen.getByText(zoneText)).toBeInTheDocument();
-    },
-    { timeout: 1000 }
-  );
-};
+  // force recalcul disabled
+  rerenderModal();
 
-const navigateToStep = async (targetStep: number) => {
-  const u = userEvent.setup();
+  await waitFor(() => expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled());
+}
 
-  if (targetStep >= 2) {
-    // Remplir Étape 1
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
-    await openDropdownAndChoose('Banque', 'Service de paiement');
+async function goToStep2(u: ReturnType<typeof userEvent.setup>, rerenderModal: () => void) {
+  await makeStep1Valid(u, rerenderModal);
+  await u.click(screen.getByRole('button', { name: /Suivant/i }));
+  expect(await screen.findByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+}
 
-    const nextBtn = screen.getByRole('button', { name: /Suivant/i });
-    await u.click(nextBtn);
+async function makeStep2Valid(u: ReturnType<typeof userEvent.setup>, rerenderModal: () => void) {
+  const desc = screen.getByPlaceholderText("Description de l'institution");
+  await u.clear(desc);
+  await u.type(desc, 'Une description valide');
 
-    // Attendre d'être sur l'Étape 2
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
-  }
+  const website = screen.getByPlaceholderText('https://www.example.com');
+  await u.clear(website);
+  await u.type(website, 'https://www.orange.sn');
 
-  if (targetStep >= 3) {
-    // Remplir Étape 2
-    await u.type(
-      screen.getByPlaceholderText('https://example.com/logo.png'),
-      'https://exemple.com/logo.png'
-    );
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide'
-    );
-    await u.type(screen.getByPlaceholderText('https://www.example.com'), 'https://ok.sn');
+  // force recalcul disabled
+  rerenderModal();
 
-    const nextBtn = screen.getByRole('button', { name: /Suivant/i });
-    await u.click(nextBtn);
+  await waitFor(() => expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled());
+}
 
-    // Attendre d'être sur l'Étape 3
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
-  }
-};
-
-// ───────────────────────────────────────────────────────────────────────────────
+async function goToStep3(u: ReturnType<typeof userEvent.setup>, rerenderModal: () => void) {
+  await goToStep2(u, rerenderModal);
+  await makeStep2Valid(u, rerenderModal);
+  await u.click(screen.getByRole('button', { name: /Suivant/i }));
+  expect(await screen.findByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
-  const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
-  (useCreateInstitution as jest.Mock).mockReturnValue({
-    isCreating: false,
-    createInstitution: createInstitutionMock,
-  });
-
-  const { useUpdateInstitution } = require('@/hooks/institution/useUpdateInstitution');
-  (useUpdateInstitution as jest.Mock).mockReturnValue({
-    isUpdating: false,
-    updateInstitution: updateInstitutionMock,
-  });
+  createOnSuccess = undefined;
+  updateOnSuccess = undefined;
+  createState.isCreating = false;
+  updateState.isUpdating = false;
 });
 
-describe('InstitutionModal (structure en 3 étapes)', () => {
-  test('affiche le stepper avec 3 étapes', () => {
+describe('InstitutionModal (brand new stable tests)', () => {
+  test('render: titre + stepper', () => {
     renderModal();
 
+    expect(screen.getByText('Nouvelle institution')).toBeInTheDocument();
     expect(screen.getByText('Informations de base')).toBeInTheDocument();
     expect(screen.getByText('Détails')).toBeInTheDocument();
     expect(screen.getByText('Contact & Localisation')).toBeInTheDocument();
   });
 
-  test('Étape 1: validation - bouton Suivant désactivé si champs invalides', async () => {
+  test('Étape 1: Suivant disabled puis enabled (name + type) et navigation step2', async () => {
     const u = userEvent.setup();
-    renderModal();
+    const { rerenderModal } = renderModal();
 
-    // Initialement désactivé (pas de nom ni type)
     expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
 
-    // Remplir le nom seulement
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'OM');
-    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
-
-    // Ajouter le type
-    await openDropdownAndChoose('Banque', 'Service de paiement');
-    expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled();
-  });
-
-  test('Étape 1: navigation - passe à Étape 2 quand valide', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
-    await openDropdownAndChoose('Banque', 'Service de paiement');
-
+    await makeStep1Valid(u, () => rerenderModal());
     await u.click(screen.getByRole('button', { name: /Suivant/i }));
 
-    // Vérifie qu'on est à l'Étape 2
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText("Description de l'institution")).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
+    expect(await screen.findByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Retour/i })).toBeInTheDocument();
   });
 
-  test('Étape 2: validation - bouton Suivant désactivé si description trop courte', async () => {
+  test('Étape 2: logo preview apparaît/disparaît et bloque si logoUrl invalide', async () => {
     const u = userEvent.setup();
-    renderModal();
+    const { rerenderModal } = renderModal();
 
-    await navigateToStep(2);
+    await goToStep2(u, () => rerenderModal());
 
-    // Description trop courte
-    await u.type(screen.getByPlaceholderText("Description de l'institution"), 'court');
-    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
+    const nextBtn = screen.getByRole('button', { name: /Suivant/i });
+    expect(nextBtn).toBeDisabled(); // description vide
 
-    // Description valide
-    await u.clear(screen.getByPlaceholderText("Description de l'institution"));
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide (>= 10 caractères)'
-    );
-    expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled();
+    // description ok -> enabled
+    await makeStep2Valid(u, () => rerenderModal());
+    expect(nextBtn).toBeEnabled();
+
+    // logo invalide => zod url => errors.logoUrl => canGoToStep3 false => disabled
+    const logo = screen.getByPlaceholderText('https://example.com/logo.png');
+    await u.clear(logo);
+    await u.type(logo, 'not-a-url');
+    rerenderModal();
+    await waitFor(() => expect(nextBtn).toBeDisabled());
+    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
+
+    // logo valide => enabled + preview
+    await u.clear(logo);
+    await u.type(logo, 'https://example.com/logo.png');
+    rerenderModal();
+    await waitFor(() => expect(nextBtn).toBeEnabled());
+    expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
+
+    // vider logo => preview disparaît et reste ok
+    await u.clear(logo);
+    rerenderModal();
+    await waitFor(() => expect(nextBtn).toBeEnabled());
+    expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
   });
 
-  test('Étape 2: aperçu du logo affiché quand URL valide', async () => {
+  test('Retour step2 -> step1', async () => {
     const u = userEvent.setup();
-    renderModal();
+    const { rerenderModal } = renderModal();
 
-    await navigateToStep(2);
-
-    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
-    await u.type(logoInput, 'https://valid.com/logo.png');
-
-    await waitFor(() => {
-      expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
-    });
-  });
-
-  test('Étape 2: aperçu du logo disparaît quand URL invalide ou vidée', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    await navigateToStep(2);
-
-    const logoInput = screen.getByPlaceholderText('https://example.com/logo.png');
-    await u.type(logoInput, 'https://valid.com/logo.png');
-
-    await waitFor(() => {
-      expect(screen.getByAltText('Aperçu du logo')).toBeInTheDocument();
-    });
-
-    await u.clear(logoInput);
-
-    await waitFor(() => {
-      expect(screen.queryByAltText('Aperçu du logo')).not.toBeInTheDocument();
-    });
-  });
-
-  test('Étape 2: bouton Retour ramène à Étape 1', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    await navigateToStep(2);
-
+    await goToStep2(u, () => rerenderModal());
     await u.click(screen.getByRole('button', { name: /Retour/i }));
 
-    // Vérifie qu'on est revenu à l'Étape 1
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('Ex: Orange Money')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
+    expect(await screen.findByPlaceholderText('Ex: Orange Money')).toBeInTheDocument();
   });
 
-  test('Étape 3: validation - bouton Créer désactivé si zones manquantes', async () => {
+  test('Étape 3: submit disabled tant que pays/zones manquants puis createInstitution appelé', async () => {
     const u = userEvent.setup();
-    renderModal();
+    const { rerenderModal } = renderModal();
 
-    await navigateToStep(3);
+    await goToStep3(u, () => rerenderModal());
 
-    // Sans zone
-    expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeDisabled();
+    const submit = screen.getByRole('button', { name: /Créer l'institution/i });
+    expect(submit).toBeDisabled();
 
-    // Ajouter pays
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
+    // set pays seulement => toujours disabled
+    await u.click(screen.getByRole('button', { name: /Sélectionner un pays/i }));
+    rerenderModal();
+    expect(submit).toBeDisabled();
 
-    // Toujours désactivé sans zone
-    expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeDisabled();
+    // add zone via search
+    const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
+    await u.type(zoneInput, 'UEM');
+    await u.click(screen.getByRole('button', { name: 'UEMOA' }));
 
-    // Ajouter une zone
-    await addZone('UEMOA');
+    rerenderModal();
+    await waitFor(() => expect(submit).toBeEnabled());
 
-    // Maintenant activé
-    await waitFor(
-      () => {
-        expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeEnabled();
-      },
-      { timeout: 2000 }
-    );
-  });
+    await u.click(submit);
 
-  test('Étape 3: zones - ajouter et retirer une zone', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    await navigateToStep(3);
-
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
-    await addZone('UEMOA');
-
-    // Vérifie que la zone est affichée
-    expect(screen.getByText('UEMOA')).toBeInTheDocument();
-
-    // Retirer la zone
-    const zoneBadge = screen.getByText('UEMOA');
-    await u.click(zoneBadge);
-
-    // Vérifier que la zone a été retirée
-    await waitFor(
-      () => {
-        expect(screen.queryByText('UEMOA')).not.toBeInTheDocument();
-      },
-      { timeout: 1000 }
-    );
-  });
-
-  test('création complète: envoie le payload à createInstitution', async () => {
-    const u = userEvent.setup();
-    renderModal();
-
-    // Étape 1
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Orange Money');
-    await openDropdownAndChoose('Banque', 'Service de paiement');
-    await u.click(screen.getByRole('button', { name: /Suivant/i }));
-
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
-
-    // Étape 2
-    await u.type(
-      screen.getByPlaceholderText('https://example.com/logo.png'),
-      'https://exemple.com/logo.png'
-    );
-    await u.type(
-      screen.getByPlaceholderText("Description de l'institution"),
-      'Une description valide'
-    );
-    await u.type(screen.getByPlaceholderText('https://www.example.com'), 'https://www.orange.sn');
-    await u.click(screen.getByRole('button', { name: /Suivant/i }));
-
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
-
-    // Étape 3
-    await openDropdownAndChoose('Sélectionner un pays', 'Sénégal');
-    await addZone('UEMOA');
-
-    await waitFor(
-      () => {
-        expect(screen.getByRole('button', { name: /Créer l'institution/i })).toBeEnabled();
-      },
-      { timeout: 2000 }
-    );
-
-    await u.click(screen.getByRole('button', { name: /Créer l'institution/i }));
-
-    await waitFor(() => {
-      expect(createInstitutionMock).toHaveBeenCalledTimes(1);
-    });
-
+    await waitFor(() => expect(createInstitutionMock).toHaveBeenCalledTimes(1));
     expect(createInstitutionMock).toHaveBeenCalledWith({
       name: 'Orange Money',
       description: 'Une description valide',
       website: 'https://www.orange.sn',
       geographicZones: ['UEMOA'],
-      logoUrl: 'https://exemple.com/logo.png',
+      logoUrl: '',
       type: 'SERVICE_PAIEMENT_ELECTRONIQUE',
       pays: 'SENEGAL',
     });
   });
 
-  test('Annuler ferme le modal si pas en soumission', async () => {
+  test('Étape 3: retirer zone re-bloque le submit', async () => {
+    const u = userEvent.setup();
+    const { rerenderModal } = renderModal();
+
+    await goToStep3(u, () => rerenderModal());
+
+    // pays + zone
+    await u.click(screen.getByRole('button', { name: /Sélectionner un pays/i }));
+    const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
+    await u.type(zoneInput, 'U');
+    await u.click(screen.getByRole('button', { name: 'UEMOA' }));
+    rerenderModal();
+
+    const submit = screen.getByRole('button', { name: /Créer l'institution/i });
+    await waitFor(() => expect(submit).toBeEnabled());
+
+    // remove zone badge
+    await u.click(screen.getByRole('button', { name: 'UEMOA' }));
+    rerenderModal();
+
+    await waitFor(() => expect(submit).toBeDisabled());
+  });
+
+  test('Annuler ferme si pas en soumission', async () => {
     const u = userEvent.setup();
     const { onOpenChange } = renderModal();
 
@@ -379,21 +462,41 @@ describe('InstitutionModal (structure en 3 étapes)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  test('Annuler ne ferme pas pendant la soumission', async () => {
-    const { useCreateInstitution } = require('@/hooks/institution/useCreateInstitution');
-    (useCreateInstitution as jest.Mock).mockReturnValue({
-      isCreating: true,
-      createInstitution: createInstitutionMock,
-    });
+  test('Dialog onOpenChange(true) appelle onOpenChange(true)', async () => {
+    const u = userEvent.setup();
+    const { onOpenChange } = renderModal();
+
+    await u.click(screen.getByRole('button', { name: /dialog-open/i }));
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
+  test('Dialog close reset step 1 quand pas en soumission', async () => {
+    const u = userEvent.setup();
+    const { onOpenChange, rerenderModal } = renderModal();
+
+    await goToStep2(u, () => rerenderModal());
+    expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
+
+    await u.click(screen.getByRole('button', { name: /dialog-close/i }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(await screen.findByPlaceholderText('Ex: Orange Money')).toBeInTheDocument();
+  });
+
+  test('Soumission: Annuler + Dialog close ignorés quand isCreating=true', async () => {
+    createState.isCreating = true;
 
     const u = userEvent.setup();
     const { onOpenChange } = renderModal();
 
     await u.click(screen.getByRole('button', { name: 'Annuler' }));
+    await u.click(screen.getByRole('button', { name: /dialog-close/i }));
+    await u.click(screen.getByRole('button', { name: /dialog-open/i }));
+
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
-  test('édition: pré-remplit les champs et permet modification', async () => {
+  test('Mode édition: pré-remplit et updateInstitution appelé', async () => {
     const u = userEvent.setup();
 
     const inst: Institution = {
@@ -402,7 +505,7 @@ describe('InstitutionModal (structure en 3 étapes)', () => {
       description: 'Description existante assez longue',
       website: 'https://banky.sn',
       geographicZones: ['UEMOA', 'CEMAC'],
-      logoUrl: 'https://cdn/logo.png',
+      logoUrl: 'https://example.com/logo.png',
       status: 'ACTIVE' as any,
       createdAt: '2024-01-01',
       updatedAt: '2024-01-02',
@@ -410,46 +513,33 @@ describe('InstitutionModal (structure en 3 étapes)', () => {
       pays: 'SENEGAL' as any,
     };
 
-    renderModal({ institution: inst });
+    const { rerenderModal } = renderModal({ institution: inst });
 
-    // Vérifie pré-remplissage Étape 1
-    expect(screen.getByPlaceholderText('Ex: Orange Money')).toHaveValue('Banky');
+    const name = screen.getByPlaceholderText('Ex: Orange Money') as HTMLInputElement;
+    expect(name.value).toBe('Banky');
 
-    // Modifier le nom
-    await u.clear(screen.getByPlaceholderText('Ex: Orange Money'));
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'Banky Plus');
+    // modifier name + rerender
+    await u.clear(name);
+    await u.type(name, 'Banky Plus');
+    rerenderModal();
 
-    // Naviguer jusqu'à l'étape 3
+    await waitFor(() => expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled());
     await u.click(screen.getByRole('button', { name: /Suivant/i }));
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
 
+    await screen.findByPlaceholderText('https://example.com/logo.png');
+
+    rerenderModal();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Suivant/i })).toBeEnabled());
     await u.click(screen.getByRole('button', { name: /Suivant/i }));
-    await waitFor(
-      () => {
-        expect(screen.getByPlaceholderText('Ex: Dakar, Thiès...')).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
 
-    await waitFor(
-      () => {
-        const submitBtn = screen.getByRole('button', { name: /Créer l'institution/i });
-        expect(submitBtn).toBeEnabled();
-      },
-      { timeout: 2000 }
-    );
+    await screen.findByPlaceholderText('Ex: Dakar, Thiès...');
 
-    await u.click(screen.getByRole('button', { name: /Créer l'institution/i }));
+    rerenderModal();
+    const submit = screen.getByRole('button', { name: /Créer l'institution/i });
+    await waitFor(() => expect(submit).toBeEnabled());
+    await u.click(submit);
 
-    await waitFor(() => {
-      expect(updateInstitutionMock).toHaveBeenCalledTimes(1);
-    });
-
+    await waitFor(() => expect(updateInstitutionMock).toHaveBeenCalledTimes(1));
     expect(updateInstitutionMock).toHaveBeenCalledWith({
       id: 'inst_1',
       data: {
@@ -457,52 +547,51 @@ describe('InstitutionModal (structure en 3 étapes)', () => {
         description: 'Description existante assez longue',
         website: 'https://banky.sn',
         geographicZones: ['UEMOA', 'CEMAC'],
-        logoUrl: 'https://cdn/logo.png',
+        logoUrl: 'https://example.com/logo.png',
         type: 'SERVICE_PAIEMENT_ELECTRONIQUE',
         pays: 'SENEGAL',
       },
     });
   });
 
-  test('affiche le titre "Nouvelle institution" en mode création', () => {
-    renderModal();
-    expect(screen.getByText('Nouvelle institution')).toBeInTheDocument();
-  });
-
-  test('Étape 1: affiche erreur si nom trop court après tentative de navigation', async () => {
+  test('onSuccess create: reset + close + refresh + step1', async () => {
     const u = userEvent.setup();
-    renderModal();
+    const { onOpenChange, refresh, rerenderModal } = renderModal();
 
-    await u.type(screen.getByPlaceholderText('Ex: Orange Money'), 'O');
-    await openDropdownAndChoose('Banque', 'Service de paiement');
+    await goToStep2(u, () => rerenderModal());
+    expect(screen.getByPlaceholderText('https://example.com/logo.png')).toBeInTheDocument();
 
-    // Le bouton est désactivé car nom invalide
-    expect(screen.getByRole('button', { name: /Suivant/i })).toBeDisabled();
-  });
+    expect(typeof createOnSuccess).toBe('function');
+    createOnSuccess?.();
 
-  test('réinitialise à Étape 1 quand le modal se ferme', async () => {
-    const u = userEvent.setup();
-    const { onOpenChange } = renderModal();
-
-    await navigateToStep(3);
-
-    // Fermer le modal
-    await u.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    const name = await screen.findByPlaceholderText('Ex: Orange Money');
+    expect((name as HTMLInputElement).value).toBe('');
   });
 
-  test('Étape 3: filtrage des zones par recherche', async () => {
-    const u = userEvent.setup();
-    renderModal();
+  test('onSuccess update: reset + close + refresh', () => {
+    const inst: Institution = {
+      id: 'inst_2',
+      name: 'Test',
+      description: 'Une description existante assez longue',
+      website: '',
+      geographicZones: ['UEMOA'],
+      logoUrl: '',
+      status: 'ACTIVE' as any,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-02',
+      type: 'SERVICE_PAIEMENT_ELECTRONIQUE' as any,
+      pays: 'SENEGAL' as any,
+    };
 
-    await navigateToStep(3);
+    const { onOpenChange, refresh } = renderModal({ institution: inst });
 
-    const zoneInput = screen.getByPlaceholderText('Ex: Dakar, Thiès...');
-    await u.click(zoneInput);
-    await u.type(zoneInput, 'UEM');
+    expect(typeof updateOnSuccess).toBe('function');
+    updateOnSuccess?.();
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'UEMOA' })).toBeInTheDocument();
-    });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

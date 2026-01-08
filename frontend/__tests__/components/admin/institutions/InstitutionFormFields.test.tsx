@@ -232,7 +232,7 @@ describe('InstitutionFormFields (interactive)', () => {
       // Menu should show at least one zone
       await screen.findByRole('button', { name: /EURO/i });
       // Click outside
-      userEvent.click(document.body);
+      await userEvent.click(document.body);
       // EURO should no longer be present
       await waitFor(() =>
         expect(screen.queryByRole('button', { name: /EURO/i })).not.toBeInTheDocument()
