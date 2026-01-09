@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`BeneficiairesPage Snapshot testing should match snapshot 1`] = `
+<div
+  data-testid="beneficiary-management"
+>
+  Beneficiary Management Component
+</div>
+`;

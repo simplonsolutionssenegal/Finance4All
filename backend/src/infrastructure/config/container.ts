@@ -38,6 +38,17 @@ import type { ServiceRepository } from '@/domain/institutions/ports/out/ServiceR
 import type { CompareServicesUseCase } from '@/domain/institutions/ports/in/CompareServicesUseCase';
 import { CompareServicesUseCaseImpl } from '@/application/institutions/use-cases/CompareServicesUseCaseImpl';
 
+import { BeneficiaryController } from '../web/controllers/BeneficiaryController';
+import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
+import { PrismaBeneficiaryRepository } from '../persistence/repositories/PrismaBeneficiaryRepository';
+import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
+import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
+import { CreateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/CreateBeneficiaryUseCaseImpl';
+
+import { UpdateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/UpdateBeneficiaryUseCaseImpl';
+import type { OrganizationIdentityPort } from '@/domain/Beneficiary/ports/out/OrganizationIdentityPort';
+import { ClerkOrganizationIdentityService } from '../services/ClerkOrganizationIdentityService';
+
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
@@ -66,6 +77,14 @@ export const TYPES = {
   GetModulesUseCase: Symbol.for('GetModulesUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
   ModuleController: Symbol.for('ModuleController'),
+
+  // ========== Beneficiaires ==========
+  CreateBeneficiaryUseCase: Symbol.for('CreateBeneficiaryUseCase'),
+  GetBeneficiariesUseCase: Symbol.for('GetBeneficiariesUseCase'),
+  UpdateBeneficiaryUseCase: Symbol.for('UpdateBeneficiaryUseCase'),
+  BeneficiaryRepository: Symbol.for('BeneficiaryRepository'),
+  OrganizationIdentityPort: Symbol.for('OrganizationIdentityPort'),
+  BeneficiaryController: Symbol.for('BeneficiaryController'),
 };
 
 const container = new Container();
@@ -97,6 +116,19 @@ container
   })
   .inSingletonScope();
 
+// ========== Beneficiaires repositories ==========
+container
+  .bind<BeneficiaryRepository>(TYPES.BeneficiaryRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaBeneficiaryRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<OrganizationIdentityPort>(TYPES.OrganizationIdentityPort)
+  .to(ClerkOrganizationIdentityService)
+  .inSingletonScope();
 
 // Bind domain services
 container
@@ -190,6 +222,24 @@ container
   })
   .inSingletonScope();
 
+// ========== Beneficiaires USE CASES ==========
+container
+  .bind<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    const orgIdentity = context.get<OrganizationIdentityPort>(TYPES.OrganizationIdentityPort);
+    return new CreateBeneficiaryUseCaseImpl(repository, orgIdentity);
+  })
+  .inSingletonScope();
+
+container
+  .bind<UpdateBeneficiaryUseCase>(TYPES.UpdateBeneficiaryUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    return new UpdateBeneficiaryUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // Bind controllers
 container
   .bind<InstitutionController>(TYPES.InstitutionController)
@@ -237,6 +287,18 @@ container
     const getModulesUseCase = context.get<GetModulesUseCase>(TYPES.GetModulesUseCase);
 
     return new ModuleController(createModuleUseCase, getModulesUseCase);
+  })
+  .inSingletonScope();
+
+// ========== Beneficiaires controllers ==========
+container
+  .bind<BeneficiaryController>(TYPES.BeneficiaryController)
+  .toDynamicValue(context => {
+    const createUC = context.get<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase);
+    const updateUC = context.get<UpdateBeneficiaryUseCase>(TYPES.UpdateBeneficiaryUseCase);
+    const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+
+    return new BeneficiaryController(createUC, updateUC, repo);
   })
   .inSingletonScope();
 

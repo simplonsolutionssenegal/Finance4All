@@ -13,6 +13,32 @@ model User {
   email String @unique
 }
 
+model Beneficiary {
+  id              String            @id @default(uuid())
+  organizationId  String
+  clerkUserId     String            @unique
+
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+
+  status          BeneficiaryStatus @default(ACTIVE)
+  progressPercent Int               @default(0)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@unique([organizationId, email])
+}
+
+enum BeneficiaryStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Institution {
   id              String            @id @default(uuid())
   name            String            @unique
