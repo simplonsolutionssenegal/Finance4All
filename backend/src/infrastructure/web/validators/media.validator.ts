@@ -53,6 +53,10 @@ export const validateUploadMetadata: ValidationChain[] = [
   body('metadata')
     .optional()
     .custom(value => {
+      // Skip validation for empty strings or undefined/null
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
       if (typeof value === 'string') {
         try {
           const parsed = JSON.parse(value);
@@ -71,6 +75,10 @@ export const validateTemporaryUpload: ValidationChain[] = [
   body('metadata')
     .optional()
     .custom(value => {
+      // Skip validation for empty strings or undefined/null
+      if (value === undefined || value === null || value === '') {
+        return true;
+      }
       if (typeof value === 'string') {
         try {
           const parsed = JSON.parse(value);

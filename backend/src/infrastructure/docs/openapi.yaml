@@ -1,0 +1,1218 @@
+openapi: 3.0.3
+info:
+  title: Finance4All API
+  description: |
+    API backend pour la plateforme Finance4All.
+
+    ## Génération de types pour les clients
+
+    Pour générer les types TypeScript côté client (Next.js, React Native):
+    ```bash
+    npx openapi-typescript https://api.finance4all.com/api-docs/openapi.yaml -o ./types/api.ts
+    ```
+  version: 1.0.0
+  contact:
+    name: Finance4All Team
+    email: support@finance4all.com
+
+servers:
+  - url: http://localhost:5001/api/v1
+    description: Serveur de développement
+  - url: https://api.finance4all.com/api/v1
+    description: Serveur de production
+
+tags:
+  - name: Institutions
+    description: Gestion des institutions financières
+  - name: Services
+    description: Gestion des services financiers
+  - name: Modules
+    description: Modules de formation
+  - name: Beneficiaries
+    description: Gestion des bénéficiaires
+  - name: Media
+    description: Gestion des médias (vidéos, PDFs, audio)
+  - name: Users
+    description: Gestion des utilisateurs
+
+paths:
+  # ==================== INSTITUTIONS ====================
+  /institutions:
+    get:
+      tags:
+        - Institutions
+      summary: Liste des institutions
+      description: Récupère la liste paginée des institutions financières
+      operationId: getInstitutions
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/InstitutionStatus'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/InstitutionType'
+        - name: pays
+          in: query
+          schema:
+            $ref: '#/components/schemas/Country'
+      responses:
+        '200':
+          description: Liste des institutions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Institution'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags:
+        - Institutions
+      summary: Créer une institution
+      description: Crée une nouvelle institution financière
+      operationId: createInstitution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstitutionRequest'
+      responses:
+        '201':
+          description: Institution créée
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Institution'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /institutions/{id}:
+    get:
+      tags:
+        - Institutions
+      summary: Détails d'une institution
+      description: Récupère les détails d'une institution par son ID
+      operationId: getInstitutionById
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Détails de l'institution
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Institution'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Institutions
+      summary: Mettre à jour une institution
+      description: Met à jour les informations d'une institution
+      operationId: updateInstitution
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInstitutionRequest'
+      responses:
+        '200':
+          description: Institution mise à jour
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Institution'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /institutions/{id}/status:
+    patch:
+      tags:
+        - Institutions
+      summary: Mettre à jour le statut
+      description: Met à jour le statut d'une institution
+      operationId: updateInstitutionStatus
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/InstitutionStatus'
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /institutions/{id}/services:
+    post:
+      tags:
+        - Institutions
+      summary: Ajouter un service
+      description: Ajoute un service à une institution
+      operationId: addServiceToInstitution
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequest'
+      responses:
+        '201':
+          description: Service ajouté
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Service'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== SERVICES ====================
+  /services:
+    get:
+      tags:
+        - Services
+      summary: Liste des services
+      description: Récupère la liste paginée des services financiers
+      operationId: getServices
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceType'
+        - name: institutionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste des services
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Service'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+  /services/compare:
+    post:
+      tags:
+        - Services
+      summary: Comparer des services
+      description: Compare plusieurs services financiers
+      operationId: compareServices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceIds
+              properties:
+                serviceIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 2
+                  maxItems: 5
+      responses:
+        '200':
+          description: Comparaison des services
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ServiceComparison'
+
+  # ==================== MODULES ====================
+  /modules:
+    get:
+      tags:
+        - Modules
+      summary: Liste des modules
+      description: Récupère la liste paginée des modules de formation
+      operationId: getModules
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ModuleStatus'
+        - name: difficultyLevel
+          in: query
+          schema:
+            $ref: '#/components/schemas/DifficultyLevel'
+        - name: thematic
+          in: query
+          schema:
+            $ref: '#/components/schemas/Thematic'
+      responses:
+        '200':
+          description: Liste des modules
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Module'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Modules
+      summary: Créer un module
+      description: Crée un nouveau module de formation
+      operationId: createModule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateModuleRequest'
+      responses:
+        '201':
+          description: Module créé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Module'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ==================== BENEFICIARIES ====================
+  /beneficiaries:
+    get:
+      tags:
+        - Beneficiaries
+      summary: Liste des bénéficiaires
+      description: Récupère la liste paginée des bénéficiaires
+      operationId: getBeneficiaries
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/BeneficiaryStatus'
+        - name: organizationId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste des bénéficiaires
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Beneficiary'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Beneficiaries
+      summary: Créer un bénéficiaire
+      description: Crée un nouveau bénéficiaire
+      operationId: createBeneficiary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBeneficiaryRequest'
+      responses:
+        '201':
+          description: Bénéficiaire créé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Beneficiary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /beneficiaries/{id}:
+    put:
+      tags:
+        - Beneficiaries
+      summary: Mettre à jour un bénéficiaire
+      description: Met à jour les informations d'un bénéficiaire
+      operationId: updateBeneficiary
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBeneficiaryRequest'
+      responses:
+        '200':
+          description: Bénéficiaire mis à jour
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Beneficiary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== MEDIA ====================
+  /media:
+    get:
+      tags:
+        - Media
+      summary: Liste des médias
+      description: Récupère la liste paginée des médias
+      operationId: getMedias
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/MediaType'
+      responses:
+        '200':
+          description: Liste des médias
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Media'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags:
+        - Media
+      summary: Upload un média
+      description: Upload un fichier média (vidéo, PDF, audio)
+      operationId: uploadMedia
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier à uploader (video, pdf, audio)
+                metadata:
+                  type: string
+                  description: Métadonnées JSON optionnelles
+      responses:
+        '201':
+          description: Média uploadé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Media'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /media/temp:
+    post:
+      tags:
+        - Media
+      summary: Upload temporaire
+      description: Upload un fichier média temporaire (expire après 24h par défaut)
+      operationId: uploadTemporaryMedia
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Fichier à uploader (video, pdf, audio)
+                metadata:
+                  type: string
+                  description: Métadonnées JSON optionnelles
+                expiresInHours:
+                  type: integer
+                  minimum: 1
+                  maximum: 168
+                  default: 24
+                  description: Durée de validité en heures (1-168h)
+      responses:
+        '201':
+          description: Média temporaire uploadé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TemporaryMediaUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /media/{id}:
+    get:
+      tags:
+        - Media
+      summary: Détails d'un média
+      description: Récupère les détails d'un média par son ID
+      operationId: getMediaById
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Détails du média
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Media'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Media
+      summary: Supprimer un média
+      description: Supprime un média et son fichier associé
+      operationId: deleteMedia
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Média supprimé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Media deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /media/{id}/presigned-url:
+    get:
+      tags:
+        - Media
+      summary: URL présignée
+      description: Génère une URL présignée pour accéder au média
+      operationId: getMediaPresignedUrl
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: expiresIn
+          in: query
+          schema:
+            type: integer
+            minimum: 60
+            maximum: 604800
+            default: 3600
+          description: Durée de validité en secondes (1min - 7 jours)
+      responses:
+        '200':
+          description: URL présignée générée
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PresignedUrlResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identifiant unique (UUID)
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Numéro de page
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      description: Nombre d'éléments par page
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Conflict:
+      description: Conflit (ressource existante)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ==================== COMMON ====================
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ==================== ENUMS ====================
+    InstitutionStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - PENDING
+
+    InstitutionType:
+      type: string
+      enum:
+        - ETABLISSEMENT_MONNAIE_ELECTRONIQUE
+        - PORTEFEUILLE_NUMERIQUE
+        - SERVICE_PAIEMENT_ELECTRONIQUE
+        - BANQUE_NUMERIQUE
+        - SERVICE_FINANCIER_DECENTRALISE
+        - SERVICE_FINANCEMENT_PARTICIPATIF
+        - SERVICE_INVESTISSEMENT
+        - SERVICE_GESTION_FINANCIERE
+        - SERVICE_ASSURANCE_NUMERIQUE
+
+    Country:
+      type: string
+      enum:
+        - SENEGAL
+        - CAMEROUN
+
+    ServiceType:
+      type: string
+      enum:
+        - PAIEMENT_MARCHAND
+        - ACHAT_CREDIT
+        - PAIEMENT_FACTURES
+        - DEPOT_SIMPLE
+        - DEPOT_RETRAIT_SIMPLE
+        - RETRAIT_SIMPLE
+        - TRANSFERT_ARGENT
+        - BANQUE_WALLET
+        - WALLET_BANQUE
+        - EPARGNE
+        - CREDIT
+        - ASSURANCE
+        - AUTRES
+
+    ModuleStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - ARCHIVED
+
+    DifficultyLevel:
+      type: string
+      enum:
+        - BEGINNER
+        - INTERMEDIATE
+        - ADVANCED
+        - EXPERT
+
+    Thematic:
+      type: string
+      enum:
+        - FINANCIAL_EDUCATION
+        - PERSONAL_DEVELOPMENT
+        - FINANCIAL_LOAN
+        - BANK_CREDIT
+        - INVESTMENT
+        - BUDGET_MANAGEMENT
+        - SAVING
+        - ENTREPRENEURSHIP
+        - TAXATION
+        - INSURANCE
+
+    BeneficiaryStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+
+    MediaType:
+      type: string
+      enum:
+        - VIDEO
+        - PDF
+        - AUDIO
+
+    # ==================== INSTITUTION ====================
+    Institution:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+          nullable: true
+        geographicZones:
+          type: array
+          items:
+            type: string
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+        type:
+          $ref: '#/components/schemas/InstitutionType'
+        pays:
+          $ref: '#/components/schemas/Country'
+        status:
+          $ref: '#/components/schemas/InstitutionStatus'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateInstitutionRequest:
+      type: object
+      required:
+        - name
+        - description
+        - type
+        - pays
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        geographicZones:
+          type: array
+          items:
+            type: string
+        logoUrl:
+          type: string
+          format: uri
+        type:
+          $ref: '#/components/schemas/InstitutionType'
+        pays:
+          $ref: '#/components/schemas/Country'
+
+    UpdateInstitutionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        geographicZones:
+          type: array
+          items:
+            type: string
+        logoUrl:
+          type: string
+          format: uri
+        type:
+          $ref: '#/components/schemas/InstitutionType'
+        pays:
+          $ref: '#/components/schemas/Country'
+
+    # ==================== SERVICE ====================
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        longName:
+          type: string
+        type:
+          $ref: '#/components/schemas/ServiceType'
+        frais:
+          type: object
+          additionalProperties: true
+        conditionAccess:
+          type: array
+          items:
+            type: string
+        plafonds:
+          type: array
+          items:
+            type: string
+        infrastructureAccess:
+          type: array
+          items:
+            type: string
+        montantMin:
+          type: number
+          nullable: true
+        montantMax:
+          type: number
+          nullable: true
+        institutionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateServiceRequest:
+      type: object
+      required:
+        - name
+        - longName
+        - type
+        - frais
+      properties:
+        name:
+          type: string
+        longName:
+          type: string
+        type:
+          $ref: '#/components/schemas/ServiceType'
+        frais:
+          type: object
+          additionalProperties: true
+        conditionAccess:
+          type: array
+          items:
+            type: string
+        plafonds:
+          type: array
+          items:
+            type: string
+        infrastructureAccess:
+          type: array
+          items:
+            type: string
+        montantMin:
+          type: number
+        montantMax:
+          type: number
+
+    ServiceComparison:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/Service'
+        institution:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            logoUrl:
+              type: string
+              nullable: true
+
+    # ==================== MODULE ====================
+    Module:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        thematics:
+          type: array
+          items:
+            $ref: '#/components/schemas/Thematic'
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+        difficultyLevel:
+          $ref: '#/components/schemas/DifficultyLevel'
+        estimatedDuration:
+          type: number
+          description: Durée estimée en heures
+        status:
+          $ref: '#/components/schemas/ModuleStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateModuleRequest:
+      type: object
+      required:
+        - title
+        - description
+        - thematics
+        - difficultyLevel
+        - estimatedDuration
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        thematics:
+          type: array
+          items:
+            $ref: '#/components/schemas/Thematic'
+          minItems: 1
+        imageUrl:
+          type: string
+          format: uri
+        difficultyLevel:
+          $ref: '#/components/schemas/DifficultyLevel'
+        estimatedDuration:
+          type: number
+          minimum: 0.1
+
+    # ==================== BENEFICIARY ====================
+    Beneficiary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+        clerkUserId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/BeneficiaryStatus'
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBeneficiaryRequest:
+      type: object
+      required:
+        - organizationId
+        - firstName
+        - lastName
+        - email
+      properties:
+        organizationId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+
+    UpdateBeneficiaryRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        status:
+          $ref: '#/components/schemas/BeneficiaryStatus'
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    # ==================== MEDIA ====================
+    Media:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        type:
+          $ref: '#/components/schemas/MediaType'
+        size:
+          type: integer
+          description: Taille en octets
+        url:
+          type: string
+          format: uri
+        bucket:
+          type: string
+        path:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+        isTemporary:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TemporaryMediaUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    PresignedUrlResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
