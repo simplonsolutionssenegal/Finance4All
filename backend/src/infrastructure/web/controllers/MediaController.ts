@@ -4,6 +4,7 @@ import type { GetMediaByIdUseCase } from '@/domain/media/ports/in/GetMediaByIdUs
 import type { GetMediasUseCase } from '@/domain/media/ports/in/GetMediasUseCase';
 import type { DeleteMediaUseCase } from '@/domain/media/ports/in/DeleteMediaUseCase';
 import type { GetPresignedUrlUseCase } from '@/domain/media/ports/in/GetPresignedUrlUseCase';
+import type { UploadTemporaryMediaUseCase } from '@/domain/media/ports/in/UploadTemporaryMediaUseCase';
 import type { MediaType } from '@/domain/media/value-objects/MediaType';
 
 export class MediaController {
@@ -12,7 +13,8 @@ export class MediaController {
     private readonly getMediaByIdUseCase: GetMediaByIdUseCase,
     private readonly getMediasUseCase: GetMediasUseCase,
     private readonly deleteMediaUseCase: DeleteMediaUseCase,
-    private readonly getPresignedUrlUseCase: GetPresignedUrlUseCase
+    private readonly getPresignedUrlUseCase: GetPresignedUrlUseCase,
+    private readonly uploadTemporaryMediaUseCase: UploadTemporaryMediaUseCase
   ) {}
 
   async upload(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -40,6 +42,45 @@ export class MediaController {
       res.status(201).json({
         success: true,
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadTemporary(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const file = req.file;
+
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file provided',
+        });
+        return;
+      }
+
+      const metadata = req.body.metadata ? JSON.parse(req.body.metadata) : undefined;
+      const expiresInHours = req.body.expiresInHours
+        ? parseInt(req.body.expiresInHours)
+        : undefined;
+
+      const result = await this.uploadTemporaryMediaUseCase.execute({
+        file: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        metadata,
+        expiresInHours,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          id: result.id,
+          url: result.url,
+          expiresAt: result.expiresAt,
+        },
       });
     } catch (error) {
       next(error);

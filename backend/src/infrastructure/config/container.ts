@@ -58,6 +58,8 @@ import type { GetMediaByIdUseCase } from '@/domain/media/ports/in/GetMediaByIdUs
 import type { GetMediasUseCase } from '@/domain/media/ports/in/GetMediasUseCase';
 import type { DeleteMediaUseCase } from '@/domain/media/ports/in/DeleteMediaUseCase';
 import type { GetPresignedUrlUseCase } from '@/domain/media/ports/in/GetPresignedUrlUseCase';
+import type { UploadTemporaryMediaUseCase } from '@/domain/media/ports/in/UploadTemporaryMediaUseCase';
+import type { CleanupExpiredMediaUseCase } from '@/domain/media/ports/in/CleanupExpiredMediaUseCase';
 import { PrismaMediaRepository } from '../persistence/repositories/PrismaMediaRepository';
 import { MinioStorageService } from '../services/MinioStorageService';
 import { UploadMediaUseCaseImpl } from '@/application/media/use-cases/UploadMediaUseCaseImpl';
@@ -65,6 +67,9 @@ import { GetMediaByIdUseCaseImpl } from '@/application/media/use-cases/GetMediaB
 import { GetMediasUseCaseImpl } from '@/application/media/use-cases/GetMediasUseCaseImpl';
 import { DeleteMediaUseCaseImpl } from '@/application/media/use-cases/DeleteMediaUseCaseImpl';
 import { GetPresignedUrlUseCaseImpl } from '@/application/media/use-cases/GetPresignedUrlUseCaseImpl';
+import { UploadTemporaryMediaUseCaseImpl } from '@/application/media/use-cases/UploadTemporaryMediaUseCaseImpl';
+import { CleanupExpiredMediaUseCaseImpl } from '@/application/media/use-cases/CleanupExpiredMediaUseCaseImpl';
+import { MediaCleanupCronService } from '../services/MediaCleanupCronService';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -109,9 +114,12 @@ export const TYPES = {
   GetMediasUseCase: Symbol.for('GetMediasUseCase'),
   DeleteMediaUseCase: Symbol.for('DeleteMediaUseCase'),
   GetPresignedUrlUseCase: Symbol.for('GetPresignedUrlUseCase'),
+  UploadTemporaryMediaUseCase: Symbol.for('UploadTemporaryMediaUseCase'),
+  CleanupExpiredMediaUseCase: Symbol.for('CleanupExpiredMediaUseCase'),
   MediaRepository: Symbol.for('MediaRepository'),
   StoragePort: Symbol.for('StoragePort'),
   MediaController: Symbol.for('MediaController'),
+  MediaCleanupCronService: Symbol.for('MediaCleanupCronService'),
 };
 
 const container = new Container();
@@ -399,6 +407,24 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<UploadTemporaryMediaUseCase>(TYPES.UploadTemporaryMediaUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    return new UploadTemporaryMediaUseCaseImpl(repository, storagePort, mediaBaseUrl);
+  })
+  .inSingletonScope();
+
+container
+  .bind<CleanupExpiredMediaUseCase>(TYPES.CleanupExpiredMediaUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    return new CleanupExpiredMediaUseCaseImpl(repository, storagePort);
+  })
+  .inSingletonScope();
+
 // ========== Media controllers ==========
 container
   .bind<MediaController>(TYPES.MediaController)
@@ -408,8 +434,27 @@ container
     const getMediasUC = context.get<GetMediasUseCase>(TYPES.GetMediasUseCase);
     const deleteUC = context.get<DeleteMediaUseCase>(TYPES.DeleteMediaUseCase);
     const presignedUrlUC = context.get<GetPresignedUrlUseCase>(TYPES.GetPresignedUrlUseCase);
+    const uploadTempUC = context.get<UploadTemporaryMediaUseCase>(
+      TYPES.UploadTemporaryMediaUseCase
+    );
 
-    return new MediaController(uploadUC, getByIdUC, getMediasUC, deleteUC, presignedUrlUC);
+    return new MediaController(
+      uploadUC,
+      getByIdUC,
+      getMediasUC,
+      deleteUC,
+      presignedUrlUC,
+      uploadTempUC
+    );
+  })
+  .inSingletonScope();
+
+// ========== Media cleanup cron service ==========
+container
+  .bind<MediaCleanupCronService>(TYPES.MediaCleanupCronService)
+  .toDynamicValue(context => {
+    const cleanupUC = context.get<CleanupExpiredMediaUseCase>(TYPES.CleanupExpiredMediaUseCase);
+    return new MediaCleanupCronService(cleanupUC);
   })
   .inSingletonScope();
 

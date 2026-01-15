@@ -67,6 +67,28 @@ export const validateUploadMetadata: ValidationChain[] = [
     }),
 ];
 
+export const validateTemporaryUpload: ValidationChain[] = [
+  body('metadata')
+    .optional()
+    .custom(value => {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('Metadata must be a JSON object');
+          }
+        } catch {
+          throw new Error('Invalid JSON format for metadata');
+        }
+      }
+      return true;
+    }),
+  body('expiresInHours')
+    .optional()
+    .isInt({ min: 1, max: 168 })
+    .withMessage('expiresInHours must be between 1 and 168 hours (1 week max)'),
+];
+
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

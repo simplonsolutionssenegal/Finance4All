@@ -18,6 +18,19 @@ export class PrismaMediaRepository implements MediaRepository {
     return this.toDomain(saved);
   }
 
+  async update(media: Media): Promise<Media> {
+    const updated = await this.prisma.media.update({
+      where: { id: media.id.getValue() },
+      data: {
+        metadata: media.metadata ?? Prisma.JsonNull,
+        isTemporary: media.isTemporary,
+        expiresAt: media.expiresAt,
+      },
+    });
+
+    return this.toDomain(updated);
+  }
+
   async findById(id: string): Promise<Media | null> {
     const media = await this.prisma.media.findUnique({
       where: { id },
@@ -75,9 +88,32 @@ export class PrismaMediaRepository implements MediaRepository {
     };
   }
 
+  async findExpiredTemporaryMedia(): Promise<Media[]> {
+    const now = new Date();
+
+    const expiredMedia = await this.prisma.media.findMany({
+      where: {
+        isTemporary: true,
+        expiresAt: {
+          lte: now,
+        },
+      },
+    });
+
+    return expiredMedia.map(m => this.toDomain(m));
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.media.delete({
       where: { id },
+    });
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await this.prisma.media.deleteMany({
+      where: {
+        id: { in: ids },
+      },
     });
   }
 
@@ -99,6 +135,8 @@ export class PrismaMediaRepository implements MediaRepository {
       bucket: prismaMedia.bucket,
       path: prismaMedia.path,
       metadata: prismaMedia.metadata as Record<string, string> | null,
+      isTemporary: prismaMedia.isTemporary,
+      expiresAt: prismaMedia.expiresAt,
       createdAt: prismaMedia.createdAt,
       updatedAt: prismaMedia.updatedAt,
     });
@@ -115,6 +153,8 @@ export class PrismaMediaRepository implements MediaRepository {
       bucket: media.bucket,
       path: media.path,
       metadata: media.metadata ?? Prisma.JsonNull,
+      isTemporary: media.isTemporary,
+      expiresAt: media.expiresAt,
     };
   }
 }

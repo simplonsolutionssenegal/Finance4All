@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { prisma } from '@/infrastructure/config/prismaClient';
 import { logger } from '@/infrastructure/utils/logger';
 import createApp from '@/infrastructure/web/app';
+import { container, TYPES } from '@/infrastructure/config/container';
+import type { MediaCleanupCronService } from '@/infrastructure/services/MediaCleanupCronService';
 
 const PORT = process.env.PORT || 5001;
 
@@ -22,6 +24,11 @@ export async function bootstrap() {
         logger.warn('⚠️ Database might need migration. Run: npm run prisma:migrate:dev');
       }
     }
+
+    // Start media cleanup cron service
+    const mediaCleanupCron = container.get<MediaCleanupCronService>(TYPES.MediaCleanupCronService);
+    mediaCleanupCron.start();
+    logger.info('✅ Media cleanup cron service started');
 
     const server = app.listen(PORT, () => {
       logger.info(`
@@ -47,6 +54,17 @@ export async function bootstrap() {
       server.close(() => {
         logger.info('✅ HTTP server closed');
       });
+
+      // Stop media cleanup cron
+      try {
+        const mediaCleanupCron = container.get<MediaCleanupCronService>(
+          TYPES.MediaCleanupCronService
+        );
+        mediaCleanupCron.stop();
+        logger.info('✅ Media cleanup cron service stopped');
+      } catch (error) {
+        logger.error('❌ Error stopping media cleanup cron:', error);
+      }
 
       try {
         await prisma.$disconnect();

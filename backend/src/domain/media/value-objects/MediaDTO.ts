@@ -11,6 +11,8 @@ export interface MediaDTO {
   bucket: string;
   path: string;
   metadata: Record<string, string> | null;
+  isTemporary: boolean;
+  expiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

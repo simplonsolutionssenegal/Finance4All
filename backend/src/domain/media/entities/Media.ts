@@ -18,6 +18,8 @@ export interface MediaProps {
   bucket: string;
   path: string;
   metadata: Record<string, string> | null;
+  isTemporary?: boolean;
+  expiresAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -31,6 +33,8 @@ export class Media extends DomainEntity<EntityId> {
   private readonly _bucket: string;
   private readonly _path: string;
   private _metadata: Record<string, string> | null;
+  private _isTemporary: boolean;
+  private _expiresAt: Date | null;
 
   constructor(props: MediaProps) {
     super(props.id);
@@ -46,6 +50,8 @@ export class Media extends DomainEntity<EntityId> {
     this._bucket = props.bucket;
     this._path = props.path;
     this._metadata = props.metadata;
+    this._isTemporary = props.isTemporary ?? false;
+    this._expiresAt = props.expiresAt ?? null;
 
     if (props.createdAt) {
       Object.assign(this, { _createdAt: props.createdAt });
@@ -105,12 +111,33 @@ export class Media extends DomainEntity<EntityId> {
     return this._metadata;
   }
 
+  get isTemporary(): boolean {
+    return this._isTemporary;
+  }
+
+  get expiresAt(): Date | null {
+    return this._expiresAt;
+  }
+
   get fullPath(): string {
     return `${this._bucket}/${this._path}`;
   }
 
+  get isExpired(): boolean {
+    if (!this._isTemporary || !this._expiresAt) {
+      return false;
+    }
+    return new Date() > this._expiresAt;
+  }
+
   updateMetadata(metadata: Record<string, string>): void {
     this._metadata = { ...this._metadata, ...metadata };
+    this._updatedAt = new Date();
+  }
+
+  markAsPermanent(): void {
+    this._isTemporary = false;
+    this._expiresAt = null;
     this._updatedAt = new Date();
   }
 
@@ -126,6 +153,8 @@ export class Media extends DomainEntity<EntityId> {
       bucket: this._bucket,
       path: this._path,
       metadata: this._metadata,
+      isTemporary: this._isTemporary,
+      expiresAt: this._expiresAt,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -138,7 +167,9 @@ export class Media extends DomainEntity<EntityId> {
     size: number,
     bucket: string,
     path: string,
-    metadata?: Record<string, string>
+    metadata?: Record<string, string>,
+    isTemporary = false,
+    expiresAt?: Date | null
   ): Media {
     const type = getMediaTypeFromMimeType(mimeType);
     if (!type) {
@@ -155,6 +186,8 @@ export class Media extends DomainEntity<EntityId> {
       bucket,
       path,
       metadata: metadata ?? null,
+      isTemporary,
+      expiresAt: expiresAt ?? null,
     });
   }
 }

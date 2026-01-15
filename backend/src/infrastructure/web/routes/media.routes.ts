@@ -7,6 +7,7 @@ import {
   validateGetMedias,
   validatePresignedUrl,
   validateUploadMetadata,
+  validateTemporaryUpload,
   handleValidationErrors,
   handleMulterError,
 } from '../validators/media.validator';
@@ -17,13 +18,14 @@ export const MediaRoutes = (): Router => {
 
   const boundController = {
     upload: controller.upload.bind(controller),
+    uploadTemporary: controller.uploadTemporary.bind(controller),
     getById: controller.getById.bind(controller),
     getAll: controller.getAll.bind(controller),
     delete: controller.delete.bind(controller),
     getPresignedUrl: controller.getPresignedUrl.bind(controller),
   };
 
-  // Upload a new media file
+  // Upload a new media file (permanent)
   router.post(
     '/',
     uploadMiddleware,
@@ -31,6 +33,16 @@ export const MediaRoutes = (): Router => {
     validateUploadMetadata,
     handleValidationErrors,
     boundController.upload
+  );
+
+  // Upload a temporary media file (expires after 24h by default)
+  router.post(
+    '/temp',
+    uploadMiddleware,
+    handleMulterError,
+    validateTemporaryUpload,
+    handleValidationErrors,
+    boundController.uploadTemporary
   );
 
   // Get all media files with pagination and optional type filter
