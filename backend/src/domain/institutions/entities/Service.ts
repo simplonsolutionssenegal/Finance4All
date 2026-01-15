@@ -91,6 +91,62 @@ export class Service extends DomainEntity<EntityId> {
     return this._infrastructureAccess;
   }
 
+  ////
+
+  private touch(): void {
+    this._updatedAt = new Date();
+  }
+
+  updateName(name: string): void {
+    if (!name || name.trim().length === 0) throw new Error('Service name cannot be empty');
+    this._name = name;
+    this.touch();
+  }
+
+  updateLongName(longName: string): void {
+    if (!longName || longName.trim().length === 0)
+      throw new Error('Service longName cannot be empty');
+    this._longName = longName;
+    this.touch();
+  }
+
+  updateType(type: TypeService): void {
+    this._type = type;
+    this.touch();
+  }
+
+  updateMontants(montantMin: number, montantMax: number): void {
+    if (!Number.isFinite(montantMin) || !Number.isFinite(montantMax)) {
+      throw new Error('montantMin/montantMax must be numbers');
+    }
+    if (montantMin < 0 || montantMax < 0) throw new Error('montants cannot be negative');
+    if (montantMin > montantMax) throw new Error('montantMin cannot be greater than montantMax');
+
+    this._montantMin = montantMin;
+    this._montantMax = montantMax;
+    this.touch();
+  }
+
+  updateFrais(frais: Frais): void {
+    this._frais = frais;
+    this.touch();
+  }
+
+  updateConditionAccess(values: string[]): void {
+    this._conditionAccess = Array.isArray(values) ? values : [];
+    this.touch();
+  }
+
+  updatePlafonds(values: string[]): void {
+    this._plafonds = Array.isArray(values) ? values : [];
+    this.touch();
+  }
+
+  updateInfrastructureAccess(values: string[]): void {
+    this._infrastructureAccess = Array.isArray(values) ? values : [];
+    this.touch();
+  }
+  // //
   public toDTO(): ServiceDTO {
     return {
       id: this.id.getValue(),

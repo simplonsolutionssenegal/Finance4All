@@ -148,6 +148,10 @@ export class Institution extends DomainEntity<EntityId> {
     this._updatedAt = new Date();
   }
 
+  getServiceById(serviceId: string): Service | undefined {
+    return this.services.find(s => s.id.getValue() === serviceId);
+  }
+
   toDTO(): InstitutionDTO {
     return {
       id: this._id.getValue(),

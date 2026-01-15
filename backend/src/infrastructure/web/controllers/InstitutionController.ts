@@ -6,6 +6,7 @@ import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/Up
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
+import type { UpdateServiceUseCase } from '@/domain/institutions/ports/in/UpdateServiceUseCase';
 
 export class InstitutionController {
   constructor(
@@ -14,7 +15,8 @@ export class InstitutionController {
     private readonly updateInstitutionStatusUseCase: UpdateInstitutionStatusUseCase,
     private readonly addServiceUseCase: AddServiceUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
-    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase
+    private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase,
+    private readonly updateServiceUseCase: UpdateServiceUseCase
   ) {}
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -110,6 +112,22 @@ export class InstitutionController {
         success: true,
         data: result,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateService(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { institutionId, serviceId } = req.params;
+
+      const result = await this.updateServiceUseCase.execute({
+        idInstitution: institutionId,
+        idService: serviceId,
+        ...req.body,
+      });
+
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

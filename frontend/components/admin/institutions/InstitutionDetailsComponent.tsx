@@ -328,6 +328,7 @@ const InstitutionDetailsComponent = ({ institutionId }: InstitutionDetailsCompon
             </div>
             <div className='rounded-2xl bg-white shadow-md'>
               <ServiceItem
+                institutionId={institutionId}
                 services={institution.services || []}
                 onView={handleViewService}
                 onEdit={handleEditService}

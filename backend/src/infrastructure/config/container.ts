@@ -48,12 +48,15 @@ import { CreateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-ca
 import { UpdateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/UpdateBeneficiaryUseCaseImpl';
 import type { OrganizationIdentityPort } from '@/domain/Beneficiary/ports/out/OrganizationIdentityPort';
 import { ClerkOrganizationIdentityService } from '../services/ClerkOrganizationIdentityService';
+import type { UpdateServiceUseCase } from '@/domain/institutions/ports/in/UpdateServiceUseCase';
+import { UpdateServiceUseCaseImpl } from '@/application/institutions/use-cases/UpdateServiceUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
   UpdateInstitutionStatusUseCase: Symbol.for('UpdateInstitutionStatusUseCase'),
   AddServiceUseCase: Symbol.for('AddServiceUseCase'),
+  UpdateServiceUseCase: Symbol.for('UpdateServiceUseCase'),
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
 
@@ -174,6 +177,14 @@ container
   .inSingletonScope();
 
 container
+  .bind<UpdateServiceUseCase>(TYPES.UpdateServiceUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new UpdateServiceUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
   .bind<GetInstitutionsUseCase>(TYPES.GetInstitutionsUseCase)
   .toDynamicValue(context => {
     const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
@@ -247,6 +258,7 @@ container
     const createUseCase = context.get<CreateInstitutionUseCase>(TYPES.CreateInstitutionUseCase);
     const updateUseCase = context.get<UpdateInstitutionUseCase>(TYPES.UpdateInstitutionUseCase);
     const addServiceUseCase = context.get<AddServiceUseCase>(TYPES.AddServiceUseCase);
+    const updateServiceUseCase = context.get<UpdateServiceUseCase>(TYPES.UpdateServiceUseCase);
     const updateStatusUseCase = context.get<UpdateInstitutionStatusUseCase>(
       TYPES.UpdateInstitutionStatusUseCase
     );
@@ -263,7 +275,9 @@ container
       updateStatusUseCase,
       addServiceUseCase,
       getInstitutionsUseCase,
-      getInstitutionByIdUseCase
+      getInstitutionByIdUseCase,
+      updateServiceUseCase
+      // updateServiceUseCase
     );
   })
   .inSingletonScope();
