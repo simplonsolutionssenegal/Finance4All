@@ -1,0 +1,157 @@
+version: '3.8'
+
+# Production Deployment
+# Ce fichier est utilisé par GitHub Actions pour déployer la production
+# Traefik doit déjà être en cours d'exécution (docker-compose.traefik.yml)
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance4all-postgres-prod
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-finance4all}
+      - POSTGRES_USER=${POSTGRES_USER:-finance4all}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finance4all} -d ${POSTGRES_DB:-finance4all}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: finance4all-minio-prod
+    restart: unless-stopped
+    networks:
+      - traefik-public
+      - app-network
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BROWSER_REDIRECT_URL=https://minio.finance4all.simplonprojet.com
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    labels:
+      - "traefik.enable=true"
+      # MinIO API (S3)
+      - "traefik.http.routers.minio-api-prod.rule=Host(`s3.finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.minio-api-prod.entrypoints=websecure"
+      - "traefik.http.routers.minio-api-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-api-prod.service=minio-api-prod"
+      - "traefik.http.services.minio-api-prod.loadbalancer.server.port=9000"
+      # MinIO Console
+      - "traefik.http.routers.minio-console-prod.rule=Host(`minio.finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.minio-console-prod.entrypoints=websecure"
+      - "traefik.http.routers.minio-console-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-console-prod.service=minio-console-prod"
+      - "traefik.http.services.minio-console-prod.loadbalancer.server.port=9001"
+      # Middlewares
+      - "traefik.http.routers.minio-api-prod.middlewares=cors-headers@file,compress@file"
+      - "traefik.http.routers.minio-console-prod.middlewares=security-headers@file,compress@file"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend API
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    container_name: finance4all-backend-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - app-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-finance4all}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-finance4all}
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
+      - FRONTEND_URL=https://finance4all.simplonprojet.com
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - FROM_NAME=${FROM_NAME}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-finance4all}
+      - MINIO_PUBLIC_URL=https://s3.finance4all.simplonprojet.com
+    labels:
+      - "traefik.enable=true"
+      # Router configuration
+      - "traefik.http.routers.backend-prod.rule=Host(`api.finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.backend-prod.entrypoints=websecure"
+      - "traefik.http.routers.backend-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend-prod.loadbalancer.server.port=3001"
+      # Middlewares
+      - "traefik.http.routers.backend-prod.middlewares=cors-headers@file,compress@file,rate-limit@file"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    container_name: finance4all-frontend-prod
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - traefik-public
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.finance4all.simplonprojet.com
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      # Router configuration
+      - "traefik.http.routers.frontend-prod.rule=Host(`finance4all.simplonprojet.com`)"
+      - "traefik.http.routers.frontend-prod.entrypoints=websecure"
+      - "traefik.http.routers.frontend-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend-prod.loadbalancer.server.port=3000"
+      # Middlewares
+      - "traefik.http.routers.frontend-prod.middlewares=security-headers@file,compress@file"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  traefik-public:
+    external: true
+  app-network:
+    name: finance4all-network-prod
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: finance4all-postgres-data-prod
+  minio-data:
+    name: finance4all-minio-data-prod
