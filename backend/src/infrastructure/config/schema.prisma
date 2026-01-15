@@ -153,3 +153,27 @@ enum DifficultyLevel {
   EXPERT
 }
 
+model Media {
+  id           String    @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  type         MediaType
+  size         Int
+  bucket       String
+  path         String
+  metadata     Json?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum MediaType {
+  VIDEO
+  PDF
+  AUDIO
+}
+

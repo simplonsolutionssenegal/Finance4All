@@ -49,6 +49,23 @@ import { UpdateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-ca
 import type { OrganizationIdentityPort } from '@/domain/Beneficiary/ports/out/OrganizationIdentityPort';
 import { ClerkOrganizationIdentityService } from '../services/ClerkOrganizationIdentityService';
 
+// ========== Media imports ==========
+import { MediaController } from '../web/controllers/MediaController';
+import type { MediaRepository } from '@/domain/media/ports/out/MediaRepository';
+import type { StoragePort } from '@/domain/media/ports/out/StoragePort';
+import type { UploadMediaUseCase } from '@/domain/media/ports/in/UploadMediaUseCase';
+import type { GetMediaByIdUseCase } from '@/domain/media/ports/in/GetMediaByIdUseCase';
+import type { GetMediasUseCase } from '@/domain/media/ports/in/GetMediasUseCase';
+import type { DeleteMediaUseCase } from '@/domain/media/ports/in/DeleteMediaUseCase';
+import type { GetPresignedUrlUseCase } from '@/domain/media/ports/in/GetPresignedUrlUseCase';
+import { PrismaMediaRepository } from '../persistence/repositories/PrismaMediaRepository';
+import { MinioStorageService } from '../services/MinioStorageService';
+import { UploadMediaUseCaseImpl } from '@/application/media/use-cases/UploadMediaUseCaseImpl';
+import { GetMediaByIdUseCaseImpl } from '@/application/media/use-cases/GetMediaByIdUseCaseImpl';
+import { GetMediasUseCaseImpl } from '@/application/media/use-cases/GetMediasUseCaseImpl';
+import { DeleteMediaUseCaseImpl } from '@/application/media/use-cases/DeleteMediaUseCaseImpl';
+import { GetPresignedUrlUseCaseImpl } from '@/application/media/use-cases/GetPresignedUrlUseCaseImpl';
+
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
@@ -85,6 +102,16 @@ export const TYPES = {
   BeneficiaryRepository: Symbol.for('BeneficiaryRepository'),
   OrganizationIdentityPort: Symbol.for('OrganizationIdentityPort'),
   BeneficiaryController: Symbol.for('BeneficiaryController'),
+
+  // ========== Media ==========
+  UploadMediaUseCase: Symbol.for('UploadMediaUseCase'),
+  GetMediaByIdUseCase: Symbol.for('GetMediaByIdUseCase'),
+  GetMediasUseCase: Symbol.for('GetMediasUseCase'),
+  DeleteMediaUseCase: Symbol.for('DeleteMediaUseCase'),
+  GetPresignedUrlUseCase: Symbol.for('GetPresignedUrlUseCase'),
+  MediaRepository: Symbol.for('MediaRepository'),
+  StoragePort: Symbol.for('StoragePort'),
+  MediaController: Symbol.for('MediaController'),
 };
 
 const container = new Container();
@@ -299,6 +326,90 @@ container
     const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
 
     return new BeneficiaryController(createUC, updateUC, repo);
+  })
+  .inSingletonScope();
+
+// ========== Media repositories ==========
+container
+  .bind<MediaRepository>(TYPES.MediaRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaMediaRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+// ========== Media storage port (MinIO) ==========
+container
+  .bind<StoragePort>(TYPES.StoragePort)
+  .toDynamicValue(() => {
+    return new MinioStorageService({
+      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+      port: parseInt(process.env.MINIO_PORT || '9000'),
+      useSSL: process.env.MINIO_USE_SSL === 'true',
+      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+      secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+      publicUrl: process.env.MINIO_PUBLIC_URL,
+    });
+  })
+  .inSingletonScope();
+
+// ========== Media use cases ==========
+const mediaBaseUrl = process.env.MINIO_PUBLIC_URL || 'http://localhost:9000';
+
+container
+  .bind<UploadMediaUseCase>(TYPES.UploadMediaUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    return new UploadMediaUseCaseImpl(repository, storagePort, mediaBaseUrl);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetMediaByIdUseCase>(TYPES.GetMediaByIdUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    return new GetMediaByIdUseCaseImpl(repository, mediaBaseUrl);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetMediasUseCase>(TYPES.GetMediasUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    return new GetMediasUseCaseImpl(repository, mediaBaseUrl);
+  })
+  .inSingletonScope();
+
+container
+  .bind<DeleteMediaUseCase>(TYPES.DeleteMediaUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    return new DeleteMediaUseCaseImpl(repository, storagePort);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetPresignedUrlUseCase>(TYPES.GetPresignedUrlUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    return new GetPresignedUrlUseCaseImpl(repository, storagePort);
+  })
+  .inSingletonScope();
+
+// ========== Media controllers ==========
+container
+  .bind<MediaController>(TYPES.MediaController)
+  .toDynamicValue(context => {
+    const uploadUC = context.get<UploadMediaUseCase>(TYPES.UploadMediaUseCase);
+    const getByIdUC = context.get<GetMediaByIdUseCase>(TYPES.GetMediaByIdUseCase);
+    const getMediasUC = context.get<GetMediasUseCase>(TYPES.GetMediasUseCase);
+    const deleteUC = context.get<DeleteMediaUseCase>(TYPES.DeleteMediaUseCase);
+    const presignedUrlUC = context.get<GetPresignedUrlUseCase>(TYPES.GetPresignedUrlUseCase);
+
+    return new MediaController(uploadUC, getByIdUC, getMediasUC, deleteUC, presignedUrlUC);
   })
   .inSingletonScope();
 

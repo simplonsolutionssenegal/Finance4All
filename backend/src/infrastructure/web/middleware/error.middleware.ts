@@ -1,6 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { logError } from '@/infrastructure/utils/logger';
+import {
+  MediaNotFoundError,
+  InvalidMediaTypeError,
+  FileSizeExceededError,
+  StorageError,
+  MediaUploadError,
+  MediaDeleteError,
+} from '@/domain/media/errors/MediaErrors';
 
 // Interface pour les erreurs personnalisées
 export class AppError extends Error {
@@ -150,6 +158,36 @@ export const errorMiddleware = (
 
   if (error instanceof ZodError) {
     handleZodError(error, res);
+    return;
+  }
+
+  // Handle Media domain errors
+  if (error instanceof MediaNotFoundError) {
+    res.status(404).json({
+      status: 'error',
+      message: error.message,
+    });
+    return;
+  }
+
+  if (error instanceof InvalidMediaTypeError || error instanceof FileSizeExceededError) {
+    res.status(400).json({
+      status: 'error',
+      message: error.message,
+    });
+    return;
+  }
+
+  if (
+    error instanceof StorageError ||
+    error instanceof MediaUploadError ||
+    error instanceof MediaDeleteError
+  ) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && { cause: error.cause?.message }),
+    });
     return;
   }
 

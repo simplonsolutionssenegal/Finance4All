@@ -4,6 +4,7 @@ import { InstitutionRoutes } from './institution.routes';
 import { ModuleFormationRoutes } from './module.routes';
 import { ServiceRoutes } from './service.routes';
 import { beneficiaryRoutes } from './beneficiary.routes';
+import { MediaRoutes } from './media.routes';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ router.use('/institutions', InstitutionRoutes());
 router.use('/modules', ModuleFormationRoutes());
 router.use('/services', ServiceRoutes());
 router.use('/beneficiaries', beneficiaryRoutes());
+router.use('/media', MediaRoutes());
 
 // Route de test
 router.get('/test', (req, res) => {
