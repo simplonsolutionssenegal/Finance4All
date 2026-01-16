@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
+import { requireSameActiveOrg } from '../middleware/requireOrg.middleware';
 import type { StreamingController } from '../controllers/StreamingController';
 import {
   validateMediaId,
@@ -29,7 +29,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
   // Transcoding endpoints
   router.post(
     '/:id/transcode',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     validateStartTranscoding,
     handleStreamingValidationErrors,
@@ -38,7 +38,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
 
   router.get(
     '/:id/transcode/status',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     handleStreamingValidationErrors,
     boundController.getTranscodingStatus
@@ -47,7 +47,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
   // Stream info endpoint
   router.get(
     '/:id/stream',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     handleStreamingValidationErrors,
     boundController.getStreamManifest
@@ -81,7 +81,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
   // Progress tracking endpoints
   router.post(
     '/:id/progress',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     validateUpdateProgress,
     handleStreamingValidationErrors,
@@ -90,7 +90,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
 
   router.get(
     '/:id/progress',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     handleStreamingValidationErrors,
     boundController.getProgress
@@ -99,7 +99,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
   // Stream token endpoint
   router.post(
     '/:id/stream-token',
-    requireAuth(),
+    requireSameActiveOrg,
     validateMediaId,
     validateGenerateToken,
     handleStreamingValidationErrors,
