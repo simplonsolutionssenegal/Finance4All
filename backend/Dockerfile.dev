@@ -1,0 +1,33 @@
+# Dockerfile pour l'environnement de développement
+# Inclut FFmpeg pour le transcodage HLS
+
+FROM node:20-alpine
+
+# Installer FFmpeg et dépendances
+RUN apk add --no-cache \
+    ffmpeg \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Créer le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm install
+
+# Copier le code source
+COPY . .
+
+# Générer le client Prisma
+RUN npx prisma generate
+
+# Exposer le port
+EXPOSE 5000
+
+# Commande par défaut (mode développement avec hot-reload)
+CMD ["npm", "run", "dev"]
