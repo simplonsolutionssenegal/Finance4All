@@ -9,6 +9,7 @@ import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports
 import type { AddServiceUseCase } from '@/domain/institutions/ports/in/AddServiceUseCase';
 import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
 import { Country } from '@/domain/institutions/value-objects/Country';
+import type { UpdateServiceUseCase } from '@/domain/institutions/ports/in/UpdateServiceUseCase';
 
 describe('InstitutionController', () => {
   let controller: InstitutionController;
@@ -18,6 +19,8 @@ describe('InstitutionController', () => {
   let mockAddServiceUseCase: jest.Mocked<AddServiceUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
+  let mockUpdateServiceUseCase: jest.Mocked<UpdateServiceUseCase>;
+
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
@@ -47,13 +50,18 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockUpdateServiceUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     controller = new InstitutionController(
       mockCreateInstitutionUseCase,
       mockUpdateInstitutionUseCase,
       mockUpdateInstitutionStatusUseCase,
       mockAddServiceUseCase,
       mockGetInstitutionsUseCase,
-      mockGetInstitutionByIdUseCase
+      mockGetInstitutionByIdUseCase,
+      mockUpdateServiceUseCase
     );
 
     mockRequest = {
@@ -596,6 +604,39 @@ describe('InstitutionController', () => {
       mockUpdateInstitutionStatusUseCase.execute.mockRejectedValue(error);
 
       await controller.desactivate(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+  describe('updateService', () => {
+    it('should update a service successfully', async () => {
+      const requestBody = { name: 'Updated Service' };
+      const serviceDTO = { id: 'serv_123', name: 'Updated Service' };
+
+      mockRequest.params = { institutionId: 'inst_123', serviceId: 'serv_123' } as any;
+      mockRequest.body = requestBody;
+
+      mockUpdateServiceUseCase.execute.mockResolvedValue(serviceDTO as any);
+
+      await controller.updateService(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockUpdateServiceUseCase.execute).toHaveBeenCalledWith({
+        idInstitution: 'inst_123',
+        idService: 'serv_123',
+        ...requestBody,
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({ success: true, data: serviceDTO });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+
+      mockRequest.params = { institutionId: 'inst_123', serviceId: 'serv_123' } as any;
+      mockUpdateServiceUseCase.execute.mockRejectedValue(error);
+
+      await controller.updateService(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

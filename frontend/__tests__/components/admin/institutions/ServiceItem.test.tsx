@@ -1,7 +1,12 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Service, TypeService } from '@/types/Service';
 import ServiceItem from '@/components/admin/institutions/ServiceItem';
+
+// Mock de next/link
+jest.mock('next/link', () => {
+  return ({ children, href }: any) => <a href={href}>{children}</a>;
+});
 
 // Mock des composants shadcn/ui
 jest.mock('@/components/ui/badge', () => ({
@@ -38,6 +43,8 @@ jest.mock('@/components/ui/table', () => ({
 }));
 
 describe('ServiceItem', () => {
+  const institutionId = 'inst-1';
+
   const mockServices: Service[] = [
     {
       id: '1',
@@ -48,7 +55,7 @@ describe('ServiceItem', () => {
       montantMax: 50000,
       frais: {
         montantFixe: 100,
-        pourcentage: 0.02, // ✅ 0.02 au lieu de 2
+        pourcentage: 0.02,
         minimum: 50,
         maximum: 500,
       },
@@ -67,7 +74,7 @@ describe('ServiceItem', () => {
       montantMin: 500,
       montantMax: 100000,
       frais: {
-        pourcentage: 0.015, // ✅ 0.015 au lieu de 1.5
+        pourcentage: 0.015,
       },
       conditionAccess: [],
       plafonds: [],
@@ -88,19 +95,19 @@ describe('ServiceItem', () => {
 
   describe('Rendu du composant', () => {
     it("affiche un message quand il n'y a pas de services", () => {
-      render(<ServiceItem services={[]} />);
+      render(<ServiceItem institutionId={institutionId} services={[]} />);
       expect(screen.getByText('Aucun service pour le moment.')).toBeInTheDocument();
     });
 
     it('affiche la liste des services', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText('Service de paiement')).toBeInTheDocument();
       expect(screen.getByText('Transfert')).toBeInTheDocument();
     });
 
     it('affiche les en-têtes du tableau', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText('Service')).toBeInTheDocument();
       expect(screen.getByText('Type')).toBeInTheDocument();
@@ -110,13 +117,13 @@ describe('ServiceItem', () => {
     });
 
     it('affiche le nom long du service', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText('Service de paiement marchand complet')).toBeInTheDocument();
     });
 
     it('affiche le type de service', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText(TypeService.PAIEMENT_MARCHAND)).toBeInTheDocument();
       expect(screen.getByText(TypeService.TRANSFERT_ARGENT)).toBeInTheDocument();
@@ -125,7 +132,7 @@ describe('ServiceItem', () => {
 
   describe('Formatage des montants', () => {
     it('affiche la plage de montants avec min et max', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText(/1 000 - 50 000 FCFA/)).toBeInTheDocument();
     });
@@ -140,7 +147,7 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithZero} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithZero} />);
       expect(screen.getByText('_')).toBeInTheDocument();
     });
 
@@ -154,7 +161,7 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithMin} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithMin} />);
       expect(screen.getByText(/≥ 1 000 FCFA/)).toBeInTheDocument();
     });
 
@@ -168,7 +175,7 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithMax} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithMax} />);
       expect(screen.getByText(/≤ 50 000 FCFA/)).toBeInTheDocument();
     });
 
@@ -182,14 +189,14 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithoutAmounts} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithoutAmounts} />);
       expect(screen.getByText('—')).toBeInTheDocument();
     });
   });
 
   describe('Formatage des frais', () => {
     it('affiche tous les types de frais', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(
         screen.getByText(/100 FCFA fixe, 2%, min: 50 FCFA, max: 500 FCFA/)
@@ -197,7 +204,7 @@ describe('ServiceItem', () => {
     });
 
     it('affiche uniquement le pourcentage quand défini seul', () => {
-      render(<ServiceItem services={mockServices} />);
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.getByText(/1\.5%/)).toBeInTheDocument();
     });
@@ -211,14 +218,16 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithoutFees} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithoutFees} />);
       expect(screen.getByText('Aucun frais')).toBeInTheDocument();
     });
   });
 
   describe('Actions du menu', () => {
     it('appelle onView quand on clique sur "Voir les détails"', () => {
-      render(<ServiceItem services={mockServices} onView={mockOnView} />);
+      render(
+        <ServiceItem institutionId={institutionId} services={mockServices} onView={mockOnView} />
+      );
 
       const viewButtons = screen.getAllByText('Voir les détails');
       fireEvent.click(viewButtons[0]);
@@ -227,18 +236,26 @@ describe('ServiceItem', () => {
       expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
     });
 
-    it('appelle onEdit quand on clique sur "Modifier"', () => {
-      render(<ServiceItem services={mockServices} onEdit={mockOnEdit} />);
+    it('génère le bon lien pour "Modifier"', () => {
+      render(
+        <ServiceItem institutionId={institutionId} services={mockServices} onEdit={mockOnEdit} />
+      );
 
-      const editButtons = screen.getAllByText('Modifier');
-      fireEvent.click(editButtons[0]);
-
-      expect(mockOnEdit).toHaveBeenCalledTimes(1);
-      expect(mockOnEdit).toHaveBeenCalledWith(mockServices[0]);
+      const modifierLinks = screen.getAllByText('Modifier');
+      expect(modifierLinks[0].closest('a')).toHaveAttribute(
+        'href',
+        `/institutions/${institutionId}/service/${mockServices[0].id}/update`
+      );
     });
 
     it('appelle onDelete quand on clique sur "Supprimer"', () => {
-      render(<ServiceItem services={mockServices} onDelete={mockOnDelete} />);
+      render(
+        <ServiceItem
+          institutionId={institutionId}
+          services={mockServices}
+          onDelete={mockOnDelete}
+        />
+      );
 
       const deleteButtons = screen.getAllByText('Supprimer');
       fireEvent.click(deleteButtons[0]);
@@ -247,17 +264,28 @@ describe('ServiceItem', () => {
       expect(mockOnDelete).toHaveBeenCalledWith(mockServices[0]);
     });
 
-    it("n'affiche pas les boutons d'action si les callbacks ne sont pas fournis", () => {
-      render(<ServiceItem services={mockServices} />);
+    it("n'affiche pas le bouton 'Voir les détails' si onView n'est pas fourni", () => {
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
 
       expect(screen.queryByText('Voir les détails')).not.toBeInTheDocument();
-      expect(screen.queryByText('Modifier')).not.toBeInTheDocument();
+    });
+
+    it("affiche toujours le bouton 'Modifier'", () => {
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
+
+      expect(screen.getAllByText('Modifier')).toHaveLength(mockServices.length);
+    });
+
+    it("n'affiche pas le bouton 'Supprimer' si onDelete n'est pas fourni", () => {
+      render(<ServiceItem institutionId={institutionId} services={mockServices} />);
+
       expect(screen.queryByText('Supprimer')).not.toBeInTheDocument();
     });
 
     it('affiche toutes les actions quand tous les callbacks sont fournis', () => {
       render(
         <ServiceItem
+          institutionId={institutionId}
           services={mockServices}
           onView={mockOnView}
           onEdit={mockOnEdit}
@@ -273,7 +301,7 @@ describe('ServiceItem', () => {
 
   describe('Gestion des cas limites', () => {
     it('gère un tableau de services vide', () => {
-      const { container } = render(<ServiceItem services={[]} />);
+      const { container } = render(<ServiceItem institutionId={institutionId} services={[]} />);
       expect(container.querySelector('table')).not.toBeInTheDocument();
     });
 
@@ -288,7 +316,9 @@ describe('ServiceItem', () => {
         },
       ];
 
-      const { container } = render(<ServiceItem services={serviceWithNulls} />);
+      const { container } = render(
+        <ServiceItem institutionId={institutionId} services={serviceWithNulls} />
+      );
       expect(container).toBeInTheDocument();
     });
 
@@ -302,7 +332,7 @@ describe('ServiceItem', () => {
         },
       ];
 
-      render(<ServiceItem services={serviceWithLargeAmounts} />);
+      render(<ServiceItem institutionId={institutionId} services={serviceWithLargeAmounts} />);
       expect(screen.getByText(/1 000 000 - 10 000 000 FCFA/)).toBeInTheDocument();
     });
   });

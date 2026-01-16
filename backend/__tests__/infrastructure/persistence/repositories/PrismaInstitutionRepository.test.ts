@@ -128,7 +128,10 @@ describe('PrismaInstitutionRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockPrisma.institution.create as jest.Mock).mockResolvedValue(prismaInstitution);
+      (mockPrisma.institution.create as jest.Mock).mockResolvedValue({
+        ...prismaInstitution,
+        services: [],
+      });
 
       const result = await repository.save(institution);
 
@@ -166,6 +169,8 @@ describe('PrismaInstitutionRepository', () => {
         status: 'ACTIVE' as any,
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         services: [],
       };
 
@@ -212,6 +217,8 @@ describe('PrismaInstitutionRepository', () => {
         status: 'INACTIVE' as any,
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         services: [],
       };
 
@@ -237,6 +244,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'ACTIVE' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
         {
@@ -249,6 +258,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'PENDING' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'PORTEFEUILLE_NUMERIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
       ];
@@ -298,6 +309,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'ACTIVE' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
         {
@@ -310,6 +323,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'PENDING' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
         {
@@ -322,6 +337,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'INACTIVE' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
       ];
@@ -352,6 +369,21 @@ describe('PrismaInstitutionRepository', () => {
         services: [],
       });
 
+      const existingInstitution: any = {
+        id: testUuid1,
+        name: 'Old Name',
+        description: 'Old Description',
+        website: null,
+        geographicZones: ['UEMOA'],
+        logoUrl: null,
+        status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        services: [],
+      };
+
       const prismaInstitution: any = {
         id: testUuid1,
         name: 'Updated Name',
@@ -362,9 +394,12 @@ describe('PrismaInstitutionRepository', () => {
         status: 'ACTIVE' as any,
         createdAt: new Date(),
         updatedAt: new Date(),
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         services: [],
       };
-      (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(prismaInstitution);
+
+      (mockPrisma.institution.findUnique as jest.Mock).mockResolvedValue(existingInstitution);
       (mockPrisma.institution.update as jest.Mock).mockResolvedValue(prismaInstitution);
 
       const result = await repository.update(institution);
@@ -383,6 +418,7 @@ describe('PrismaInstitutionRepository', () => {
           pays: 'SENEGAL',
           services: {
             create: [],
+            update: [],
           },
         },
         include: {
@@ -394,7 +430,7 @@ describe('PrismaInstitutionRepository', () => {
       expect(result.name).toBe('Updated Name');
     });
 
-    it('should not create new services if they already exist', async () => {
+    it('should not create new services if they already exist (but should update them)', async () => {
       const serviceId = randomUUID();
       const service = new Service({
         id: EntityId.from(serviceId),
@@ -427,11 +463,12 @@ describe('PrismaInstitutionRepository', () => {
         name: 'Existing Service',
         longName: 'Existing Service Long Name',
         type: 'AUTRES',
-        typeFrais: 'FREE',
         frais: { type: 'FREE' },
         conditionAccess: [],
         plafonds: [],
         infrastructureAccess: [],
+        montantMin: 100000,
+        montantMax: 100000,
         institutionId: testUuid1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -445,6 +482,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [existingPrismaService],
@@ -462,6 +501,18 @@ describe('PrismaInstitutionRepository', () => {
           data: expect.objectContaining({
             services: {
               create: [],
+              update: [
+                expect.objectContaining({
+                  where: { id: serviceId },
+                  data: expect.objectContaining({
+                    id: serviceId,
+                    name: 'Existing Service',
+                    longName: 'Existing Service Long Name',
+                    type: 'AUTRES',
+                    frais: { type: 'FREE' },
+                  }),
+                }),
+              ],
             },
           }),
         })
@@ -504,6 +555,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'ACTIVE' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
         {
@@ -516,6 +569,8 @@ describe('PrismaInstitutionRepository', () => {
           status: 'PENDING' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           services: [],
         },
       ];
@@ -576,6 +631,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -641,6 +698,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -701,6 +760,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -754,6 +815,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -807,6 +870,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -870,6 +935,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
@@ -883,6 +950,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -897,6 +966,8 @@ describe('PrismaInstitutionRepository', () => {
             plafonds: [],
             infrastructureAccess: [],
             institutionId: testUuid1,
+            montantMin: 100000,
+            montantMax: 100000,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -913,19 +984,23 @@ describe('PrismaInstitutionRepository', () => {
         include: { services: true },
       });
 
-      // Vérification simplifiée : on vérifie juste les parties importantes
       const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
 
       expect(updateCall.where).toEqual({ id: testUuid1 });
       expect(updateCall.data.name).toBe('Updated Name');
       expect(updateCall.data.description).toBe('Updated Description');
       expect(updateCall.data.status).toBe('ACTIVE');
+
       expect(updateCall.data.services.create).toHaveLength(1);
       expect(updateCall.data.services.create[0].id).toBe(serviceId);
       expect(updateCall.data.services.create[0].name).toBe('New Service');
       expect(updateCall.data.services.create[0].type).toBe('TRANSFERT_ARGENT');
       expect(updateCall.data.services.create[0].frais.type).toBe('FIX');
       expect(updateCall.data.services.create[0].frais.amount).toBe(150);
+
+      // ✅ nouveau : update existe aussi
+      expect(updateCall.data.services.update).toEqual([]);
+
       expect(updateCall.include).toEqual({ services: true });
 
       expect(result.services).toHaveLength(1);
@@ -955,8 +1030,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
-        pays: Country.SENEGAL, // Ajouter cette ligne
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [service],
       });
 
@@ -968,6 +1043,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['UEMOA'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
@@ -981,6 +1058,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -999,6 +1078,8 @@ describe('PrismaInstitutionRepository', () => {
             plafonds: [],
             infrastructureAccess: [],
             institutionId: testUuid1,
+            montantMin: 100000,
+            montantMax: 100000,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -1015,6 +1096,9 @@ describe('PrismaInstitutionRepository', () => {
         fxSurcharge: 25,
         devise: 'USD',
       });
+
+      // ✅ nouveau : update existe aussi
+      expect(updateCall.data.services.update).toEqual([]);
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisFixes);
@@ -1065,6 +1149,8 @@ describe('PrismaInstitutionRepository', () => {
           geographicZones: [],
           logoUrl: null,
           status: 'ACTIVE',
+          type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+          pays: 'SENEGAL',
           createdAt: new Date(),
           updatedAt: new Date(),
           services: [
@@ -1116,6 +1202,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -1167,6 +1255,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -1231,21 +1321,15 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
       };
 
       const updatedInstitution: any = {
-        id: testUuid1,
-        name: 'Test',
-        description: 'Test',
-        website: null,
-        geographicZones: [],
-        logoUrl: null,
-        status: 'ACTIVE',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        ...existingInstitution,
         services: [
           {
             id: serviceId,
@@ -1257,6 +1341,8 @@ describe('PrismaInstitutionRepository', () => {
             conditionAccess: [],
             plafonds: [],
             infrastructureAccess: [],
+            montantMin: 100000,
+            montantMax: 100000,
             institutionId: testUuid1,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -1268,6 +1354,10 @@ describe('PrismaInstitutionRepository', () => {
       (mockPrisma.institution.update as jest.Mock).mockResolvedValue(updatedInstitution);
 
       const result = await repository.update(institution);
+
+      // ✅ nouveau : update existe aussi
+      const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall.data.services.update).toEqual([]);
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisGratuit);
@@ -1309,21 +1399,15 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
       };
 
       const updatedInstitution: any = {
-        id: testUuid1,
-        name: 'Test',
-        description: 'Test',
-        website: null,
-        geographicZones: [],
-        logoUrl: null,
-        status: 'ACTIVE',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        ...existingInstitution,
         services: [
           {
             id: serviceId,
@@ -1335,6 +1419,8 @@ describe('PrismaInstitutionRepository', () => {
             conditionAccess: [],
             plafonds: [],
             infrastructureAccess: [],
+            montantMin: 100000,
+            montantMax: 100000,
             institutionId: testUuid1,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -1346,6 +1432,10 @@ describe('PrismaInstitutionRepository', () => {
       (mockPrisma.institution.update as jest.Mock).mockResolvedValue(updatedInstitution);
 
       const result = await repository.update(institution);
+
+      // ✅ nouveau : update existe aussi
+      const updateCall = (mockPrisma.institution.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall.data.services.update).toEqual([]);
 
       expect(result.services).toHaveLength(1);
       expect(result.services[0].frais).toBeInstanceOf(FraisPourcentage);
@@ -1374,6 +1464,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -1383,7 +1475,7 @@ describe('PrismaInstitutionRepository', () => {
             longName: 'Service Long',
             type: 'AUTRES',
             typeFrais: 'FIX',
-            frais: { type: 'FIX' },
+            frais: { type: 'FIX' }, // invalide (amount manquant)
             conditionAccess: [],
             plafonds: [],
             infrastructureAccess: [],
@@ -1405,7 +1497,7 @@ describe('PrismaInstitutionRepository', () => {
           {
             ...prismaInstitution1.services[0],
             typeFrais: 'POURCENTAGE',
-            frais: { type: 'POURCENTAGE' },
+            frais: { type: 'POURCENTAGE' }, // invalide (rate manquant)
           },
         ],
       };
@@ -1426,6 +1518,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['EURO'],
         logoUrl: null,
         status: 'PENDING',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
@@ -1488,6 +1582,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
@@ -1503,6 +1599,7 @@ describe('PrismaInstitutionRepository', () => {
           data: expect.objectContaining({
             services: {
               create: expect.arrayContaining([expect.objectContaining({ type: 'AUTRES' })]),
+              update: [],
             },
           }),
         })
@@ -1559,6 +1656,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: ['CEMAC'],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [],
@@ -1576,6 +1675,7 @@ describe('PrismaInstitutionRepository', () => {
               create: expect.arrayContaining([
                 expect.objectContaining({ frais: { type: 'FREE' } }),
               ]),
+              update: [],
             },
           }),
         })
@@ -1592,8 +1692,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: UrlValueObject.from(null),
         status: InstitutionStatus.ACTIVE,
-        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE, // Ajouter cette ligne
-        pays: Country.SENEGAL, // Ajouter cette ligne
+        type: InstitutionType.ETABLISSEMENT_MONNAIE_ELECTRONIQUE,
+        pays: Country.SENEGAL,
         services: [],
       });
 
@@ -1605,6 +1705,8 @@ describe('PrismaInstitutionRepository', () => {
         geographicZones: [],
         logoUrl: null,
         status: 'ACTIVE',
+        type: 'ETABLISSEMENT_MONNAIE_ELECTRONIQUE',
+        pays: 'SENEGAL',
         createdAt: new Date(),
         updatedAt: new Date(),
         services: [
