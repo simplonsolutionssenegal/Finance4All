@@ -7,6 +7,7 @@ import {
   handleValidationErrors,
   validateUpdateInstitution,
   validateAddService,
+  validatePatchService,
 } from '../validators/institution.validator';
 import { container, TYPES } from '@/infrastructure/config/container';
 
@@ -23,6 +24,7 @@ export const InstitutionRoutes = (): Router => {
     desactivate: controller.desactivate.bind(controller),
     getAll: controller.getAll.bind(controller),
     getById: controller.getById.bind(controller),
+    updateService: controller.updateService.bind(controller),
   };
 
   router.get('/', validatePagination, handleValidationErrors, boundController.getAll);
@@ -46,6 +48,13 @@ export const InstitutionRoutes = (): Router => {
     validateAddService,
     handleValidationErrors,
     boundController.addService
+  );
+
+  router.put(
+    '/:institutionId/services/:serviceId',
+    validatePatchService,
+    handleValidationErrors,
+    boundController.updateService
   );
 
   return router;

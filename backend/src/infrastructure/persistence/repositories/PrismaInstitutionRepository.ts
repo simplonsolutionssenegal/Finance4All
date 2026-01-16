@@ -64,7 +64,6 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
     const institutionData = this.toPrismaData(institution);
     const services = institution.services;
 
-    // Récupérer l'institution existante pour comparer les services
     const existingInstitution = await this.prisma.institution.findUnique({
       where: { id: institution.id.getValue() },
       include: { services: true },
@@ -72,14 +71,19 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
 
     const existingServiceIds = new Set(existingInstitution?.services.map(s => s.id) || []);
     const newServices = services.filter(s => !existingServiceIds.has(s.id.getValue()));
+    const existingServices = services.filter(s => existingServiceIds.has(s.id.getValue()));
 
-    // Mettre à jour l'institution et créer les nouveaux services
+    // Mettre à jour l'institution avec création ET mise à jour des services
     const updated = await this.prisma.institution.update({
       where: { id: institution.id.getValue() },
       data: {
         ...institutionData,
         services: {
           create: newServices.map(service => this.mapServiceToPrisma(service)),
+          update: existingServices.map(service => ({
+            where: { id: service.id.getValue() },
+            data: this.mapServiceToPrisma(service),
+          })),
         },
       },
       include: {
@@ -139,6 +143,28 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
       },
     };
   }
+
+  // async updateService(institution: Institution): Promise<Institution> {
+  //   const institutionData = this.toPrismaData(institution);
+  //   const services = institution.services;
+
+  //   const updated = await this.prisma.institution.update({
+  //     where: { id: institution.id.getValue() },
+  //     data: {
+  //       ...institutionData,
+  //       services: {
+  //         upsert: services.map(service => ({
+  //           where: { id: service.id.getValue() },
+  //           create: this.mapServiceToPrisma(service),
+  //           update: this.mapServiceUpdateToPrisma(service),
+  //         })),
+  //       },
+  //     },
+  //     include: { services: true },
+  //   });
+
+  //   return this.toDomain(updated);
+  // }
 
   private toDomain(prismaInstitution: InstitutionWithServices): Institution {
     const services = prismaInstitution.services?.map(s => this.mapServiceToDomain(s)) || [];

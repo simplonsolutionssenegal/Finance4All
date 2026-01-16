@@ -120,3 +120,87 @@ export const validateAddService = [
   body('plafonds').isArray().withMessage('Plafonds must be an array'),
   body('infrastructureAccess').isArray().withMessage('Infrastructure access must be an array'),
 ];
+
+export const validatePatchService = [
+  // Params
+  param('institutionId').isUUID().withMessage('Invalid institutionId format'),
+  param('serviceId').isUUID().withMessage('Invalid serviceId format'),
+
+  // Body (PATCH = tout optionnel)
+  body('name')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 255 })
+    .withMessage('Service name must be between 2 and 255 characters'),
+
+  body('longName')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 255 })
+    .withMessage('Long name must be between 2 and 255 characters'),
+
+  body('type')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('Service type must be a non-empty string'),
+
+  body('montantMin').optional().isNumeric().withMessage('montantMin must be a number'),
+
+  body('montantMax').optional().isNumeric().withMessage('montantMax must be a number'),
+
+  // si les deux existent, min <= max
+  body('montantMin').custom((value, { req }) => {
+    if (value !== undefined && req.body.montantMax !== undefined) {
+      if (Number(value) > Number(req.body.montantMax)) {
+        throw new Error('montantMin cannot be greater than montantMax');
+      }
+    }
+    return true;
+  }),
+
+  // Arrays (optionnels en PATCH)
+  body('conditionAccess').optional().isArray().withMessage('conditionAccess must be an array'),
+
+  body('plafonds').optional().isArray().withMessage('plafonds must be an array'),
+
+  body('infrastructureAccess')
+    .optional()
+    .isArray()
+    .withMessage('infrastructureAccess must be an array'),
+
+  // Frais (optionnel)
+  body('frais')
+    .optional()
+    .custom(value => {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        throw new Error('frais must be an object');
+      }
+      return true;
+    }),
+
+  body('frais.montantFixe')
+    .optional()
+    .isNumeric()
+    .withMessage('frais.montantFixe must be a number'),
+
+  body('frais.pourcentage')
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage('frais.pourcentage must be between 0 and 100'),
+
+  body('frais.minimum').optional().isNumeric().withMessage('frais.minimum must be a number'),
+
+  body('frais.maximum').optional().isNumeric().withMessage('frais.maximum must be a number'),
+
+  body('frais.minimum').custom((value, { req }) => {
+    if (value !== undefined && req.body.frais?.maximum !== undefined) {
+      if (Number(value) > Number(req.body.frais.maximum)) {
+        throw new Error('frais.minimum cannot be greater than frais.maximum');
+      }
+    }
+    return true;
+  }),
+];
