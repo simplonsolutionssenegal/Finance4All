@@ -180,3 +180,91 @@ enum MediaType {
   AUDIO
 }
 
+// ==================== STREAMING ====================
+
+enum TranscodingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum StreamQuality {
+  Q360P
+  Q480P
+  Q720P
+  Q1080P
+  AUDIO_LOW
+  AUDIO_MEDIUM
+  AUDIO_HIGH
+}
+
+model HlsVariant {
+  id              String        @id @default(uuid())
+  mediaId         String
+  quality         StreamQuality
+  bandwidth       Int
+  resolution      String?
+  codecs          String
+  playlistPath    String
+  segmentPrefix   String
+  segmentCount    Int           @default(0)
+  segmentDuration Float         @default(10.0)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([mediaId, quality])
+  @@index([mediaId])
+}
+
+model TranscodingJob {
+  id              String            @id @default(uuid())
+  mediaId         String            @unique
+  status          TranscodingStatus @default(PENDING)
+  progress        Float             @default(0)
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status])
+  @@index([mediaId])
+}
+
+model MediaProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  mediaId         String
+
+  currentPosition Float     @default(0)
+  duration        Float     @default(0)
+  completionRate  Float     @default(0)
+  isCompleted     Boolean   @default(false)
+
+  lastWatchedAt   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, mediaId])
+  @@index([userId])
+  @@index([mediaId])
+  @@index([userId, lastWatchedAt])
+}
+
+model StreamToken {
+  id              String    @id @default(uuid())
+  userId          String
+  mediaId         String
+  token           String    @unique
+  expiresAt       DateTime
+
+  createdAt       DateTime  @default(now())
+
+  @@index([token])
+  @@index([mediaId, userId])
+  @@index([expiresAt])
+}
+

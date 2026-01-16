@@ -71,6 +71,34 @@ import { UploadTemporaryMediaUseCaseImpl } from '@/application/media/use-cases/U
 import { CleanupExpiredMediaUseCaseImpl } from '@/application/media/use-cases/CleanupExpiredMediaUseCaseImpl';
 import { MediaCleanupCronService } from '../services/MediaCleanupCronService';
 
+// ========== Streaming imports ==========
+import type { HlsVariantRepository } from '@/domain/streaming/ports/out/HlsVariantRepository';
+import type { TranscodingJobRepository } from '@/domain/streaming/ports/out/TranscodingJobRepository';
+import type { MediaProgressRepository } from '@/domain/streaming/ports/out/MediaProgressRepository';
+import type { StreamTokenRepository } from '@/domain/streaming/ports/out/StreamTokenRepository';
+import type { TranscodingServicePort } from '@/domain/streaming/ports/out/TranscodingServicePort';
+import type { JobQueuePort } from '@/domain/streaming/ports/out/JobQueuePort';
+import type { StartTranscodingUseCase } from '@/domain/streaming/ports/in/StartTranscodingUseCase';
+import type { GetTranscodingStatusUseCase } from '@/domain/streaming/ports/in/GetTranscodingStatusUseCase';
+import type { GetStreamManifestUseCase } from '@/domain/streaming/ports/in/GetStreamManifestUseCase';
+import type { UpdateProgressUseCase } from '@/domain/streaming/ports/in/UpdateProgressUseCase';
+import type { GetProgressUseCase } from '@/domain/streaming/ports/in/GetProgressUseCase';
+import type { GenerateStreamTokenUseCase } from '@/domain/streaming/ports/in/GenerateStreamTokenUseCase';
+import { PrismaHlsVariantRepository } from '../persistence/repositories/PrismaHlsVariantRepository';
+import { PrismaTranscodingJobRepository } from '../persistence/repositories/PrismaTranscodingJobRepository';
+import { PrismaMediaProgressRepository } from '../persistence/repositories/PrismaMediaProgressRepository';
+import { PrismaStreamTokenRepository } from '../persistence/repositories/PrismaStreamTokenRepository';
+import { FFmpegTranscodingService } from '../services/FFmpegTranscodingService';
+import { BullMQJobQueue } from '../services/BullMQJobQueue';
+import { StartTranscodingUseCaseImpl } from '@/application/streaming/use-cases/StartTranscodingUseCaseImpl';
+import { GetTranscodingStatusUseCaseImpl } from '@/application/streaming/use-cases/GetTranscodingStatusUseCaseImpl';
+import { GetStreamManifestUseCaseImpl } from '@/application/streaming/use-cases/GetStreamManifestUseCaseImpl';
+import { UpdateProgressUseCaseImpl } from '@/application/streaming/use-cases/UpdateProgressUseCaseImpl';
+import { GetProgressUseCaseImpl } from '@/application/streaming/use-cases/GetProgressUseCaseImpl';
+import { GenerateStreamTokenUseCaseImpl } from '@/application/streaming/use-cases/GenerateStreamTokenUseCaseImpl';
+import { StreamingController } from '../web/controllers/StreamingController';
+import { TranscodingWorker } from '../workers/TranscodingWorker';
+
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
@@ -120,6 +148,23 @@ export const TYPES = {
   StoragePort: Symbol.for('StoragePort'),
   MediaController: Symbol.for('MediaController'),
   MediaCleanupCronService: Symbol.for('MediaCleanupCronService'),
+
+  // ========== Streaming ==========
+  HlsVariantRepository: Symbol.for('HlsVariantRepository'),
+  TranscodingJobRepository: Symbol.for('TranscodingJobRepository'),
+  MediaProgressRepository: Symbol.for('MediaProgressRepository'),
+  StreamTokenRepository: Symbol.for('StreamTokenRepository'),
+  TranscodingServicePort: Symbol.for('TranscodingServicePort'),
+  JobQueuePort: Symbol.for('JobQueuePort'),
+  StartTranscodingUseCase: Symbol.for('StartTranscodingUseCase'),
+  GetTranscodingStatusUseCase: Symbol.for('GetTranscodingStatusUseCase'),
+  GetStreamManifestUseCase: Symbol.for('GetStreamManifestUseCase'),
+  UpdateProgressUseCase: Symbol.for('UpdateProgressUseCase'),
+  GetProgressUseCase: Symbol.for('GetProgressUseCase'),
+  GenerateStreamTokenUseCase: Symbol.for('GenerateStreamTokenUseCase'),
+  StreamingController: Symbol.for('StreamingController'),
+  TranscodingWorker: Symbol.for('TranscodingWorker'),
+  BullMQJobQueue: Symbol.for('BullMQJobQueue'),
 };
 
 const container = new Container();
@@ -455,6 +500,189 @@ container
   .toDynamicValue(context => {
     const cleanupUC = context.get<CleanupExpiredMediaUseCase>(TYPES.CleanupExpiredMediaUseCase);
     return new MediaCleanupCronService(cleanupUC);
+  })
+  .inSingletonScope();
+
+// ========== Streaming repositories ==========
+container
+  .bind<HlsVariantRepository>(TYPES.HlsVariantRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaHlsVariantRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<TranscodingJobRepository>(TYPES.TranscodingJobRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaTranscodingJobRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<MediaProgressRepository>(TYPES.MediaProgressRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaMediaProgressRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<StreamTokenRepository>(TYPES.StreamTokenRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaStreamTokenRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+// ========== Streaming services ==========
+container
+  .bind<TranscodingServicePort>(TYPES.TranscodingServicePort)
+  .toDynamicValue(() => {
+    return new FFmpegTranscodingService();
+  })
+  .inSingletonScope();
+
+container
+  .bind<BullMQJobQueue>(TYPES.BullMQJobQueue)
+  .toDynamicValue(() => {
+    return new BullMQJobQueue({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+    });
+  })
+  .inSingletonScope();
+
+container
+  .bind<JobQueuePort>(TYPES.JobQueuePort)
+  .toDynamicValue(context => {
+    return context.get<BullMQJobQueue>(TYPES.BullMQJobQueue);
+  })
+  .inSingletonScope();
+
+// ========== Streaming use cases ==========
+const streamBaseUrl = process.env.STREAM_BASE_URL || 'http://localhost:5000';
+
+container
+  .bind<StartTranscodingUseCase>(TYPES.StartTranscodingUseCase)
+  .toDynamicValue(context => {
+    const transcodingJobRepo = context.get<TranscodingJobRepository>(
+      TYPES.TranscodingJobRepository
+    );
+    const mediaRepo = context.get<MediaRepository>(TYPES.MediaRepository);
+    const jobQueue = context.get<JobQueuePort>(TYPES.JobQueuePort);
+    return new StartTranscodingUseCaseImpl(transcodingJobRepo, mediaRepo, jobQueue);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetTranscodingStatusUseCase>(TYPES.GetTranscodingStatusUseCase)
+  .toDynamicValue(context => {
+    const transcodingJobRepo = context.get<TranscodingJobRepository>(
+      TYPES.TranscodingJobRepository
+    );
+    return new GetTranscodingStatusUseCaseImpl(transcodingJobRepo);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetStreamManifestUseCase>(TYPES.GetStreamManifestUseCase)
+  .toDynamicValue(context => {
+    const hlsVariantRepo = context.get<HlsVariantRepository>(TYPES.HlsVariantRepository);
+    const transcodingJobRepo = context.get<TranscodingJobRepository>(
+      TYPES.TranscodingJobRepository
+    );
+    const mediaRepo = context.get<MediaRepository>(TYPES.MediaRepository);
+    return new GetStreamManifestUseCaseImpl(
+      hlsVariantRepo,
+      transcodingJobRepo,
+      mediaRepo,
+      streamBaseUrl
+    );
+  })
+  .inSingletonScope();
+
+container
+  .bind<UpdateProgressUseCase>(TYPES.UpdateProgressUseCase)
+  .toDynamicValue(context => {
+    const progressRepo = context.get<MediaProgressRepository>(TYPES.MediaProgressRepository);
+    return new UpdateProgressUseCaseImpl(progressRepo);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetProgressUseCase>(TYPES.GetProgressUseCase)
+  .toDynamicValue(context => {
+    const progressRepo = context.get<MediaProgressRepository>(TYPES.MediaProgressRepository);
+    return new GetProgressUseCaseImpl(progressRepo);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GenerateStreamTokenUseCase>(TYPES.GenerateStreamTokenUseCase)
+  .toDynamicValue(context => {
+    const tokenRepo = context.get<StreamTokenRepository>(TYPES.StreamTokenRepository);
+    const mediaRepo = context.get<MediaRepository>(TYPES.MediaRepository);
+    return new GenerateStreamTokenUseCaseImpl(tokenRepo, mediaRepo);
+  })
+  .inSingletonScope();
+
+// ========== Streaming controller ==========
+const hlsBucket = process.env.HLS_BUCKET || 'finance4all-hls';
+
+container
+  .bind<StreamingController>(TYPES.StreamingController)
+  .toDynamicValue(context => {
+    const startTranscodingUC = context.get<StartTranscodingUseCase>(TYPES.StartTranscodingUseCase);
+    const getTranscodingStatusUC = context.get<GetTranscodingStatusUseCase>(
+      TYPES.GetTranscodingStatusUseCase
+    );
+    const getStreamManifestUC = context.get<GetStreamManifestUseCase>(
+      TYPES.GetStreamManifestUseCase
+    );
+    const updateProgressUC = context.get<UpdateProgressUseCase>(TYPES.UpdateProgressUseCase);
+    const getProgressUC = context.get<GetProgressUseCase>(TYPES.GetProgressUseCase);
+    const generateStreamTokenUC = context.get<GenerateStreamTokenUseCase>(
+      TYPES.GenerateStreamTokenUseCase
+    );
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+    const hlsVariantRepo = context.get<HlsVariantRepository>(TYPES.HlsVariantRepository);
+
+    return new StreamingController(
+      startTranscodingUC,
+      getTranscodingStatusUC,
+      getStreamManifestUC,
+      updateProgressUC,
+      getProgressUC,
+      generateStreamTokenUC,
+      storagePort,
+      hlsVariantRepo,
+      hlsBucket,
+      streamBaseUrl
+    );
+  })
+  .inSingletonScope();
+
+// ========== Transcoding worker ==========
+container
+  .bind<TranscodingWorker>(TYPES.TranscodingWorker)
+  .toDynamicValue(context => {
+    const transcodingService = context.get<TranscodingServicePort>(TYPES.TranscodingServicePort);
+    const transcodingJobRepo = context.get<TranscodingJobRepository>(
+      TYPES.TranscodingJobRepository
+    );
+    const hlsVariantRepo = context.get<HlsVariantRepository>(TYPES.HlsVariantRepository);
+    const mediaRepo = context.get<MediaRepository>(TYPES.MediaRepository);
+    const storagePort = context.get<StoragePort>(TYPES.StoragePort);
+
+    return new TranscodingWorker(
+      transcodingService,
+      transcodingJobRepo,
+      hlsVariantRepo,
+      mediaRepo,
+      storagePort
+    );
   })
   .inSingletonScope();
 
