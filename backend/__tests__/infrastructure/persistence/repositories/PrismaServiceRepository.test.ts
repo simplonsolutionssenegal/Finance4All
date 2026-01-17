@@ -494,5 +494,378 @@ describe('PrismaServiceRepository', () => {
         expect(result?.type).toBe(mapping.domain);
       }
     });
+
+    it('devrait retourner AUTRES pour un type inconnu', async () => {
+      const mockService = {
+        id: VALID_SERVICE_ID,
+        name: 'Test',
+        longName: 'Test Long',
+        type: 'UNKNOWN_TYPE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: { type: 'FREE' },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.findUnique.mockResolvedValue(mockService);
+
+      const result = await repository.findById(VALID_SERVICE_ID);
+
+      expect(result?.type).toBe(TypeService.AUTRES);
+    });
+  });
+
+  describe('Mapping des frais - cas limites', () => {
+    it('devrait retourner FraisGratuit pour des frais null', async () => {
+      const mockService = {
+        id: VALID_SERVICE_ID,
+        name: 'Service',
+        longName: 'Service Long',
+        type: 'DEPOT_SIMPLE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: null,
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.findUnique.mockResolvedValue(mockService);
+
+      const result = await repository.findById(VALID_SERVICE_ID);
+
+      expect(result?.frais).toBeInstanceOf(FraisGratuit);
+    });
+
+    it('devrait retourner FraisGratuit pour un type de frais inconnu', async () => {
+      const mockService = {
+        id: VALID_SERVICE_ID,
+        name: 'Service',
+        longName: 'Service Long',
+        type: 'DEPOT_SIMPLE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: { type: 'UNKNOWN' },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.findUnique.mockResolvedValue(mockService);
+
+      const result = await repository.findById(VALID_SERVICE_ID);
+
+      expect(result?.frais).toBeInstanceOf(FraisGratuit);
+    });
+
+    it('devrait mapper FraisFixes sans fraisChange', async () => {
+      const mockService = {
+        id: VALID_SERVICE_ID,
+        name: 'Service',
+        longName: 'Service Long',
+        type: 'DEPOT_SIMPLE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: {
+          type: 'FIX',
+          amount: 500,
+          fraisChange: null,
+        },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.findUnique.mockResolvedValue(mockService);
+
+      const result = await repository.findById(VALID_SERVICE_ID);
+
+      expect(result?.frais).toBeInstanceOf(FraisFixes);
+      const frais = result?.frais as FraisFixes;
+      expect(frais.amount).toBe(500);
+      expect(frais.fraisChange).toBeUndefined();
+    });
+  });
+
+  describe('findAllByInstitution', () => {
+    it('devrait retourner une liste paginée de services pour une institution', async () => {
+      const mockServices = [
+        {
+          id: VALID_SERVICE_ID,
+          name: 'Service 1',
+          longName: 'Service 1 Long',
+          type: 'DEPOT_SIMPLE',
+          montantMin: 0,
+          montantMax: 500000,
+          frais: { type: 'FREE' },
+          conditionAccess: [],
+          plafonds: [],
+          infrastructureAccess: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          institutionId: VALID_INSTITUTION_ID,
+        },
+      ];
+
+      mockPrisma.service.findMany.mockResolvedValue(mockServices);
+      mockPrisma.service.count.mockResolvedValue(1);
+
+      const result = await repository.findAllByInstitution(VALID_INSTITUTION_ID, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.page).toBe(1);
+      expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { institutionId: VALID_INSTITUTION_ID },
+          orderBy: { createdAt: 'desc' },
+        })
+      );
+    });
+
+    it('devrait gérer la pagination correctement', async () => {
+      mockPrisma.service.findMany.mockResolvedValue([]);
+      mockPrisma.service.count.mockResolvedValue(25);
+
+      const result = await repository.findAllByInstitution(VALID_INSTITUTION_ID, {
+        page: 2,
+        limit: 10,
+      });
+
+      expect(result.pagination.page).toBe(2);
+      expect(result.pagination.limit).toBe(10);
+      expect(result.pagination.total).toBe(25);
+      expect(result.pagination.totalPages).toBe(3);
+      expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        })
+      );
+    });
+  });
+
+  describe('findAll avec filtres', () => {
+    it('devrait filtrer par pays', async () => {
+      mockPrisma.service.findMany.mockResolvedValue([]);
+      mockPrisma.service.count.mockResolvedValue(0);
+
+      await repository.findAll({
+        page: 1,
+        limit: 10,
+        pays: 'SN',
+      } as any);
+
+      expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            institution: { pays: 'SN' },
+          }),
+        })
+      );
+    });
+
+    it('devrait filtrer par type et pays simultanément', async () => {
+      mockPrisma.service.findMany.mockResolvedValue([]);
+      mockPrisma.service.count.mockResolvedValue(0);
+
+      await repository.findAll({
+        page: 1,
+        limit: 10,
+        type: TypeService.TRANSFERT_ARGENT,
+        pays: 'ML',
+      } as any);
+
+      expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            type: 'TRANSFERT_ARGENT',
+            institution: { pays: 'ML' },
+          }),
+        })
+      );
+    });
+  });
+
+  describe('update avec différents types de frais', () => {
+    it('devrait mettre à jour un service avec FraisGratuit', async () => {
+      const service = new Service({
+        id: EntityId.from(VALID_SERVICE_ID),
+        name: 'Service Gratuit',
+        longName: 'Service Gratuit Long',
+        type: TypeService.DEPOT_SIMPLE,
+        montantMin: 0,
+        montantMax: 100000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const mockUpdated = {
+        id: VALID_SERVICE_ID,
+        name: 'Service Gratuit',
+        longName: 'Service Gratuit Long',
+        type: 'DEPOT_SIMPLE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: { type: 'FREE' },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.update.mockResolvedValue(mockUpdated);
+
+      await repository.update(service);
+
+      expect(mockPrisma.service.update).toHaveBeenCalledWith({
+        where: { id: VALID_SERVICE_ID },
+        data: expect.objectContaining({
+          frais: { type: 'FREE' },
+        }),
+      });
+    });
+
+    it('devrait mettre à jour un service avec FraisPourcentage', async () => {
+      const service = new Service({
+        id: EntityId.from(VALID_SERVICE_ID),
+        name: 'Service Pourcentage',
+        longName: 'Service Pourcentage Long',
+        type: TypeService.RETRAIT_SIMPLE,
+        montantMin: 0,
+        montantMax: 100000,
+        frais: new FraisPourcentage(0.02, 5000, 100),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const mockUpdated = {
+        id: VALID_SERVICE_ID,
+        name: 'Service Pourcentage',
+        longName: 'Service Pourcentage Long',
+        type: 'RETRAIT_SIMPLE',
+        montantMin: 0,
+        montantMax: 100000,
+        frais: { type: 'POURCENTAGE', rate: 0.02, cap: 5000, floor: 100 },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.update.mockResolvedValue(mockUpdated);
+
+      await repository.update(service);
+
+      expect(mockPrisma.service.update).toHaveBeenCalledWith({
+        where: { id: VALID_SERVICE_ID },
+        data: expect.objectContaining({
+          frais: { type: 'POURCENTAGE', rate: 0.02, cap: 5000, floor: 100 },
+        }),
+      });
+    });
+
+    it('devrait mettre à jour un service avec FraisFixes et fraisChange', async () => {
+      const service = new Service({
+        id: EntityId.from(VALID_SERVICE_ID),
+        name: 'Service FX',
+        longName: 'Service FX Long',
+        type: TypeService.TRANSFERT_ARGENT,
+        montantMin: 0,
+        montantMax: 1000000,
+        frais: new FraisFixes(500, 0.01, { fxSurcharge: 2.5, devise: 'EUR' }),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const mockUpdated = {
+        id: VALID_SERVICE_ID,
+        name: 'Service FX',
+        longName: 'Service FX Long',
+        type: 'TRANSFERT_ARGENT',
+        montantMin: 0,
+        montantMax: 1000000,
+        frais: {
+          type: 'FIX',
+          amount: 500,
+          rate: 0.01,
+          fraisChange: { fxSurcharge: 2.5, devise: 'EUR' },
+        },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.update.mockResolvedValue(mockUpdated);
+
+      await repository.update(service);
+
+      expect(mockPrisma.service.update).toHaveBeenCalledWith({
+        where: { id: VALID_SERVICE_ID },
+        data: expect.objectContaining({
+          frais: expect.objectContaining({
+            type: 'FIX',
+            amount: 500,
+            rate: 0.01,
+            fraisChange: { fxSurcharge: 2.5, devise: 'EUR' },
+          }),
+        }),
+      });
+    });
+  });
+
+  describe('Gestion des valeurs null pour montants', () => {
+    it('devrait gérer montantMin et montantMax null', async () => {
+      const mockService = {
+        id: VALID_SERVICE_ID,
+        name: 'Service',
+        longName: 'Service Long',
+        type: 'DEPOT_SIMPLE',
+        montantMin: null,
+        montantMax: null,
+        frais: { type: 'FREE' },
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        institutionId: VALID_INSTITUTION_ID,
+      };
+
+      mockPrisma.service.findUnique.mockResolvedValue(mockService);
+
+      const result = await repository.findById(VALID_SERVICE_ID);
+
+      expect(result?.montantMin).toBe(0);
+      expect(result?.montantMax).toBe(0);
+    });
   });
 });

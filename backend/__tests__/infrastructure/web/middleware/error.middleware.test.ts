@@ -7,6 +7,14 @@ import {
   asyncHandler,
   notFoundHandler,
 } from '@/infrastructure/web/middleware/error.middleware';
+import {
+  MediaNotFoundError,
+  InvalidMediaTypeError,
+  FileSizeExceededError,
+  StorageError,
+  MediaUploadError,
+  MediaDeleteError,
+} from '@/domain/media/errors/MediaErrors';
 
 describe('Error Middleware', () => {
   const mockRequest = {} as Request;
@@ -172,6 +180,94 @@ describe('Error Middleware', () => {
       const req = { originalUrl: '/not-found' } as Request;
       notFoundHandler(req, mockResponse, mockNext);
       expect(mockNext).toHaveBeenCalledWith(new AppError('Route /not-found not found', 404));
+    });
+  });
+
+  describe('Media Domain Errors', () => {
+    it('should handle MediaNotFoundError', () => {
+      const error = new MediaNotFoundError('media-123');
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: expect.stringContaining('media-123'),
+      });
+    });
+
+    it('should handle InvalidMediaTypeError', () => {
+      const error = new InvalidMediaTypeError('invalid/type');
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: expect.stringContaining('invalid/type'),
+      });
+    });
+
+    it('should handle FileSizeExceededError', () => {
+      const error = new FileSizeExceededError(10000000, 5000000, 'VIDEO');
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: expect.any(String),
+      });
+    });
+
+    it('should handle StorageError', () => {
+      const cause = new Error('Minio connection failed');
+      const error = new StorageError('Upload failed', cause);
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Storage error: Upload failed',
+      });
+    });
+
+    it('should handle MediaUploadError', () => {
+      const error = new MediaUploadError('Failed to upload file');
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Media upload failed: Failed to upload file',
+      });
+    });
+
+    it('should handle MediaDeleteError', () => {
+      const error = new MediaDeleteError('media-123');
+      errorMiddleware(error, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: expect.stringContaining('media-123'),
+      });
+    });
+  });
+
+  describe('Unknown Prisma Errors', () => {
+    it('should handle unknown Prisma error code', () => {
+      const prismaError = {
+        name: 'PrismaError',
+        code: 'P9999',
+        message: 'Unknown prisma error',
+      } as any;
+      errorMiddleware(prismaError, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Database error',
+      });
+    });
+  });
+
+  describe('CastError', () => {
+    it('should handle CastError with 400 status', () => {
+      const castError = new Error('Cast to ObjectId failed');
+      castError.name = 'CastError';
+      errorMiddleware(castError, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
     });
   });
 });

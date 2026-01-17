@@ -247,4 +247,40 @@ describe('Logger', () => {
       expect(logger.exitOnError).toBe(false);
     });
   });
+
+  describe('console format printf function', () => {
+    it('should log messages correctly', () => {
+      const spy = jest.spyOn(logger, 'info');
+      logger.info('Simple message');
+      expect(spy).toHaveBeenCalledWith('Simple message');
+    });
+
+    it('should log messages with additional metadata', () => {
+      const spy = jest.spyOn(logger, 'info');
+      logger.info('Message with meta', { userId: '123', action: 'login' });
+      expect(spy).toHaveBeenCalledWith('Message with meta', { userId: '123', action: 'login' });
+    });
+
+    it('should log warning messages', () => {
+      const spy = jest.spyOn(logger, 'warn');
+      logger.warn('Warning message', { detail: 'some warning detail' });
+      expect(spy).toHaveBeenCalledWith('Warning message', { detail: 'some warning detail' });
+    });
+
+    it('should log error messages with nested objects', () => {
+      const spy = jest.spyOn(logger, 'error');
+      const nestedMeta = {
+        user: { id: 1, role: 'admin' },
+        request: { path: '/api/test', method: 'GET' },
+      };
+      logger.error('Error occurred', nestedMeta);
+      expect(spy).toHaveBeenCalledWith('Error occurred', nestedMeta);
+    });
+
+    it('should log debug messages', () => {
+      const spy = jest.spyOn(logger, 'debug');
+      logger.debug('Debug info', { debugData: [1, 2, 3] });
+      expect(spy).toHaveBeenCalledWith('Debug info', { debugData: [1, 2, 3] });
+    });
+  });
 });
