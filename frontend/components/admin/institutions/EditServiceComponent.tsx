@@ -31,14 +31,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useUpdateService } from '@/hooks/service/useUpdateService';
 import { apiClient } from '@/lib/api-client';
-import { TypeService } from '@/types/Service';
 import {
   type ServiceFormData,
   FEE_OPTIONS,
   serviceSchema,
   toFormDefaults,
   toServicePayload,
-} from '@/types/serviceForm.shared';
+} from '@/lib/serviceForm.shared';
+import { TypeService } from '@/types/Service';
 
 import { FeeOption } from './FeeOption';
 import { TagInputField } from './TagInputField';

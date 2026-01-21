@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { FeeTypeUI } from '@/types/serviceForm.shared';
+import { FeeTypeUI } from '@/lib/serviceForm.shared';
 import { FeeOption } from '@/components/admin/institutions/FeeOption';
 
 describe('FeeOption', () => {

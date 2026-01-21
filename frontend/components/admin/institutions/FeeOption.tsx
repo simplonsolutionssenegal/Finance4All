@@ -4,7 +4,7 @@ import { MoveRight } from 'lucide-react';
 
 import { Label } from '@/components/ui/label';
 import { RadioGroupItem } from '@/components/ui/radio-group';
-import type { FeeTypeUI } from '@/types/serviceForm.shared';
+import type { FeeTypeUI } from '@/lib/serviceForm.shared';
 
 export function FeeOption({
   id,

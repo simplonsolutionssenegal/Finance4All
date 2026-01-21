@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { TypeService, type CreateServiceDto } from '@/types/Service';
 
 export enum Currency {

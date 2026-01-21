@@ -32,14 +32,14 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService } from '@/types/Service';
 import {
   serviceSchema,
   type ServiceFormData,
   Currency,
   FEE_OPTIONS,
   toServicePayload,
-} from '@/types/serviceForm.shared';
+} from '@/lib/serviceForm.shared';
+import { TypeService } from '@/types/Service';
 
 import { FeeOption } from './FeeOption';
 import { TagInputField } from './TagInputField';
