@@ -36,7 +36,7 @@ export class StreamingController {
 
   async startTranscoding(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const { qualities } = req.body;
 
       const result = await this.startTranscodingUseCase.execute({
@@ -56,7 +56,7 @@ export class StreamingController {
 
   async getTranscodingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const result = await this.getTranscodingStatusUseCase.execute(mediaId);
 
       res.status(200).json({
@@ -74,7 +74,7 @@ export class StreamingController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const userId = req.auth?.userId;
 
       if (!userId) {
@@ -102,7 +102,7 @@ export class StreamingController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
 
       const variants = await this.hlsVariantRepository.findByMediaId(mediaId);
 
@@ -126,7 +126,8 @@ export class StreamingController {
 
   async getVariantPlaylist(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id: mediaId, quality } = req.params;
+      const mediaId = req.params.id as string;
+      const quality = req.params.quality as string;
 
       const qualityUpper = quality.toUpperCase() as StreamQuality;
       const variant = await this.hlsVariantRepository.findByMediaIdAndQuality(
@@ -154,7 +155,9 @@ export class StreamingController {
 
   async getSegment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id: mediaId, quality, segment } = req.params;
+      const mediaId = req.params.id as string;
+      const quality = req.params.quality as string;
+      const segment = req.params.segment as string;
       const storagePath = `${mediaId}/${quality.toLowerCase()}/${segment}`;
 
       const url = await this.storagePort.getPresignedUrl({
@@ -175,7 +178,7 @@ export class StreamingController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const userId = req.auth?.userId;
       const { currentPosition, duration } = req.body;
 
@@ -202,7 +205,7 @@ export class StreamingController {
 
   async getProgress(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const userId = req.auth?.userId;
 
       if (!userId) {
@@ -230,7 +233,7 @@ export class StreamingController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { id: mediaId } = req.params;
+      const mediaId = req.params.id as string;
       const userId = req.auth?.userId;
       const { expiresInSeconds } = req.body;
 

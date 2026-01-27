@@ -89,7 +89,7 @@ export class MediaController {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.getMediaByIdUseCase.execute(id);
 
       res.status(200).json({
@@ -124,7 +124,7 @@ export class MediaController {
 
   async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       await this.deleteMediaUseCase.execute(id);
 
       res.status(200).json({
@@ -138,7 +138,7 @@ export class MediaController {
 
   async getPresignedUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const expiresIn = req.query.expiresIn ? parseInt(req.query.expiresIn as string) : undefined;
 
       const result = await this.getPresignedUrlUseCase.execute({

@@ -100,7 +100,7 @@ export class BeneficiaryController {
   }
 
   async update(req: Request, res: Response) {
-    const { beneficiaryId } = req.params;
+    const beneficiaryId = req.params.beneficiaryId as string;
 
     const parsed = updateBeneficiarySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -143,7 +143,7 @@ export class BeneficiaryController {
   }
 
   async delete(req: Request, res: Response): Promise<void> {
-    const { beneficiaryId } = req.params;
+    const beneficiaryId = req.params.beneficiaryId as string;
 
     const organizationId = String(
       (req.body?.organizationId ?? req.query?.organizationId ?? '') || ''

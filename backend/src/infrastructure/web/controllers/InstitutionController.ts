@@ -31,7 +31,7 @@ export class InstitutionController {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.updateInstitutionUseCase.execute({ id, ...req.body });
       res.status(201).json({
         success: true,
@@ -44,7 +44,7 @@ export class InstitutionController {
 
   async addService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.addServiceUseCase.execute({ idInstitution: id, ...req.body });
       res.status(201).json({
         success: true,
@@ -57,7 +57,7 @@ export class InstitutionController {
 
   async activate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.updateInstitutionStatusUseCase.execute({
         id,
         status: InstitutionStatus.ACTIVE,
@@ -73,7 +73,7 @@ export class InstitutionController {
 
   async desactivate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.updateInstitutionStatusUseCase.execute({
         id,
         status: InstitutionStatus.INACTIVE,
@@ -104,7 +104,7 @@ export class InstitutionController {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const result = await this.getInstitutionByIdUseCase.execute({ id });
       res.status(200).json({
         success: true,
