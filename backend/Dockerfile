@@ -2,8 +2,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files first (including lock file for reproducible builds)
-COPY package.json package-lock.json ./
+# Copy package files
+COPY package.json ./
 
 # Copy prisma schema BEFORE npm install (postinstall needs it)
 COPY src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.prisma
@@ -11,22 +11,22 @@ COPY src/infrastructure/config/schema.prisma ./src/infrastructure/config/schema.
 # Copy rest of src
 COPY src ./src/
 
-# Install production dependencies using ci for reproducible builds
-RUN npm ci --omit=dev
+# Install production dependencies
+RUN npm install --omit=dev
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files (including lock file)
-COPY package.json package-lock.json ./
+# Copy package files
+COPY package.json ./
 COPY tsconfig.json ./
 
 # Copy source files (includes prisma schema)
 COPY src ./src/
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm install
 
 # Build TypeScript
 RUN npm run build
