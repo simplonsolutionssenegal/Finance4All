@@ -12,6 +12,13 @@ import type { QualityPreset } from '@/domain/streaming/value-objects/StreamQuali
 
 export class FFmpegTranscodingService implements TranscodingServicePort {
   private activeJobs: Map<string, ChildProcess> = new Map();
+  private readonly ffmpegPath: string;
+  private readonly ffprobePath: string;
+
+  constructor() {
+    this.ffmpegPath = process.env.FFMPEG_PATH || '/usr/bin/ffmpeg';
+    this.ffprobePath = process.env.FFPROBE_PATH || '/usr/bin/ffprobe';
+  }
 
   async transcode(
     input: TranscodingInput,
@@ -35,6 +42,7 @@ export class FFmpegTranscodingService implements TranscodingServicePort {
           });
         }
 
+        // eslint-disable-next-line no-await-in-loop -- Sequential transcoding to avoid CPU/memory exhaustion
         const result = await this.transcodeVariant(
           inputPath,
           outputDir,
@@ -160,7 +168,7 @@ export class FFmpegTranscodingService implements TranscodingServicePort {
     onProgress: (progress: number) => void
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ffmpeg = spawn('ffmpeg', args);
+      const ffmpeg = spawn(this.ffmpegPath, args);
       this.activeJobs.set(mediaId, ffmpeg);
 
       let duration = 0;
@@ -218,7 +226,7 @@ export class FFmpegTranscodingService implements TranscodingServicePort {
         inputPath,
       ];
 
-      const ffprobe = spawn('ffprobe', args);
+      const ffprobe = spawn(this.ffprobePath, args);
       let output = '';
 
       ffprobe.stdout.on('data', (data: Buffer) => {
