@@ -15,8 +15,8 @@ describe('Service', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -29,6 +29,8 @@ describe('Service', () => {
       expect(service.name).toBe(serviceProps.name);
       expect(service.longName).toBe(serviceProps.longName);
       expect(service.type).toBe(serviceProps.type);
+      expect(service.montantMin).toBe(serviceProps.montantMin);
+      expect(service.montantMax).toBe(serviceProps.montantMax);
       expect(service.frais).toBe(serviceProps.frais);
       expect(service.conditionAccess).toEqual(serviceProps.conditionAccess);
       expect(service.plafonds).toEqual(serviceProps.plafonds);
@@ -41,8 +43,8 @@ describe('Service', () => {
         name: 'Fixed Fee Service',
         longName: 'Fixed Fee Service Long Name',
         type: TypeService.TRANSFERT_ARGENT,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisFixes(100, 0.02, { fxSurcharge: 50, devise: 'USD' }),
         conditionAccess: [],
         plafonds: [],
@@ -60,8 +62,8 @@ describe('Service', () => {
         name: 'Percentage Fee Service',
         longName: 'Percentage Fee Service Long Name',
         type: TypeService.EPARGNE,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisPourcentage(0.03, 1000, 100),
         conditionAccess: [],
         plafonds: [],
@@ -79,8 +81,8 @@ describe('Service', () => {
         name: 'Minimal Service',
         longName: 'Minimal Service Long Name',
         type: TypeService.AUTRES,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 0,
+        montantMax: 1000000,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -92,6 +94,26 @@ describe('Service', () => {
       expect(service.conditionAccess).toEqual([]);
       expect(service.plafonds).toEqual([]);
       expect(service.infrastructureAccess).toEqual([]);
+    });
+
+    it('should create a service with zero montants', () => {
+      const serviceProps = {
+        id: EntityId.generate(),
+        name: 'Zero Service',
+        longName: 'Zero Service Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 0,
+        montantMax: 0,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      };
+
+      const service = new Service(serviceProps);
+
+      expect(service.montantMin).toBe(0);
+      expect(service.montantMax).toBe(0);
     });
   });
 
@@ -119,8 +141,8 @@ describe('Service', () => {
           name: 'Test',
           longName: 'Test Long',
           type: serviceType,
-          montantMin: 100000,
-          montantMax: 100000,
+          montantMin: 100,
+          montantMax: 10000,
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -132,6 +154,751 @@ describe('Service', () => {
     });
   });
 
+  describe('updateName method', () => {
+    it('should update name successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Old Name',
+        longName: 'Old Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateName('New Name');
+
+      expect(service.name).toBe('New Name');
+    });
+
+    it('should throw error when name is empty string', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Valid Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateName('')).toThrow('Service name cannot be empty');
+    });
+
+    it('should throw error when name is only whitespace', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Valid Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateName('   ')).toThrow('Service name cannot be empty');
+    });
+
+    it('should throw error when name is null', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Valid Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateName(null as any)).toThrow('Service name cannot be empty');
+    });
+
+    it('should throw error when name is undefined', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Valid Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateName(undefined as any)).toThrow('Service name cannot be empty');
+    });
+  });
+
+  describe('updateLongName method', () => {
+    it('should update longName successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Old Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateLongName('New Long Name');
+
+      expect(service.longName).toBe('New Long Name');
+    });
+
+    it('should throw error when longName is empty string', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateLongName('')).toThrow('Service longName cannot be empty');
+    });
+
+    it('should throw error when longName is only whitespace', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateLongName('   ')).toThrow('Service longName cannot be empty');
+    });
+
+    it('should throw error when longName is null', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateLongName(null as any)).toThrow('Service longName cannot be empty');
+    });
+
+    it('should throw error when longName is undefined', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Valid Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateLongName(undefined as any)).toThrow(
+        'Service longName cannot be empty'
+      );
+    });
+  });
+
+  describe('updateType method', () => {
+    it('should update type successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateType(TypeService.TRANSFERT_ARGENT);
+
+      expect(service.type).toBe(TypeService.TRANSFERT_ARGENT);
+    });
+
+    it('should update type to all possible values', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const allTypes = [
+        TypeService.PAIEMENT_MARCHAND,
+        TypeService.ACHAT_CREDIT,
+        TypeService.PAIEMENT_FACTURES,
+        TypeService.DEPOT_SIMPLE,
+        TypeService.DEPOT_RETRAIT_SIMPLE,
+        TypeService.RETRAIT_SIMPLE,
+        TypeService.TRANSFERT_ARGENT,
+        TypeService.BANQUE_WALLET,
+        TypeService.WALLET_BANQUE,
+        TypeService.EPARGNE,
+        TypeService.CREDIT,
+        TypeService.ASSURANCE,
+        TypeService.AUTRES,
+      ];
+
+      allTypes.forEach(type => {
+        service.updateType(type);
+        expect(service.type).toBe(type);
+      });
+    });
+  });
+
+  describe('updateMontants method', () => {
+    it('should update montants successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateMontants(500, 50000);
+
+      expect(service.montantMin).toBe(500);
+      expect(service.montantMax).toBe(50000);
+    });
+
+    it('should accept zero values for montants', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateMontants(0, 0);
+
+      expect(service.montantMin).toBe(0);
+      expect(service.montantMax).toBe(0);
+    });
+
+    it('should accept equal montantMin and montantMax', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateMontants(5000, 5000);
+
+      expect(service.montantMin).toBe(5000);
+      expect(service.montantMax).toBe(5000);
+    });
+
+    it('should throw error when montantMin is not finite', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(Infinity, 1000)).toThrow(
+        'montantMin/montantMax must be numbers'
+      );
+    });
+
+    it('should throw error when montantMax is not finite', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(100, Infinity)).toThrow(
+        'montantMin/montantMax must be numbers'
+      );
+    });
+
+    it('should throw error when montantMin is NaN', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(NaN, 1000)).toThrow(
+        'montantMin/montantMax must be numbers'
+      );
+    });
+
+    it('should throw error when montantMax is NaN', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(100, NaN)).toThrow(
+        'montantMin/montantMax must be numbers'
+      );
+    });
+
+    it('should throw error when montantMin is negative', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(-100, 1000)).toThrow('montants cannot be negative');
+    });
+
+    it('should throw error when montantMax is negative', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(100, -1000)).toThrow('montants cannot be negative');
+    });
+
+    it('should throw error when montantMin is greater than montantMax', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      expect(() => service.updateMontants(10000, 100)).toThrow(
+        'montantMin cannot be greater than montantMax'
+      );
+    });
+  });
+
+  describe('updateFrais method', () => {
+    it('should update frais successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const newFrais = new FraisFixes(200);
+      service.updateFrais(newFrais);
+
+      expect(service.frais).toBe(newFrais);
+      expect(service.frais).toBeInstanceOf(FraisFixes);
+    });
+
+    it('should update from FraisGratuit to FraisFixes', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const newFrais = new FraisFixes(150, 0.01);
+      service.updateFrais(newFrais);
+
+      expect(service.frais).toBeInstanceOf(FraisFixes);
+    });
+
+    it('should update from FraisFixes to FraisPourcentage', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisFixes(100),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const newFrais = new FraisPourcentage(0.05, 2000, 50);
+      service.updateFrais(newFrais);
+
+      expect(service.frais).toBeInstanceOf(FraisPourcentage);
+    });
+
+    it('should update from FraisPourcentage to FraisGratuit', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisPourcentage(0.03),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      const newFrais = new FraisGratuit();
+      service.updateFrais(newFrais);
+
+      expect(service.frais).toBeInstanceOf(FraisGratuit);
+    });
+  });
+
+  describe('updateConditionAccess method', () => {
+    it('should update conditionAccess successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Old Condition'],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateConditionAccess(['New Condition 1', 'New Condition 2']);
+
+      expect(service.conditionAccess).toEqual(['New Condition 1', 'New Condition 2']);
+    });
+
+    it('should update conditionAccess to empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition 1', 'Condition 2'],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateConditionAccess([]);
+
+      expect(service.conditionAccess).toEqual([]);
+    });
+
+    it('should handle non-array value by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition'],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateConditionAccess(null as any);
+
+      expect(service.conditionAccess).toEqual([]);
+    });
+
+    it('should handle undefined by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Condition'],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateConditionAccess(undefined as any);
+
+      expect(service.conditionAccess).toEqual([]);
+    });
+  });
+
+  describe('updatePlafonds method', () => {
+    it('should update plafonds successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: ['Old Plafond'],
+        infrastructureAccess: [],
+      });
+
+      service.updatePlafonds(['New Plafond 1', 'New Plafond 2']);
+
+      expect(service.plafonds).toEqual(['New Plafond 1', 'New Plafond 2']);
+    });
+
+    it('should update plafonds to empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: ['Plafond 1', 'Plafond 2'],
+        infrastructureAccess: [],
+      });
+
+      service.updatePlafonds([]);
+
+      expect(service.plafonds).toEqual([]);
+    });
+
+    it('should handle non-array value by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: ['Plafond'],
+        infrastructureAccess: [],
+      });
+
+      service.updatePlafonds(null as any);
+
+      expect(service.plafonds).toEqual([]);
+    });
+
+    it('should handle undefined by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: ['Plafond'],
+        infrastructureAccess: [],
+      });
+
+      service.updatePlafonds(undefined as any);
+
+      expect(service.plafonds).toEqual([]);
+    });
+  });
+
+  describe('updateInfrastructureAccess method', () => {
+    it('should update infrastructureAccess successfully', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: ['Old Infra'],
+      });
+
+      service.updateInfrastructureAccess(['New Infra 1', 'New Infra 2']);
+
+      expect(service.infrastructureAccess).toEqual(['New Infra 1', 'New Infra 2']);
+    });
+
+    it('should update infrastructureAccess to empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: ['Infra 1', 'Infra 2'],
+      });
+
+      service.updateInfrastructureAccess([]);
+
+      expect(service.infrastructureAccess).toEqual([]);
+    });
+
+    it('should handle non-array value by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: ['Infra'],
+      });
+
+      service.updateInfrastructureAccess(null as any);
+
+      expect(service.infrastructureAccess).toEqual([]);
+    });
+
+    it('should handle undefined by setting empty array', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Name',
+        longName: 'Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 10000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: ['Infra'],
+      });
+
+      service.updateInfrastructureAccess(undefined as any);
+
+      expect(service.infrastructureAccess).toEqual([]);
+    });
+  });
+
   describe('toDTO method', () => {
     it('should convert to DTO correctly with FraisGratuit', () => {
       const serviceProps = {
@@ -139,8 +906,8 @@ describe('Service', () => {
         name: 'Test Service',
         longName: 'Test Service Long Name',
         type: TypeService.PAIEMENT_MARCHAND,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -154,6 +921,8 @@ describe('Service', () => {
       expect(dto.name).toBe(serviceProps.name);
       expect(dto.longName).toBe(serviceProps.longName);
       expect(dto.type).toBe(serviceProps.type);
+      expect(dto.montantMin).toBe(serviceProps.montantMin);
+      expect(dto.montantMax).toBe(serviceProps.montantMax);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.FREE,
       });
@@ -169,8 +938,8 @@ describe('Service', () => {
         name: 'Fixed Fee Service',
         longName: 'Fixed Fee Service Long Name',
         type: TypeService.TRANSFERT_ARGENT,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais,
         conditionAccess: ['ID required'],
         plafonds: ['5000 FCFA/day'],
@@ -182,6 +951,8 @@ describe('Service', () => {
 
       expect(dto.id).toBe(serviceProps.id.getValue());
       expect(dto.name).toBe(serviceProps.name);
+      expect(dto.montantMin).toBe(serviceProps.montantMin);
+      expect(dto.montantMax).toBe(serviceProps.montantMax);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.FIX,
         montantFixe: 100,
@@ -197,8 +968,8 @@ describe('Service', () => {
         name: 'Percentage Service',
         longName: 'Percentage Service Long Name',
         type: TypeService.EPARGNE,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais,
         conditionAccess: [],
         plafonds: [],
@@ -208,6 +979,8 @@ describe('Service', () => {
       const service = new Service(serviceProps);
       const dto = service.toDTO();
 
+      expect(dto.montantMin).toBe(serviceProps.montantMin);
+      expect(dto.montantMax).toBe(serviceProps.montantMax);
       expect(dto.frais).toEqual({
         typeCalculation: FraisTypeCalculation.POURCENTAGE,
         pourcentage: 0.03,
@@ -222,8 +995,8 @@ describe('Service', () => {
         name: 'Full Service',
         longName: 'Full Service Long Name',
         type: TypeService.CREDIT,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: ['Condition 1', 'Condition 2', 'Condition 3'],
         plafonds: ['Plafond 1', 'Plafond 2'],
@@ -240,6 +1013,27 @@ describe('Service', () => {
       expect(dto.plafonds).toEqual(serviceProps.plafonds);
       expect(dto.infrastructureAccess).toEqual(serviceProps.infrastructureAccess);
     });
+
+    it('should include montantMin and montantMax in DTO', () => {
+      const serviceProps = {
+        id: EntityId.generate(),
+        name: 'Service',
+        longName: 'Service Long',
+        type: TypeService.AUTRES,
+        montantMin: 500,
+        montantMax: 25000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      };
+
+      const service = new Service(serviceProps);
+      const dto = service.toDTO();
+
+      expect(dto.montantMin).toBe(500);
+      expect(dto.montantMax).toBe(25000);
+    });
   });
 
   describe('Getters', () => {
@@ -249,8 +1043,8 @@ describe('Service', () => {
         name: 'Getter Test Service',
         longName: 'Getter Test Service Long Name',
         type: TypeService.WALLET_BANQUE,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisFixes(200),
         conditionAccess: ['Access 1'],
         plafonds: ['Limit 1'],
@@ -262,6 +1056,8 @@ describe('Service', () => {
       expect(service.name).toBe('Getter Test Service');
       expect(service.longName).toBe('Getter Test Service Long Name');
       expect(service.type).toBe(TypeService.WALLET_BANQUE);
+      expect(service.montantMin).toBe(100);
+      expect(service.montantMax).toBe(10000);
       expect(service.frais).toBeInstanceOf(FraisFixes);
       expect(service.conditionAccess).toEqual(['Access 1']);
       expect(service.plafonds).toEqual(['Limit 1']);
@@ -274,8 +1070,8 @@ describe('Service', () => {
         name: 'Reference Test',
         longName: 'Reference Test Long',
         type: TypeService.AUTRES,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: ['Original'],
         plafonds: ['Original'],
@@ -301,8 +1097,8 @@ describe('Service', () => {
         name: 'Long Name Service',
         longName,
         type: TypeService.AUTRES,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: [],
         plafonds: [],
@@ -322,8 +1118,8 @@ describe('Service', () => {
         name: 'Many Conditions Service',
         longName: 'Many Conditions Service Long Name',
         type: TypeService.AUTRES,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisGratuit(),
         conditionAccess: manyConditions,
         plafonds: [],
@@ -343,8 +1139,8 @@ describe('Service', () => {
         name: 'Reference Test',
         longName: 'Reference Test Long',
         type: TypeService.AUTRES,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais,
         conditionAccess: [],
         plafonds: [],
@@ -354,6 +1150,26 @@ describe('Service', () => {
       const service = new Service(serviceProps);
 
       expect(service.frais).toBe(frais);
+    });
+
+    it('should handle very large montant values', () => {
+      const serviceProps = {
+        id: EntityId.generate(),
+        name: 'Large Montant Service',
+        longName: 'Large Montant Service Long',
+        type: TypeService.AUTRES,
+        montantMin: 0,
+        montantMax: Number.MAX_SAFE_INTEGER,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      };
+
+      const service = new Service(serviceProps);
+
+      expect(service.montantMin).toBe(0);
+      expect(service.montantMax).toBe(Number.MAX_SAFE_INTEGER);
     });
   });
 
@@ -367,8 +1183,8 @@ describe('Service', () => {
           name: 'Test',
           longName: 'Test Long',
           type: serviceType,
-          montantMin: 100000,
-          montantMax: 100000,
+          montantMin: 100,
+          montantMax: 10000,
           frais: new FraisGratuit(),
           conditionAccess: [],
           plafonds: [],
@@ -385,8 +1201,8 @@ describe('Service', () => {
         name: 'Transfer Service',
         longName: 'Transfer Service Long',
         type: TypeService.TRANSFERT_ARGENT,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisFixes(100),
         conditionAccess: [],
         plafonds: [],
@@ -402,8 +1218,8 @@ describe('Service', () => {
         name: 'Savings Service',
         longName: 'Savings Service Long',
         type: TypeService.EPARGNE,
-        montantMin: 100000,
-        montantMax: 100000,
+        montantMin: 100,
+        montantMax: 10000,
         frais: new FraisPourcentage(0.02),
         conditionAccess: [],
         plafonds: [],
@@ -411,6 +1227,70 @@ describe('Service', () => {
       });
 
       expect(service.type).toBe(TypeService.EPARGNE);
+    });
+  });
+
+  describe('Integration tests with multiple updates', () => {
+    it('should handle multiple consecutive updates', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Original Name',
+        longName: 'Original Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 1000,
+        frais: new FraisGratuit(),
+        conditionAccess: [],
+        plafonds: [],
+        infrastructureAccess: [],
+      });
+
+      service.updateName('Updated Name');
+      service.updateLongName('Updated Long Name');
+      service.updateType(TypeService.TRANSFERT_ARGENT);
+      service.updateMontants(500, 5000);
+      service.updateFrais(new FraisFixes(100));
+      service.updateConditionAccess(['New Condition']);
+      service.updatePlafonds(['New Plafond']);
+      service.updateInfrastructureAccess(['New Infrastructure']);
+
+      expect(service.name).toBe('Updated Name');
+      expect(service.longName).toBe('Updated Long Name');
+      expect(service.type).toBe(TypeService.TRANSFERT_ARGENT);
+      expect(service.montantMin).toBe(500);
+      expect(service.montantMax).toBe(5000);
+      expect(service.frais).toBeInstanceOf(FraisFixes);
+      expect(service.conditionAccess).toEqual(['New Condition']);
+      expect(service.plafonds).toEqual(['New Plafond']);
+      expect(service.infrastructureAccess).toEqual(['New Infrastructure']);
+    });
+
+    it('should produce correct DTO after multiple updates', () => {
+      const service = new Service({
+        id: EntityId.generate(),
+        name: 'Original Name',
+        longName: 'Original Long Name',
+        type: TypeService.AUTRES,
+        montantMin: 100,
+        montantMax: 1000,
+        frais: new FraisGratuit(),
+        conditionAccess: ['Old'],
+        plafonds: ['Old'],
+        infrastructureAccess: ['Old'],
+      });
+
+      service.updateName('New Name');
+      service.updateMontants(200, 2000);
+      service.updateFrais(new FraisPourcentage(0.05));
+      service.updateConditionAccess(['New']);
+
+      const dto = service.toDTO();
+
+      expect(dto.name).toBe('New Name');
+      expect(dto.montantMin).toBe(200);
+      expect(dto.montantMax).toBe(2000);
+      expect(dto.frais.typeCalculation).toBe(FraisTypeCalculation.POURCENTAGE);
+      expect(dto.conditionAccess).toEqual(['New']);
     });
   });
 });
