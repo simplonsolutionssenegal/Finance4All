@@ -6,24 +6,36 @@ import type {
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import { Module, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
+
 import { EntityId } from '@/domain/shared/EntityId';
-import { DuplicateTitleException } from '@/domain/shared/exceptions/FormationDomainException';
+import {
+  DuplicateThematicException,
+  DuplicateTitleException,
+} from '@/domain/shared/exceptions/FormationDomainException';
 
 export class CreateModuleFormationUseCaseImpl implements CreateModuleUseCase {
   constructor(private readonly moduleRepository: ModuleRepository) {}
   async execute(input: CreateModuleUseCommand): Promise<ModuleResponseDTO> {
     const existingModule = await this.moduleRepository.findByTitle(input.title);
+    const existingThematic = await this.moduleRepository.findByThematic(input.thematics || '');
 
     if (existingModule) {
       throw new DuplicateTitleException(input.title);
     }
+
+    if (existingThematic) {
+      throw new DuplicateThematicException(input.thematics || '');
+    }
+
+    const thematics: string | null = input.thematics ? input.thematics : null;
+
     // Créer l'entité Module
     const module = new Module({
       id: EntityId.generate(),
       title: input.title,
       description: input.description,
-      imageUrl: input.imageUrl,
-      thematics: input.thematics,
+      imageMediaId: input.imageMediaId,
+      thematics,
       difficultyLevel: input.difficultyLevel,
       estimatedDuration: input.estimatedDuration,
       status: ModuleStatus.DRAFT,

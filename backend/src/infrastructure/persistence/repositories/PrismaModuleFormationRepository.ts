@@ -5,7 +5,6 @@ import type { Prisma, Module as PrismaModuleModel } from '@prisma/client';
 import { type PrismaClient } from '@prisma/client';
 
 import { EntityId } from '@/domain/shared/EntityId';
-import type { Thematic } from '@/domain/formations/value-objects/Thematic';
 
 import type { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 // eslint-disable-next-line no-duplicate-imports
@@ -30,6 +29,17 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       where: {
         title: {
           equals: title,
+        },
+      },
+    });
+
+    return module ? this.toDomain(module) : null;
+  }
+  async findByThematic(thematic: string): Promise<Module | null> {
+    const module = await this.prisma.module.findFirst({
+      where: {
+        thematics: {
+          equals: thematic,
         },
       },
     });
@@ -66,9 +76,9 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return new Module({
       id: EntityId.from(prismaModule.id),
       title: prismaModule.title,
-      imageUrl: prismaModule.imageUrl || null,
+      imageMediaId: prismaModule.imageMediaId || null,
       description: prismaModule.description,
-      thematics: prismaModule.thematics as Thematic[],
+      thematics: prismaModule.thematics || null,
       difficultyLevel: (prismaModule.difficultyLevel as DifficultyLevel) || undefined,
       estimatedDuration: prismaModule.estimatedDuration || 0,
       status: prismaModule.status as ModuleStatus,
@@ -81,8 +91,8 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       id: module.id.getValue(),
       title: module.title,
       description: module.description,
-      imageUrl: module.imageUrl,
-      thematics: module.thematics,
+      imageMediaId: module.imageMediaId,
+      thematics: module.thematics || undefined,
       difficultyLevel: module.difficultyLevel,
       estimatedDuration: module.estimatedDuration,
       status: module.status as ModuleStatus,

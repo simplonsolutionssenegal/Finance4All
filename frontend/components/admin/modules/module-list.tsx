@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 import type { Module } from '@/types/modules/module';
 
@@ -93,7 +93,19 @@ export default function ModuleList({
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-3'>
+      <div className='w-full flex items-center justify-between  rounded-md px-3 py-2 bg-white'>
+        <h2 className='text-base font-medium text-gray-700'>Modules récents</h2>
+
+        <button
+          type='button'
+          className='inline-flex items-center gap-2 text-sm text-gray-700 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors'
+        >
+          Voir tout
+          <ArrowRight className='w-4 h-4' />
+        </button>
+      </div>
+
       {/* Grid des modules */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
         {modules.map(module => (
