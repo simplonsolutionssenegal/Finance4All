@@ -7,6 +7,7 @@ import { errorMiddleware } from '@/infrastructure/web/middleware/error.middlewar
 import { apiRoutes } from './routes';
 import { clerkMiddleware } from '@clerk/express';
 import { prisma } from '@/infrastructure/config/prismaClient';
+import { setupSwagger } from '@/infrastructure/docs/swagger';
 
 export default function createApp(): Express {
   const app = express();
@@ -27,6 +28,9 @@ export default function createApp(): Express {
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
+
+  // Setup Swagger documentation
+  setupSwagger(app);
 
   if (process.env.NODE_ENV === 'development') {
     app.use((req: Request, _res: Response, next: NextFunction) => {

@@ -76,7 +76,7 @@ describe('bootstrap()', () => {
     expect(prisma.$connect).toHaveBeenCalledTimes(1);
     // Par défaut, PORT non défini -> 5001
     expect(listenMock).toHaveBeenCalledTimes(1);
-    expect(listenMock.mock.calls[0][0]).toBe(5001);
+    expect(listenMock.mock.calls[0][0]).toBe('5001');
 
     // quelques logs clés appelés
     expect(logger.info).toHaveBeenCalledWith('✅ Database connection established via Prisma');
