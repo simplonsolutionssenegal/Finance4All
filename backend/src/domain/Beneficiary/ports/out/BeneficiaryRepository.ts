@@ -1,6 +1,7 @@
 import type { Beneficiary } from '../../entities/Beneficiary';
 
 export interface BeneficiaryRepository {
+  findByClerkUserId(clerkUserId: string): Promise<Beneficiary | null>;
   findByOrgId(organizationId: string): Promise<Beneficiary[]>;
   findByOrgAndEmail(organizationId: string, email: string): Promise<Beneficiary | null>;
   findByIdInOrg(organizationId: string, beneficiaryId: string): Promise<Beneficiary | null>;

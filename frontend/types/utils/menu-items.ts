@@ -6,6 +6,7 @@ import {
   Bell,
   Settings,
   type LucideIcon,
+  GraduationCap,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -22,6 +23,12 @@ export const menuItems: MenuItem[] = [
     label: 'Overview',
     icon: LayoutDashboard,
     href: '/dashboard',
+  },
+  {
+    id: 'modules',
+    label: 'Mes modules',
+    icon: GraduationCap,
+    href: '/learning',
   },
   {
     id: 'institutions',

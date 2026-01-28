@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { BeneficiaryController } from '@/infrastructure/web/controllers/BeneficiaryController';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
+import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
 import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import { BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
 import {
@@ -23,6 +24,7 @@ describe('BeneficiaryController', () => {
   let controller: BeneficiaryController;
   let mockCreateUC: jest.Mocked<CreateBeneficiaryUseCase>;
   let mockUpdateUC: jest.Mocked<UpdateBeneficiaryUseCase>;
+  let mockGetDashboardUC: jest.Mocked<GetBeneficiaireDashboardUseCase>;
   let mockRepo: jest.Mocked<BeneficiaryRepository>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
@@ -36,7 +38,12 @@ describe('BeneficiaryController', () => {
       execute: jest.fn(),
     };
 
+    mockGetDashboardUC = {
+      execute: jest.fn(),
+    };
+
     mockRepo = {
+      findByClerkUserId: jest.fn(),
       findByOrgId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
@@ -45,7 +52,12 @@ describe('BeneficiaryController', () => {
       deleteByIdAndOrgId: jest.fn(),
     } as any;
 
-    controller = new BeneficiaryController(mockCreateUC, mockUpdateUC, mockRepo);
+    controller = new BeneficiaryController(
+      mockCreateUC,
+      mockUpdateUC,
+      mockGetDashboardUC,
+      mockRepo
+    );
 
     mockRequest = {
       body: {},
@@ -1254,6 +1266,102 @@ describe('BeneficiaryController', () => {
         });
         consoleErrorSpy.mockRestore();
       });
+    });
+  });
+
+  describe('getDashboard', () => {
+    it('should return 400 when userId is missing', async () => {
+      mockRequest.query = {};
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetDashboardUC.execute).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'userId (clerkUserId) manquant',
+      });
+    });
+
+    it('should return 400 when userId is empty string', async () => {
+      mockRequest.query = { userId: '' };
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetDashboardUC.execute).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'userId (clerkUserId) manquant',
+      });
+    });
+
+    it('should return 400 when userId is only whitespace', async () => {
+      mockRequest.query = { userId: '   ' };
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetDashboardUC.execute).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'userId (clerkUserId) manquant',
+      });
+    });
+
+    it('should return empty dashboard when beneficiary not found', async () => {
+      mockRequest.query = { userId: 'clerk-123' };
+      const emptyDashboard = {
+        stats: {
+          modulesCompleted: { current: 0, total: 0 },
+          learningTime: '0m',
+          quizzesPassed: { current: 0, total: 0 },
+          globalProgress: 0,
+        },
+        moduleStats: { completed: 0, inProgress: 0, notStarted: 0, total: 0 },
+        monthlyProgress: [],
+      };
+      mockGetDashboardUC.execute.mockResolvedValue(emptyDashboard);
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetDashboardUC.execute).toHaveBeenCalledWith({ clerkUserId: 'clerk-123' });
+      expect(mockResponse.json).toHaveBeenCalledWith(emptyDashboard);
+    });
+
+    it('should return dashboard data when beneficiary exists', async () => {
+      mockRequest.query = { userId: 'clerk-456' };
+      const dashboardData = {
+        stats: {
+          modulesCompleted: { current: 2, total: 10 },
+          learningTime: '1h 30m',
+          quizzesPassed: { current: 0, total: 0 },
+          globalProgress: 20,
+        },
+        moduleStats: { completed: 2, inProgress: 1, notStarted: 7, total: 10 },
+        monthlyProgress: [{ month: 'Jan', progress: 1 }],
+      };
+      mockGetDashboardUC.execute.mockResolvedValue(dashboardData);
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockGetDashboardUC.execute).toHaveBeenCalledWith({ clerkUserId: 'clerk-456' });
+      expect(mockResponse.json).toHaveBeenCalledWith(dashboardData);
+    });
+
+    it('should return 500 when use case throws', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRequest.query = { userId: 'clerk-789' };
+      mockGetDashboardUC.execute.mockRejectedValue(new Error('DB error'));
+
+      await controller.getDashboard(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'DB error',
+      });
+      consoleErrorSpy.mockRestore();
     });
   });
 });

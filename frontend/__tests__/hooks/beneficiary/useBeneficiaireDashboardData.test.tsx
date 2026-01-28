@@ -4,8 +4,32 @@ import { act } from 'react-dom/test-utils';
 import {
   useBeneficiaireDashboardData,
   useBeneficiaireDashboardDataRealtime,
-  mockBeneficiaireDashboardData,
+  type BeneficiaireDashboardData,
 } from '@/hooks/beneficiary/useBeneficiaireDashboardData';
+
+// Données de test (remplacement de l’ancien mock supprimé du hook)
+const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
+  stats: {
+    modulesCompleted: { current: 8, total: 26 },
+    learningTime: '24h 30m',
+    quizzesPassed: { current: 12, total: 15 },
+    globalProgress: 75,
+  },
+  moduleStats: {
+    completed: 8,
+    inProgress: 5,
+    notStarted: 13,
+    total: 26,
+  },
+  monthlyProgress: [
+    { month: 'Jan', progress: 20 },
+    { month: 'Fév', progress: 35 },
+    { month: 'Mar', progress: 50 },
+    { month: 'Avr', progress: 60 },
+    { month: 'Mai', progress: 70 },
+    { month: 'Juin', progress: 75 },
+  ],
+};
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -175,6 +199,23 @@ describe('useBeneficiaireDashboardData', () => {
       });
 
       expect(result.current.error).toBe('Erreur 500: Internal Server Error');
+    });
+
+    it('should use message when error is absent in error response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: async () => ({ message: 'userId (clerkUserId) manquant' }),
+      });
+
+      const { result } = renderHook(() => useBeneficiaireDashboardData());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('userId (clerkUserId) manquant');
     });
 
     it('should handle response.json() parsing error', async () => {

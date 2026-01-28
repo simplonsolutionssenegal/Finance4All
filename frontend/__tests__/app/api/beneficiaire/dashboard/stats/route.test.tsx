@@ -23,12 +23,39 @@ jest.mock('next/server', () => ({
 // Mock console.error to avoid noise in tests
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
+const mockDashboardResponse = {
+  stats: {
+    modulesCompleted: { current: 8, total: 26 },
+    learningTime: '24h 30m',
+    quizzesPassed: { current: 12, total: 15 },
+    globalProgress: 75,
+    modulesCompletedTrend: '+2 ce mois',
+    learningTimeTrend: '+5h cette semaine',
+    globalProgressTrend: '+15% ce mois',
+    quizzesPassedTrend: '80% de réussite',
+  },
+  moduleStats: { completed: 8, inProgress: 5, notStarted: 13, total: 26 },
+  monthlyProgress: [
+    { month: 'Jan', progress: 20 },
+    { month: 'Fév', progress: 35 },
+    { month: 'Mar', progress: 50 },
+    { month: 'Avr', progress: 60 },
+    { month: 'Mai', progress: 70 },
+    { month: 'Juin', progress: 75 },
+  ],
+};
+
 describe('GET /api/beneficiaire/dashboard/stats', () => {
   let mockRequest: Partial<NextRequest>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockRequest = {} as NextRequest;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockDashboardResponse,
+      text: async () => JSON.stringify(mockDashboardResponse),
+    }) as jest.Mock;
   });
 
   afterAll(() => {
@@ -367,6 +394,53 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
       expect(result).toBeDefined();
       expect(result.status).toBe(500);
     });
+
+    it('should return error when backend returns 404 with message', async () => {
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: async () => JSON.stringify({ message: 'Route not found', path: '/api/v1/unknown' }),
+      });
+
+      await GET(mockRequest as NextRequest);
+
+      expect(NextResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.stringContaining('Backend non trouvé'),
+        }),
+        { status: 404 }
+      );
+    });
+
+    it('should forward backend error message when backend returns 500', async () => {
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ success: false, message: 'Bénéficiaire non trouvé' }),
+      });
+
+      await GET(mockRequest as NextRequest);
+
+      expect(NextResponse.json).toHaveBeenCalledWith(
+        { error: 'Bénéficiaire non trouvé' },
+        { status: 500 }
+      );
+    });
+
+    it('should use body.error when backend returns error field', async () => {
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: 'userId manquant' }),
+      });
+
+      await GET(mockRequest as NextRequest);
+
+      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'userId manquant' }, { status: 400 });
+    });
   });
 
   describe('Response structure validation', () => {
@@ -396,14 +470,18 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
       expect(keys).toHaveLength(3);
     });
 
-    it('should return stats with exactly 4 properties', async () => {
+    it('should return stats with required properties including trends', async () => {
       // Act
       await GET(mockRequest as NextRequest);
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
       const statsKeys = Object.keys(callArgs.stats);
-      expect(statsKeys).toHaveLength(4);
+      expect(statsKeys).toContain('modulesCompleted');
+      expect(statsKeys).toContain('learningTime');
+      expect(statsKeys).toContain('quizzesPassed');
+      expect(statsKeys).toContain('globalProgress');
+      expect(statsKeys.length).toBeGreaterThanOrEqual(4);
     });
 
     it('should return moduleStats with exactly 4 properties', async () => {

@@ -14,7 +14,9 @@ export const beneficiaryRoutes = (): Router => {
     create: controller.create.bind(controller),
     update: controller.update.bind(controller),
     delete: controller.delete.bind(controller),
+    getDashboard: controller.getDashboard.bind(controller),
   };
+  router.get('/dashboard', boundController.getDashboard);
   router.get('/', requireSameActiveOrg, boundController.list);
   router.post('/', requireSameActiveOrg, handleValidationErrors, boundController.create);
   router.patch(

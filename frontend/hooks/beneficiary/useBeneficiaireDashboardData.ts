@@ -7,6 +7,10 @@ export interface BeneficiaireStats {
   learningTime: string;
   quizzesPassed: { current: number; total: number };
   globalProgress: number;
+  modulesCompletedTrend?: string;
+  learningTimeTrend?: string;
+  globalProgressTrend?: string;
+  quizzesPassedTrend?: string;
 }
 
 export interface BeneficiaireModuleStats {
@@ -65,8 +69,15 @@ export function useBeneficiaireDashboardData(userId?: string): UseBeneficiaireDa
       const response = await fetch(url);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+        const msg =
+          errorData.error ??
+          errorData.message ??
+          `Erreur ${response.status}: ${response.statusText}`;
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -122,26 +133,3 @@ export function useBeneficiaireDashboardDataRealtime(
 
   return result;
 }
-
-export const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
-  stats: {
-    modulesCompleted: { current: 8, total: 26 },
-    learningTime: '24h 30m',
-    quizzesPassed: { current: 12, total: 15 },
-    globalProgress: 75,
-  },
-  moduleStats: {
-    completed: 8,
-    inProgress: 5,
-    notStarted: 13,
-    total: 26,
-  },
-  monthlyProgress: [
-    { month: 'Jan', progress: 20 },
-    { month: 'Fév', progress: 35 },
-    { month: 'Mar', progress: 50 },
-    { month: 'Avr', progress: 60 },
-    { month: 'Mai', progress: 70 },
-    { month: 'Juin', progress: 75 },
-  ],
-};
