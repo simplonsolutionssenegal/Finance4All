@@ -214,7 +214,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             label='Inscrits'
           />
         </div>
-
         <div className='mt-4'>
           <Tabs
             defaultValue='lessons'
@@ -284,7 +283,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             </TabsContent>
           </Tabs>
         </div>
-
         <LessonDialog
           open={isLessonDialogOpen}
           onOpenChange={setIsLessonDialogOpen}
