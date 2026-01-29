@@ -6,6 +6,7 @@ import {
   validateCreateModule,
   validateGetModules,
   validatePagination,
+  validateModuleId,
 } from '../validators/module.validator';
 
 export const ModuleFormationRoutes = (): Router => {
@@ -15,6 +16,9 @@ export const ModuleFormationRoutes = (): Router => {
   const boundController = {
     create: controller.create.bind(controller),
     getAll: controller.getAll.bind(controller),
+    getById: controller.getById.bind(controller),
+    addLesson: controller.addLesson.bind(controller),
+    addQuiz: controller.addQuiz.bind(controller),
   };
 
   router.get(
@@ -25,6 +29,9 @@ export const ModuleFormationRoutes = (): Router => {
     boundController.getAll
   );
   router.post('/', validateCreateModule, handleValidationErrors, boundController.create);
+  router.get('/:id', validateModuleId, handleValidationErrors, boundController.getById);
+  router.put('/:id/lessons', validateModuleId, handleValidationErrors, boundController.addLesson);
+  router.put('/:id/quizzes', validateModuleId, handleValidationErrors, boundController.addQuiz);
 
   return router;
 };

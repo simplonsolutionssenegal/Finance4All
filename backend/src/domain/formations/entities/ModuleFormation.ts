@@ -3,6 +3,8 @@
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { EntityId } from '@/domain/shared/EntityId';
 import type { ModuleResponseDTO } from '../value-objects/ModuleFormationDTO';
+import type { Quiz } from './Quiz';
+import type { Lesson } from '@/domain/formations/entities/Lesson';
 
 export enum ModuleStatus {
   DRAFT = 'DRAFT',
@@ -32,6 +34,8 @@ export interface ModuleProps {
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   status: ModuleStatus;
+  lessons: Lesson[];
+  quizzes: Quiz[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,6 +48,8 @@ export class Module extends DomainEntity<EntityId> {
   private _difficultyLevel: DifficultyLevel;
   private _estimatedDuration: number;
   private _status: ModuleStatus;
+  private readonly _lessons: Set<Lesson>;
+  private readonly _quizzes: Set<Quiz>;
 
   constructor(props: ModuleProps) {
     super(props.id);
@@ -72,6 +78,9 @@ export class Module extends DomainEntity<EntityId> {
         configurable: true,
       });
     }
+
+    this._lessons = new Set(props.lessons);
+    this._quizzes = new Set(props.quizzes);
   }
 
   public static create(props: ModuleProps): Module {
@@ -138,6 +147,32 @@ export class Module extends DomainEntity<EntityId> {
     return this._status;
   }
 
+  get createdAt(): Date {
+    return this._createdAt || new Date();
+  }
+
+  get updatedAt(): Date {
+    return this._updatedAt || new Date();
+  }
+
+  get lessons(): Lesson[] {
+    return Array.from(this._lessons);
+  }
+
+  get quizzes(): Quiz[] {
+    return Array.from(this._quizzes);
+  }
+
+  addLesson(lesson: Lesson): void {
+    this._lessons.add(lesson);
+    this._updatedAt = new Date();
+  }
+
+  addQuiz(quiz: Quiz): void {
+    this._quizzes.add(quiz);
+    this._updatedAt = new Date();
+  }
+
   public publish(): void {
     if (this._status === ModuleStatus.PUBLISHED) {
       throw new Error('Le module est déjà publié');
@@ -184,6 +219,8 @@ export class Module extends DomainEntity<EntityId> {
       difficultyLevel: this._difficultyLevel,
       estimatedDuration: this._estimatedDuration,
       status: this._status,
+      lessons: this.lessons.map(lesson => lesson.toDTO()),
+      quizzes: this.quizzes.map(quiz => quiz.toDTO()),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

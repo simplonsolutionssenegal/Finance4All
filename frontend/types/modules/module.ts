@@ -1,5 +1,8 @@
 // frontend/src/types/formations/module.ts
 
+import { Lesson } from './Lesson';
+import { Quiz } from './Quiz';
+
 export enum DifficultyLevel {
   BEGINNER = 'BEGINNER',
   INTERMEDIATE = 'INTERMEDIATE',
@@ -20,6 +23,8 @@ export interface Module {
   thematics: string;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
+  lessons: Lesson[];
+  quizzes: Quiz[];
   status: ModuleStatus;
   createdAt: string;
   updatedAt: string;

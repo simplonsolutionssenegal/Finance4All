@@ -125,6 +125,8 @@ model Module {
 
   difficultyLevel        DifficultyLevel
   estimatedDuration      Float   
+  lessons                Lesson[]        // Relation ajoutée
+  quizzes               Quiz[]
   status                 ModuleStatus @default(DRAFT)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
@@ -263,5 +265,58 @@ model StreamToken {
   @@index([token])
   @@index([mediaId, userId])
   @@index([expiresAt])
+}
+
+
+
+model Lesson {
+  id                     String        @id @default(uuid())
+  moduleId               String
+  title                  String        @db.VarChar(200)
+  description            String        @db.Text
+  duration               Float         // Durée en minutes
+  order                  Int           @default(0) // Pour ordonner les leçons dans un module
+  status                 LessonStatus  @default(DRAFT)
+  module                 Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chapters               Json          // Stockage JSON des chapitres
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  
+  @@index([moduleId])
+  @@index([status])
+  @@index([order])
+}
+
+enum LessonStatus {
+  DRAFT       // Brouillon
+  PUBLISHED   // Publié
+  ARCHIVED    // Archivé
+  SCHEDULED   // Programmé (optionnel)
+}
+
+model Quiz {
+  id                String      @id @default(uuid())
+  moduleId          String
+  title             String      @db.VarChar(200)
+  description       String      @db.Text
+  status            QuizStatus  @default(DRAFT)
+  scoreMinimum      Int         @default(0) // Score minimum en %
+  duree             Int?        // Durée en minutes (null = illimité)
+  nombreTentatives  Int         @default(3) @db.SmallInt
+  questions         Json        // Stockage JSON des questions
+  
+  module            Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  @@index([moduleId])
+  @@index([status])
+}
+
+enum QuizStatus {
+  DRAFT       // Brouillon
+  PUBLISHED   // Publié
+  ARCHIVED    // Archivé
 }
 

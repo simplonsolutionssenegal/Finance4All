@@ -1,6 +1,6 @@
 //infrastructure/web/validators/module.validator.ts
 
-import { body, query, validationResult, type ValidationChain } from 'express-validator';
+import { body, param, query, validationResult, type ValidationChain } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 
@@ -52,6 +52,8 @@ export const validateCreateModule: ValidationChain[] = [
     .isFloat({ min: 0.1 })
     .withMessage('La durée estimée doit être supérieure à 0'),
 ];
+
+export const validateModuleId = [param('id').isUUID().withMessage('Invalid module ID format')];
 
 /**
  * Validation pour la récupération de modules
