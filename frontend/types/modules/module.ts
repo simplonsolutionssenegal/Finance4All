@@ -13,19 +13,6 @@ export enum ModuleStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
-// export enum Thematic {
-//   FINANCIAL_EDUCATION = 'FINANCIAL_EDUCATION',
-//   PERSONAL_DEVELOPMENT = 'PERSONAL_DEVELOPMENT',
-//   FINANCIAL_LOAN = 'FINANCIAL_LOAN',
-//   BANK_CREDIT = 'BANK_CREDIT',
-//   INVESTMENT = 'INVESTMENT',
-//   BUDGET_MANAGEMENT = 'BUDGET_MANAGEMENT',
-//   SAVING = 'SAVING',
-//   ENTREPRENEURSHIP = 'ENTREPRENEURSHIP',
-//   TAXATION = 'TAXATION',
-//   INSURANCE = 'INSURANCE',
-// }
-
 export interface Module {
   id: string;
   title: string;

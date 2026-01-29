@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useLoader } from '../../../contexts/LoaderContext';
 import { useCreateModule } from '../../../hooks/module/useCreateModule';
 import { apiClient } from '../../../lib/api-client';
-import { DifficultyLevel, Thematic } from '../../../types/modules/module';
+import { DifficultyLevel } from '../../../types/modules/module';
 // eslint-disable-next-line no-duplicate-imports
 import type { CreateModuleData } from '../../../types/modules/module';
 
@@ -88,7 +88,7 @@ describe('useCreateModule', () => {
       imageUrl: 'https://example.com/image.jpg',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'finance',
     };
 
     const mockResponse = {
@@ -132,7 +132,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.INTERMEDIATE,
       estimatedDuration: 90,
-      thematics: [Thematic.INVESTMENT],
+      thematics: 'investment',
     };
 
     const mockResponse = {
@@ -164,7 +164,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.ADVANCED,
       estimatedDuration: 120,
-      thematics: [Thematic.BUDGET_MANAGEMENT],
+      thematics: 'budget_management',
     };
 
     const mockError = new Error('Network error');
@@ -194,7 +194,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'financial_education',
     };
 
     const mockResponse = {
@@ -241,7 +241,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'financial_education',
     };
 
     mockApiClient.mockImplementation(
@@ -278,7 +278,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'financial_education',
     };
 
     const mockResponse = {
@@ -310,7 +310,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'financial_education',
     };
 
     const mockError = new Error();
@@ -338,7 +338,7 @@ describe('useCreateModule', () => {
       imageUrl: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
-      thematics: [Thematic.FINANCIAL_EDUCATION],
+      thematics: 'financial_education',
     };
 
     const mockResponse = {
