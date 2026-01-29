@@ -48,6 +48,8 @@ describe('useGetModules', () => {
     thematics: 'finance',
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
+    lessons: [],
+    quizzes: [],
     status: ModuleStatus.DRAFT,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
