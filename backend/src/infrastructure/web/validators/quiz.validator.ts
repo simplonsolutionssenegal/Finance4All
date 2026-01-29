@@ -1,5 +1,3 @@
-//infrastructure/web/validators/module.validator.ts
-
 import { param, validationResult } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 /**

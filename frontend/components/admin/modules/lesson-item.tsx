@@ -23,7 +23,6 @@ function statusLabelFR(status: string) {
 function statusBadgeClass(status: string) {
   const base =
     'inline-flex gap-1.5 items-center justify-center rounded-full px-2.5 text-xs font-medium border';
-
   switch (status) {
     case 'PUBLISHED':
       return `${base} bg-emerald-100 text-emerald-700 border-emerald-300`;

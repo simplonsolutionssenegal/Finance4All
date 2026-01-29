@@ -65,6 +65,10 @@ describe('ModuleList', () => {
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
     status: ModuleStatus.PUBLISHED,
+
+    lessons: [],
+    quizzes: [],
+    imageUrl: `https://example.com/image-${id}.jpg`,
     createdAt: new Date('2024-01-01').toISOString(),
     updatedAt: new Date('2024-01-01').toISOString(),
     ...overrides,

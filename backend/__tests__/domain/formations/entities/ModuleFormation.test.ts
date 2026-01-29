@@ -16,6 +16,8 @@ const baseProps: ModuleProps = {
   thematics: 'finance et comptabilité',
   difficultyLevel: DifficultyLevel.BEGINNER,
   estimatedDuration: 60,
+  lessons: [],
+  quizzes: [],
   status: ModuleStatus.DRAFT,
 };
 

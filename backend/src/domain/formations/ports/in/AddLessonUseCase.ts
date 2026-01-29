@@ -1,7 +1,7 @@
-import type { Chapter } from './../../entities/Chapter';
 import type { UseCase } from '@/domain/shared/UseCase';
 import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import type { LessonStatus } from '@/domain/formations/entities/Lesson';
+import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 
 export interface AddLessonCommand {
   moduleId: string;
@@ -10,7 +10,7 @@ export interface AddLessonCommand {
   duration: number; // minutes
   order: number;
   status: LessonStatus;
-  chapters?: Chapter[];
+  chapters?: ChapterDTO[];
 }
 
 export interface AddLessonUseCase extends UseCase<AddLessonCommand, ModuleResponseDTO> {}

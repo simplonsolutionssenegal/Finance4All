@@ -11,6 +11,18 @@ import type { PrismaClient } from '@prisma/client';
 
 // S'assurer qu'EntityId n'est pas mocké
 jest.unmock('@/domain/shared/EntityId');
+import { Lesson, LessonStatus } from '@/domain/formations/entities/Lesson';
+import { Quiz, QuizStatus } from '@/domain/formations/entities/Quiz';
+import { Chapter } from '@/domain/formations/entities/Chapter';
+import {
+  QuestionChoixUnique,
+  QuestionChoixMultiple,
+  TypeQuestion,
+} from '@/domain/formations/entities/Question';
+
+import { randomUUID } from 'crypto';
+import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
+import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 
 type PrismaModuleRow = {
   id: string;
@@ -23,6 +35,8 @@ type PrismaModuleRow = {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  lessons?: any[];
+  quizzes?: any[];
 };
 
 describe('PrismaModuleFormationRepository', () => {
@@ -30,6 +44,7 @@ describe('PrismaModuleFormationRepository', () => {
   let mockPrisma: Partial<PrismaClient> & { module?: any };
   let uuid1: string;
   let uuid2: string;
+  let uuid3: string;
 
   const makePrismaRow = (overrides: Partial<PrismaModuleRow> = {}): PrismaModuleRow => ({
     id: uuid1,
@@ -54,8 +69,10 @@ describe('PrismaModuleFormationRepository', () => {
       module: {
         create: jest.fn(),
         findFirst: jest.fn(),
+        findUnique: jest.fn(),
         findMany: jest.fn(),
         count: jest.fn(),
+        update: jest.fn(),
       },
     } as any;
 
@@ -66,9 +83,10 @@ describe('PrismaModuleFormationRepository', () => {
     jest.resetAllMocks();
   });
 
-  describe('save', () => {
-    it('devrait sauvegarder un module et retourner une entité Module', async () => {
-      const domainModule = new Module({
+
+  describe('save(module)', () => {
+    it('devrait sauvegarder un module simple sans lessons ni quizzes', async () => {
+      const domainModule = Module.create({
         id: EntityId.from(uuid1),
         title: 'Introduction à la finance',
         description: 'Un module complet pour apprendre les bases de la finance',
@@ -76,6 +94,8 @@ describe('PrismaModuleFormationRepository', () => {
         thematics: 'finance et comptabilité',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
+        lessons: [],
+        quizzes: [],
         status: ModuleStatus.DRAFT,
       });
 
@@ -90,6 +110,8 @@ describe('PrismaModuleFormationRepository', () => {
         status: domainModule.status,
         createdAt: new Date(),
         updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
       };
 
       mockPrisma.module!.create.mockResolvedValue(prismaRow);
@@ -105,8 +127,16 @@ describe('PrismaModuleFormationRepository', () => {
           difficultyLevel: DifficultyLevel.BEGINNER,
           estimatedDuration: 60,
           status: ModuleStatus.DRAFT,
+       ,
+          title: 'Titre A',
+          description: 'Desc A',
+         
+          status: ModuleStatus.DRAFT,
+          lessons: { create: [] },
         }),
+        include: { lessons: true, quizzes: true },
       });
+
       expect(saved).toBeInstanceOf(Module);
       expect(saved.id.getValue()).toBe(uuid1);
       expect(saved.title).toBe('Introduction à la finance');
@@ -152,6 +182,82 @@ describe('PrismaModuleFormationRepository', () => {
       expect(saved.imageMediaId).toBe('media-123');
     });
 
+    it('devrait sauvegarder un module avec lessons et chapters', async () => {
+      const chapter1 = new Chapter('Chapitre 1', 'Description chapitre 1', 'media-1', 1);
+      const chapter2 = new Chapter('Chapitre 2', 'Description chapitre 2', 'media-2', 2);
+
+      const lesson1 = new Lesson({
+        id: EntityId.from(uuid2),
+        title: 'Leçon 1',
+        description: 'Description leçon 1',
+        duration: 30,
+        order: 1,
+        chapters: [chapter1, chapter2],
+        status: LessonStatus.PUBLISHED,
+      });
+
+      const domainModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'Module avec lessons',
+        description: 'Description',
+        imageUrl: 'http://example.com/image.jpg',
+        thematics: [Thematic.SAVING, Thematic.INVESTMENT],
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 120,
+        lessons: [lesson1],
+        quizzes: [],
+        status: ModuleStatus.PUBLISHED,
+      });
+
+      const prismaRow: PrismaModuleRow = {
+        id: uuid1,
+        title: domainModule.title,
+        description: domainModule.description,
+        imageUrl: domainModule.imageUrl,
+        thematics: domainModule.thematics,
+        difficultyLevel: domainModule.difficultyLevel,
+        estimatedDuration: domainModule.estimatedDuration,
+        status: domainModule.status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [
+          {
+            id: uuid2,
+            title: 'Leçon 1',
+            description: 'Description leçon 1',
+            duration: 30,
+            order: 1,
+            status: LessonStatus.PUBLISHED,
+            chapters: [chapter1.toDTO(), chapter2.toDTO()],
+          },
+        ],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.create.mockResolvedValue(prismaRow);
+
+      const saved = await repository.save(domainModule);
+
+      expect(mockPrisma.module!.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          title: 'Module avec lessons',
+          lessons: {
+            create: expect.arrayContaining([
+              expect.objectContaining({
+                id: uuid2,
+                title: 'Leçon 1',
+                chapters: expect.any(Array),
+              }),
+            ]),
+          },
+        }),
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(saved.lessons).toHaveLength(1);
+      expect(saved.lessons[0].chapters).toHaveLength(2);
+    });
+
     it('devrait rejeter si prisma.create échoue', async () => {
       const domainModule = new Module({
         id: EntityId.from(uuid1),
@@ -159,6 +265,10 @@ describe('PrismaModuleFormationRepository', () => {
         description: 'Description test',
         imageMediaId: null,
         thematics: 'gestion budgétaire',
+        title: 'Titre B',
+        description: 'Desc B',
+        lessons: [],
+        quizzes: [],
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,
@@ -185,6 +295,8 @@ describe('PrismaModuleFormationRepository', () => {
         status: ModuleStatus.PUBLISHED,
         createdAt: new Date(),
         updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
       };
 
       mockPrisma.module!.findFirst.mockResolvedValue(row);
@@ -316,6 +428,8 @@ describe('PrismaModuleFormationRepository', () => {
           status: ModuleStatus.DRAFT,
           createdAt: new Date(),
           updatedAt: new Date(),
+          lessons: [],
+          quizzes: [],
         },
         {
           id: uuid2,
@@ -328,6 +442,8 @@ describe('PrismaModuleFormationRepository', () => {
           status: ModuleStatus.PUBLISHED,
           createdAt: new Date(),
           updatedAt: new Date(),
+          lessons: [],
+          quizzes: [],
         },
       ];
 
@@ -584,6 +700,416 @@ describe('PrismaModuleFormationRepository', () => {
           },
         }),
       });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // update(module)
+  // ---------------------------------------------------------------------------
+
+  describe('update(module)', () => {
+    it('devrait mettre à jour un module sans ajouter de nouvelles lessons', async () => {
+      const existingModule: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Old Title',
+        description: 'Old Desc',
+        imageUrl: null,
+        thematics: [Thematic.FINANCIAL_EDUCATION],
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 30,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      const updatedModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'New Title',
+        description: 'New Desc',
+        imageUrl: 'http://example.com/new.jpg',
+        thematics: [Thematic.SAVING],
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 60,
+        lessons: [],
+        quizzes: [],
+        status: ModuleStatus.PUBLISHED,
+      });
+
+      const updatedRow: PrismaModuleRow = {
+        ...existingModule,
+        title: 'New Title',
+        description: 'New Desc',
+        imageUrl: 'http://example.com/new.jpg',
+        thematics: [Thematic.SAVING],
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 60,
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(existingModule);
+      mockPrisma.module!.update.mockResolvedValue(updatedRow);
+
+      const result = await repository.update(updatedModule);
+
+      expect(mockPrisma.module!.findUnique).toHaveBeenCalledWith({
+        where: { id: uuid1 },
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(mockPrisma.module!.update).toHaveBeenCalledWith({
+        where: { id: uuid1 },
+        data: {
+          title: 'New Title',
+          description: 'New Desc',
+          imageUrl: 'http://example.com/new.jpg',
+          thematics: [Thematic.SAVING],
+          difficultyLevel: DifficultyLevel.INTERMEDIATE,
+          estimatedDuration: 60,
+          status: ModuleStatus.PUBLISHED,
+        },
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result.title).toBe('New Title');
+    });
+
+    it('devrait ajouter de nouvelles lessons lors de la mise à jour', async () => {
+      const existingLesson = {
+        id: uuid2,
+        title: 'Existing Lesson',
+        description: 'Desc',
+        duration: 20,
+        order: 1,
+        status: LessonStatus.PUBLISHED,
+        chapters: [],
+      };
+
+      const existingModule: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.FINANCIAL_EDUCATION],
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 30,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [existingLesson],
+        quizzes: [],
+      };
+
+      const newLesson = new Lesson({
+        id: EntityId.from(uuid3),
+        title: 'New Lesson',
+        description: 'New Desc',
+        duration: 25,
+        order: 2,
+        chapters: [],
+        status: LessonStatus.DRAFT,
+      });
+
+      const updatedModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.FINANCIAL_EDUCATION],
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 55,
+        lessons: [
+          new Lesson({
+            id: EntityId.from(uuid2),
+            title: 'Existing Lesson',
+            description: 'Desc',
+            duration: 20,
+            order: 1,
+            chapters: [],
+            status: LessonStatus.PUBLISHED,
+          }),
+          newLesson,
+        ],
+        quizzes: [],
+        status: ModuleStatus.DRAFT,
+      });
+
+      const updatedRow: PrismaModuleRow = {
+        ...existingModule,
+        estimatedDuration: 55,
+        lessons: [
+          existingLesson,
+          {
+            id: uuid3,
+            title: 'New Lesson',
+            description: 'New Desc',
+            duration: 25,
+            order: 2,
+            status: LessonStatus.DRAFT,
+            chapters: [],
+          },
+        ],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(existingModule);
+      mockPrisma.module!.update.mockResolvedValue(updatedRow);
+
+      const result = await repository.update(updatedModule);
+
+      expect(mockPrisma.module!.update).toHaveBeenCalledWith({
+        where: { id: uuid1 },
+        data: expect.objectContaining({
+          estimatedDuration: 55,
+          lessons: {
+            create: [
+              expect.objectContaining({
+                id: uuid3,
+                title: 'New Lesson',
+              }),
+            ],
+          },
+        }),
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(result.lessons).toHaveLength(2);
+    });
+
+    it('devrait ajouter de nouveaux quizzes lors de la mise à jour', async () => {
+      const existingQuiz = {
+        id: uuid2,
+        title: 'Existing Quiz',
+        description: 'Desc',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 30,
+        nombreTentatives: 3,
+        questions: [],
+      };
+
+      const existingModule: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.INVESTMENT],
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 90,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [existingQuiz],
+      };
+
+      const newQuiz = new Quiz({
+        id: EntityId.from(uuid3),
+        title: 'New Quiz',
+        description: 'New Quiz Desc',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 60,
+        duree: 20,
+        nombreTentatives: 2, // ✅ Valeur valide entre 1 et 3
+        questions: [],
+      });
+
+      const updatedModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.INVESTMENT],
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 90,
+        lessons: [],
+        quizzes: [
+          new Quiz({
+            id: EntityId.from(uuid2),
+            title: 'Existing Quiz',
+            description: 'Desc',
+            status: QuizStatus.PUBLISHED,
+            scoreMinimum: 70,
+            duree: 30,
+            nombreTentatives: 3,
+            questions: [],
+          }),
+          newQuiz,
+        ],
+        status: ModuleStatus.PUBLISHED,
+      });
+
+      const updatedRow: PrismaModuleRow = {
+        ...existingModule,
+        quizzes: [
+          existingQuiz,
+          {
+            id: uuid3,
+            title: 'New Quiz',
+            description: 'New Quiz Desc',
+            status: QuizStatus.DRAFT,
+            scoreMinimum: 60,
+            duree: 20,
+            nombreTentatives: 2, // ✅ Valeur valide entre 1 et 3
+            questions: [],
+          },
+        ],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(existingModule);
+      mockPrisma.module!.update.mockResolvedValue(updatedRow);
+
+      const result = await repository.update(updatedModule);
+
+      expect(mockPrisma.module!.update).toHaveBeenCalledWith({
+        where: { id: uuid1 },
+        data: expect.objectContaining({
+          quizzes: {
+            create: [
+              expect.objectContaining({
+                id: uuid3,
+                title: 'New Quiz',
+              }),
+            ],
+          },
+        }),
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(result.quizzes).toHaveLength(2);
+    });
+
+    it('devrait ajouter à la fois de nouvelles lessons et quizzes', async () => {
+      const existingModule: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.SAVING],
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 60,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      const newLesson = new Lesson({
+        id: EntityId.from(uuid2),
+        title: 'New Lesson',
+        description: 'Lesson Desc',
+        duration: 30,
+        order: 1,
+        chapters: [],
+        status: LessonStatus.DRAFT,
+      });
+
+      const newQuiz = new Quiz({
+        id: EntityId.from(uuid3),
+        title: 'New Quiz',
+        description: 'Quiz Desc',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 50,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const updatedModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.SAVING],
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 60,
+        lessons: [newLesson],
+        quizzes: [newQuiz],
+        status: ModuleStatus.DRAFT,
+      });
+
+      const updatedRow: PrismaModuleRow = {
+        ...existingModule,
+        lessons: [
+          {
+            id: uuid2,
+            title: 'New Lesson',
+            description: 'Lesson Desc',
+            duration: 30,
+            order: 1,
+            status: LessonStatus.DRAFT,
+            chapters: [],
+          },
+        ],
+        quizzes: [
+          {
+            id: uuid3,
+            title: 'New Quiz',
+            description: 'Quiz Desc',
+            status: QuizStatus.DRAFT,
+            scoreMinimum: 50,
+            duree: 15,
+            nombreTentatives: 3,
+            questions: [],
+          },
+        ],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(existingModule);
+      mockPrisma.module!.update.mockResolvedValue(updatedRow);
+
+      const result = await repository.update(updatedModule);
+
+      expect(mockPrisma.module!.update).toHaveBeenCalledWith({
+        where: { id: uuid1 },
+        data: expect.objectContaining({
+          lessons: { create: expect.any(Array) },
+          quizzes: { create: expect.any(Array) },
+        }),
+        include: { lessons: true, quizzes: true },
+      });
+
+      expect(result.lessons).toHaveLength(1);
+      expect(result.quizzes).toHaveLength(1);
+    });
+
+    it('devrait gérer le cas où le module existant est null', async () => {
+      const updatedModule = Module.create({
+        id: EntityId.from(uuid1),
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.FINANCIAL_EDUCATION],
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 30,
+        lessons: [],
+        quizzes: [],
+        status: ModuleStatus.DRAFT,
+      });
+
+      const updatedRow: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Desc',
+        imageUrl: null,
+        thematics: [Thematic.FINANCIAL_EDUCATION],
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 30,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(null);
+      mockPrisma.module!.update.mockResolvedValue(updatedRow);
+
+      const result = await repository.update(updatedModule);
+
+      expect(result).toBeInstanceOf(Module);
     });
   });
 });

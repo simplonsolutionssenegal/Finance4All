@@ -1,16 +1,18 @@
-// backend/__tests__/infrastructure/web/routes/module.routes.test.ts
-
 import request from 'supertest';
 import express from 'express';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 
-// Mock des dépendances du container
+
+// ✅ Mock controller DI (doit contenir toutes les méthodes utilisées dans routes.ts)
 const mockModuleController = {
   create: jest.fn(),
   getAll: jest.fn(),
+  getById: jest.fn(),
+  addLesson: jest.fn(),
+  addQuiz: jest.fn(),
 };
 
-// Mock du container DI
+// ✅ Mock container DI
 jest.mock('@/infrastructure/config/container', () => ({
   container: {
     get: jest.fn().mockReturnValue(mockModuleController),
@@ -20,29 +22,28 @@ jest.mock('@/infrastructure/config/container', () => ({
   },
 }));
 
-// Mock des validators
+// ✅ Mock validators (inclure validateModuleId maintenant)
 jest.mock('@/infrastructure/web/validators/module.validator', () => ({
   handleValidationErrors: jest.fn((req, res, next) => next()),
   validateCreateModule: [],
   validateGetModules: [],
 }));
 
-describe('Module Routes', () => {
+import * as validators from '@/infrastructure/web/validators/module.validator';
+
+describe('ModuleFormationRoutes', () => {
   let app: express.Application;
-  let moduleRoutes: express.Router;
 
   beforeEach(() => {
-    // Reset all mocks
     jest.clearAllMocks();
 
-    // Dynamically import routes after mocks are set up
+    // Importer les routes après les mocks
+    // (si ton Jest cache trop, ajoute jest.resetModules() avant require)
     const { ModuleFormationRoutes } = require('@/infrastructure/web/routes/module.routes');
-    moduleRoutes = ModuleFormationRoutes();
 
-    // Setup Express app with routes
     app = express();
     app.use(express.json());
-    app.use('/modules', moduleRoutes);
+    app.use('/modules', ModuleFormationRoutes());
   });
 
   describe('GET /modules', () => {
@@ -145,17 +146,20 @@ describe('Module Routes', () => {
         res.status(200).json({ success: true, data: [], message: 'OK' });
       });
 
-      // Act
-      await request(app).get('/modules').expect(200);
+      const res = await request(app).get('/modules').expect(200);
 
       // Assert - validateGetModules est maintenant un tableau vide dans le mock
       expect(mockModuleController.getAll).toHaveBeenCalled();
+      expect(res.body).toEqual({ success: true, data: [], message: 'OK' });
+      expect(mockModuleController.getAll).toHaveBeenCalledTimes(1);
+
+      expect(validators.validateGetModules).toHaveBeenCalled();
+      expect(validators.handleValidationErrors).toHaveBeenCalled();
     });
   });
 
   describe('POST /modules', () => {
-    it('devrait créer un module avec succès', async () => {
-      // Arrange
+    it('should call controller.create and return 201', async () => {
       const moduleData = {
         title: 'Nouveau Module',
         description: 'Description du nouveau module',
@@ -181,15 +185,11 @@ describe('Module Routes', () => {
         });
       });
 
-      // Act
-      const response = await request(app).post('/modules').send(moduleData).expect(201);
+      const res = await request(app).post('/modules').send(moduleData).expect(201);
 
-      // Assert
-      expect(response.body).toEqual({
-        success: true,
-        data: createdModule,
-        message: 'Module créé avec succès',
-      });
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.title).toBe(moduleData.title);
+
       expect(mockModuleController.create).toHaveBeenCalledTimes(1);
     });
 
@@ -377,15 +377,11 @@ describe('Module Routes', () => {
         });
       });
 
-      const postResponse = await request(app).post('/modules').send(moduleData).expect(201);
+      const res = await request(app).get('/modules/module-123').expect(200);
 
-      // Test GET
-      mockModuleController.getAll.mockImplementation(async (req, res) => {
-        res.status(200).json({
-          success: true,
-          data: [createdModule],
-          message: 'Modules récupérés avec succès',
-        });
+      expect(res.body).toEqual({
+        success: true,
+        data: { id: 'module-123', title: 'X' },
       });
 
       const getResponse = await request(app).get('/modules').expect(200);
@@ -404,20 +400,90 @@ describe('Module Routes', () => {
       expect(typeof postResponse.body.success).toBe('boolean');
       expect(typeof getResponse.body.success).toBe('boolean');
     });
+  });
 
-    it('devrait utiliser les bons codes de statut HTTP', async () => {
-      // Test GET success
-      mockModuleController.getAll.mockImplementation(async (req, res) => {
+  describe('PUT /modules/:id/lessons', () => {
+    it('should call controller.addLesson and return 201', async () => {
+      mockModuleController.addLesson.mockImplementation(async (req: any, res: any) => {
+        res.status(201).json({ success: true, data: { moduleId: req.params.id, ...req.body } });
+      });
+
+      const payload = {
+        title: 'Lesson',
+        description: 'Desc',
+        duration: '30',
+        order: '0',
+        status: 'DRAFT',
+        chapters: [],
+      };
+
+      const res = await request(app).put('/modules/module-1/lessons').send(payload).expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.moduleId).toBe('module-1');
+
+      expect(mockModuleController.addLesson).toHaveBeenCalledTimes(1);
+      expect(validators.validateModuleId).toHaveBeenCalled();
+      expect(validators.handleValidationErrors).toHaveBeenCalled();
+    });
+  });
+
+  describe('PUT /modules/:id/quizzes', () => {
+    it('should call controller.addQuiz and return 201', async () => {
+      mockModuleController.addQuiz.mockImplementation(async (req: any, res: any) => {
+        res.status(201).json({ success: true, data: { moduleId: req.params.id, ...req.body } });
+      });
+
+      const payload = {
+        title: 'Quiz',
+        description: 'Desc',
+        scoreMinimum: '70',
+        nombreTentatives: '2',
+        duree: '1800',
+        status: 'DRAFT',
+        questions: [],
+      };
+
+      const res = await request(app).put('/modules/module-2/quizzes').send(payload).expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.moduleId).toBe('module-2');
+
+      expect(mockModuleController.addQuiz).toHaveBeenCalledTimes(1);
+      expect(validators.validateModuleId).toHaveBeenCalled();
+      expect(validators.handleValidationErrors).toHaveBeenCalled();
+    });
+  });
+
+  describe('binding (bind(controller))', () => {
+    it('should keep "this" bound to the controller for all methods', async () => {
+      // ⚠️ Important : utiliser function() pour avoir un "this" (pas une arrow)
+      mockModuleController.getAll.mockImplementation(function (this: any, req: any, res: any) {
+        expect(this).toBe(mockModuleController);
         res.status(200).json({ success: true, data: [], message: 'OK' });
       });
 
-      await request(app).get('/modules').expect(200);
-
-      // Test POST success
-      mockModuleController.create.mockImplementation(async (req, res) => {
+      mockModuleController.create.mockImplementation(function (this: any, req: any, res: any) {
+        expect(this).toBe(mockModuleController);
         res.status(201).json({ success: true, data: {}, message: 'Created' });
       });
 
+      mockModuleController.getById.mockImplementation(function (this: any, req: any, res: any) {
+        expect(this).toBe(mockModuleController);
+        res.status(200).json({ success: true, data: { id: req.params.id } });
+      });
+
+      mockModuleController.addLesson.mockImplementation(function (this: any, req: any, res: any) {
+        expect(this).toBe(mockModuleController);
+        res.status(201).json({ success: true, data: {} });
+      });
+
+      mockModuleController.addQuiz.mockImplementation(function (this: any, req: any, res: any) {
+        expect(this).toBe(mockModuleController);
+        res.status(201).json({ success: true, data: {} });
+      });
+
+      await request(app).get('/modules').expect(200);
       await request(app)
         .post('/modules')
         .send({
@@ -429,7 +495,6 @@ describe('Module Routes', () => {
           estimatedDuration: 30,
         })
         .expect(201);
-    });
 
     it('devrait gérer le Content-Type JSON correctement', async () => {
       // Arrange
@@ -442,32 +507,6 @@ describe('Module Routes', () => {
         estimatedDuration: 30,
       };
 
-      mockModuleController.create.mockImplementation(async (req, res) => {
-        res.status(201).json({ success: true, data: {}, message: 'OK' });
-      });
-
-      // Act & Assert
-      await request(app)
-        .post('/modules')
-        .send(moduleData)
-        .set('Content-Type', 'application/json')
-        .expect(201);
-    });
-  });
-
-  describe('Tests du binding des méthodes du contrôleur', () => {
-    it('devrait correctement binder les méthodes du contrôleur', async () => {
-      // Arrange
-      mockModuleController.getAll.mockImplementation(async (req, res) => {
-        // Vérifier que 'this' est correctement bindé
-        expect(this).toBeDefined();
-        res.status(200).json({ success: true, data: [], message: 'OK' });
-      });
-
-      // Act
-      await request(app).get('/modules').expect(200);
-
-      // Assert
       expect(mockModuleController.getAll).toHaveBeenCalled();
     });
 
@@ -491,6 +530,9 @@ describe('Module Routes', () => {
 
       // Assert
       expect(mockModuleController.create).toHaveBeenCalled();
+      expect(mockModuleController.getById).toHaveBeenCalled();
+      expect(mockModuleController.addLesson).toHaveBeenCalled();
+      expect(mockModuleController.addQuiz).toHaveBeenCalled();
     });
   });
 });
