@@ -244,6 +244,8 @@ describe('Types de module', () => {
       const convertToModule = (data: CreateModuleData): Module => {
         return {
           id: `module-${Date.now()}`,
+          lessons: [], // ✅
+          quizzes: [], // ✅
           ...data,
           status: ModuleStatus.DRAFT,
           createdAt: new Date().toISOString(),
@@ -328,6 +330,8 @@ describe('Types de module', () => {
 
       const moduleData: Module = {
         id: 'generated-id',
+        lessons: [], // ✅
+        quizzes: [], // ✅
         ...createData,
         status: ModuleStatus.DRAFT,
         createdAt: new Date().toISOString(),
@@ -371,6 +375,8 @@ describe('Types de module', () => {
         estimatedDuration: 120,
         thematics: 'entrepreneuriat',
         status: ModuleStatus.PUBLISHED,
+        lessons: [], // ✅
+        quizzes: [], // ✅
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: ['populaire', 'recommandé'],
