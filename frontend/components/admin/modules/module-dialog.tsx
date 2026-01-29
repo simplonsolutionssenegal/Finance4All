@@ -90,12 +90,13 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
       onKeyDown={handleKeyDown}
     >
       {/* Backdrop */}
-      <div
-        className='absolute inset-0 bg-black/50'
+      <button
+        type='button'
+        className='absolute inset-0 bg-black/50 cursor-default'
         onClick={handleClose}
-        role='button'
-        tabIndex={0}
         aria-label='Fermer le dialog'
+        title='Fermer le dialog'
+        disabled={isCreating}
       />
 
       {/* Modal (plus petit) */}
@@ -234,12 +235,17 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
 
           {/* Upload image (compact) */}
           <div>
-            <label className='block text-xs font-medium text-gray-900 mb-1.5'>
+            <label htmlFor='moduleImage' className='block text-xs font-medium text-gray-900 mb-1.5'>
               Image du module
             </label>
 
-            <label className='flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 bg-white px-1 py-2 cursor-pointer hover:bg-gray-50 transition-colors'>
+            <label
+              htmlFor='moduleImage'
+              className='flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 bg-white px-1 py-2 cursor-pointer hover:bg-gray-50 transition-colors'
+            >
               <input
+                id='moduleImage'
+                name='moduleImage'
                 type='file'
                 accept='image/png,image/jpeg,image/gif'
                 className='hidden'

@@ -78,4 +78,3 @@ describe('FiltersBar', () => {
     );
   });
 });
-expect(screen.getByText('Créer un quiz')).toBeInTheDocument();
