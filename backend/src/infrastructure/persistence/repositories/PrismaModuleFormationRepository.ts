@@ -36,10 +36,14 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return module ? this.toDomain(module) : null;
   }
   async findByThematic(thematic: string): Promise<Module | null> {
+    // Normaliser la recherche en minuscules pour la comparaison
+    const normalizedThematic = thematic.toLowerCase().trim();
+
     const module = await this.prisma.module.findFirst({
       where: {
         thematics: {
-          equals: thematic,
+          equals: normalizedThematic,
+          mode: 'insensitive',
         },
       },
     });
@@ -78,7 +82,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       title: prismaModule.title,
       imageMediaId: prismaModule.imageMediaId || null,
       description: prismaModule.description,
-      thematics: prismaModule.thematics || null,
+      thematics: prismaModule.thematics,
       difficultyLevel: (prismaModule.difficultyLevel as DifficultyLevel) || undefined,
       estimatedDuration: prismaModule.estimatedDuration || 0,
       status: prismaModule.status as ModuleStatus,
@@ -91,11 +95,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       id: module.id.getValue(),
       title: module.title,
       description: module.description,
-      imageMediaId: module.imageMediaId,
-      thematics: module.thematics || undefined,
+      thematics: module.thematics,
       difficultyLevel: module.difficultyLevel,
       estimatedDuration: module.estimatedDuration,
       status: module.status as ModuleStatus,
+      ...(module.imageMediaId && {
+        imageMedia: {
+          connect: { id: module.imageMediaId },
+        },
+      }),
     };
   }
 }

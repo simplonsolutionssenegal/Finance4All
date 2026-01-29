@@ -41,8 +41,8 @@ export const validateCreateModule: ValidationChain[] = [
     .trim()
     .notEmpty()
     .withMessage('Au moins une thématique est requise')
-    .isLength({ min: 10 })
-    .withMessage('Thématique existe déjà'),
+    .isLength({ min: 3 })
+    .withMessage('La thématique doit contenir au moins 3 caractères'),
 
   body('difficultyLevel')
     .isIn(Object.values(DifficultyLevel))

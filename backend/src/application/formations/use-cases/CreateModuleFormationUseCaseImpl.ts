@@ -17,25 +17,26 @@ export class CreateModuleFormationUseCaseImpl implements CreateModuleUseCase {
   constructor(private readonly moduleRepository: ModuleRepository) {}
   async execute(input: CreateModuleUseCommand): Promise<ModuleResponseDTO> {
     const existingModule = await this.moduleRepository.findByTitle(input.title);
-    const existingThematic = await this.moduleRepository.findByThematic(input.thematics || '');
+
+    // Normaliser la thématique en minuscules et trim les espaces
+    const normalizedThematic = input.thematics.toLowerCase().trim();
+
+    const existingThematic = await this.moduleRepository.findByThematic(normalizedThematic);
+    if (existingThematic) {
+      throw new DuplicateThematicException(input.thematics);
+    }
 
     if (existingModule) {
       throw new DuplicateTitleException(input.title);
     }
 
-    if (existingThematic) {
-      throw new DuplicateThematicException(input.thematics || '');
-    }
-
-    const thematics: string | null = input.thematics ? input.thematics : null;
-
-    // Créer l'entité Module
+    // Créer l'entité Module avec la thématique normalisée
     const module = new Module({
       id: EntityId.generate(),
       title: input.title,
       description: input.description,
       imageMediaId: input.imageMediaId,
-      thematics,
+      thematics: normalizedThematic,
       difficultyLevel: input.difficultyLevel,
       estimatedDuration: input.estimatedDuration,
       status: ModuleStatus.DRAFT,

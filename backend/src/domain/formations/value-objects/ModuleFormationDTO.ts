@@ -5,7 +5,7 @@ export interface ModuleResponseDTO {
   title: string;
   description: string;
   imageMediaId: string | null;
-  thematics: string | null;
+  thematics: string;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   status: ModuleStatus;

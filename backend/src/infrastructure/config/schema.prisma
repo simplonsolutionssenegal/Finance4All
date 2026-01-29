@@ -133,33 +133,7 @@ model Module {
   @@index([difficultyLevel])
   @@index([createdAt])
 }
-model Media {
-  id           String    @id @default(uuid())
-  filename     String
-  originalName String
-  mimeType     String
-  type         MediaType
-  size         Int
-  bucket       String
-  path         String
-  metadata     Json?
-  isTemporary  Boolean   @default(false)
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
 
-  moduleImage  Module[]   @relation("ModuleImage")
-
-  @@index([type])
-  @@index([createdAt])
-  @@index([isTemporary, expiresAt])
-}
-enum MediaType {
-  VIDEO
-  PDF
-  AUDIO
-  IMAGE
-}
 
 
 enum ModuleStatus {

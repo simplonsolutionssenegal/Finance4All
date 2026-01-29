@@ -28,7 +28,7 @@ export interface ModuleProps {
   title: string;
   description: string;
   imageMediaId: string | null;
-  thematics: string | null;
+  thematics: string;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   status: ModuleStatus;
@@ -39,7 +39,7 @@ export interface ModuleProps {
 export class Module extends DomainEntity<EntityId> {
   private _title: string;
   private _description: string;
-  private _thematics: string | null;
+  private _thematics: string;
   private _imageMediaId: string | null;
   private _difficultyLevel: DifficultyLevel;
   private _estimatedDuration: number;
@@ -54,6 +54,24 @@ export class Module extends DomainEntity<EntityId> {
     this._difficultyLevel = props.difficultyLevel;
     this._estimatedDuration = props.estimatedDuration;
     this._status = props.status;
+
+    // Préserver les dates si fournies (pour la reconstitution depuis la BD)
+    if (props.createdAt) {
+      Object.defineProperty(this, '_createdAt', {
+        value: props.createdAt,
+        writable: false,
+        enumerable: false,
+        configurable: true,
+      });
+    }
+    if (props.updatedAt) {
+      Object.defineProperty(this, '_updatedAt', {
+        value: props.updatedAt,
+        writable: true,
+        enumerable: false,
+        configurable: true,
+      });
+    }
   }
 
   public static create(props: ModuleProps): Module {
@@ -104,7 +122,7 @@ export class Module extends DomainEntity<EntityId> {
     return this._imageMediaId;
   }
 
-  get thematics(): string | null {
+  get thematics(): string {
     return this._thematics;
   }
 
@@ -118,14 +136,6 @@ export class Module extends DomainEntity<EntityId> {
 
   get status(): ModuleStatus {
     return this._status;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt || new Date();
-  }
-
-  get updatedAt(): Date {
-    return this._updatedAt || new Date();
   }
 
   public publish(): void {
