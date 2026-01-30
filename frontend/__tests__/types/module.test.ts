@@ -78,7 +78,6 @@ describe('Types de module', () => {
       id: 'module-123',
       title: 'Introduction aux Finances',
       description: "Module d'introduction aux concepts financiers de base",
-      imageUrl: 'https://example.com/image.jpg',
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
@@ -109,27 +108,9 @@ describe('Types de module', () => {
       expect(mockModule).toHaveProperty('updatedAt');
     });
 
-    it('peut avoir une imageUrl optionnelle', () => {
-      const moduleWithoutImage: Module = {
-        ...mockModule,
-        imageUrl: null,
-      };
-
-      expect(moduleWithoutImage.imageUrl).toBeNull();
-
-      const moduleWithImage: Module = {
-        ...mockModule,
-        imageUrl: 'https://example.com/image.jpg',
-      };
-
-      expect(moduleWithImage.imageUrl).toBe('https://example.com/image.jpg');
-
-      const moduleWithUndefinedImage: Module = {
-        ...mockModule,
-        imageUrl: undefined,
-      };
-
-      expect(moduleWithUndefinedImage.imageUrl).toBeUndefined();
+    it('ne contient pas imageUrl dans sa structure', () => {
+      expect(mockModule).not.toHaveProperty('imageUrl');
+      expect(mockModule).not.toHaveProperty('imageMediaId');
     });
 
     it('thematics est une chaîne de caractères obligatoire', () => {
@@ -205,7 +186,7 @@ describe('Types de module', () => {
     const mockCreateData: CreateModuleData = {
       title: 'Nouveau Module',
       description: 'Description du nouveau module de formation financière',
-      imageUrl: 'https://example.com/new-image.jpg',
+      imageMediaId: 'media-123',
       difficultyLevel: DifficultyLevel.INTERMEDIATE,
       estimatedDuration: 90,
       thematics: 'investissement',
@@ -234,20 +215,20 @@ describe('Types de module', () => {
       expect(mockCreateData.thematics.length).toBeGreaterThan(0);
     });
 
-    it('peut avoir une imageUrl optionnelle', () => {
+    it('peut avoir un imageMediaId optionnel', () => {
       const createDataWithoutImage: CreateModuleData = {
         ...mockCreateData,
-        imageUrl: undefined,
+        imageMediaId: undefined,
       };
 
-      expect(createDataWithoutImage.imageUrl).toBeUndefined();
+      expect(createDataWithoutImage.imageMediaId).toBeUndefined();
 
       const createDataWithNullImage: CreateModuleData = {
         ...mockCreateData,
-        imageUrl: null,
+        imageMediaId: null,
       };
 
-      expect(createDataWithNullImage.imageUrl).toBeNull();
+      expect(createDataWithNullImage.imageMediaId).toBeNull();
     });
 
     it('ne contient pas les propriétés générées automatiquement', () => {
@@ -509,10 +490,7 @@ describe('Types de module', () => {
         const hasValidNumbers =
           typeof obj.estimatedDuration === 'number' && obj.estimatedDuration > 0;
 
-        const hasValidImageUrl =
-          obj.imageUrl === null || obj.imageUrl === undefined || typeof obj.imageUrl === 'string';
-
-        return hasRequiredStringProps && hasValidEnums && hasValidNumbers && hasValidImageUrl;
+        return hasRequiredStringProps && hasValidEnums && hasValidNumbers;
       };
 
       const validModule: Module = {
@@ -538,7 +516,6 @@ describe('Types de module', () => {
       id: 'module-xyz',
       title: 'Introduction aux Finances',
       description: 'Description',
-      imageUrl: null,
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
@@ -552,7 +529,6 @@ describe('Types de module', () => {
         return {
           title: m.title,
           description: m.description,
-          imageUrl: m.imageUrl,
           thematics: m.thematics,
           difficultyLevel: m.difficultyLevel,
           estimatedDuration: m.estimatedDuration,

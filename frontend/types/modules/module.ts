@@ -17,7 +17,6 @@ export interface Module {
   id: string;
   title: string;
   description: string;
-  imageUrl?: string | null;
   thematics: string;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
@@ -29,8 +28,8 @@ export interface Module {
 export interface CreateModuleData {
   title: string;
   description: string;
-  imageUrl?: string | null;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   thematics: string;
+  imageMediaId?: string | null;
 }

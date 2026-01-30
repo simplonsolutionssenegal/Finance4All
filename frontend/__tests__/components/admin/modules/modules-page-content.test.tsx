@@ -126,7 +126,6 @@ describe('ModulesPageContent', () => {
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
     status,
-    imageUrl: `https://example.com/image-${id}.jpg`,
     createdAt: new Date('2024-01-01').toISOString(),
     updatedAt: new Date('2024-01-01').toISOString(),
   });
@@ -252,6 +251,205 @@ describe('ModulesPageContent', () => {
       await waitFor(() => {
         expect(mockHideLoader).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('Gestion des erreurs', () => {
+    it("passe isError à ModuleList en cas d'erreur", () => {
+      mockUseGetModules.mockImplementationOnce(() => ({
+        modules: [],
+        isLoading: false,
+        isError: true,
+        refetch: mockRefetch,
+      }));
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('list-error')).toBeInTheDocument();
+    });
+  });
+
+  describe('Gestion des modules vides', () => {
+    it('affiche 0 modules quand la liste est vide', () => {
+      mockModules = [];
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('module-count')).toHaveTextContent('0');
+      expect(screen.getByTestId('stats-total-modules')).toHaveTextContent('0');
+      expect(screen.getByTestId('stats-published-modules')).toHaveTextContent('0');
+    });
+
+    it('gère correctement modules undefined', () => {
+      mockUseGetModules.mockImplementationOnce(() => ({
+        modules: undefined,
+        isLoading: false,
+        isError: false,
+        refetch: mockRefetch,
+      }));
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('module-count')).toHaveTextContent('0');
+    });
+  });
+
+  describe('Pagination avancée', () => {
+    it('calcule correctement le nombre total de pages', () => {
+      mockModules = Array.from({ length: 18 }, (_, i) =>
+        createTestModule(i + 1, `Module ${i + 1}`)
+      );
+
+      render(<ModulesPageContent />);
+
+      // 18 modules / 6 par page = 3 pages
+      expect(screen.getByTestId('pagination-total-pages')).toHaveTextContent('3');
+    });
+
+    it('affiche tous les modules sur une seule page si <= 6', () => {
+      mockModules = Array.from({ length: 5 }, (_, i) => createTestModule(i + 1, `Module ${i + 1}`));
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('module-count')).toHaveTextContent('5');
+      expect(screen.getByTestId('pagination-total-pages')).toHaveTextContent('1');
+    });
+
+    it('réinitialise le scroll au changement de page', async () => {
+      const scrollToMock = jest.fn();
+      window.scrollTo = scrollToMock;
+
+      mockModules = Array.from({ length: 10 }, (_, i) =>
+        createTestModule(i + 1, `Module ${i + 1}`)
+      );
+
+      render(<ModulesPageContent />);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByTestId('go-to-page-2'));
+
+      expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  describe('Calcul des statistiques', () => {
+    it('compte uniquement les modules PUBLISHED', () => {
+      mockModules = [
+        createTestModule(1, 'Module 1', ModuleStatus.PUBLISHED),
+        createTestModule(2, 'Module 2', ModuleStatus.DRAFT),
+        createTestModule(3, 'Module 3', ModuleStatus.PUBLISHED),
+        createTestModule(4, 'Module 4', ModuleStatus.ARCHIVED),
+        createTestModule(5, 'Module 5', ModuleStatus.PUBLISHED),
+      ];
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('stats-total-modules')).toHaveTextContent('5');
+      expect(screen.getByTestId('stats-published-modules')).toHaveTextContent('3');
+    });
+
+    it('affiche les valeurs en dur pour totalQuizzes et totalLearners', () => {
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('stats-total-quizzes')).toHaveTextContent('20');
+      expect(screen.getByTestId('stats-total-learners')).toHaveTextContent('688');
+    });
+  });
+
+  describe('Structure du layout', () => {
+    it('applique les bonnes classes au conteneur principal', () => {
+      const { container } = render(<ModulesPageContent />);
+
+      const mainDiv = container.querySelector('.min-h-screen.bg-gray-50.p-6');
+      expect(mainDiv).toBeInTheDocument();
+    });
+
+    it('applique les bonnes classes au conteneur central', () => {
+      const { container } = render(<ModulesPageContent />);
+
+      const centerDiv = container.querySelector('.max-w-7xl.mx-auto');
+      expect(centerDiv).toBeInTheDocument();
+    });
+  });
+
+  describe('Interaction avec les hooks', () => {
+    it('appelle useGetModules avec les bons paramètres', () => {
+      render(<ModulesPageContent />);
+
+      expect(mockUseGetModules).toHaveBeenCalledWith({
+        page: 1,
+        limit: 100,
+      });
+    });
+
+    it('utilise refetch du hook useGetModules', async () => {
+      render(<ModulesPageContent />);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByTestId('new-button'));
+      await user.click(screen.getByTestId('close-dialog'));
+
+      await waitFor(() => {
+        expect(mockRefetch).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Cas limites', () => {
+    it('gère un très grand nombre de modules', () => {
+      mockModules = Array.from({ length: 100 }, (_, i) =>
+        createTestModule(i + 1, `Module ${i + 1}`)
+      );
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('stats-total-modules')).toHaveTextContent('100');
+      expect(screen.getByTestId('module-count')).toHaveTextContent('6'); // Première page
+      expect(screen.getByTestId('pagination-total-pages')).toHaveTextContent('17'); // 100/6 arrondi
+    });
+
+    it('gère exactement 6 modules (une page complète)', () => {
+      mockModules = Array.from({ length: 6 }, (_, i) => createTestModule(i + 1, `Module ${i + 1}`));
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('module-count')).toHaveTextContent('6');
+      expect(screen.getByTestId('pagination-total-pages')).toHaveTextContent('1');
+    });
+
+    it('gère 7 modules (2 pages avec 1 module sur la seconde)', () => {
+      mockModules = Array.from({ length: 7 }, (_, i) => createTestModule(i + 1, `Module ${i + 1}`));
+
+      render(<ModulesPageContent />);
+
+      expect(screen.getByTestId('pagination-total-pages')).toHaveTextContent('2');
+    });
+  });
+
+  describe('État du dialogue', () => {
+    it('le dialogue est fermé par défaut', () => {
+      render(<ModulesPageContent />);
+
+      expect(screen.queryByTestId('module-dialog')).not.toBeInTheDocument();
+    });
+
+    it('ouvre et ferme le dialogue plusieurs fois', async () => {
+      render(<ModulesPageContent />);
+      const user = userEvent.setup();
+
+      // Ouvrir
+      await user.click(screen.getByTestId('new-button'));
+      expect(screen.getByTestId('module-dialog')).toBeInTheDocument();
+
+      // Fermer
+      await user.click(screen.getByTestId('close-dialog'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('module-dialog')).not.toBeInTheDocument();
+      });
+
+      // Ouvrir à nouveau
+      await user.click(screen.getByTestId('new-button'));
+      expect(screen.getByTestId('module-dialog')).toBeInTheDocument();
     });
   });
 });

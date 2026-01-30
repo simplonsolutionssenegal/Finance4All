@@ -3,17 +3,38 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 
 import ModuleCard from '@/components/admin/modules/module-card';
-import { ModuleStatus, type Module } from '@/types/modules/module';
+import { DifficultyLevel, ModuleStatus, type Module } from '@/types/modules/module';
 
-// Mock de Next.js Image pour éviter les problèmes de layout
-jest.mock('next/image', () => {
-  return function MockImage({ src, alt, ...props }: any) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} data-testid='module-image' {...props} />;
+// Mock de Next.js Image (évite l'avertissement no-img-element)
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: function MockImage({ src, alt, fill, className, sizes, ...props }: any) {
+    return (
+      <div
+        data-testid='module-image'
+        data-src={src}
+        data-alt={alt}
+        data-fill={fill}
+        className={className}
+        data-sizes={sizes}
+        {...props}
+      />
+    );
+  },
+}));
+
+// Mock de Next.js Link
+jest.mock('next/link', () => {
+  return function MockLink({ href, children, ...props }: any) {
+    return (
+      <a href={href} data-testid='module-link' {...props}>
+        {children}
+      </a>
+    );
   };
 });
 
-// Mock des icônes Lucide utilisées par le composant
+// Mock des icônes Lucide
 jest.mock('lucide-react', () => ({
   FileText: (props: any) => <svg data-testid='file-text-icon' {...props} />,
   HelpCircle: (props: any) => <svg data-testid='help-circle-icon' {...props} />,
@@ -21,20 +42,39 @@ jest.mock('lucide-react', () => ({
   Check: (props: any) => <svg data-testid='check-icon' {...props} />,
 }));
 
-const createModule = (overrides: Partial<Module> = {}): Module =>
-  ({
-    id: '1',
-    title: 'Module de Finance Personnelle',
-    description:
-      'Apprenez les bases de la gestion financière personnelle avec ce module complet et interactif.',
-    thematics: 'Finance de base' as any,
-    estimatedDuration: 60,
-    status: ModuleStatus.PUBLISHED,
-    imageUrl: 'https://example.com/module-image.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  }) as Module;
+// Mock du hook useMediaUrl
+jest.mock('@/hooks/module/media/useMedia', () => ({
+  useMediaUrl: jest.fn((mediaId: string | null | undefined) => ({
+    url: mediaId ? `https://example.com/media/${mediaId}` : null,
+    isLoading: false,
+    error: null,
+  })),
+}));
+
+// Type étendu pour les tests incluant les propriétés supplémentaires
+type ModuleWithExtras = Module & {
+  imageMediaId?: string | null;
+  lessonsCount?: number;
+  lessons?: Array<{ id: string }>;
+  quizzesCount?: number;
+  quizzes?: Array<{ id: string }>;
+  durationMinutes?: number | string;
+};
+
+const createModule = (overrides: Partial<ModuleWithExtras> = {}): ModuleWithExtras => ({
+  id: '1',
+  title: 'Module de Finance Personnelle',
+  description:
+    'Apprenez les bases de la gestion financière personnelle avec ce module complet et interactif.',
+  thematics: 'Finance de base' as any,
+  estimatedDuration: 60,
+  status: ModuleStatus.PUBLISHED,
+  difficultyLevel: DifficultyLevel.BEGINNER,
+  imageMediaId: 'media-123',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+});
 
 describe('ModuleCard', () => {
   it('ne rend rien si aucune thématique n’est présente', () => {
@@ -58,21 +98,25 @@ describe('ModuleCard', () => {
     expect(screen.getByText(ModuleStatus.PUBLISHED)).toBeInTheDocument();
   });
 
-  it("affiche l'image quand imageUrl est définie", () => {
-    render(<ModuleCard module={createModule()} />);
+  it("affiche l'image quand imageMediaId est défini", () => {
+    render(<ModuleCard module={createModule({ imageMediaId: 'image-456' })} />);
 
     const image = screen.getByTestId('module-image');
     expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('src', 'https://example.com/module-image.jpg');
-    expect(image).toHaveAttribute('alt', 'Module de Finance Personnelle');
+    expect(image).toHaveAttribute('data-src', 'https://example.com/media/image-456');
+    expect(image).toHaveAttribute('data-alt', 'Module de Finance Personnelle');
   });
 
   it("affiche un placeholder quand aucune image n'est fournie", () => {
-    const { container } = render(<ModuleCard module={createModule({ imageUrl: null as any })} />);
+    const { useMediaUrl } = require('@/hooks/module/media/useMedia');
+    useMediaUrl.mockReturnValue({ url: null, isLoading: false, error: null });
+
+    const { container } = render(<ModuleCard module={createModule({ imageMediaId: null })} />);
 
     // Il doit y avoir au moins un bloc bg-gray-100 plein (placeholder)
-    const grayBlocks = container.querySelectorAll('.bg-gray-100');
-    expect(grayBlocks.length).toBeGreaterThan(0);
+    const placeholder = container.querySelector('.bg-gray-100');
+    expect(placeholder).toBeInTheDocument();
+    expect(screen.queryByTestId('module-image')).not.toBeInTheDocument();
   });
 
   it('affiche 0 pour leçons et quiz si aucune information n’est fournie', () => {

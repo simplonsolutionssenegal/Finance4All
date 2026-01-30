@@ -52,16 +52,37 @@ export default function ModuleDialog({ isOpen, onClose }: ModuleDialogProps) {
 
   const imageHelp = useMemo(() => 'JPG, PNG, GIF (max 5MB)', []);
 
+  async function uploadModuleImage(file: File) {
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/media`, {
+      method: 'POST',
+      body: form,
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(json?.message ?? 'Upload image échoué');
+    }
+    return json?.data ?? json;
+  }
+
   const onSubmit: SubmitHandler<CreateModuleFormData> = async data => {
+    let imageMediaId: string | null = null;
+    if (imageFile) {
+      const uploaded = await uploadModuleImage(imageFile);
+      imageMediaId = uploaded.id;
+    }
     const payload: CreateModuleData = {
       title: data.title,
       description: data.description,
       difficultyLevel: data.difficultyLevel,
       estimatedDuration: data.estimatedDuration ?? 0,
       thematics: data.thematics,
-      imageUrl: null,
+      imageMediaId,
     };
-
     createModule(payload);
   };
 
