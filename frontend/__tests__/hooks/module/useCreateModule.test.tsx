@@ -79,18 +79,20 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageMediaId: 'media-123', // ✅ un ID (pas une URL)
+      imageMediaId: 'media-123',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'finance',
     };
+
+    const { imageMediaId: _imageMediaId, ...moduleDataWithoutImage } = mockModuleData;
 
     const mockResponse = {
       success: true,
       message: 'Module créé',
       data: {
         id: '1',
-        ...mockModuleData,
+        ...moduleDataWithoutImage,
         status: ModuleStatus.DRAFT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -194,11 +196,13 @@ describe('useCreateModule', () => {
       thematics: 'financial_education',
     };
 
+    const { imageMediaId: _imageMediaId, ...moduleDataWithoutImage } = mockModuleData;
+
     mockApiClient.mockResolvedValue({
       success: true,
       data: {
         id: '1',
-        ...mockModuleData,
+        ...moduleDataWithoutImage,
         status: ModuleStatus.DRAFT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

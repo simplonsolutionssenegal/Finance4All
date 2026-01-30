@@ -45,7 +45,6 @@ describe('useGetModules', () => {
     id: '1',
     title: 'Module Test',
     description: 'Description test',
-    imageUrl: 'https://example.com/image.jpg',
     thematics: 'finance',
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
