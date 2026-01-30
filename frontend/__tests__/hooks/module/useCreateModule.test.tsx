@@ -5,12 +5,12 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { toast } from 'sonner';
 
-import { useLoader } from '../../../contexts/LoaderContext';
-import { useCreateModule } from '../../../hooks/module/useCreateModule';
-import { apiClient } from '../../../lib/api-client';
-import { DifficultyLevel } from '../../../types/modules/module';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useCreateModule } from '@/hooks/module/useCreateModule';
+import { apiClient } from '@/lib/api-client';
+import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 // eslint-disable-next-line no-duplicate-imports
-import type { CreateModuleData } from '../../../types/modules/module';
+import type { CreateModuleData } from '@/types/modules/module';
 
 // Mocks
 jest.mock('@clerk/nextjs', () => ({
@@ -24,11 +24,11 @@ jest.mock('sonner', () => ({
   },
 }));
 
-jest.mock('../../../lib/api-client', () => ({
+jest.mock('@/lib/api-client', () => ({
   apiClient: jest.fn(),
 }));
 
-jest.mock('../../../contexts/LoaderContext', () => ({
+jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: jest.fn(() => ({
     showLoader: jest.fn(),
     hideLoader: jest.fn(),
@@ -365,5 +365,289 @@ describe('useCreateModule', () => {
     });
 
     expect(mockToast.success).toHaveBeenCalled();
+  });
+
+  it('devrait exposer les propriétés isSuccess, isError et error', async () => {
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.isSuccess).toBe(false);
+    expect(result.current.isError).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('devrait gérer plusieurs niveaux de difficulté', async () => {
+    const difficultyLevels = [
+      DifficultyLevel.BEGINNER,
+      DifficultyLevel.INTERMEDIATE,
+      DifficultyLevel.ADVANCED,
+      DifficultyLevel.EXPERT,
+    ];
+
+    for (const level of difficultyLevels) {
+      const mockModuleData: CreateModuleData = {
+        title: `Module ${level}`,
+        description: 'Test Description',
+        imageMediaId: null,
+        difficultyLevel: level,
+        estimatedDuration: 60,
+        thematics: 'test',
+      };
+
+      const mockResponse = {
+        success: true,
+        data: {
+          id: '1',
+          ...mockModuleData,
+          status: ModuleStatus.DRAFT,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      mockApiClient.mockResolvedValue(mockResponse);
+
+      const { result } = renderHook(() => useCreateModule(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.createModule(mockModuleData);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+    }
+  });
+
+  it('devrait gérer imageMediaId comme chaîne', async () => {
+    const mockModuleData: CreateModuleData = {
+      title: 'Test Module',
+      description: 'Test Description',
+      imageMediaId: 'media-123-456',
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 60,
+      thematics: 'financial_education',
+    };
+
+    const mockResponse = {
+      success: true,
+      data: {
+        id: '1',
+        ...mockModuleData,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    mockApiClient.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.createModule(mockModuleData);
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockApiClient).toHaveBeenCalledWith('modules', 'POST', 'mock-token', mockModuleData);
+  });
+
+  it("devrait appeler showLoader avant l'appel API", async () => {
+    const mockModuleData: CreateModuleData = {
+      title: 'Test Module',
+      description: 'Test Description',
+      imageMediaId: null,
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 60,
+      thematics: 'test',
+    };
+
+    let showLoaderCalled = false;
+    let apiClientCalled = false;
+
+    mockShowLoader.mockImplementation(() => {
+      showLoaderCalled = true;
+      expect(apiClientCalled).toBe(false); // showLoader doit être appelé avant apiClient
+    });
+
+    mockApiClient.mockImplementation(async () => {
+      apiClientCalled = true;
+      expect(showLoaderCalled).toBe(true); // showLoader doit avoir été appelé
+      return { success: true };
+    });
+
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.createModule(mockModuleData);
+
+    await waitFor(() => {
+      expect(mockShowLoader).toHaveBeenCalled();
+    });
+  });
+
+  it("devrait toujours appeler hideLoader même en cas d'erreur", async () => {
+    const mockModuleData: CreateModuleData = {
+      title: 'Test Module',
+      description: 'Test Description',
+      imageMediaId: null,
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 60,
+      thematics: 'test',
+    };
+
+    mockApiClient.mockRejectedValue(new Error('API Error'));
+
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.createModule(mockModuleData);
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(mockHideLoader).toHaveBeenCalledTimes(1);
+  });
+
+  it('devrait gérer des durées variées', async () => {
+    const durations = [5, 30, 60, 120, 240];
+
+    for (const duration of durations) {
+      const mockModuleData: CreateModuleData = {
+        title: `Module ${duration}min`,
+        description: 'Test Description',
+        imageMediaId: null,
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: duration,
+        thematics: 'test',
+      };
+
+      const mockResponse = {
+        success: true,
+        data: {
+          id: '1',
+          ...mockModuleData,
+          status: ModuleStatus.DRAFT,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      mockApiClient.mockResolvedValue(mockResponse);
+
+      const { result } = renderHook(() => useCreateModule(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.createModule(mockModuleData);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+    }
+  });
+
+  it("devrait passer le token d'authentification à apiClient", async () => {
+    const mockModuleData: CreateModuleData = {
+      title: 'Test Module',
+      description: 'Test Description',
+      imageMediaId: null,
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 60,
+      thematics: 'test',
+    };
+
+    mockGetToken.mockResolvedValue('custom-auth-token');
+    mockApiClient.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.createModule(mockModuleData);
+
+    await waitFor(() => {
+      expect(mockApiClient).toHaveBeenCalledWith(
+        'modules',
+        'POST',
+        'custom-auth-token',
+        mockModuleData
+      );
+    });
+  });
+
+  it('devrait gérer des thématiques variées', async () => {
+    const thematics = ['finance', 'investment', 'budget', 'savings', 'crypto'];
+
+    for (const thematic of thematics) {
+      const mockModuleData: CreateModuleData = {
+        title: `Module ${thematic}`,
+        description: 'Test Description',
+        imageMediaId: null,
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        thematics: thematic,
+      };
+
+      const mockResponse = {
+        success: true,
+        data: {
+          id: '1',
+          ...mockModuleData,
+          status: ModuleStatus.DRAFT,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      mockApiClient.mockResolvedValue(mockResponse);
+
+      const { result } = renderHook(() => useCreateModule(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.createModule(mockModuleData);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+    }
+  });
+
+  it('devrait gérer une réponse sans champ data', async () => {
+    const mockModuleData: CreateModuleData = {
+      title: 'Test Module',
+      description: 'Test Description',
+      imageMediaId: null,
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 60,
+      thematics: 'test',
+    };
+
+    const mockResponse = {
+      success: true,
+      message: 'Module créé',
+    };
+
+    mockApiClient.mockResolvedValue(mockResponse);
+
+    const { result } = renderHook(() => useCreateModule(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.createModule(mockModuleData);
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockToast.success).toHaveBeenCalledWith('Module créé avec succès!');
   });
 });
