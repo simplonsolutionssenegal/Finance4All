@@ -27,6 +27,6 @@ describe('HowItWorks', () => {
   it('should have proper section structure', () => {
     const { container } = render(<HowItWorks />);
     const section = container.querySelector('section');
-    expect(section).toHaveClass('py-32', 'bg-white');
+    expect(section).toHaveClass('py-16', 'bg-white');
   });
 });

@@ -15,13 +15,13 @@ describe('PublicHeader', () => {
 
   it('should display the logo image', () => {
     render(<PublicHeader />);
-    const logo = screen.getByAltText("Finance4ALL - Plateforme d'éducation financière");
+    const logo = screen.getByAltText('Logo Finance4ALL');
     expect(logo).toBeInTheDocument();
   });
 
   it('should render logo with correct link', () => {
     render(<PublicHeader />);
-    const logoLink = screen.getByRole('link', { name: /Finance4ALL/i });
+    const logoLink = screen.getByRole('link', { name: /Logo Finance4ALL/i });
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
@@ -92,7 +92,7 @@ describe('PublicHeader', () => {
     const simulatorLinks = screen.getAllByText('Simulateur');
     // First one is desktop link
     const desktopLink = simulatorLinks[0].closest('a');
-    expect(desktopLink).toHaveClass('text-grey-600', 'hover:text-primary-600');
+    expect(desktopLink).toHaveClass('text-gray-600', 'hover:text-primary-300');
   });
 
   it('should have accessibility-friendly structure', () => {
