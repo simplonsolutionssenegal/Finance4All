@@ -85,7 +85,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: 'https://example.com/image.jpg',
+      imageMediaId: 'https://example.com/image.jpg',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'finance',
@@ -129,7 +129,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.INTERMEDIATE,
       estimatedDuration: 90,
       thematics: 'investment',
@@ -161,7 +161,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.ADVANCED,
       estimatedDuration: 120,
       thematics: 'budget_management',
@@ -191,7 +191,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'financial_education',
@@ -238,7 +238,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'financial_education',
@@ -275,7 +275,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'financial_education',
@@ -307,7 +307,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'financial_education',
@@ -335,7 +335,7 @@ describe('useCreateModule', () => {
     const mockModuleData: CreateModuleData = {
       title: 'Test Module',
       description: 'Test Description',
-      imageUrl: null,
+      imageMediaId: null,
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
       thematics: 'financial_education',
