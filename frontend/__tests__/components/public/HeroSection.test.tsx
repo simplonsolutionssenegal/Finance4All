@@ -50,13 +50,13 @@ describe('HeroSection', () => {
 
   it('should render hero image', () => {
     render(<HeroSection />);
-    const image = screen.getByAltText('Finance4All App');
-    expect(image).toBeInTheDocument();
+    const images = screen.getAllByAltText('Finance4All App');
+    expect(images.length).toBeGreaterThan(0);
   });
 
   it('should have proper section structure', () => {
     const { container } = render(<HeroSection />);
     const section = container.querySelector('section');
-    expect(section).toHaveClass('relative', 'pt-32', 'pb-20');
+    expect(section).toHaveClass('relative', 'pt-28', 'pb-20');
   });
 });

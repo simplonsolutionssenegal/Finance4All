@@ -25,14 +25,15 @@ describe('EducationSection', () => {
   });
 
   it('should display module cards', () => {
-    const { container } = render(<EducationSection />);
-    const cards = container.querySelectorAll('[data-slot="card"]');
-    expect(cards.length).toBeGreaterThan(0);
+    render(<EducationSection />);
+    expect(screen.getByText('Mobile Money avancé')).toBeInTheDocument();
+    expect(screen.getByText('Épargne et Budget')).toBeInTheDocument();
+    expect(screen.getByText('Bases Finance Personnelle')).toBeInTheDocument();
   });
 
   it('should have proper section structure', () => {
     const { container } = render(<EducationSection />);
     const section = container.querySelector('section');
-    expect(section).toHaveClass('py-32', 'bg-white');
+    expect(section).toHaveClass('py-16', 'bg-white');
   });
 });

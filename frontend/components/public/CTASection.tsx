@@ -40,7 +40,7 @@ const CTASection = () => {
         </div>
 
         {/* Trust Indicators */}
-        <div className='flex items-center justify-center gap-8 pt-8 text-white/90'>
+        <div className='flex md:flex-row flex-col items-center justify-center gap-8 pt-8 text-white/90'>
           <div className='flex items-center gap-2'>
             <Lock className='w-5 h-5' aria-hidden='true' />
             <span>Données sécurisées</span>
