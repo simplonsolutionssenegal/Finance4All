@@ -5,6 +5,7 @@ import { validationResult } from 'express-validator';
 import {
   validateCreateModule,
   validateGetModules,
+  validatePagination,
   handleValidationErrors,
 } from '@/infrastructure/web/validators/module.validator';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
@@ -704,6 +705,297 @@ describe('Module Validator', () => {
       mockRequest.body = maximalModule;
       const errors = await runValidation(mockRequest as Request, validateCreateModule);
       expect(errors.isEmpty()).toBe(true);
+    });
+  });
+
+  describe('validatePagination', () => {
+    it('devrait valider sans paramètres de pagination (utilise les valeurs par défaut)', async () => {
+      mockRequest.query = {};
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('devrait valider avec page et limit valides', async () => {
+      mockRequest.query = { page: '1', limit: '10' };
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    describe('Validation de page', () => {
+      it('devrait échouer si page est inférieure à 1', async () => {
+        mockRequest.query = { page: '0' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si page est négative', async () => {
+        mockRequest.query = { page: '-1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+
+      it('devrait valider page = 1', async () => {
+        mockRequest.query = { page: '1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page = 10', async () => {
+        mockRequest.query = { page: '10' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page = 100', async () => {
+        mockRequest.query = { page: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it("devrait échouer si page n'est pas un entier", async () => {
+        mockRequest.query = { page: '1.5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+            }),
+          ])
+        );
+      });
+
+      it("devrait échouer si page n'est pas un nombre", async () => {
+        mockRequest.query = { page: 'abc' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+    });
+
+    describe('Validation de limit', () => {
+      it('devrait échouer si limit est inférieur à 1', async () => {
+        mockRequest.query = { limit: '0' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si limit est supérieur à 100', async () => {
+        mockRequest.query = { limit: '101' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait valider limit = 1', async () => {
+        mockRequest.query = { limit: '1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 10', async () => {
+        mockRequest.query = { limit: '10' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 50', async () => {
+        mockRequest.query = { limit: '50' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 100', async () => {
+        mockRequest.query = { limit: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it("devrait échouer si limit n'est pas un entier", async () => {
+        mockRequest.query = { limit: '10.5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+            }),
+          ])
+        );
+      });
+
+      it("devrait échouer si limit n'est pas un nombre", async () => {
+        mockRequest.query = { limit: 'xyz' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si limit est négatif', async () => {
+        mockRequest.query = { limit: '-5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+    });
+
+    describe('Validation combinée page et limit', () => {
+      it('devrait valider page=1, limit=6 (valeurs par défaut)', async () => {
+        mockRequest.query = { page: '1', limit: '6' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page=5, limit=20', async () => {
+        mockRequest.query = { page: '5', limit: '20' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page=100, limit=100', async () => {
+        mockRequest.query = { page: '100', limit: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait échouer si page et limit sont tous deux invalides', async () => {
+        mockRequest.query = { page: '0', limit: '101' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array().length).toBeGreaterThanOrEqual(2);
+        const paths = errors.array().map(e => (e as any).path);
+        expect(paths).toEqual(expect.arrayContaining(['page', 'limit']));
+      });
+
+      it('devrait valider avec seulement page (limit par défaut)', async () => {
+        mockRequest.query = { page: '3' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider avec seulement limit (page optionnelle)', async () => {
+        mockRequest.query = { limit: '25' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+    });
+
+    describe('Conversion de types', () => {
+      it('devrait convertir page en entier', async () => {
+        mockRequest.query = { page: '42' };
+        await runValidation(mockRequest as Request, validatePagination);
+        // Note: express-validator toInt() convertit la valeur
+        expect(mockRequest.query.page).toBe(42);
+      });
+
+      it('devrait convertir limit en entier', async () => {
+        mockRequest.query = { limit: '25' };
+        await runValidation(mockRequest as Request, validatePagination);
+        expect(mockRequest.query.limit).toBe(25);
+      });
+
+      it('devrait appliquer la valeur par défaut pour limit si absent', async () => {
+        mockRequest.query = { page: '1' };
+        await runValidation(mockRequest as Request, validatePagination);
+        // La valeur par défaut devrait être appliquée
+        expect(mockRequest.query.limit).toBe(6);
+      });
+
+      it('devrait convertir les deux paramètres', async () => {
+        mockRequest.query = { page: '10', limit: '50' };
+        await runValidation(mockRequest as Request, validatePagination);
+        expect(mockRequest.query.page).toBe(10);
+        expect(mockRequest.query.limit).toBe(50);
+      });
+    });
+
+    describe('Cas limites', () => {
+      it('devrait gérer une chaîne vide pour page', async () => {
+        mockRequest.query = { page: '' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        // Une chaîne vide devrait être considérée comme invalide
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+            }),
+          ])
+        );
+      });
+
+      it('devrait gérer une chaîne vide pour limit', async () => {
+        mockRequest.query = { limit: '' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+            }),
+          ])
+        );
+      });
+
+      it('devrait gérer des espaces dans les valeurs', async () => {
+        mockRequest.query = { page: ' 5 ', limit: ' 10 ' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        // Les espaces devraient être gérés correctement
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait échouer avec des valeurs très grandes', async () => {
+        mockRequest.query = { page: '999999999999', limit: '1000' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
     });
   });
 });
