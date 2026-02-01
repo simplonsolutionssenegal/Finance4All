@@ -10,7 +10,7 @@ export class LessonController {
 
   async getById(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string; // ✅ Force le type string
       const lesson = await this.getLessonByIdUseCase.execute({ id });
 
       res.status(200).json({
