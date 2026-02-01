@@ -1,19 +1,17 @@
 import type { UseCase } from '@/domain/shared/UseCase';
 import type { QuizStatus } from '@/domain/formations/entities/Quiz';
-import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
+import type { LessonDTO } from '@/domain/formations/value-objects/LessonDTO';
 
-export interface AddQuizCommand {
+export interface AddQuizLessonCommand {
+  lessonId: string; // ✅ Requis, pas optionnel
   title: string;
   description: string;
   status: QuizStatus;
   scoreMinimum: number;
   duree?: number;
   nombreTentatives: number;
-  moduleId: string;
-  lessonId: string;
-  chapterId?: string;
   questions?: QuestionDTO[];
 }
 
-export interface AddQuizUseCase extends UseCase<AddQuizCommand, ModuleResponseDTO> {}
+export interface AddQuizLessonUseCase extends UseCase<AddQuizLessonCommand, LessonDTO> {}

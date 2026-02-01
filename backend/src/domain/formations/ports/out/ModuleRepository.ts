@@ -15,4 +15,14 @@ export interface ModuleRepository {
   update(module: Module): Promise<Module>;
   
   findAll(params: PaginationParams): Promise<PaginatedResult<Module>>;
+  // attachQuizToLesson(params: {
+  //   moduleId: string;
+  //   lessonId: string;
+  //   quizId: string;
+  // }): Promise<void>;
+  // attachQuizzesToChapters(params: {
+  //   moduleId: string;
+  //   lessonId: string;
+  //   links: Array<{ chapterId: string; quizId: string }>;
+  // }): Promise<void>;
 }

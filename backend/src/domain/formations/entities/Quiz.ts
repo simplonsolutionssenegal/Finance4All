@@ -13,6 +13,9 @@ export enum QuizStatus {
 
 export interface QuizProps {
   id: EntityId;
+  moduleId?: string; // ⭐ AJOUT - Optionnel
+  lessonId?: string; // ⭐ AJOUT - Optionnel
+  chapterId?: string; // ⭐ AJOUT - Optionnel
   title: string;
   description: string;
   status: QuizStatus;
@@ -23,6 +26,9 @@ export interface QuizProps {
 }
 
 export class Quiz extends DomainEntity<EntityId> {
+  private _moduleId?: string; // ⭐ AJOUT
+  private _lessonId?: string; // ⭐ AJOUT
+  private _chapterId?: string; // ⭐ AJOUT
   private _title: string;
   private _description: string;
   private _status: QuizStatus;
@@ -34,9 +40,13 @@ export class Quiz extends DomainEntity<EntityId> {
   constructor(props: QuizProps) {
     super(props.id);
 
+    // this.validateParentReferences(props.moduleId, props.lessonId, props.chapterId); // ⭐ AJOUT
     this.validateScoreMinimum(props.scoreMinimum);
     this.validateNombreTentatives(props.nombreTentatives);
 
+    this._moduleId = props.moduleId; // ⭐ AJOUT
+    this._lessonId = props.lessonId; // ⭐ AJOUT
+    this._chapterId = props.chapterId; // ⭐ AJOUT
     this._title = props.title;
     this._description = props.description;
     this._status = props.status;
@@ -47,6 +57,21 @@ export class Quiz extends DomainEntity<EntityId> {
   }
 
   // --- Getters ---
+
+  get moduleId(): string | undefined {
+    // ⭐ AJOUT
+    return this._moduleId;
+  }
+
+  get lessonId(): string | undefined {
+    // ⭐ AJOUT
+    return this._lessonId;
+  }
+
+  get chapterId(): string | undefined {
+    // ⭐ AJOUT
+    return this._chapterId;
+  }
 
   get title(): string {
     return this._title;
@@ -86,6 +111,17 @@ export class Quiz extends DomainEntity<EntityId> {
 
   // --- Validations privées ---
 
+  // private validateParentReferences( // ⭐ AJOUT
+  //   moduleId?: string,
+  //   lessonId?: string,
+  //   chapterId?: string
+  // ): void {
+  //   // Un quiz doit être lié à au moins une entité parent
+  //   if (!moduleId && !lessonId && !chapterId) {
+  //     throw new Error('Le quiz doit être lié à au moins un module, une leçon ou un chapitre');
+  //   }
+  // }
+
   private validateScoreMinimum(score: number): void {
     if (!Number.isInteger(score) || score < 0 || score > 100) {
       throw new Error('Le score minimum doit être un entier entre 0 et 100');
@@ -98,7 +134,7 @@ export class Quiz extends DomainEntity<EntityId> {
     }
   }
 
-  // --- Méthodes métier ---
+  // --- Méthodes métier (inchangées) ---
 
   publish(): void {
     if (this._status === QuizStatus.ARCHIVED) {
@@ -202,6 +238,9 @@ export class Quiz extends DomainEntity<EntityId> {
   toDTO(): QuizDTO {
     return {
       id: this.id.getValue(),
+      moduleId: this._moduleId,
+      lessonId: this._lessonId, // ⭐ AJOUT
+      chapterId: this._chapterId, // ⭐ AJOUT
       title: this._title,
       description: this._description,
       status: this._status,

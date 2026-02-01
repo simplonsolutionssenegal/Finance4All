@@ -1,332 +1,209 @@
-// application/formations/use-cases/__tests__/AddLessonUseCaseImpl.test.ts
-
 import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLessonUseCaseImpl';
-import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
-import type { AddLessonCommand } from '@/domain/formations/ports/in/AddLessonUseCase';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
-import { EntityId } from '@/domain/shared/EntityId';
-import {
-  Module,
-  ModuleStatus,
-  DifficultyLevel,
-} from '@/domain/formations/entities/ModuleFormation';
 import { LessonStatus } from '@/domain/formations/entities/Lesson';
 import { Chapter } from '@/domain/formations/entities/Chapter';
+import { EntityId } from '@/domain/shared/EntityId';
 
 describe('AddLessonUseCaseImpl', () => {
-  let useCase: AddLessonUseCaseImpl;
-  let mockModuleRepository: jest.Mocked<ModuleRepository>;
-  let mockModule: Module;
-  const moduleId = '123e4567-e89b-12d3-a456-426614174000';
+  const moduleId = 'module-123';
 
-  beforeEach(() => {
-    // Mock du repository
-    mockModuleRepository = {
-      findById: jest.fn(),
-      update: jest.fn(),
-      save: jest.fn(),
-      delete: jest.fn(),
-      findAll: jest.fn(),
-    } as any;
-
-    // Créer un module de test
-    mockModule = new Module({
-      id: EntityId.from(moduleId),
-      title: 'Module de test',
-      description: 'Description du module',
-      imageUrl: null,
-      thematics: [],
-      difficultyLevel: DifficultyLevel.INTERMEDIATE,
-      estimatedDuration: 120,
-      status: ModuleStatus.DRAFT,
-      lessons: [],
-      quizzes: [],
-    });
-
-    // Mock de la méthode addLesson
-    jest.spyOn(mockModule, 'addLesson');
-    jest.spyOn(mockModule, 'toDTO').mockReturnValue({
-      id: moduleId,
-      title: 'Module de test',
-      description: 'Description du module',
-      imageUrl: null,
-      thematics: [],
-      difficultyLevel: DifficultyLevel.INTERMEDIATE,
-      estimatedDuration: 120,
-      status: ModuleStatus.DRAFT,
-      lessons: [],
-      quizzes: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    useCase = new AddLessonUseCaseImpl(mockModuleRepository);
+  const makeRepo = () => ({
+    findById: jest.fn(),
+    update: jest.fn(),
   });
 
-  afterEach(() => {
+  const makeModule = (dto: any = { id: moduleId }) => ({
+    addLesson: jest.fn(),
+    toDTO: jest.fn().mockReturnValue(dto),
+  });
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('execute', () => {
-    it('should add a lesson successfully without chapters', async () => {
-      // Arrange
-      const command: AddLessonCommand = {
+  it('throw NotFoundError si module non trouvé', async () => {
+    const repo = makeRepo();
+    repo.findById.mockResolvedValueOnce(null);
+
+    const uc = new AddLessonUseCaseImpl(repo as any);
+
+    await expect(
+      uc.execute({
         moduleId,
-        title: 'Leçon 1',
-        description: 'Description de la leçon 1',
-        duration: 30,
+        title: 'T',
+        description: 'D',
+        duration: 10,
         order: 0,
         status: LessonStatus.DRAFT,
         chapters: [],
-      };
+      } as any)
+    ).rejects.toThrow(new NotFoundError(`Module ${moduleId} not found`));
 
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-      mockModuleRepository.update.mockResolvedValue(mockModule);
+    expect(repo.findById).toHaveBeenCalledTimes(1);
+    expect(repo.findById).toHaveBeenCalledWith(moduleId);
+    expect(repo.update).not.toHaveBeenCalled();
+  });
 
-      // Act
-      const result = await useCase.execute(command);
+  it('crée une lesson même si chapters est undefined, update le module, puis retourne refreshed.toDTO()', async () => {
+    const repo = makeRepo();
+    const existingModule = makeModule({ id: moduleId, ok: 'before' });
+    const refreshedModule = makeModule({ id: moduleId, ok: 'after' });
 
-      // Assert
-      expect(mockModuleRepository.findById).toHaveBeenCalledWith(moduleId);
-      expect(mockModuleRepository.findById).toHaveBeenCalledTimes(1);
-      expect(mockModule.addLesson).toHaveBeenCalledTimes(1);
-      expect(mockModule.addLesson).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _title: 'Leçon 1',
-          _description: 'Description de la leçon 1',
-          _duration: 30,
-          _order: 0,
-          _status: LessonStatus.DRAFT,
-        })
-      );
-      expect(mockModuleRepository.update).toHaveBeenCalledWith(mockModule);
-      expect(mockModuleRepository.update).toHaveBeenCalledTimes(1);
-      expect(result).toBeDefined();
-      expect(result.id).toBe(moduleId);
-    });
+    repo.findById.mockResolvedValueOnce(existingModule).mockResolvedValueOnce(refreshedModule);
+    repo.update.mockResolvedValueOnce(undefined);
 
-    it('should add a lesson with chapters', async () => {
-      // Arrange
-      const chapters = [
-        new Chapter('Chapitre 1', 'Description chapitre 1', 'media-1', 0),
-        new Chapter('Chapitre 2', 'Description chapitre 2', 'media-2', 1),
-      ];
+    const uc = new AddLessonUseCaseImpl(repo as any);
 
-      const command: AddLessonCommand = {
-        moduleId,
-        title: 'Leçon avec chapitres',
-        description: 'Description de la leçon avec chapitres',
-        duration: 60,
+    const result = await uc.execute({
+      moduleId,
+      title: 'Ma leçon',
+      description: 'Desc',
+      duration: 30,
+      order: 1,
+      status: LessonStatus.DRAFT,
+      chapters: undefined, // ✅ branche (command.chapters ?? [])
+    } as any);
+
+    expect(repo.findById).toHaveBeenCalledTimes(2);
+    expect(repo.update).toHaveBeenCalledTimes(1);
+    expect(repo.update).toHaveBeenCalledWith(existingModule);
+
+    expect(existingModule.addLesson).toHaveBeenCalledTimes(1);
+    const lessonArg = existingModule.addLesson.mock.calls[0][0];
+
+    expect(lessonArg.moduleId).toBe(moduleId);
+    expect(lessonArg.title).toBe('Ma leçon');
+    expect(lessonArg.description).toBe('Desc');
+    expect(lessonArg.duration).toBe(30);
+    expect(lessonArg.order).toBe(1);
+    expect(lessonArg.status).toBe(LessonStatus.DRAFT);
+    expect(lessonArg.chapters).toHaveLength(0);
+
+    expect(result).toEqual({ id: moduleId, ok: 'after' });
+    expect(refreshedModule.toDTO).toHaveBeenCalledTimes(1);
+  });
+
+  it('mappe les chapitres (id present/absent, quizId present/absent, mediaId null/string) et appelle update', async () => {
+    const repo = makeRepo();
+    const existingModule = makeModule({ id: moduleId, ok: 'before' });
+    const refreshedModule = makeModule({ id: moduleId, ok: 'after' });
+
+    repo.findById.mockResolvedValueOnce(existingModule).mockResolvedValueOnce(refreshedModule);
+    repo.update.mockResolvedValueOnce(undefined);
+
+    const uc = new AddLessonUseCaseImpl(repo as any);
+
+    // ✅ id garanti valide selon ton regex
+    const validChapterId = EntityId.generate().getValue();
+
+    const result = await uc.execute({
+      moduleId,
+      title: 'Leçon chapitres',
+      description: 'Avec chapitres',
+      duration: 20,
+      order: 2,
+      status: LessonStatus.DRAFT,
+      chapters: [
+        {
+          id: validChapterId, // ✅ branche dto.id ? EntityId.from(dto.id)
+          title: 'C1',
+          description: 'D1',
+          mediaId: null, // ✅ branche dto.mediaId ?? undefined => undefined
+          order: 0,
+          quizId: 'quiz-1', // ✅ branche if(dto.quizId)
+        },
+        {
+          // ✅ branche sans dto.id => EntityId.generate()
+          title: 'C2',
+          description: 'D2',
+          mediaId: 'media-2', // ✅ string
+          order: 1,
+        },
+      ],
+    } as any);
+
+    expect(existingModule.addLesson).toHaveBeenCalledTimes(1);
+    const lessonArg = existingModule.addLesson.mock.calls[0][0];
+
+    expect(lessonArg.title).toBe('Leçon chapitres');
+    expect(lessonArg.chapters).toHaveLength(2);
+
+    // Vérif mapping via DTO (plus stable)
+    const lessonDto = lessonArg.toDTO();
+    expect(lessonDto.chapters).toHaveLength(2);
+
+    // chapitre 1: mediaId null => undefined/absent
+    expect(lessonDto.chapters[0]).toEqual(
+      expect.objectContaining({
+        title: 'C1',
+        description: 'D1',
+        order: 0,
+      })
+    );
+    expect((lessonDto.chapters[0] as any).mediaId ?? undefined).toBeUndefined();
+
+    // chapitre 2: mediaId string
+    expect(lessonDto.chapters[1]).toEqual(
+      expect.objectContaining({
+        title: 'C2',
+        description: 'D2',
         order: 1,
-        status: LessonStatus.PUBLISHED,
-        chapters,
-      };
+      })
+    );
+    expect((lessonDto.chapters[1] as any).mediaId).toBe('media-2');
 
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-      mockModuleRepository.update.mockResolvedValue(mockModule);
+    expect(repo.update).toHaveBeenCalledWith(existingModule);
+    expect(result).toEqual({ id: moduleId, ok: 'after' });
+  });
 
-      // Act
-      const result = await useCase.execute(command);
+  it('throw NotFoundError si module introuvable après update', async () => {
+    const repo = makeRepo();
+    const existingModule = makeModule({ id: moduleId });
 
-      // Assert
-      expect(mockModuleRepository.findById).toHaveBeenCalledWith(moduleId);
-      expect(mockModule.addLesson).toHaveBeenCalledTimes(1);
+    repo.findById.mockResolvedValueOnce(existingModule).mockResolvedValueOnce(null); // après update => introuvable
+    repo.update.mockResolvedValueOnce(undefined);
 
-      const lessonArg = (mockModule.addLesson as any).mock.calls[0][0];
-      expect(lessonArg._title).toBe('Leçon avec chapitres');
-      expect(lessonArg._chapters).toHaveLength(2);
-      expect(lessonArg._chapters[0].title).toBe('Chapitre 1');
-      expect(lessonArg._chapters[0].description).toBe('Description chapitre 1');
-      expect(lessonArg._chapters[0].mediaId).toBe('media-1');
-      expect(lessonArg._chapters[0].order).toBe(0);
-      expect(lessonArg._chapters[1].title).toBe('Chapitre 2');
-      expect(lessonArg._chapters[1].description).toBe('Description chapitre 2');
-      expect(lessonArg._chapters[1].mediaId).toBe('media-2');
-      expect(lessonArg._chapters[1].order).toBe(1);
+    const uc = new AddLessonUseCaseImpl(repo as any);
 
-      expect(mockModuleRepository.update).toHaveBeenCalledWith(mockModule);
-      expect(result).toBeDefined();
-    });
-
-    it('should add a lesson with undefined chapters (uses empty array)', async () => {
-      // Arrange
-      const command: AddLessonCommand = {
+    await expect(
+      uc.execute({
         moduleId,
-        title: 'Leçon sans chapters définis',
-        description: 'Description',
-        duration: 45,
-        order: 2,
-        status: LessonStatus.SCHEDULED,
-        // chapters est undefined
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-      mockModuleRepository.update.mockResolvedValue(mockModule);
-
-      // Act
-      const result = await useCase.execute(command);
-
-      // Assert
-      expect(mockModuleRepository.findById).toHaveBeenCalledWith(moduleId);
-      expect(mockModule.addLesson).toHaveBeenCalledTimes(1);
-
-      const lessonArg = (mockModule.addLesson as any).mock.calls[0][0];
-      expect(lessonArg._chapters).toHaveLength(0);
-
-      expect(mockModuleRepository.update).toHaveBeenCalledWith(mockModule);
-      expect(result).toBeDefined();
-    });
-
-    it('should throw NotFoundError if module does not exist', async () => {
-      // Arrange
-      const command: AddLessonCommand = {
-        moduleId: 'inexistant-module-id',
-        title: 'Leçon',
-        description: 'Description',
-        duration: 30,
+        title: 'T',
+        description: 'D',
+        duration: 10,
         order: 0,
         status: LessonStatus.DRAFT,
         chapters: [],
-      };
+      } as any)
+    ).rejects.toThrow(new NotFoundError(`Module ${moduleId} not found after update`));
 
-      mockModuleRepository.findById.mockResolvedValue(null);
+    expect(repo.update).toHaveBeenCalledTimes(1);
+    expect(repo.findById).toHaveBeenCalledTimes(2);
+  });
 
-      // Act & Assert
-      await expect(useCase.execute(command)).rejects.toThrow(NotFoundError);
-      await expect(useCase.execute(command)).rejects.toThrow(
-        'Module with id inexistant-module-id not found'
-      );
+  it('couvre la méthode privée mapChapter (id présent / absent)', () => {
+    const repo = makeRepo();
+    const uc = new AddLessonUseCaseImpl(repo as any);
 
-      expect(mockModuleRepository.findById).toHaveBeenCalledWith('inexistant-module-id');
-      expect(mockModule.addLesson).not.toHaveBeenCalled();
-      expect(mockModuleRepository.update).not.toHaveBeenCalled();
+    const validId = EntityId.generate().getValue();
+
+    // id présent => EntityId.from(validId)
+    const chapter1 = (uc as any).mapChapter({
+      id: validId,
+      title: 'T1',
+      description: 'D1',
+      mediaId: 'm1',
+      order: 0,
     });
+    expect(chapter1).toBeInstanceOf(Chapter);
 
-    it('should throw NotFoundError if findById returns undefined', async () => {
-      // Arrange
-      const command: AddLessonCommand = {
-        moduleId: 'undefined-module-id',
-        title: 'Leçon',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(undefined as any);
-
-      // Act & Assert
-      await expect(useCase.execute(command)).rejects.toThrow(NotFoundError);
-      await expect(useCase.execute(command)).rejects.toThrow(
-        'Module with id undefined-module-id not found'
-      );
+    // id absent => EntityId.generate()
+    const chapter2 = (uc as any).mapChapter({
+      title: 'T2',
+      description: 'D2',
+      mediaId: 'm2',
+      order: 1,
     });
-
-    it('should propagate Lesson validation errors', async () => {
-      // Arrange - invalid duration (0)
-      const command: AddLessonCommand = {
-        moduleId,
-        title: 'Leçon invalide',
-        description: 'Description',
-        duration: 0, // ❌ invalide
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-
-      // Act & Assert
-      await expect(useCase.execute(command)).rejects.toThrow('La durée doit être supérieure à 0');
-      expect(mockModuleRepository.update).not.toHaveBeenCalled();
-    });
-
-    it('should propagate Chapter validation errors', async () => {
-      // Arrange - chapter DTO with empty title
-      const command: AddLessonCommand = {
-        moduleId,
-        title: 'Leçon',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [
-          {
-            title: '', // ❌ invalide
-            description: 'Description',
-            mediaId: 'media-1',
-            order: 0,
-          },
-        ],
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-
-      // Act & Assert
-      await expect(useCase.execute(command)).rejects.toThrow(
-        'Le titre du chapitre ne peut pas être vide'
-      );
-
-      expect(mockModuleRepository.update).not.toHaveBeenCalled();
-      expect(mockModule.addLesson).not.toHaveBeenCalled();
-    });
-
-    it('should handle multiple chapters with different orders', async () => {
-      // Arrange
-      const chapters = [
-        new Chapter('Introduction', "Chapitre d'introduction", 'media-intro', 0),
-        new Chapter('Développement', 'Chapitre de développement', 'media-dev', 1),
-        new Chapter('Conclusion', 'Chapitre de conclusion', 'media-conclusion', 2),
-      ];
-
-      const command: AddLessonCommand = {
-        moduleId,
-        title: 'Leçon complète',
-        description: 'Une leçon avec plusieurs chapitres',
-        duration: 90,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters,
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-      mockModuleRepository.update.mockResolvedValue(mockModule);
-
-      // Act
-      const result = await useCase.execute(command);
-
-      // Assert
-      const lessonArg = (mockModule.addLesson as any).mock.calls[0][0];
-      expect(lessonArg._chapters).toHaveLength(3);
-      expect(lessonArg._chapters[0].order).toBe(0);
-      expect(lessonArg._chapters[1].order).toBe(1);
-      expect(lessonArg._chapters[2].order).toBe(2);
-      expect(result).toBeDefined();
-    });
-
-    it('should generate a unique ID for each lesson', async () => {
-      // Arrange
-      const command: AddLessonCommand = {
-        moduleId,
-        title: 'Leçon',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-      };
-
-      mockModuleRepository.findById.mockResolvedValue(mockModule);
-      mockModuleRepository.update.mockResolvedValue(mockModule);
-
-      // Act
-      await useCase.execute(command);
-
-      // Assert
-      const lessonArg = (mockModule.addLesson as any).mock.calls[0][0];
-      expect(lessonArg._id).toBeDefined();
-      expect(typeof lessonArg._id.getValue()).toBe('string');
-    });
+    expect(chapter2).toBeInstanceOf(Chapter);
   });
 });

@@ -25,7 +25,15 @@ import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 import { Chapter } from '@/domain/formations/entities/Chapter';
 
 type ModuleWithLessonsAndQuizzes = Prisma.ModuleGetPayload<{
-  include: { lessons: true; quizzes: true };
+  include: {
+    lessons: {
+      include: {
+        chapters: true;
+        quizzes: true;
+      };
+    };
+    quizzes: true;
+  };
 }>;
 
 export class PrismaModuleFormationRepository implements ModuleRepository {
@@ -36,7 +44,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     const saved = await this.prisma.module.create({
       data,
-      include: { lessons: true, quizzes: true },
+      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
     });
 
     return this.toDomain(saved);
@@ -47,7 +55,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       where: {
         title: { equals: title },
       },
-      include: { lessons: true, quizzes: true },
+      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
     });
 
     return module ? this.toDomain(module) : null;
@@ -56,7 +64,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
   async findById(id: string): Promise<Module | null> {
     const module = await this.prisma.module.findUnique({
       where: { id },
-      include: { lessons: true, quizzes: true },
+      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
     });
 
     return module ? this.toDomain(module) : null;
@@ -85,7 +93,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
         skip,
         take: params.limit,
         orderBy: { createdAt: 'desc' },
-        include: { lessons: true, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: true,
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       }),
       this.prisma.module.count(),
     ]);
@@ -93,7 +109,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: modules.map(m => this.toDomain(m)),
+      data: modules.map(m => this.toDomain(m)), // ✅ maintenant ça compile
       pagination: {
         page: params.page,
         limit: params.limit,
@@ -132,10 +148,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
           ? { quizzes: { create: newQuizzes.map(q => this.mapQuizToPrisma(q)) } }
           : {}),
       },
-      include: {
-        lessons: true,
-        quizzes: true,
-      },
+      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
     });
 
     return this.toDomain(updated);
@@ -174,11 +187,13 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     return new Lesson({
       id: EntityId.from(prismaLesson.id),
+      moduleId: prismaLesson.moduleId, // ✅ AJOUTE ÇA
       title: prismaLesson.title,
       description: prismaLesson.description,
       duration: prismaLesson.duration,
       order: prismaLesson.order,
-      chapters, // ✅ Utiliser les instances créées
+      chapters,
+      quizzes: [], // ou prismaLesson.quizzes.map(...)
       status: prismaLesson.status as LessonStatus,
     });
   }
@@ -223,12 +238,31 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       duration: lesson.duration,
       order: lesson.order,
       status: lesson.status as any,
-      chapters: lesson.chapters.map(c => c.toDTO()) as unknown as Prisma.InputJsonValue,
+
+      // ✅ chapters est une relation => nested create
+      chapters: {
+        create: lesson.chapters.map(c => ({
+          id: c.id.getValue(),
+          title: c.title,
+          description: c.description,
+          mediaId: c.mediaId ?? null, // si mediaId est optionnel
+          order: c.order,
+        })),
+      },
+
+      // (optionnel) si tu veux aussi créer des quizzes dans la lesson ici
+      // quizzes: { create: ... }
     };
   }
 
   private mapChapterToDomain(dto: ChapterDTO): Chapter {
-    return new Chapter(dto.title, dto.description, dto.mediaId, dto.order);
+    return new Chapter(
+      EntityId.from(dto.id), // ✅ 1er param = EntityId
+      dto.title,
+      dto.description,
+      dto.mediaId ?? undefined, // si optionnel
+      dto.order
+    );
   }
 
   private mapQuestionToDomain(dto: QuestionDTO) {

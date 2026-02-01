@@ -134,7 +134,7 @@ describe('PrismaModuleFormationRepository', () => {
           status: ModuleStatus.DRAFT,
           lessons: { create: [] },
         }),
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(saved).toBeInstanceOf(Module);
@@ -183,16 +183,30 @@ describe('PrismaModuleFormationRepository', () => {
     });
 
     it('devrait sauvegarder un module avec lessons et chapters', async () => {
-      const chapter1 = new Chapter('Chapitre 1', 'Description chapitre 1', 'media-1', 1);
-      const chapter2 = new Chapter('Chapitre 2', 'Description chapitre 2', 'media-2', 2);
+      const chapter1 = new Chapter(
+        EntityId.generate(),
+        'Chapitre 1',
+        'Description chapitre 1',
+        'media-1',
+        1
+      );
+      const chapter2 = new Chapter(
+        EntityId.generate(),
+        'Chapitre 2',
+        'Description chapitre 2',
+        'media-2',
+        2
+      );
 
       const lesson1 = new Lesson({
         id: EntityId.from(uuid2),
+        moduleId: uuid1, // ✅ Ajout
         title: 'Leçon 1',
         description: 'Description leçon 1',
         duration: 30,
         order: 1,
         chapters: [chapter1, chapter2],
+        quizzes: [], // ✅ Ajout
         status: LessonStatus.PUBLISHED,
       });
 
@@ -223,12 +237,14 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           {
             id: uuid2,
+            moduleId: uuid1,
             title: 'Leçon 1',
             description: 'Description leçon 1',
             duration: 30,
             order: 1,
             status: LessonStatus.PUBLISHED,
             chapters: [chapter1.toDTO(), chapter2.toDTO()],
+            quizzes: [],
           },
         ],
         quizzes: [],
@@ -246,12 +262,12 @@ describe('PrismaModuleFormationRepository', () => {
               expect.objectContaining({
                 id: uuid2,
                 title: 'Leçon 1',
-                chapters: expect.any(Array),
+                chapters: expect.any(Object),
               }),
             ]),
           },
         }),
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(saved.lessons).toHaveLength(1);
@@ -769,7 +785,7 @@ describe('PrismaModuleFormationRepository', () => {
           estimatedDuration: 60,
           status: ModuleStatus.PUBLISHED,
         },
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(result).toBeInstanceOf(Module);
@@ -779,12 +795,14 @@ describe('PrismaModuleFormationRepository', () => {
     it('devrait ajouter de nouvelles lessons lors de la mise à jour', async () => {
       const existingLesson = {
         id: uuid2,
+        moduleId: uuid1,
         title: 'Existing Lesson',
         description: 'Desc',
         duration: 20,
         order: 1,
         status: LessonStatus.PUBLISHED,
         chapters: [],
+        quizzes: [],
       };
 
       const existingModule: PrismaModuleRow = {
@@ -804,11 +822,13 @@ describe('PrismaModuleFormationRepository', () => {
 
       const newLesson = new Lesson({
         id: EntityId.from(uuid3),
+        moduleId: uuid1, // ✅ Ajout
         title: 'New Lesson',
         description: 'New Desc',
         duration: 25,
         order: 2,
         chapters: [],
+        quizzes: [], // ✅ Ajout
         status: LessonStatus.DRAFT,
       });
 
@@ -823,11 +843,13 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           new Lesson({
             id: EntityId.from(uuid2),
+            moduleId: uuid1, // ✅ Ajout
             title: 'Existing Lesson',
             description: 'Desc',
             duration: 20,
             order: 1,
             chapters: [],
+            quizzes: [], // ✅ Ajout
             status: LessonStatus.PUBLISHED,
           }),
           newLesson,
@@ -843,12 +865,14 @@ describe('PrismaModuleFormationRepository', () => {
           existingLesson,
           {
             id: uuid3,
+            moduleId: uuid1,
             title: 'New Lesson',
             description: 'New Desc',
             duration: 25,
             order: 2,
             status: LessonStatus.DRAFT,
             chapters: [],
+            quizzes: [],
           },
         ],
       };
@@ -871,7 +895,7 @@ describe('PrismaModuleFormationRepository', () => {
             ],
           },
         }),
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(result.lessons).toHaveLength(2);
@@ -880,6 +904,7 @@ describe('PrismaModuleFormationRepository', () => {
     it('devrait ajouter de nouveaux quizzes lors de la mise à jour', async () => {
       const existingQuiz = {
         id: uuid2,
+        moduleId: uuid1,
         title: 'Existing Quiz',
         description: 'Desc',
         status: QuizStatus.PUBLISHED,
@@ -911,7 +936,7 @@ describe('PrismaModuleFormationRepository', () => {
         status: QuizStatus.DRAFT,
         scoreMinimum: 60,
         duree: 20,
-        nombreTentatives: 2, // ✅ Valeur valide entre 1 et 3
+        nombreTentatives: 2,
         questions: [],
       });
 
@@ -946,12 +971,13 @@ describe('PrismaModuleFormationRepository', () => {
           existingQuiz,
           {
             id: uuid3,
+            moduleId: uuid1,
             title: 'New Quiz',
             description: 'New Quiz Desc',
             status: QuizStatus.DRAFT,
             scoreMinimum: 60,
             duree: 20,
-            nombreTentatives: 2, // ✅ Valeur valide entre 1 et 3
+            nombreTentatives: 2,
             questions: [],
           },
         ],
@@ -974,7 +1000,7 @@ describe('PrismaModuleFormationRepository', () => {
             ],
           },
         }),
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(result.quizzes).toHaveLength(2);
@@ -998,11 +1024,13 @@ describe('PrismaModuleFormationRepository', () => {
 
       const newLesson = new Lesson({
         id: EntityId.from(uuid2),
+        moduleId: uuid1, // ✅ Ajout
         title: 'New Lesson',
         description: 'Lesson Desc',
         duration: 30,
         order: 1,
         chapters: [],
+        quizzes: [], // ✅ Ajout
         status: LessonStatus.DRAFT,
       });
 
@@ -1035,17 +1063,20 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           {
             id: uuid2,
+            moduleId: uuid1,
             title: 'New Lesson',
             description: 'Lesson Desc',
             duration: 30,
             order: 1,
             status: LessonStatus.DRAFT,
             chapters: [],
+            quizzes: [],
           },
         ],
         quizzes: [
           {
             id: uuid3,
+            moduleId: uuid1,
             title: 'New Quiz',
             description: 'Quiz Desc',
             status: QuizStatus.DRAFT,
@@ -1068,7 +1099,7 @@ describe('PrismaModuleFormationRepository', () => {
           lessons: { create: expect.any(Array) },
           quizzes: { create: expect.any(Array) },
         }),
-        include: { lessons: true, quizzes: true },
+        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
       });
 
       expect(result.lessons).toHaveLength(1);

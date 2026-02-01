@@ -5,6 +5,7 @@ describe('LessonDTO', () => {
   it('should accept a valid LessonDTO (compile-time) and runtime checks', () => {
     const dto: LessonDTO = {
       id: 'lesson-1',
+      moduleId: 'module-1', // ✅ NEW
       title: 'Leçon 1',
       description: 'Description',
       duration: 30,
@@ -16,27 +17,32 @@ describe('LessonDTO', () => {
           description: 'Desc',
           mediaId: 'media-1',
           order: 0,
-        },
+        } as any, // si ChapterDTO exige d'autres champs
       ],
+      quizzes: [], // ✅ NEW
       chaptersCount: 1,
       // createdAt/updatedAt optionnels
     };
 
     expect(dto.id).toBe('lesson-1');
+    expect(dto.moduleId).toBe('module-1');
     expect(dto.status).toBe(LessonStatus.DRAFT);
     expect(Array.isArray(dto.chapters)).toBe(true);
+    expect(Array.isArray(dto.quizzes)).toBe(true);
     expect(dto.chaptersCount).toBe(1);
   });
 
   it('should allow createdAt/updatedAt to be omitted or provided', () => {
     const withoutDates: LessonDTO = {
       id: 'lesson-2',
+      moduleId: 'module-1', // ✅ NEW
       title: 'Leçon 2',
       description: 'Description',
       duration: 45,
       order: 1,
       status: LessonStatus.PUBLISHED,
       chapters: [],
+      quizzes: [], // ✅ NEW
       chaptersCount: 0,
     };
 

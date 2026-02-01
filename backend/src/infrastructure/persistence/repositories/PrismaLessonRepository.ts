@@ -1,14 +1,29 @@
-// infrastructure/persistence/repositories/PrismaQuizRepository.ts
+// infrastructure/persistence/repositories/PrismaLessonRepository.ts
 
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { EntityId } from '@/domain/shared/EntityId';
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
 import type { LessonRepository } from '@/domain/formations/ports/out/LessonRepository';
 import { Lesson, type LessonStatus } from '@/domain/formations/entities/Lesson';
-import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 import { Chapter } from '@/domain/formations/entities/Chapter';
+import { Quiz, type QuizStatus } from '@/domain/formations/entities/Quiz';
+import {
+  QuestionChoixMultiple,
+  QuestionChoixUnique,
+  TypeQuestion,
+} from '@/domain/formations/entities/Question';
+import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
 
-type PrismaLesson = Prisma.LessonGetPayload<{}>;
+type PrismaLesson = Prisma.LessonGetPayload<{
+  include: {
+    chapters: {
+      include: {
+        media: true;
+      };
+    };
+    quizzes: true; // ✅ Ajouter les quizzes
+  };
+}>;
 
 export class PrismaLessonRepository implements LessonRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -16,6 +31,12 @@ export class PrismaLessonRepository implements LessonRepository {
   async findById(id: string): Promise<Lesson | null> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
+      include: {
+        chapters: {
+          include: { media: true },
+        },
+        quizzes: true, // ✅ Inclure les quizzes
+      },
     });
 
     return lesson ? this.toDomain(lesson) : null;
@@ -29,11 +50,13 @@ export class PrismaLessonRepository implements LessonRepository {
         skip,
         take: params.limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          chapters: { include: { media: true } },
+          quizzes: true, // ✅ Inclure les quizzes
+        },
       }),
       this.prisma.lesson.count(),
     ]);
-
-    const totalPages = Math.ceil(total / params.limit);
 
     return {
       data: lessons.map(l => this.toDomain(l)),
@@ -41,17 +64,40 @@ export class PrismaLessonRepository implements LessonRepository {
         page: params.page,
         limit: params.limit,
         total,
-        totalPages,
+        totalPages: Math.ceil(total / params.limit),
       },
     };
   }
 
   async update(lesson: Lesson): Promise<Lesson> {
-    const data = this.toPrismaUpdateData(lesson);
+    const lessonData = this.toPrismaUpdateData(lesson);
+    const quizzes = lesson.quizzes;
 
+    // Récupérer la lesson existante pour comparer les quizzes
+    const existingLesson = await this.prisma.lesson.findUnique({
+      where: { id: lesson.id.getValue() },
+      include: {
+        chapters: { include: { media: true } },
+        quizzes: true,
+      },
+    });
+
+    const existingQuizIds = new Set(existingLesson?.quizzes.map(q => q.id) || []);
+    const newQuizzes = quizzes.filter(q => !existingQuizIds.has(q.id.getValue()));
+
+    // Mettre à jour la lesson et créer les nouveaux quizzes
     const updated = await this.prisma.lesson.update({
       where: { id: lesson.id.getValue() },
-      data,
+      data: {
+        ...lessonData,
+        ...(newQuizzes.length > 0
+          ? { quizzes: { create: newQuizzes.map(q => this.mapQuizToPrisma(q)) } }
+          : {}),
+      },
+      include: {
+        chapters: { include: { media: true } },
+        quizzes: true,
+      },
     });
 
     return this.toDomain(updated);
@@ -61,24 +107,76 @@ export class PrismaLessonRepository implements LessonRepository {
   // Mapping Prisma -> Domain
   // -------------------------
   private toDomain(prismaLesson: PrismaLesson): Lesson {
-    const raw = prismaLesson.chapters;
-    const chaptersDto: ChapterDTO[] = Array.isArray(raw) ? (raw as unknown as ChapterDTO[]) : [];
-
-    const chapters = chaptersDto.map(c => this.mapChapterToDomain(c));
+    const chapters = (prismaLesson.chapters ?? []).map(c => this.mapChapterToDomain(c));
+    const quizzes = (prismaLesson.quizzes ?? []).map(q => this.mapQuizToDomain(q));
 
     return new Lesson({
       id: EntityId.from(prismaLesson.id),
+      moduleId: prismaLesson.moduleId,
       title: prismaLesson.title,
       description: prismaLesson.description,
       duration: prismaLesson.duration,
       order: prismaLesson.order,
-      chapters, // ✅ Utiliser les instances créées
+      chapters,
+      quizzes, // ✅ Passer les quizzes
       status: prismaLesson.status as LessonStatus,
     });
   }
 
-  private mapChapterToDomain(dto: ChapterDTO): Chapter {
-    return new Chapter(dto.title, dto.description, dto.mediaId, dto.order);
+  private mapChapterToDomain(prismaChapter: PrismaLesson['chapters'][number]): Chapter {
+    return new Chapter(
+      EntityId.from(prismaChapter.id),
+      prismaChapter.title,
+      prismaChapter.description,
+      prismaChapter.mediaId ?? undefined,
+      prismaChapter.order
+    );
+  }
+
+  private mapQuizToDomain(prismaQuiz: PrismaLesson['quizzes'][number]): Quiz {
+    const raw = prismaQuiz.questions;
+    const questionsDto: QuestionDTO[] = Array.isArray(raw) ? (raw as unknown as QuestionDTO[]) : [];
+    const questions = questionsDto.map(q => this.mapQuestionToDomain(q));
+
+    return new Quiz({
+      id: EntityId.from(prismaQuiz.id),
+      lessonId: prismaQuiz.lessonId ?? undefined,
+      title: prismaQuiz.title,
+      description: prismaQuiz.description,
+      status: prismaQuiz.status as QuizStatus,
+      scoreMinimum: prismaQuiz.scoreMinimum,
+      duree: prismaQuiz.duree ?? undefined,
+      nombreTentatives: prismaQuiz.nombreTentatives,
+      questions,
+    });
+  }
+
+  private mapQuestionToDomain(dto: QuestionDTO) {
+    if (dto.type === TypeQuestion.CHOIX_UNIQUE) {
+      return new QuestionChoixUnique(dto.question, dto.points, dto.options, dto.explication);
+    }
+
+    if (dto.type === TypeQuestion.CHOIX_MULTIPLE) {
+      return new QuestionChoixMultiple(dto.question, dto.points, dto.options, dto.explication);
+    }
+
+    throw new Error(`TypeQuestion inconnu: ${String((dto as any).type)}`);
+  }
+
+  // -------------------------
+  // Mapping Domain -> Prisma
+  // -------------------------
+  private mapQuizToPrisma(quiz: Quiz): Prisma.QuizCreateWithoutLessonInput {
+    return {
+      id: quiz.id.getValue(),
+      title: quiz.title,
+      description: quiz.description,
+      status: quiz.status as any,
+      scoreMinimum: quiz.scoreMinimum,
+      duree: quiz.duree ?? null,
+      nombreTentatives: quiz.nombreTentatives,
+      questions: quiz.questions.map(q => q.toDTO()) as unknown as Prisma.InputJsonValue,
+    };
   }
 
   private toPrismaUpdateData(lesson: Lesson): Prisma.LessonUpdateInput {
@@ -88,7 +186,7 @@ export class PrismaLessonRepository implements LessonRepository {
       duration: lesson.duration,
       order: lesson.order,
       status: lesson.status as any,
-      chapters: lesson.chapters.map(c => c.toDTO()) as unknown as Prisma.InputJsonValue,
+      // ⚠️ pas de chapters ni quizzes ici (gérés séparément dans update())
     };
   }
 }

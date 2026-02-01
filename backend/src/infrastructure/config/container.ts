@@ -114,6 +114,8 @@ import type { GetQuizByIdUseCase } from '@/domain/formations/ports/in/GetQuizByI
 import type { GetLessonByIdUseCase } from '@/domain/formations/ports/in/GetLessonByIdUseCase';
 import { GetLessonByIdUseCaseImpl } from '@/application/formations/use-cases/GetLessonByIdUseCaseImpl';
 import { LessonController } from '../web/controllers/LessonController';
+import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
+import { AddQuizLessonUseCaseImpl } from '@/application/formations/use-cases/AddQuizLessonUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -152,6 +154,7 @@ export const TYPES = {
 
   // ========== Quiz ==========
   GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
+  AddQuizLessonUseCase: Symbol.for('AddQuizLessonUseCase'),
   // ========== Lesson ==========
   GetLessonByIdUseCase: Symbol.for('GetLessonByIdUseCase'),
 
@@ -370,6 +373,14 @@ container
   .toDynamicValue(context => {
     const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
     return new AddQuizUseCaseImpl(moduleRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<AddQuizLessonUseCase>(TYPES.AddQuizLessonUseCase)
+  .toDynamicValue(context => {
+    const lessonRepository = context.get<LessonRepository>(TYPES.LessonRepository);
+    return new AddQuizLessonUseCaseImpl(lessonRepository);
   })
   .inSingletonScope();
 
@@ -800,8 +811,9 @@ container
   .bind<LessonController>(TYPES.LessonController)
   .toDynamicValue(context => {
     const getLessonByIdUseCase = context.get<GetLessonByIdUseCase>(TYPES.GetLessonByIdUseCase);
+    const addQuizLessonUseCase = context.get<AddQuizLessonUseCase>(TYPES.AddQuizLessonUseCase);
 
-    return new LessonController(getLessonByIdUseCase);
+    return new LessonController(getLessonByIdUseCase, addQuizLessonUseCase);
   })
   .inSingletonScope();
 

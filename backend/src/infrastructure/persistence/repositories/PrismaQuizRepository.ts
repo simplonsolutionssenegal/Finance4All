@@ -66,13 +66,17 @@ export class PrismaQuizRepository implements QuizRepository {
   // -------------------------
   private toDomain(prismaQuiz: PrismaQuiz): Quiz {
     const raw = prismaQuiz.questions;
-
     const questionsDto: QuestionDTO[] = Array.isArray(raw) ? (raw as unknown as QuestionDTO[]) : [];
-
     const questions = questionsDto.map(q => this.mapQuestionToDomain(q));
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
+
+      // ✅ AJOUTER CES 3 LIGNES
+      moduleId: prismaQuiz.moduleId ?? undefined,
+      lessonId: prismaQuiz.lessonId ?? undefined,
+      chapterId: prismaQuiz.chapterId ?? undefined,
+
       title: prismaQuiz.title,
       description: prismaQuiz.description,
       status: prismaQuiz.status as QuizStatus,

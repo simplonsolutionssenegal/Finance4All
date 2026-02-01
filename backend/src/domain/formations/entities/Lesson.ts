@@ -4,6 +4,7 @@ import type { EntityId } from '@/domain/shared/EntityId';
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { Chapter } from './Chapter';
 import type { LessonDTO } from '@/domain/formations/value-objects/LessonDTO';
+import type { Quiz } from './Quiz';
 
 export enum LessonStatus {
   DRAFT = 'DRAFT',
@@ -14,37 +15,49 @@ export enum LessonStatus {
 
 export interface LessonProps {
   id: EntityId;
+  moduleId: string; // ⭐ AJOUT
   title: string;
   description: string;
   duration: number;
   order: number;
   status: LessonStatus;
   chapters: Chapter[];
+  quizzes: Quiz[];
 }
 
 export class Lesson extends DomainEntity<EntityId> {
+  private _moduleId: string; // ⭐ AJOUT
   private _title: string;
   private _description: string;
   private _duration: number;
   private _order: number;
   private _status: LessonStatus;
   private _chapters: Chapter[];
+  private readonly _quizzes: Set<Quiz>;
 
   constructor(props: LessonProps) {
     super(props.id);
 
+    // this.validateModuleId(props.moduleId); // ⭐ AJOUT
     this.validateDuration(props.duration);
     this.validateOrder(props.order);
 
+    this._moduleId = props.moduleId; // ⭐ AJOUT
     this._title = props.title;
     this._description = props.description;
     this._duration = props.duration;
     this._order = props.order;
     this._status = props.status;
     this._chapters = props.chapters;
+    this._quizzes = new Set(props.quizzes);
   }
 
   // --- Getters ---
+
+  get moduleId(): string {
+    // ⭐ AJOUT
+    return this._moduleId;
+  }
 
   get title(): string {
     return this._title;
@@ -74,7 +87,14 @@ export class Lesson extends DomainEntity<EntityId> {
     return this._chapters.length;
   }
 
-  // --- Validations privées ---
+  get quizzes(): Quiz[] {
+    return Array.from(this._quizzes);
+  }
+
+  addQuiz(quiz: Quiz): void {
+    this._quizzes.add(quiz);
+    this._updatedAt = new Date();
+  }
 
   private validateDuration(duration: number): void {
     if (duration <= 0) {
@@ -88,7 +108,7 @@ export class Lesson extends DomainEntity<EntityId> {
     }
   }
 
-  // --- Méthodes métier ---
+  // --- Méthodes métier (inchangées) ---
 
   publish(): void {
     if (this._status === LessonStatus.ARCHIVED) {
@@ -170,8 +190,8 @@ export class Lesson extends DomainEntity<EntityId> {
     this._updatedAt = new Date();
   }
 
-  removeChapter(chapterTitle: string): void {
-    const index = this._chapters.findIndex(c => c.title === chapterTitle);
+  removeChapterById(chapterId: string): void {
+    const index = this._chapters.findIndex(c => c.id.getValue() === chapterId);
     if (index === -1) {
       throw new Error('Chapitre non trouvé');
     }
@@ -200,12 +220,14 @@ export class Lesson extends DomainEntity<EntityId> {
   toDTO(): LessonDTO {
     return {
       id: this.id.getValue(),
+      moduleId: this._moduleId, // ⭐ AJOUT
       title: this._title,
       description: this._description,
       duration: this._duration,
       order: this._order,
       status: this._status,
       chapters: this._chapters.map(c => c.toDTO()),
+      quizzes: this.quizzes.map(quiz => quiz.toDTO()),
       chaptersCount: this.chaptersCount,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

@@ -1,8 +1,12 @@
 export type ChapterDto = {
+  id?: string; // utile pour l'édition / UI
   title: string;
   description: string;
-  mediaId: string;
+  mediaId?: string; // ✅ optionnel
+  quizId?: string; // ✅ optionnel
   order: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export enum LessonStatus {

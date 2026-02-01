@@ -12,9 +12,11 @@ export const LessonRoutes = (): Router => {
 
   const boundController = {
     getById: controller.getById.bind(controller),
+    addQuiz: controller.addQuiz.bind(controller),
   };
 
   router.get('/:id', validateLessonId, handleValidationErrors, boundController.getById);
+  router.put('/:id/quizzes', validateLessonId, handleValidationErrors, boundController.addQuiz);
 
   return router;
 };

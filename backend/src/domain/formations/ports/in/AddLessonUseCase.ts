@@ -11,6 +11,7 @@ export interface AddLessonCommand {
   order: number;
   status: LessonStatus;
   chapters?: ChapterDTO[];
+  quizId?: string;
 }
 
 export interface AddLessonUseCase extends UseCase<AddLessonCommand, ModuleResponseDTO> {}

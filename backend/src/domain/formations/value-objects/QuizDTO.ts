@@ -5,6 +5,9 @@ import type { QuestionDTO } from './QuestionDTO';
 export interface QuizDTO {
   id: string;
   title: string;
+  moduleId?: string;
+  lessonId?: string;
+  chapterId?: string;
   description: string;
   status: QuizStatus;
   scoreMinimum: number;
