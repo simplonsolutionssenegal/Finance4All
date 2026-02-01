@@ -248,22 +248,6 @@ describe('LessonDialog (global)', () => {
       clickSpy.mockRestore();
       jest.useRealTimers();
     });
-    it('genId fallback: fonctionne si crypto.randomUUID est absent', () => {
-      const previousCrypto = (global as any).crypto;
-
-      try {
-        // force l’absence de randomUUID
-        (global as any).crypto = {};
-
-        render(<LessonDialog {...defaultProps} />);
-
-        // doit ajouter un chapitre sans crash (utilise le fallback Date.now + Math.random)
-        fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-        expect(screen.getByText('Chapitre 1')).toBeInTheDocument();
-      } finally {
-        (global as any).crypto = previousCrypto;
-      }
-    });
 
     it('change le statut (DRAFT -> PUBLISHED)', () => {
       render(<LessonDialog {...defaultProps} />);
@@ -377,13 +361,14 @@ describe('LessonDialog (global)', () => {
       await waitFor(() => expect(mockUploadMedia).toHaveBeenCalledTimes(1));
 
       const callArg = mockUploadMedia.mock.calls[0][0];
-      expect(callArg).toEqual(
+
+      // ✅ pas de toEqual sur File
+      expect(callArg.file).toBe(file);
+
+      expect(callArg.metadata).toEqual(
         expect.objectContaining({
-          file,
-          metadata: expect.objectContaining({
-            moduleId: 'module-123',
-            chapterTempId: expect.any(String),
-          }),
+          moduleId: 'module-123',
+          chapterIndex: '0',
         })
       );
 

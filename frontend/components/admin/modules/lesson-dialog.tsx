@@ -37,24 +37,14 @@ type LessonDialogProps = {
 };
 
 type ChapterForm = {
-  id: string;
   title: string;
   description: string;
-
-  // rempli automatiquement après upload
   mediaId: string;
-
-  // UI helpers
   uploadedName?: string | null;
   uploading?: boolean;
   uploadError?: string | null;
   noMedia?: boolean;
 };
-
-function genId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
 
 export default function LessonDialog({
   open,
@@ -68,14 +58,14 @@ export default function LessonDialog({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<LessonStatus>(LessonStatus.DRAFT);
   const [duration, setDuration] = useState<number | ''>('');
-  const [openChapter, setOpenChapter] = useState<string>('');
+  const [openChapterIndex, setOpenChapterIndex] = useState<number>(-1);
 
   const [chapters, setChapters] = useState<ChapterForm[]>([]);
   const [chapterError, setChapterError] = useState<string | null>(null);
 
   // popup resource picker
   const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
-  const [resourceTargetChapterId, setResourceTargetChapterId] = useState<string | null>(null);
+  const [resourceTargetChapterIndex, setResourceTargetChapterIndex] = useState<number | null>(null);
 
   // file picker
   const [accept, setAccept] = useState<string>('*/*');
@@ -92,16 +82,14 @@ export default function LessonDialog({
 
   const uploadMedia = useUploadMedia();
 
-  const updateChapter = (id: string, patch: Partial<ChapterForm>) => {
-    setChapters(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)));
+  const updateChapter = (index: number, patch: Partial<ChapterForm>) => {
+    setChapters(prev => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   };
 
   const addChapter = () => {
-    const newId = genId();
     setChapters(prev => [
       ...prev,
       {
-        id: newId,
         title: '',
         description: '',
         mediaId: '',
@@ -111,12 +99,13 @@ export default function LessonDialog({
         noMedia: false,
       },
     ]);
-    setOpenChapter(newId);
+    setOpenChapterIndex(chapters.length); // Ouvrir le nouveau chapitre
   };
 
-  const removeChapter = (id: string) => {
-    setChapters(prev => prev.filter(c => c.id !== id));
-    if (openChapter === id) setOpenChapter('');
+  const removeChapter = (index: number) => {
+    setChapters(prev => prev.filter((_, i) => i !== index));
+    if (openChapterIndex === index) setOpenChapterIndex(-1);
+    else if (openChapterIndex > index) setOpenChapterIndex(openChapterIndex - 1);
   };
 
   // validation chapitre: titre+desc + (noMedia OU mediaId) + pas d'upload en cours
@@ -150,11 +139,10 @@ export default function LessonDialog({
     setDescription('');
     setStatus(LessonStatus.DRAFT);
     setDuration('');
-    setOpenChapter('');
+    setOpenChapterIndex(-1);
     setChapterError(null);
 
     const init = (initialChapters ?? []).map((c: any) => ({
-      id: c?.id ? String(c.id) : genId(),
       title: c?.title ?? '',
       description: c?.description ?? '',
       mediaId: c?.mediaId ?? '',
@@ -169,9 +157,9 @@ export default function LessonDialog({
 
   const handleAddChapter = () => {
     if (!canAddNewChapter) {
-      setChapterError('Veuillez compléter les chapitres avant d’en ajouter un nouveau.');
-      const firstInvalid = chapters.find(c => !isChapterValid(c));
-      if (firstInvalid) setOpenChapter(firstInvalid.id);
+      setChapterError("Veuillez compléter les chapitres avant d'en ajouter un nouveau.");
+      const firstInvalidIndex = chapters.findIndex(c => !isChapterValid(c));
+      if (firstInvalidIndex !== -1) setOpenChapterIndex(firstInvalidIndex);
       return;
     }
 
@@ -180,22 +168,22 @@ export default function LessonDialog({
   };
 
   // --- Ressource flow ---
-  const openResourcePickerForChapter = (chapterId: string) => {
-    setResourceTargetChapterId(chapterId);
+  const openResourcePickerForChapter = (chapterIndex: number) => {
+    setResourceTargetChapterIndex(chapterIndex);
     setResourcePickerOpen(true);
   };
 
   const onPickResourceKind = (kind: ResourceKind) => {
     setResourcePickerOpen(false);
 
-    const chapterId = resourceTargetChapterId;
-    setResourceTargetChapterId(null);
+    const chapterIndex = resourceTargetChapterIndex;
+    setResourceTargetChapterIndex(null);
 
-    if (!chapterId) return;
+    if (chapterIndex === null) return;
 
     if (kind === 'PAGE') {
       // Pas de fichier à uploader, on marque "noMedia"
-      updateChapter(chapterId, {
+      updateChapter(chapterIndex, {
         noMedia: true,
         mediaId: '',
         uploadedName: 'Page (sans fichier)',
@@ -218,19 +206,19 @@ export default function LessonDialog({
   };
 
   const handleFilePicked = async (file: File) => {
-    const target = openChapter || chapters[chapters.length - 1]?.id || null;
+    const targetIndex = openChapterIndex >= 0 ? openChapterIndex : chapters.length - 1;
 
-    if (!target) return;
+    if (targetIndex < 0) return;
 
-    updateChapter(target, { uploading: true, uploadError: null, noMedia: false });
+    updateChapter(targetIndex, { uploading: true, uploadError: null, noMedia: false });
 
     try {
       const media = await uploadMedia.mutateAsync({
         file,
-        metadata: { moduleId, chapterTempId: target },
+        metadata: { moduleId, chapterIndex: targetIndex.toString() },
       });
 
-      updateChapter(target, {
+      updateChapter(targetIndex, {
         mediaId: media.id,
         uploadedName: media.originalName ?? file.name,
         uploading: false,
@@ -238,7 +226,7 @@ export default function LessonDialog({
         noMedia: false,
       });
     } catch (e) {
-      updateChapter(target, {
+      updateChapter(targetIndex, {
         uploading: false,
         uploadError: e instanceof Error ? e.message : 'Erreur upload',
       });
@@ -262,7 +250,7 @@ export default function LessonDialog({
           order: idx,
           // si noMedia => on n'envoie pas mediaId (backend doit accepter)
           ...(c.noMedia ? {} : { mediaId: c.mediaId }),
-        })) as any, // ✅ au cas où ChapterDto frontend exige mediaId obligatoire
+        })) as any,
       },
     });
   };
@@ -331,7 +319,6 @@ export default function LessonDialog({
               />
             </div>
 
-            {/* ✅ Select status comme avant */}
             <div className='space-y-2'>
               <Label className='text-slate-700'>Statut</Label>
               <Select value={status} onValueChange={v => setStatus(v as LessonStatus)}>
@@ -415,14 +402,14 @@ export default function LessonDialog({
                 <Accordion
                   type='single'
                   collapsible
-                  value={openChapter}
-                  onValueChange={setOpenChapter}
+                  value={openChapterIndex >= 0 ? openChapterIndex.toString() : ''}
+                  onValueChange={v => setOpenChapterIndex(v === '' ? -1 : parseInt(v))}
                   className='space-y-3'
                 >
                   {chapters.map((c, idx) => (
                     <AccordionItem
-                      key={c.id}
-                      value={c.id}
+                      key={idx}
+                      value={idx.toString()}
                       className='rounded-xl border border-slate-200 bg-white px-4 mb-2 last:border-b'
                     >
                       <div className='flex items-center justify-between gap-3'>
@@ -434,7 +421,7 @@ export default function LessonDialog({
 
                         <button
                           type='button'
-                          onClick={() => removeChapter(c.id)}
+                          onClick={() => removeChapter(idx)}
                           className='h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center'
                           aria-label='Supprimer le chapitre'
                         >
@@ -446,14 +433,14 @@ export default function LessonDialog({
                         <div className='space-y-3 p-2'>
                           <Input
                             value={c.title}
-                            onChange={e => updateChapter(c.id, { title: e.target.value })}
+                            onChange={e => updateChapter(idx, { title: e.target.value })}
                             placeholder='Titre de chapitre'
                             className='bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
                           />
 
                           <Textarea
                             value={c.description}
-                            onChange={e => updateChapter(c.id, { description: e.target.value })}
+                            onChange={e => updateChapter(idx, { description: e.target.value })}
                             placeholder='Description de chapitre ...'
                             className='min-h-[70px] bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
                           />
@@ -465,7 +452,7 @@ export default function LessonDialog({
 
                               <button
                                 type='button'
-                                onClick={() => openResourcePickerForChapter(c.id)}
+                                onClick={() => openResourcePickerForChapter(idx)}
                                 disabled={!!c.uploading}
                                 className='inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50'
                               >
@@ -480,7 +467,7 @@ export default function LessonDialog({
                                 checked={!!c.noMedia}
                                 onChange={e => {
                                   const checked = e.target.checked;
-                                  updateChapter(c.id, {
+                                  updateChapter(idx, {
                                     noMedia: checked,
                                     mediaId: checked ? '' : c.mediaId,
                                     uploadedName: checked ? null : (c.uploadedName ?? null),
@@ -523,7 +510,7 @@ export default function LessonDialog({
                                     <button
                                       type='button'
                                       onClick={() =>
-                                        updateChapter(c.id, {
+                                        updateChapter(idx, {
                                           mediaId: '',
                                           uploadedName: null,
                                           uploadError: null,
@@ -550,7 +537,7 @@ export default function LessonDialog({
               {!allChaptersValid && (
                 <p className='text-xs text-orange-600'>
                   Chaque chapitre doit avoir un titre + description, et une ressource uploadée OU
-                  “Aucun média”.
+                  &quot;Aucun média&quot;.
                 </p>
               )}
             </div>
