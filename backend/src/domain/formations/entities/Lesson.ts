@@ -5,6 +5,7 @@ import { DomainEntity } from '@/domain/shared/Entity';
 import type { Chapter } from './Chapter';
 import type { LessonDTO } from '@/domain/formations/value-objects/LessonDTO';
 import type { Quiz } from './Quiz';
+import { assertMaxLength, assertNotBlank } from '@/infrastructure/web/validators/textRules';
 
 export enum LessonStatus {
   DRAFT = 'DRAFT',
@@ -38,7 +39,6 @@ export class Lesson extends DomainEntity<EntityId> {
   constructor(props: LessonProps) {
     super(props.id);
 
-    // this.validateModuleId(props.moduleId); // ⭐ AJOUT
     this.validateDuration(props.duration);
     this.validateOrder(props.order);
 
@@ -52,10 +52,7 @@ export class Lesson extends DomainEntity<EntityId> {
     this._quizzes = new Set(props.quizzes);
   }
 
-  // --- Getters ---
-
   get moduleId(): string {
-    // ⭐ AJOUT
     return this._moduleId;
   }
 
@@ -145,20 +142,14 @@ export class Lesson extends DomainEntity<EntityId> {
   // --- Updates ---
 
   updateTitle(title: string): void {
-    if (!title || title.trim().length === 0) {
-      throw new Error('Le titre ne peut pas être vide');
-    }
-    if (title.length > 200) {
-      throw new Error('Le titre ne peut pas dépasser 200 caractères');
-    }
+    assertNotBlank(title, 'Le titre de la leçon ne peut pas être vide');
+    assertMaxLength(title, 200, 'Le titre de la leçon ne peut pas dépasser 200 caractères');
     this._title = title;
     this._updatedAt = new Date();
   }
 
   updateDescription(description: string): void {
-    if (!description || description.trim().length === 0) {
-      throw new Error('La description ne peut pas être vide');
-    }
+    assertNotBlank(description, 'La description de la leçon ne peut pas être vide');
     this._description = description;
     this._updatedAt = new Date();
   }

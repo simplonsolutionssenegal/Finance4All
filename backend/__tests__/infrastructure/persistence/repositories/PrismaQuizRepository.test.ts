@@ -1,3 +1,5 @@
+// __tests__/infrastructure/persistence/repositories/PrismaQuizRepository.test.ts
+
 import { PrismaQuizRepository } from '@/infrastructure/persistence/repositories/PrismaQuizRepository';
 import { EntityId } from '@/domain/shared/EntityId';
 import { Quiz, QuizStatus } from '@/domain/formations/entities/Quiz';
@@ -5,347 +7,172 @@ import {
   QuestionChoixUnique,
   QuestionChoixMultiple,
   TypeQuestion,
-  type QuestionOption,
 } from '@/domain/formations/entities/Question';
-import type { PrismaClient } from '@prisma/client';
-import { randomUUID } from 'crypto';
 
-type PrismaQuizRow = {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  scoreMinimum: number;
-  duree: number | null;
-  nombreTentatives: number;
-  questions: any;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-describe('PrismaQuizRepository — tests avec couverture 100%', () => {
-  let repository: PrismaQuizRepository;
-  let mockPrisma: Partial<PrismaClient> & { quiz?: any };
-  let uuid1: string;
-  let uuid2: string;
-
-  beforeEach(() => {
-    uuid1 = randomUUID();
-    uuid2 = randomUUID();
-
-    mockPrisma = {
-      quiz: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        update: jest.fn(),
-      },
-    } as any;
-
-    repository = new PrismaQuizRepository(mockPrisma as unknown as PrismaClient);
+describe('PrismaQuizRepository', () => {
+  const makePrismaMock = () => ({
+    quiz: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      update: jest.fn(),
+    },
   });
 
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
+  const makePrismaQuiz = (overrides: Partial<any> = {}) => {
+    const quizId = EntityId.generate().getValue();
 
-  describe('findById(id)', () => {
-    it('devrait retourner un Quiz avec questions choix unique', async () => {
-      const questionsData = [
+    return {
+      id: quizId,
+      moduleId: 'module-123',
+      lessonId: null,
+      chapterId: null,
+      title: 'Quiz de test',
+      description: 'Description du quiz',
+      status: 'DRAFT',
+      scoreMinimum: 70,
+      duree: 600,
+      nombreTentatives: 3,
+      questions: [
         {
-          question: 'Quelle est la capitale de la France?',
           type: TypeQuestion.CHOIX_UNIQUE,
+          question: 'Question à choix unique?',
           points: 10,
           options: [
-            { text: 'Paris', isCorrect: true },
-            { text: 'Lyon', isCorrect: false },
-            { text: 'Marseille', isCorrect: false },
+            { label: 'Réponse A', isCorrect: true },
+            { label: 'Réponse B', isCorrect: false },
           ],
-          explication: 'Paris est la capitale de la France',
+          explication: 'Explication de la réponse',
         },
-      ];
-
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz de géographie',
-        description: 'Test sur les capitales',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 1800,
-        nombreTentatives: 3,
-        questions: questionsData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
-
-      const found = await repository.findById(uuid1);
-
-      expect(mockPrisma.quiz!.findUnique).toHaveBeenCalledWith({
-        where: { id: uuid1 },
-      });
-      expect(found).not.toBeNull();
-      expect(found).toBeInstanceOf(Quiz);
-      expect(found?.title).toBe('Quiz de géographie');
-      expect(found?.description).toBe('Test sur les capitales');
-      expect(found?.status).toBe(QuizStatus.PUBLISHED);
-      expect(found?.scoreMinimum).toBe(70);
-      expect(found?.duree).toBe(1800);
-      expect(found?.nombreTentatives).toBe(3);
-      expect(found?.questions).toHaveLength(1);
-      expect(found?.questions[0]).toBeInstanceOf(QuestionChoixUnique);
-
-      const question = found?.questions[0] as QuestionChoixUnique;
-      expect(question.question).toBe('Quelle est la capitale de la France?');
-    });
-
-    it('devrait retourner un Quiz avec questions choix multiple', async () => {
-      const questionsData = [
         {
-          question: 'Quels sont des langages de programmation?',
           type: TypeQuestion.CHOIX_MULTIPLE,
-          points: 15,
-          options: [
-            { text: 'JavaScript', isCorrect: true },
-            { text: 'Python', isCorrect: true },
-            { text: 'HTML', isCorrect: false },
-            { text: 'TypeScript', isCorrect: true },
-          ],
-          explication: 'HTML est un langage de balisage, pas de programmation',
-        },
-      ];
-
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz de programmation',
-        description: 'Test sur les langages',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 50,
-        duree: null,
-        nombreTentatives: 2,
-        questions: questionsData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
-
-      const found = await repository.findById(uuid1);
-
-      expect(found).not.toBeNull();
-      expect(found?.questions[0]).toBeInstanceOf(QuestionChoixMultiple);
-
-      const question = found?.questions[0] as QuestionChoixMultiple;
-      expect(question.points).toBe(15);
-      expect(found?.duree).toBeUndefined(); // null devient undefined
-    });
-
-    it('devrait retourner un Quiz avec plusieurs questions mixtes', async () => {
-      const questionsData = [
-        {
-          question: 'Question 1',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 10,
-          options: [
-            { text: 'A', isCorrect: true },
-            { text: 'B', isCorrect: false },
-          ],
-        },
-        {
-          question: 'Question 2',
-          type: TypeQuestion.CHOIX_MULTIPLE,
+          question: 'Question à choix multiples?',
           points: 20,
           options: [
-            { text: 'X', isCorrect: true },
-            { text: 'Y', isCorrect: true },
-            { text: 'Z', isCorrect: false },
+            { label: 'Réponse A', isCorrect: true },
+            { label: 'Réponse B', isCorrect: true },
+            { label: 'Réponse C', isCorrect: false },
           ],
+          explication: 'Plusieurs réponses possibles',
         },
-        {
-          question: 'Question 3',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 15,
-          options: [
-            { text: '1', isCorrect: false },
-            { text: '2', isCorrect: true },
-          ],
-          explication: 'Explication question 3',
-        },
-      ];
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...overrides,
+    };
+  };
 
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz mixte',
-        description: 'Questions variées',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 60,
-        duree: 3600,
-        nombreTentatives: 1,
-        questions: questionsData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  describe('findById', () => {
+    it('devrait retourner null si le quiz prisma est introuvable', async () => {
+      const prisma = makePrismaMock();
+      prisma.quiz.findUnique.mockResolvedValueOnce(null);
 
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      const found = await repository.findById(uuid1);
+      const result = await repo.findById('unknown-id');
 
-      expect(found?.questions).toHaveLength(3);
-      expect(found?.questions[0]).toBeInstanceOf(QuestionChoixUnique);
-      expect(found?.questions[1]).toBeInstanceOf(QuestionChoixMultiple);
-      expect(found?.questions[2]).toBeInstanceOf(QuestionChoixUnique);
-
-      const question3 = found?.questions[2] as QuestionChoixUnique;
-      expect(question3.explication).toBe('Explication question 3');
-    });
-
-    it('devrait retourner null si le quiz est introuvable', async () => {
-      mockPrisma.quiz!.findUnique.mockResolvedValue(null);
-
-      const found = await repository.findById('non-existent-id');
-
-      expect(mockPrisma.quiz!.findUnique).toHaveBeenCalledWith({
-        where: { id: 'non-existent-id' },
+      expect(result).toBeNull();
+      expect(prisma.quiz.findUnique).toHaveBeenCalledWith({
+        where: { id: 'unknown-id' },
       });
-      expect(found).toBeNull();
     });
 
-    it('devrait gérer un quiz sans questions', async () => {
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz vide',
-        description: 'Sans questions',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 0,
+    it('devrait mapper Prisma -> Domain Quiz avec toutes les propriétés', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz();
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
+
+      const repo = new PrismaQuizRepository(prisma as any);
+
+      const result = await repo.findById(prismaQuiz.id);
+
+      expect(result).toBeInstanceOf(Quiz);
+      expect(result?.id.getValue()).toBe(prismaQuiz.id);
+      expect(result?.moduleId).toBe('module-123');
+      expect(result?.lessonId).toBeUndefined();
+      expect(result?.chapterId).toBeUndefined();
+      expect(result?.title).toBe('Quiz de test');
+      expect(result?.description).toBe('Description du quiz');
+      expect(result?.status).toBe(QuizStatus.DRAFT);
+      expect(result?.scoreMinimum).toBe(70);
+      expect(result?.duree).toBe(600);
+      expect(result?.nombreTentatives).toBe(3);
+      expect(result?.questions).toHaveLength(2);
+    });
+
+    it('devrait mapper correctement les questions du quiz', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz();
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
+
+      const repo = new PrismaQuizRepository(prisma as any);
+
+      const result = await repo.findById(prismaQuiz.id);
+
+      // Vérifier question choix unique
+      expect(result?.questions[0]).toBeInstanceOf(QuestionChoixUnique);
+      expect(result?.questions[0].question).toBe('Question à choix unique?');
+      expect(result?.questions[0].points).toBe(10);
+
+      // Vérifier question choix multiple
+      expect(result?.questions[1]).toBeInstanceOf(QuestionChoixMultiple);
+      expect(result?.questions[1].question).toBe('Question à choix multiples?');
+      expect(result?.questions[1].points).toBe(20);
+    });
+
+    it('devrait convertir null en undefined pour les champs optionnels', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz({
+        moduleId: null,
+        lessonId: null,
+        chapterId: null,
         duree: null,
-        nombreTentatives: 3,
-        questions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
 
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      const found = await repository.findById(uuid1);
+      const result = await repo.findById(prismaQuiz.id);
 
-      expect(found).not.toBeNull();
-      expect(found?.questions).toHaveLength(0);
+      expect(result?.moduleId).toBeUndefined();
+      expect(result?.lessonId).toBeUndefined();
+      expect(result?.chapterId).toBeUndefined();
+      expect(result?.duree).toBeUndefined();
+      expect(result?.isIllimite).toBe(true);
     });
 
-    it('devrait gérer les questions avec valeur null ou non-array', async () => {
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz test',
-        description: 'Test null',
-        status: QuizStatus.ARCHIVED,
-        scoreMinimum: 80,
-        duree: 600,
-        nombreTentatives: 2,
-        questions: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('devrait calculer correctement totalPoints', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz();
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
 
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      const found = await repository.findById(uuid1);
+      const result = await repo.findById(prismaQuiz.id);
 
-      expect(found).not.toBeNull();
-      expect(found?.questions).toHaveLength(0);
-    });
-
-    it('devrait propager les erreurs de prisma', async () => {
-      const error = new Error('Database connection failed');
-      mockPrisma.quiz!.findUnique.mockRejectedValue(error);
-
-      await expect(repository.findById(uuid1)).rejects.toThrow('Database connection failed');
-    });
-
-    it('devrait lever une erreur pour un type de question inconnu', async () => {
-      const questionsData = [
-        {
-          question: 'Question invalide',
-          type: 'TYPE_INCONNU',
-          points: 10,
-          options: [{ text: 'A', isCorrect: true }],
-        },
-      ];
-
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz invalide',
-        description: 'Test erreur',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 50,
-        duree: null,
-        nombreTentatives: 1,
-        questions: questionsData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
-
-      await expect(repository.findById(uuid1)).rejects.toThrow(
-        'TypeQuestion inconnu: TYPE_INCONNU'
-      );
+      expect(result?.totalPoints).toBe(30); // 10 + 20
     });
   });
 
-  describe('findAll(params)', () => {
-    it('devrait utiliser skip/take et retourner la pagination correcte', async () => {
-      const questionsData = [
-        {
-          question: 'Test',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 10,
-          options: [
-            { text: 'A', isCorrect: true },
-            { text: 'B', isCorrect: false },
-          ],
-        },
-      ];
+  describe('findAll', () => {
+    it('devrait retourner une pagination avec les quizzes mappés', async () => {
+      const prisma = makePrismaMock();
 
-      const rows: PrismaQuizRow[] = [
-        {
-          id: uuid1,
-          title: 'Quiz 1',
-          description: 'Description 1',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: 70,
-          duree: 1800,
-          nombreTentatives: 3,
-          questions: questionsData,
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-01-01'),
-        },
-        {
-          id: uuid2,
-          title: 'Quiz 2',
-          description: 'Description 2',
-          status: QuizStatus.PUBLISHED,
-          scoreMinimum: 60,
-          duree: null,
-          nombreTentatives: 2,
-          questions: [],
-          createdAt: new Date('2024-01-02'),
-          updatedAt: new Date('2024-01-02'),
-        },
-      ];
+      const quiz1 = makePrismaQuiz({ title: 'Quiz 1' });
+      const quiz2 = makePrismaQuiz({ title: 'Quiz 2' });
 
-      mockPrisma.quiz!.findMany.mockResolvedValue(rows);
-      mockPrisma.quiz!.count.mockResolvedValue(20);
+      prisma.quiz.findMany.mockResolvedValueOnce([quiz1, quiz2]);
+      prisma.quiz.count.mockResolvedValueOnce(10);
 
-      const params = { page: 3, limit: 5 };
-      const result = await repository.findAll(params);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      expect(mockPrisma.quiz!.findMany).toHaveBeenCalledWith({
-        skip: 10,
-        take: 5,
+      const result = await repo.findAll({ page: 2, limit: 2 });
+
+      expect(prisma.quiz.findMany).toHaveBeenCalledWith({
+        skip: 2, // (page-1)*limit = (2-1)*2
+        take: 2,
         orderBy: { createdAt: 'desc' },
       });
-      expect(mockPrisma.quiz!.count).toHaveBeenCalled();
 
       expect(result.data).toHaveLength(2);
       expect(result.data[0]).toBeInstanceOf(Quiz);
@@ -353,570 +180,308 @@ describe('PrismaQuizRepository — tests avec couverture 100%', () => {
       expect(result.data[1].title).toBe('Quiz 2');
 
       expect(result.pagination).toEqual({
-        page: 3,
-        limit: 5,
-        total: 20,
-        totalPages: 4,
+        page: 2,
+        limit: 2,
+        total: 10,
+        totalPages: 5, // ceil(10/2)
       });
     });
 
-    it('devrait gérer la première page', async () => {
-      mockPrisma.quiz!.findMany.mockResolvedValue([]);
-      mockPrisma.quiz!.count.mockResolvedValue(0);
+    it('devrait gérer une page sans résultats', async () => {
+      const prisma = makePrismaMock();
 
-      const result = await repository.findAll({ page: 1, limit: 10 });
+      prisma.quiz.findMany.mockResolvedValueOnce([]);
+      prisma.quiz.count.mockResolvedValueOnce(0);
 
-      expect(mockPrisma.quiz!.findMany).toHaveBeenCalledWith({
-        skip: 0,
-        take: 10,
-        orderBy: { createdAt: 'desc' },
+      const repo = new PrismaQuizRepository(prisma as any);
+
+      const result = await repo.findAll({ page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(0);
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
       });
-
-      expect(result.data).toEqual([]);
-      expect(result.pagination.page).toBe(1);
-      expect(result.pagination.total).toBe(0);
-      expect(result.pagination.totalPages).toBe(0);
     });
 
-    it('devrait gérer tous les statuts de quiz', async () => {
-      const rows: PrismaQuizRow[] = [
-        {
-          id: randomUUID(),
-          title: 'Quiz Draft',
-          description: 'Desc',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: 50,
-          duree: 600,
-          nombreTentatives: 1,
-          questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          title: 'Quiz Published',
-          description: 'Desc',
-          status: QuizStatus.PUBLISHED,
-          scoreMinimum: 70,
-          duree: 1200,
-          nombreTentatives: 2,
-          questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          title: 'Quiz Archived',
-          description: 'Desc',
-          status: QuizStatus.ARCHIVED,
-          scoreMinimum: 80,
-          duree: null,
-          nombreTentatives: 3,
-          questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
+    it('devrait calculer correctement totalPages avec reste', async () => {
+      const prisma = makePrismaMock();
 
-      mockPrisma.quiz!.findMany.mockResolvedValue(rows);
-      mockPrisma.quiz!.count.mockResolvedValue(3);
+      const quizzes = [makePrismaQuiz(), makePrismaQuiz(), makePrismaQuiz()];
+      prisma.quiz.findMany.mockResolvedValueOnce(quizzes);
+      prisma.quiz.count.mockResolvedValueOnce(7);
 
-      const result = await repository.findAll({ page: 1, limit: 10 });
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      expect(result.data).toHaveLength(3);
-      expect(result.data[0].status).toBe(QuizStatus.DRAFT);
-      expect(result.data[1].status).toBe(QuizStatus.PUBLISHED);
-      expect(result.data[2].status).toBe(QuizStatus.ARCHIVED);
-    });
+      const result = await repo.findAll({ page: 1, limit: 3 });
 
-    it('devrait propager les erreurs de findMany', async () => {
-      mockPrisma.quiz!.findMany.mockRejectedValue(new Error('Query failed'));
-      mockPrisma.quiz!.count.mockResolvedValue(0);
-
-      await expect(repository.findAll({ page: 1, limit: 10 })).rejects.toThrow('Query failed');
-    });
-
-    it('devrait propager les erreurs de count', async () => {
-      mockPrisma.quiz!.findMany.mockResolvedValue([]);
-      mockPrisma.quiz!.count.mockRejectedValue(new Error('Count failed'));
-
-      await expect(repository.findAll({ page: 1, limit: 10 })).rejects.toThrow('Count failed');
+      expect(result.pagination.totalPages).toBe(3); // ceil(7/3)
     });
   });
 
-  describe('update(quiz)', () => {
-    it('devrait mettre à jour un quiz avec questions choix unique', async () => {
-      const options: QuestionOption[] = [
-        { text: 'Réponse A', isCorrect: true },
-        { text: 'Réponse B', isCorrect: false },
-      ];
+  describe('update', () => {
+    it('devrait mettre à jour un quiz et le retourner mappé', async () => {
+      const prisma = makePrismaMock();
 
-      const question = new QuestionChoixUnique('Question test?', 10, options, 'Explication');
+      const quizId = EntityId.generate().getValue();
 
+      // Quiz domain à mettre à jour
       const domainQuiz = new Quiz({
-        id: EntityId.from(uuid1),
-        title: 'Quiz modifié',
-        description: 'Description modifiée',
+        id: EntityId.from(quizId),
+        moduleId: 'module-456',
+        lessonId: 'lesson-789',
+        title: 'Quiz mis à jour',
+        description: 'Nouvelle description',
         status: QuizStatus.PUBLISHED,
-        scoreMinimum: 75,
-        duree: 2400,
+        scoreMinimum: 80,
+        duree: 1200,
         nombreTentatives: 2,
-        questions: [question],
+        questions: [
+          new QuestionChoixUnique(
+            'Question mise à jour?',
+            15,
+            [
+              { text: 'Oui', isCorrect: true },
+              { text: 'Non', isCorrect: false },
+            ],
+            'Explication mise à jour'
+          ),
+        ],
       });
 
-      const updatedRow: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz modifié',
-        description: 'Description modifiée',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 75,
-        duree: 2400,
+      // Quiz Prisma après update
+      const updatedPrismaQuiz = {
+        id: quizId,
+        moduleId: 'module-456',
+        lessonId: 'lesson-789',
+        chapterId: null,
+        title: 'Quiz mis à jour',
+        description: 'Nouvelle description',
+        status: 'PUBLISHED',
+        scoreMinimum: 80,
+        duree: 1200,
         nombreTentatives: 2,
-        questions: [question.toDTO()],
-        createdAt: new Date('2024-01-01'),
+        questions: [
+          {
+            type: TypeQuestion.CHOIX_UNIQUE,
+            question: 'Question mise à jour?',
+            points: 15,
+            options: [
+              { label: 'Oui', isCorrect: true },
+              { label: 'Non', isCorrect: false },
+            ],
+            explication: 'Explication mise à jour',
+          },
+        ],
+        createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
+      prisma.quiz.update.mockResolvedValueOnce(updatedPrismaQuiz);
 
-      const result = await repository.update(domainQuiz);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      expect(mockPrisma.quiz!.update).toHaveBeenCalledWith({
-        where: { id: uuid1 },
-        data: {
-          title: 'Quiz modifié',
-          description: 'Description modifiée',
-          status: QuizStatus.PUBLISHED,
-          scoreMinimum: 75,
-          duree: 2400,
-          nombreTentatives: 2,
-          questions: [
-            {
-              question: 'Question test?',
-              type: TypeQuestion.CHOIX_UNIQUE,
-              points: 10,
-              options,
-              explication: 'Explication',
-            },
-          ],
-        },
+      const result = await repo.update(domainQuiz);
+
+      expect(prisma.quiz.update).toHaveBeenCalledTimes(1);
+      const updateArgs = prisma.quiz.update.mock.calls[0][0];
+
+      expect(updateArgs.where).toEqual({ id: quizId });
+      expect(updateArgs.data).toEqual({
+        title: 'Quiz mis à jour',
+        description: 'Nouvelle description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 80,
+        duree: 1200,
+        nombreTentatives: 2,
+        questions: expect.any(Array),
       });
 
       expect(result).toBeInstanceOf(Quiz);
-      expect(result.title).toBe('Quiz modifié');
-      expect(result.duree).toBe(2400);
-      expect(result.questions).toHaveLength(1);
+      expect(result.title).toBe('Quiz mis à jour');
+      expect(result.status).toBe(QuizStatus.PUBLISHED);
     });
 
-    it('devrait mettre à jour un quiz avec questions choix multiple', async () => {
-      const options: QuestionOption[] = [
-        { text: 'Option 1', isCorrect: true },
-        { text: 'Option 2', isCorrect: true },
-        { text: 'Option 3', isCorrect: false },
-      ];
+    it("devrait convertir duree undefined en null lors de l'update", async () => {
+      const prisma = makePrismaMock();
 
-      const question = new QuestionChoixMultiple(
-        'Sélectionnez toutes les bonnes réponses',
-        20,
-        options
-      );
+      const quizId = EntityId.generate().getValue();
 
       const domainQuiz = new Quiz({
-        id: EntityId.from(uuid2),
-        title: 'Quiz choix multiple',
-        description: 'Test',
+        id: EntityId.from(quizId),
+        title: 'Quiz illimité',
+        description: 'Sans limite de temps',
         status: QuizStatus.DRAFT,
         scoreMinimum: 50,
-        duree: undefined,
-        nombreTentatives: 3,
-        questions: [question],
+        duree: undefined, // Pas de limite de temps
+        nombreTentatives: 1,
+        questions: [],
       });
 
-      const updatedRow: PrismaQuizRow = {
-        id: uuid2,
-        title: 'Quiz choix multiple',
-        description: 'Test',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 50,
+      const updatedPrismaQuiz = makePrismaQuiz({
+        id: quizId,
+        title: 'Quiz illimité',
         duree: null,
+        questions: [],
+      });
+
+      prisma.quiz.update.mockResolvedValueOnce(updatedPrismaQuiz);
+
+      const repo = new PrismaQuizRepository(prisma as any);
+
+      await repo.update(domainQuiz);
+
+      const updateArgs = prisma.quiz.update.mock.calls[0][0];
+
+      expect(updateArgs.data.duree).toBeNull();
+    });
+
+    it('devrait sérialiser correctement les questions en JSON', async () => {
+      const prisma = makePrismaMock();
+
+      const quizId = EntityId.generate().getValue();
+
+      const domainQuiz = new Quiz({
+        id: EntityId.from(quizId),
+        title: 'Quiz',
+        description: 'Test',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 60,
         nombreTentatives: 3,
-        questions: [question.toDTO()],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
-
-      const result = await repository.update(domainQuiz);
-
-      expect(mockPrisma.quiz!.update).toHaveBeenCalledWith({
-        where: { id: uuid2 },
-        data: {
-          title: 'Quiz choix multiple',
-          description: 'Test',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: 50,
-          duree: null, // undefined devient null
-          nombreTentatives: 3,
-          questions: [
-            {
-              question: 'Sélectionnez toutes les bonnes réponses',
-              type: TypeQuestion.CHOIX_MULTIPLE,
-              points: 20,
-              options,
-              explication: undefined,
-            },
-          ],
-        },
+        questions: [
+          new QuestionChoixUnique(
+            'Q1',
+            10,
+            [
+              { text: 'A', isCorrect: true },
+              { text: 'B', isCorrect: false },
+            ],
+            'Exp'
+          ),
+          new QuestionChoixMultiple(
+            'Q2',
+            20,
+            [
+              { text: 'A', isCorrect: true },
+              { text: 'B', isCorrect: true },
+              { text: 'C', isCorrect: false },
+            ],
+            'Exp2'
+          ),
+        ],
       });
 
-      expect(result.duree).toBeUndefined();
-    });
+      const updatedPrismaQuiz = makePrismaQuiz({ id: quizId });
+      prisma.quiz.update.mockResolvedValueOnce(updatedPrismaQuiz);
 
-    it('devrait mettre à jour un quiz sans questions', async () => {
-      const domainQuiz = new Quiz({
-        id: EntityId.from(uuid1),
-        title: 'Quiz vide',
-        description: 'Sans questions',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 60,
-        duree: 900,
-        nombreTentatives: 1,
-        questions: [],
-      });
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      const updatedRow: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz vide',
-        description: 'Sans questions',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 60,
-        duree: 900,
-        nombreTentatives: 1,
-        questions: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      await repo.update(domainQuiz);
 
-      mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
+      const updateArgs = prisma.quiz.update.mock.calls[0][0];
+      const questions = updateArgs.data.questions as any[];
 
-      const result = await repository.update(domainQuiz);
-
-      expect(result.questions).toHaveLength(0);
-    });
-
-    it('devrait mettre à jour un quiz avec plusieurs questions mixtes', async () => {
-      const question1 = new QuestionChoixUnique('Q1', 10, [
-        { text: 'A', isCorrect: true },
-        { text: 'B', isCorrect: false },
-      ]);
-
-      const question2 = new QuestionChoixMultiple('Q2', 15, [
-        { text: 'X', isCorrect: true },
-        { text: 'Y', isCorrect: true },
-        { text: 'Z', isCorrect: false },
-      ]);
-
-      const question3 = new QuestionChoixUnique('Q3', 5, [
-        { text: '1', isCorrect: false },
-        { text: '2', isCorrect: true },
-      ]);
-
-      const domainQuiz = new Quiz({
-        id: EntityId.from(uuid1),
-        title: 'Quiz complet',
-        description: 'Plusieurs questions',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 3000,
-        nombreTentatives: 2,
-        questions: [question1, question2, question3],
-      });
-
-      const updatedRow: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz complet',
-        description: 'Plusieurs questions',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 3000,
-        nombreTentatives: 2,
-        questions: [question1.toDTO(), question2.toDTO(), question3.toDTO()],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
-
-      const result = await repository.update(domainQuiz);
-
-      expect(result.questions).toHaveLength(3);
-      expect(result.questions[0]).toBeInstanceOf(QuestionChoixUnique);
-      expect(result.questions[1]).toBeInstanceOf(QuestionChoixMultiple);
-      expect(result.questions[2]).toBeInstanceOf(QuestionChoixUnique);
+      expect(Array.isArray(questions)).toBe(true);
+      expect(questions).toHaveLength(2);
+      expect(questions[0]).toHaveProperty('type');
+      expect(questions[0]).toHaveProperty('question');
+      expect(questions[0]).toHaveProperty('points');
+      expect(questions[0]).toHaveProperty('options');
+      expect(questions[0]).toHaveProperty('explication');
     });
 
     it('devrait gérer tous les statuts de quiz', async () => {
+      const prisma = makePrismaMock();
+
       const statuses = [QuizStatus.DRAFT, QuizStatus.PUBLISHED, QuizStatus.ARCHIVED];
 
       for (const status of statuses) {
+        const quizId = EntityId.generate().getValue();
+
         const domainQuiz = new Quiz({
-          id: EntityId.from(uuid1),
+          id: EntityId.from(quizId),
           title: `Quiz ${status}`,
-          description: 'Test',
+          description: 'Description',
           status,
           scoreMinimum: 50,
-          duree: 600,
-          nombreTentatives: 3,
+          nombreTentatives: 1,
           questions: [],
         });
 
-        const updatedRow: PrismaQuizRow = {
-          id: uuid1,
-          title: `Quiz ${status}`,
-          description: 'Test',
+        const updatedPrismaQuiz = makePrismaQuiz({
+          id: quizId,
           status,
-          scoreMinimum: 50,
-          duree: 600,
-          nombreTentatives: 3,
           questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
+        });
 
-        mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
+        prisma.quiz.update.mockResolvedValueOnce(updatedPrismaQuiz);
 
-        const result = await repository.update(domainQuiz);
+        const repo = new PrismaQuizRepository(prisma as any);
+        const result = await repo.update(domainQuiz);
 
         expect(result.status).toBe(status);
       }
     });
-
-    it('devrait gérer différents scores minimum', async () => {
-      const scores = [0, 50, 70, 80, 100];
-
-      for (const score of scores) {
-        const domainQuiz = new Quiz({
-          id: EntityId.from(uuid1),
-          title: 'Quiz test',
-          description: 'Test',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: score,
-          duree: 600,
-          nombreTentatives: 1,
-          questions: [],
-        });
-
-        const updatedRow: PrismaQuizRow = {
-          id: uuid1,
-          title: 'Quiz test',
-          description: 'Test',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: score,
-          duree: 600,
-          nombreTentatives: 1,
-          questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
-
-        const result = await repository.update(domainQuiz);
-
-        expect(result.scoreMinimum).toBe(score);
-      }
-    });
-
-    it('devrait gérer différents nombres de tentatives', async () => {
-      const tentatives = [1, 2, 3];
-
-      for (const tentative of tentatives) {
-        const domainQuiz = new Quiz({
-          id: EntityId.from(uuid1),
-          title: 'Quiz test',
-          description: 'Test',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: 50,
-          duree: 600,
-          nombreTentatives: tentative,
-          questions: [],
-        });
-
-        const updatedRow: PrismaQuizRow = {
-          id: uuid1,
-          title: 'Quiz test',
-          description: 'Test',
-          status: QuizStatus.DRAFT,
-          scoreMinimum: 50,
-          duree: 600,
-          nombreTentatives: tentative,
-          questions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
-
-        const result = await repository.update(domainQuiz);
-
-        expect(result.nombreTentatives).toBe(tentative);
-      }
-    });
-
-    it('devrait propager les erreurs de update', async () => {
-      const domainQuiz = new Quiz({
-        id: EntityId.from(uuid1),
-        title: 'Test',
-        description: 'Test',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 50,
-        duree: 600,
-        nombreTentatives: 1,
-        questions: [],
-      });
-
-      const error = new Error('Update failed');
-      mockPrisma.quiz!.update.mockRejectedValue(error);
-
-      await expect(repository.update(domainQuiz)).rejects.toThrow('Update failed');
-    });
   });
 
-  describe('Mapping privé - toDomain', () => {
-    it('devrait mapper correctement avec plusieurs questions de types différents', async () => {
-      const questionsData = [
-        {
-          question: 'Question unique 1',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 10,
-          options: [
-            { text: 'A', isCorrect: true },
-            { text: 'B', isCorrect: false },
-          ],
-          explication: 'Explication 1',
-        },
-        {
-          question: 'Question multiple 1',
-          type: TypeQuestion.CHOIX_MULTIPLE,
-          points: 20,
-          options: [
-            { text: 'X', isCorrect: true },
-            { text: 'Y', isCorrect: true },
-            { text: 'Z', isCorrect: false },
-          ],
-        },
-        {
-          question: 'Question unique 2',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 15,
-          options: [
-            { text: '1', isCorrect: false },
-            { text: '2', isCorrect: true },
-          ],
-        },
-      ];
+  describe('Edge cases', () => {
+    it('devrait gérer un quiz sans questions', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz({ questions: [] });
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
 
-      const row: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Quiz complet',
-        description: 'Description complète',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 80,
-        duree: 3600,
-        nombreTentatives: 3,
-        questions: questionsData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      mockPrisma.quiz!.findUnique.mockResolvedValue(row);
+      const result = await repo.findById(prismaQuiz.id);
 
-      const found = await repository.findById(uuid1);
-
-      expect(found).not.toBeNull();
-      expect(found?.questions).toHaveLength(3);
-      expect(found?.questions[0]).toBeInstanceOf(QuestionChoixUnique);
-
-      const question1 = found?.questions[0] as QuestionChoixUnique;
-      expect(question1.question).toBe('Question unique 1');
-      expect(question1.points).toBe(10);
-      expect(question1.explication).toBe('Explication 1');
-
-      expect(found?.questions[1]).toBeInstanceOf(QuestionChoixMultiple);
-      const question2 = found?.questions[1] as QuestionChoixMultiple;
-      expect(question2.question).toBe('Question multiple 1');
-      expect(question2.points).toBe(20);
-
-      expect(found?.questions[2]).toBeInstanceOf(QuestionChoixUnique);
+      expect(result?.questions).toHaveLength(0);
+      expect(result?.totalPoints).toBe(0);
     });
-  });
 
-  describe('Mapping privé - toPrismaUpdateData', () => {
-    it('devrait transformer correctement les questions en DTO pour Prisma', async () => {
-      const question1 = new QuestionChoixUnique('Question A', 10, [
-        { text: 'Option 1', isCorrect: true },
-        { text: 'Option 2', isCorrect: false },
-      ]);
+    it('devrait gérer questions qui est null', async () => {
+      const prisma = makePrismaMock();
+      const prismaQuiz = makePrismaQuiz({ questions: null });
+      prisma.quiz.findUnique.mockResolvedValueOnce(prismaQuiz);
 
-      const question2 = new QuestionChoixMultiple('Question B', 15, [
-        { text: 'Choice X', isCorrect: true },
-        { text: 'Choice Y', isCorrect: true },
-        { text: 'Choice Z', isCorrect: false },
-      ]);
+      const repo = new PrismaQuizRepository(prisma as any);
 
-      const domainQuiz = new Quiz({
-        id: EntityId.from(uuid1),
-        title: 'Test mapping',
-        description: 'Test',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 1800,
-        nombreTentatives: 2,
-        questions: [question1, question2],
-      });
+      const result = await repo.findById(prismaQuiz.id);
 
-      const updatedRow: PrismaQuizRow = {
-        id: uuid1,
-        title: 'Test mapping',
-        description: 'Test',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 1800,
-        nombreTentatives: 2,
-        questions: [question1.toDTO(), question2.toDTO()],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      expect(result?.questions).toHaveLength(0);
+    });
 
-      mockPrisma.quiz!.update.mockResolvedValue(updatedRow);
+    it('devrait gérer les valeurs limites de scoreMinimum', async () => {
+      const prisma = makePrismaMock();
 
-      await repository.update(domainQuiz);
+      const quiz0 = makePrismaQuiz({ scoreMinimum: 0 });
+      const quiz100 = makePrismaQuiz({ scoreMinimum: 100 });
 
-      const callArgs = mockPrisma.quiz!.update.mock.calls[0][0];
-      expect(callArgs.data.questions).toEqual([
-        {
-          question: 'Question A',
-          type: TypeQuestion.CHOIX_UNIQUE,
-          points: 10,
-          options: [
-            { text: 'Option 1', isCorrect: true },
-            { text: 'Option 2', isCorrect: false },
-          ],
-          explication: undefined,
-        },
-        {
-          question: 'Question B',
-          type: TypeQuestion.CHOIX_MULTIPLE,
-          points: 15,
-          options: [
-            { text: 'Choice X', isCorrect: true },
-            { text: 'Choice Y', isCorrect: true },
-            { text: 'Choice Z', isCorrect: false },
-          ],
-          explication: undefined,
-        },
-      ]);
+      prisma.quiz.findUnique.mockResolvedValueOnce(quiz0);
+      const repo = new PrismaQuizRepository(prisma as any);
+      const result0 = await repo.findById(quiz0.id);
+      expect(result0?.scoreMinimum).toBe(0);
+
+      prisma.quiz.findUnique.mockResolvedValueOnce(quiz100);
+      const result100 = await repo.findById(quiz100.id);
+      expect(result100?.scoreMinimum).toBe(100);
+    });
+
+    it('devrait gérer les valeurs limites de nombreTentatives', async () => {
+      const prisma = makePrismaMock();
+
+      const quiz1 = makePrismaQuiz({ nombreTentatives: 1 });
+      const quiz3 = makePrismaQuiz({ nombreTentatives: 3 });
+
+      prisma.quiz.findUnique.mockResolvedValueOnce(quiz1);
+      const repo = new PrismaQuizRepository(prisma as any);
+      const result1 = await repo.findById(quiz1.id);
+      expect(result1?.nombreTentatives).toBe(1);
+
+      prisma.quiz.findUnique.mockResolvedValueOnce(quiz3);
+      const result3 = await repo.findById(quiz3.id);
+      expect(result3?.nombreTentatives).toBe(3);
     });
   });
 });

@@ -4,13 +4,8 @@ import { Quiz, type QuizStatus } from '@/domain/formations/entities/Quiz';
 import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { EntityId } from '@/domain/shared/EntityId';
-import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
-import {
-  QuestionChoixMultiple,
-  QuestionChoixUnique,
-  TypeQuestion,
-} from '@/domain/formations/entities/Question';
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
+import { questionsFromJson } from './mappers/QuestionMapper';
 
 type PrismaQuiz = Prisma.QuizGetPayload<{}>;
 
@@ -65,14 +60,11 @@ export class PrismaQuizRepository implements QuizRepository {
   // Mapping Prisma -> Domain
   // -------------------------
   private toDomain(prismaQuiz: PrismaQuiz): Quiz {
-    const raw = prismaQuiz.questions;
-    const questionsDto: QuestionDTO[] = Array.isArray(raw) ? (raw as unknown as QuestionDTO[]) : [];
-    const questions = questionsDto.map(q => this.mapQuestionToDomain(q));
+    const questions = questionsFromJson(prismaQuiz.questions);
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
 
-      // ✅ AJOUTER CES 3 LIGNES
       moduleId: prismaQuiz.moduleId ?? undefined,
       lessonId: prismaQuiz.lessonId ?? undefined,
       chapterId: prismaQuiz.chapterId ?? undefined,
@@ -87,21 +79,6 @@ export class PrismaQuizRepository implements QuizRepository {
     });
   }
 
-  private mapQuestionToDomain(dto: QuestionDTO) {
-    if (dto.type === TypeQuestion.CHOIX_UNIQUE) {
-      return new QuestionChoixUnique(dto.question, dto.points, dto.options, dto.explication);
-    }
-
-    if (dto.type === TypeQuestion.CHOIX_MULTIPLE) {
-      return new QuestionChoixMultiple(dto.question, dto.points, dto.options, dto.explication);
-    }
-
-    throw new Error(`TypeQuestion inconnu: ${String((dto as any).type)}`);
-  }
-
-  // -------------------------
-  // Mapping Domain -> Prisma
-  // -------------------------
   private toPrismaUpdateData(quiz: Quiz): Prisma.QuizUpdateInput {
     return {
       title: quiz.title,

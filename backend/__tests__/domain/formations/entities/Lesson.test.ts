@@ -73,8 +73,6 @@ describe('Lesson entity', () => {
       expect(lesson.status).toBe(LessonStatus.SCHEDULED);
       expect(lesson.chapters).toHaveLength(1);
       expect(lesson.chaptersCount).toBe(1);
-
-      // quizzes est un Set => getter renvoie array
       expect(lesson.quizzes).toHaveLength(1);
     });
   });
@@ -129,11 +127,14 @@ describe('Lesson entity', () => {
   });
 
   describe('updates: title/description/duration/order', () => {
-    it('updateTitle: throw si vide ou trop long', () => {
+    it('updateTitle: throw si vide/espaces ou trop long', () => {
       const lesson = makeLesson();
-      expect(() => lesson.updateTitle('')).toThrow('Le titre ne peut pas être vide');
+
+      expect(() => lesson.updateTitle('')).toThrow('Le titre de la leçon ne peut pas être vide');
+      expect(() => lesson.updateTitle('   ')).toThrow('Le titre de la leçon ne peut pas être vide');
+
       expect(() => lesson.updateTitle('a'.repeat(201))).toThrow(
-        'Le titre ne peut pas dépasser 200 caractères'
+        'Le titre de la leçon ne peut pas dépasser 200 caractères'
       );
     });
 
@@ -146,7 +147,9 @@ describe('Lesson entity', () => {
 
     it('updateDescription: throw si vide', () => {
       const lesson = makeLesson();
-      expect(() => lesson.updateDescription('   ')).toThrow('La description ne peut pas être vide');
+      expect(() => lesson.updateDescription('   ')).toThrow(
+        'La description de la leçon ne peut pas être vide'
+      );
     });
 
     it('updateDescription: ok', () => {
@@ -253,7 +256,7 @@ describe('Lesson entity', () => {
       const lesson = makeLesson({ quizzes: [] });
 
       lesson.addQuiz(q1);
-      lesson.addQuiz(q1); // même instance => Set => toujours 1 élément
+      lesson.addQuiz(q1);
 
       expect(lesson.quizzes).toHaveLength(1);
       expect(lesson.toDTO().updatedAt).toBeInstanceOf(Date);
@@ -292,7 +295,6 @@ describe('Lesson entity', () => {
         })
       );
 
-      // toDTO des chapitres/quizzes appelé
       expect(ch.toDTO).toHaveBeenCalledTimes(1);
       expect(q.toDTO).toHaveBeenCalledTimes(1);
       expect(Array.isArray(dto.chapters)).toBe(true);

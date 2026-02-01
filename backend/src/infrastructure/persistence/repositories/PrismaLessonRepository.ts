@@ -7,12 +7,7 @@ import type { LessonRepository } from '@/domain/formations/ports/out/LessonRepos
 import { Lesson, type LessonStatus } from '@/domain/formations/entities/Lesson';
 import { Chapter } from '@/domain/formations/entities/Chapter';
 import { Quiz, type QuizStatus } from '@/domain/formations/entities/Quiz';
-import {
-  QuestionChoixMultiple,
-  QuestionChoixUnique,
-  TypeQuestion,
-} from '@/domain/formations/entities/Question';
-import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
+import { questionsFromJson } from './mappers/QuestionMapper';
 
 type PrismaLesson = Prisma.LessonGetPayload<{
   include: {
@@ -103,9 +98,6 @@ export class PrismaLessonRepository implements LessonRepository {
     return this.toDomain(updated);
   }
 
-  // -------------------------
-  // Mapping Prisma -> Domain
-  // -------------------------
   private toDomain(prismaLesson: PrismaLesson): Lesson {
     const chapters = (prismaLesson.chapters ?? []).map(c => this.mapChapterToDomain(c));
     const quizzes = (prismaLesson.quizzes ?? []).map(q => this.mapQuizToDomain(q));
@@ -134,9 +126,7 @@ export class PrismaLessonRepository implements LessonRepository {
   }
 
   private mapQuizToDomain(prismaQuiz: PrismaLesson['quizzes'][number]): Quiz {
-    const raw = prismaQuiz.questions;
-    const questionsDto: QuestionDTO[] = Array.isArray(raw) ? (raw as unknown as QuestionDTO[]) : [];
-    const questions = questionsDto.map(q => this.mapQuestionToDomain(q));
+    const questions = questionsFromJson(prismaQuiz.questions);
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
@@ -149,18 +139,6 @@ export class PrismaLessonRepository implements LessonRepository {
       nombreTentatives: prismaQuiz.nombreTentatives,
       questions,
     });
-  }
-
-  private mapQuestionToDomain(dto: QuestionDTO) {
-    if (dto.type === TypeQuestion.CHOIX_UNIQUE) {
-      return new QuestionChoixUnique(dto.question, dto.points, dto.options, dto.explication);
-    }
-
-    if (dto.type === TypeQuestion.CHOIX_MULTIPLE) {
-      return new QuestionChoixMultiple(dto.question, dto.points, dto.options, dto.explication);
-    }
-
-    throw new Error(`TypeQuestion inconnu: ${String((dto as any).type)}`);
   }
 
   // -------------------------

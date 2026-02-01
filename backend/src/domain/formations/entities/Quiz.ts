@@ -4,6 +4,7 @@ import type { EntityId } from '@/domain/shared/EntityId';
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { Question } from './Question';
 import type { QuizDTO } from '@/domain/formations/value-objects/QuizDTO';
+import { assertMaxLength, assertNotBlank } from '@/infrastructure/web/validators/textRules';
 
 export enum QuizStatus {
   DRAFT = 'DRAFT',
@@ -163,20 +164,14 @@ export class Quiz extends DomainEntity<EntityId> {
   // --- Updates ---
 
   updateTitle(title: string): void {
-    if (!title || title.trim().length === 0) {
-      throw new Error('Le titre ne peut pas être vide');
-    }
-    if (title.length > 200) {
-      throw new Error('Le titre ne peut pas dépasser 200 caractères');
-    }
+    assertNotBlank(title, 'Le titre du quiz ne peut pas être vide');
+    assertMaxLength(title, 200, 'Le titre du quiz ne peut pas dépasser 200 caractères');
     this._title = title;
     this._updatedAt = new Date();
   }
 
   updateDescription(description: string): void {
-    if (!description || description.trim().length === 0) {
-      throw new Error('La description ne peut pas être vide');
-    }
+    assertNotBlank(description, 'La description du quiz ne peut pas être vide');
     this._description = description;
     this._updatedAt = new Date();
   }
