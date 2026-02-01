@@ -100,6 +100,22 @@ import { GetProgressUseCaseImpl } from '@/application/streaming/use-cases/GetPro
 import { GenerateStreamTokenUseCaseImpl } from '@/application/streaming/use-cases/GenerateStreamTokenUseCaseImpl';
 import { StreamingController } from '../web/controllers/StreamingController';
 import { TranscodingWorker } from '../workers/TranscodingWorker';
+import type { GetModuleByIdUseCase } from '@/domain/formations/ports/in/GetModuleByIdUseCase';
+import { GetModuleByIdUseCaseImpl } from '@/application/formations/use-cases/GetModuleByIdUseCaseImpl';
+import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
+import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLessonUseCaseImpl';
+import { AddQuizUseCaseImpl } from '@/application/formations/use-cases/AddQuizUseCaseImpl';
+import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
+import { GetQuizByIdUseCaseImpl } from '@/application/formations/use-cases/GetQuizByIdUseCaseImpl';
+import { QuizController } from '@/infrastructure/web/controllers/QuizController';
+import type { LessonRepository } from '@/domain/formations/ports/out/LessonRepository';
+import { PrismaLessonRepository } from '@/infrastructure/persistence/repositories/PrismaLessonRepository';
+import type { GetQuizByIdUseCase } from '@/domain/formations/ports/in/GetQuizByIdUseCase';
+import type { GetLessonByIdUseCase } from '@/domain/formations/ports/in/GetLessonByIdUseCase';
+import { GetLessonByIdUseCaseImpl } from '@/application/formations/use-cases/GetLessonByIdUseCaseImpl';
+import { LessonController } from '../web/controllers/LessonController';
+import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
+import { AddQuizLessonUseCaseImpl } from '@/application/formations/use-cases/AddQuizLessonUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -135,6 +151,12 @@ export const TYPES = {
   AddQuizUseCase: Symbol.for('AddQuizUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
   ModuleController: Symbol.for('ModuleController'),
+
+  // ========== Quiz ==========
+  GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
+  AddQuizLessonUseCase: Symbol.for('AddQuizLessonUseCase'),
+  // ========== Lesson ==========
+  GetLessonByIdUseCase: Symbol.for('GetLessonByIdUseCase'),
 
   // ========== Beneficiaires ==========
   CreateBeneficiaryUseCase: Symbol.for('CreateBeneficiaryUseCase'),
@@ -327,6 +349,38 @@ container
   .toDynamicValue(context => {
     const repository = context.get<ModuleRepository>(TYPES.ModuleRepository);
     return new GetModulesFormationUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetModuleByIdUseCase>(TYPES.GetModuleByIdUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    return new GetModuleByIdUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<AddLessonUseCase>(TYPES.AddLessonUseCase)
+  .toDynamicValue(context => {
+    const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    return new AddLessonUseCaseImpl(moduleRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<AddQuizUseCase>(TYPES.AddQuizUseCase)
+  .toDynamicValue(context => {
+    const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    return new AddQuizUseCaseImpl(moduleRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<AddQuizLessonUseCase>(TYPES.AddQuizLessonUseCase)
+  .toDynamicValue(context => {
+    const lessonRepository = context.get<LessonRepository>(TYPES.LessonRepository);
+    return new AddQuizLessonUseCaseImpl(lessonRepository);
   })
   .inSingletonScope();
 
@@ -734,6 +788,28 @@ container
       mediaRepo,
       storagePort
     );
+  })
+  .inSingletonScope();
+
+// ========= Quiz controllers ==========
+container
+  .bind<QuizController>(TYPES.QuizController)
+  .toDynamicValue(context => {
+    const getQuizByIdUseCase = context.get<GetQuizByIdUseCaseImpl>(TYPES.GetQuizByIdUseCase);
+    // const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
+
+    return new QuizController(getQuizByIdUseCase);
+  })
+  .inSingletonScope();
+
+// ========= Lesson controllers ==========
+container
+  .bind<LessonController>(TYPES.LessonController)
+  .toDynamicValue(context => {
+    const getLessonByIdUseCase = context.get<GetLessonByIdUseCase>(TYPES.GetLessonByIdUseCase);
+    const addQuizLessonUseCase = context.get<AddQuizLessonUseCase>(TYPES.AddQuizLessonUseCase);
+
+    return new LessonController(getLessonByIdUseCase, addQuizLessonUseCase);
   })
   .inSingletonScope();
 

@@ -110,6 +110,8 @@ export class Quiz extends DomainEntity<EntityId> {
     return this._questions.reduce((sum, q) => sum + q.points, 0);
   }
 
+  // --- Validations privées ---
+
   private validateScoreMinimum(score: number): void {
     if (!Number.isInteger(score) || score < 0 || score > 100) {
       throw new Error('Le score minimum doit être un entier entre 0 et 100');

@@ -147,7 +147,8 @@ export class Chapter extends DomainEntity<EntityId> {
 
   // --- DTO ---
 
-  toDTO(): ChapterDTO {
+  toDTO(mediaBaseUrl?: string): ChapterDTO {
+    // ✅ Ajout du paramètre mediaBaseUrl
     return {
       id: this.id.getValue(),
       title: this._title,

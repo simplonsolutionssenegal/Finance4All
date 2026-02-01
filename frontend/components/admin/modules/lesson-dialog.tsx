@@ -51,6 +51,8 @@ type LessonDialogProps = {
 type ChapterForm = {
   title: string;
   description: string;
+
+  // rempli automatiquement après upload
   mediaId: string;
   uploadedName?: string | null;
   uploading?: boolean;
