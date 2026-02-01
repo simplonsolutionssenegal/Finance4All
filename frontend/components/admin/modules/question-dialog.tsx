@@ -32,13 +32,14 @@ const TYPE_LABEL: Record<TypeQuestion, string> = {
 
 type OptionForm = QuestionOption & { id: string };
 
-function genId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function makeOption(): OptionForm {
-  return { id: genId(), text: '', isCorrect: false };
+function makeInitialOptions(count = 4): OptionForm[] {
+  let counter = 0;
+  const nextId = () => `opt_${++counter}`;
+  return Array.from({ length: count }, () => ({
+    id: nextId(),
+    text: '',
+    isCorrect: false,
+  }));
 }
 
 export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
@@ -46,20 +47,16 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
   const [type, setType] = useState<TypeQuestion>(TypeQuestion.CHOIX_UNIQUE);
   const [points, setPoints] = useState<number | ''>(1);
   const [explication, setExplication] = useState('');
-  const [options, setOptions] = useState<OptionForm[]>([
-    makeOption(),
-    makeOption(),
-    makeOption(),
-    makeOption(),
-  ]);
+  const [options, setOptions] = useState<OptionForm[]>(() => makeInitialOptions(4));
 
   useEffect(() => {
     if (!open) return;
+
     setQuestion('');
     setType(TypeQuestion.CHOIX_UNIQUE);
     setPoints(1);
     setExplication('');
-    setOptions([makeOption(), makeOption(), makeOption(), makeOption()]);
+    setOptions(makeInitialOptions(4));
   }, [open]);
 
   const correctCount = useMemo(() => options.filter(o => o.isCorrect).length, [options]);
@@ -76,9 +73,7 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
     return qOk && pOk && correctCount >= 2;
   }, [question, points, options, type, correctCount]);
 
-  const selectedCorrectId = useMemo(() => {
-    return options.find(o => o.isCorrect)?.id ?? '';
-  }, [options]);
+  const selectedCorrectId = useMemo(() => options.find(o => o.isCorrect)?.id ?? '', [options]);
 
   const setCorrectUniqueById = (id: string) => {
     setOptions(prev => prev.map(o => ({ ...o, isCorrect: o.id === id })));
@@ -92,7 +87,12 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
     setOptions(prev => prev.map(o => (o.id === id ? { ...o, isCorrect } : o)));
   };
 
-  const addOption = () => setOptions(prev => [...prev, makeOption()]);
+  const addOption = () => {
+    setOptions(prev => {
+      const nextIndex = prev.length + 1;
+      return [...prev, { id: `opt_${nextIndex}`, text: '', isCorrect: false }];
+    });
+  };
 
   const removeOption = (id: string) => {
     setOptions(prev => prev.filter(o => o.id !== id));
@@ -195,7 +195,6 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
             </button>
           </div>
 
-          {/* ✅ Ici on remplace les <input radio/checkbox> par tes composants UI */}
           <div className='space-y-3'>
             {type === TypeQuestion.CHOIX_UNIQUE ? (
               <RadioGroup
@@ -209,13 +208,13 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
                       value={opt.id}
                       aria-label='Réponse correcte'
                       className='
-    h-3 w-3 rounded-full border border-slate-300 bg-white
-    data-[state=checked]:bg-primary-300 data-[state=checked]:border
-    text-primary-300
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2
-     data-[state=checked]:[&>span]:bg-primary-300 
-    [&_[data-slot=radio-group-indicator]>svg]:fill-transparent
-  '
+                        h-3 w-3 rounded-full border border-slate-300 bg-white
+                        data-[state=checked]:bg-primary-300 data-[state=checked]:border
+                        text-primary-300
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2
+                        data-[state=checked]:[&>span]:bg-primary-300
+                        [&_[data-slot=radio-group-indicator]>svg]:fill-transparent
+                      '
                     />
 
                     <Input
