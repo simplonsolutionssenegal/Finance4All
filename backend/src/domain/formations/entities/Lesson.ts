@@ -44,7 +44,9 @@ export class Lesson extends DomainEntity<EntityId> {
     this._chapters = props.chapters;
   }
 
-  // --- Getters ---
+  get moduleId(): string {
+    return this._moduleId;
+  }
 
   get title(): string {
     return this._title;
@@ -125,20 +127,14 @@ export class Lesson extends DomainEntity<EntityId> {
   // --- Updates ---
 
   updateTitle(title: string): void {
-    if (!title || title.trim().length === 0) {
-      throw new Error('Le titre ne peut pas être vide');
-    }
-    if (title.length > 200) {
-      throw new Error('Le titre ne peut pas dépasser 200 caractères');
-    }
+    assertNotBlank(title, 'Le titre de la leçon ne peut pas être vide');
+    assertMaxLength(title, 200, 'Le titre de la leçon ne peut pas dépasser 200 caractères');
     this._title = title;
     this._updatedAt = new Date();
   }
 
   updateDescription(description: string): void {
-    if (!description || description.trim().length === 0) {
-      throw new Error('La description ne peut pas être vide');
-    }
+    assertNotBlank(description, 'La description de la leçon ne peut pas être vide');
     this._description = description;
     this._updatedAt = new Date();
   }

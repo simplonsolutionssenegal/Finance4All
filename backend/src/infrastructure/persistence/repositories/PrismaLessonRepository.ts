@@ -7,12 +7,7 @@ import type { LessonRepository } from '@/domain/formations/ports/out/LessonRepos
 import { Lesson, type LessonStatus } from '@/domain/formations/entities/Lesson';
 import { Chapter } from '@/domain/formations/entities/Chapter';
 import { Quiz, type QuizStatus } from '@/domain/formations/entities/Quiz';
-import {
-  QuestionChoixMultiple,
-  QuestionChoixUnique,
-  TypeQuestion,
-} from '@/domain/formations/entities/Question';
-import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
+import { questionsFromJson } from './mappers/QuestionMapper';
 
 type PrismaLesson = Prisma.LessonGetPayload<{
   include: {
@@ -86,8 +81,46 @@ export class PrismaLessonRepository implements LessonRepository {
     });
   }
 
-  private mapChapterToDomain(dto: ChapterDTO): Chapter {
-    return new Chapter(dto.title, dto.description, dto.mediaId, dto.order);
+  private mapChapterToDomain(prismaChapter: PrismaLesson['chapters'][number]): Chapter {
+    return new Chapter(
+      EntityId.from(prismaChapter.id),
+      prismaChapter.title,
+      prismaChapter.description,
+      prismaChapter.mediaId ?? undefined,
+      prismaChapter.order
+    );
+  }
+
+  private mapQuizToDomain(prismaQuiz: PrismaLesson['quizzes'][number]): Quiz {
+    const questions = questionsFromJson(prismaQuiz.questions);
+
+    return new Quiz({
+      id: EntityId.from(prismaQuiz.id),
+      lessonId: prismaQuiz.lessonId ?? undefined,
+      title: prismaQuiz.title,
+      description: prismaQuiz.description,
+      status: prismaQuiz.status as QuizStatus,
+      scoreMinimum: prismaQuiz.scoreMinimum,
+      duree: prismaQuiz.duree ?? undefined,
+      nombreTentatives: prismaQuiz.nombreTentatives,
+      questions,
+    });
+  }
+
+  // -------------------------
+  // Mapping Domain -> Prisma
+  // -------------------------
+  private mapQuizToPrisma(quiz: Quiz): Prisma.QuizCreateWithoutLessonInput {
+    return {
+      id: quiz.id.getValue(),
+      title: quiz.title,
+      description: quiz.description,
+      status: quiz.status as any,
+      scoreMinimum: quiz.scoreMinimum,
+      duree: quiz.duree ?? null,
+      nombreTentatives: quiz.nombreTentatives,
+      questions: quiz.questions.map(q => q.toDTO()) as unknown as Prisma.InputJsonValue,
+    };
   }
 
   private toPrismaUpdateData(lesson: Lesson): Prisma.LessonUpdateInput {
