@@ -52,19 +52,8 @@ type ChapterForm = {
 };
 
 function genId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-
-    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-    return `tmp-${hex}`;
-  }
-
-  return `tmp-${Date.now()}`;
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 export default function LessonDialog({
@@ -280,13 +269,14 @@ export default function LessonDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* hidden file input */}
       <Input
         ref={fileInputRef}
         type='file'
         accept={accept}
         className='hidden'
         onChange={async e => {
-          const input = e.currentTarget;
+          const input = e.currentTarget as HTMLInputElement;
           const file = input.files?.[0];
           if (!file) return;
 
