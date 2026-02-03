@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 import {
   createBeneficiarySchema,
@@ -7,12 +7,18 @@ import {
 import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
-
+import type { GetBeneficiariesAssignmentSummaryUseCaseImpl } from '@/application/formations/use-cases/GetBeneficiariesAssignmentSummaryUsecase';
+import type { GetModulesForBeneficiaryUseCaseImpl } from '@/application/formations/use-cases/GetModulesForBeneficiaryUsecase';
+import type { AssignModulesToBeneficiaryUseCaseImpl } from '@/application/formations/use-cases/AssignModulesToBeneficiaryUsecase';
 export class BeneficiaryController {
+  [x: string]: any;
   constructor(
     private readonly createUC: CreateBeneficiaryUseCase,
     private readonly updateUC: UpdateBeneficiaryUseCase,
-    private readonly repo: BeneficiaryRepository
+    private readonly repo: BeneficiaryRepository,
+    private readonly getAssignmentSummaryUseCase: GetBeneficiariesAssignmentSummaryUseCaseImpl,
+    private readonly getModulesForBeneficiaryUseCase: GetModulesForBeneficiaryUseCaseImpl,
+    private readonly assignModulesUseCase: AssignModulesToBeneficiaryUseCaseImpl
   ) {}
 
   async list(req: Request, res: Response): Promise<void> {
@@ -177,6 +183,88 @@ export class BeneficiaryController {
         success: false,
         message: error instanceof Error ? error.message : 'Erreur serveur',
       });
+    }
+  }
+  // ✅ GET /beneficiaries/assignments/summary
+  async assignmentSummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      const organizationId = String(req.query.organizationId ?? '').trim();
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: 'organizationId manquant' });
+      }
+
+      const data = await this.getAssignmentSummaryUseCase.execute({ organizationId });
+      return res.status(200).json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  }
+  // ✅ GET /beneficiaries/:beneficiaryId/modules
+  async modulesForBeneficiary(req: Request, res: Response, next: NextFunction) {
+    try {
+      const beneficiaryId = req.params.beneficiaryId;
+
+      const organizationId = String(req.query.organizationId ?? '').trim();
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: 'organizationId manquant' });
+      }
+
+      const data = await this.getModulesForBeneficiaryUseCase.execute({
+        beneficiaryId,
+        organizationId,
+      });
+
+      return res.status(200).json({ success: true, data });
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  // ✅ POST /beneficiaries/:beneficiaryId/assignments
+  async assignModules(req: Request, res: Response, next: NextFunction) {
+    try {
+      const beneficiaryId = req.params.beneficiaryId;
+
+      const organizationId = String(req.body?.organizationId ?? '').trim();
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: 'organizationId manquant' });
+      }
+
+      const moduleIds = req.body?.moduleIds ?? [];
+
+      const result = await this.assignModulesUseCase.execute({
+        beneficiaryId,
+        organizationId,
+        moduleIds,
+      });
+
+      return res.status(200).json({ success: true, data: result, message: 'Modules assignés' });
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  // ✅ DELETE /beneficiaries/:beneficiaryId/assignments
+  async removeModules(req: Request, res: Response, next: NextFunction) {
+    try {
+      const beneficiaryId = req.params.beneficiaryId;
+
+      const organizationId = String(req.body?.organizationId ?? '').trim();
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: 'organizationId manquant' });
+      }
+
+      const moduleIds = req.body?.moduleIds ?? [];
+
+      const result = await this.RemoveModulesFromBeneficiaryUseCaseImpl.execute({
+        beneficiaryId,
+        organizationId,
+        moduleIds,
+      });
+
+      return res.status(200).json({ success: true, data: result, message: 'Modules retirés' });
+    } catch (e) {
+      next(e);
     }
   }
 }

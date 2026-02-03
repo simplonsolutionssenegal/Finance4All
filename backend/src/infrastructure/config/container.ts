@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { InstitutionDomainService } from '@/domain/institutions/services/InstitutionDomainService';
 
 import { InstitutionController } from '@/infrastructure/web/controllers/InstitutionController';
-import type { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { prisma } from './prismaClient';
 import { PrismaInstitutionRepository } from '@/infrastructure/persistence/repositories/PrismaInstitutionRepository';
 import { PrismaServiceRepository } from '@/infrastructure/persistence/repositories/PrismaServiceRepository';
@@ -99,6 +99,12 @@ import { GenerateStreamTokenUseCaseImpl } from '@/application/streaming/use-case
 import { StreamingController } from '../web/controllers/StreamingController';
 import { TranscodingWorker } from '../workers/TranscodingWorker';
 
+import { GetBeneficiariesAssignmentSummaryUseCaseImpl } from '@/application/formations/use-cases/GetBeneficiariesAssignmentSummaryUsecase';
+import { GetModulesForBeneficiaryUseCaseImpl } from '@/application/formations/use-cases/GetModulesForBeneficiaryUsecase';
+import { AssignModulesToBeneficiaryUseCaseImpl } from '@/application/formations/use-cases/AssignModulesToBeneficiaryUsecase';
+import { PrismaModuleAssignmentRepository } from '../persistence/repositories/PrismaModuleAssignmentRepository';
+import { RemoveModulesFromBeneficiaryUseCaseImpl } from '@/application/formations/use-cases/RemoveModulesFromBeneficiaryUseCaseImpl';
+
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
   UpdateInstitutionUseCase: Symbol.for('UpdateInstitutionUseCase'),
@@ -135,6 +141,9 @@ export const TYPES = {
   BeneficiaryRepository: Symbol.for('BeneficiaryRepository'),
   OrganizationIdentityPort: Symbol.for('OrganizationIdentityPort'),
   BeneficiaryController: Symbol.for('BeneficiaryController'),
+  GetBeneficiariesAssignmentSummaryUseCase: Symbol.for('GetBeneficiariesAssignmentSummaryUseCase'),
+  GetModulesForBeneficiaryUseCase: Symbol.for('GetModulesForBeneficiaryUseCase'),
+  AssignModulesToBeneficiaryUseCase: Symbol.for('AssignModulesToBeneficiaryUseCase'),
 
   // ========== Media ==========
   UploadMediaUseCase: Symbol.for('UploadMediaUseCase'),
@@ -165,6 +174,12 @@ export const TYPES = {
   StreamingController: Symbol.for('StreamingController'),
   TranscodingWorker: Symbol.for('TranscodingWorker'),
   BullMQJobQueue: Symbol.for('BullMQJobQueue'),
+
+  // ========== module d'assignation ==========
+  PrismaModuleAssignmentRepository: Symbol.for('PrismaModuleAssignmentRepository'),
+  GetModulesToBeneficiaryUseCase: Symbol.for('GetModulesToBeneficiaryUseCase'),
+  RemoveModulesFromBeneficiaryUseCase: Symbol.for('RemoveModulesFromBeneficiaryUseCase'),
+  PrismaClient: Symbol.for('PrismaClient'),
 };
 
 const container = new Container();
@@ -209,6 +224,54 @@ container
   .bind<OrganizationIdentityPort>(TYPES.OrganizationIdentityPort)
   .to(ClerkOrganizationIdentityService)
   .inSingletonScope();
+
+// ========== Beneficiaires assignments ==========
+container
+  .bind<PrismaClient>(TYPES.PrismaClient)
+  .toDynamicValue(() => new PrismaClient())
+  .inSingletonScope();
+
+container
+  .bind<PrismaModuleAssignmentRepository>(TYPES.PrismaModuleAssignmentRepository)
+  .toDynamicValue(
+    () => new PrismaModuleAssignmentRepository(container.get<PrismaClient>(TYPES.PrismaClient))
+  )
+  .inSingletonScope();
+
+/**
+ * UseCases
+ */
+container
+  .bind(TYPES.GetBeneficiariesAssignmentSummaryUseCase)
+  .toDynamicValue(
+    () =>
+      new GetBeneficiariesAssignmentSummaryUseCaseImpl(
+        container.get<PrismaClient>(TYPES.PrismaClient)
+      )
+  );
+container
+  .bind(TYPES.RemoveModulesFromBeneficiaryUseCase)
+  .toDynamicValue(
+    () =>
+      new RemoveModulesFromBeneficiaryUseCaseImpl(
+        container.get(TYPES.PrismaModuleAssignmentRepository)
+      )
+  );
+
+container.bind(TYPES.GetModulesForBeneficiaryUseCase).toDynamicValue(() => {
+  const prisma = container.get<PrismaClient>(TYPES.PrismaClient);
+  const minioPublicUrl = process.env.MINIO_PUBLIC_URL ?? 'http://localhost:9000';
+  return new GetModulesForBeneficiaryUseCaseImpl(prisma, minioPublicUrl);
+});
+
+container
+  .bind(TYPES.AssignModulesToBeneficiaryUseCase)
+  .toDynamicValue(
+    () =>
+      new AssignModulesToBeneficiaryUseCaseImpl(
+        container.get<PrismaModuleAssignmentRepository>(TYPES.PrismaModuleAssignmentRepository)
+      )
+  );
 
 // Bind domain services
 container
@@ -377,8 +440,24 @@ container
     const createUC = context.get<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase);
     const updateUC = context.get<UpdateBeneficiaryUseCase>(TYPES.UpdateBeneficiaryUseCase);
     const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    const getAssignmentSummaryUseCase = context.get<GetBeneficiariesAssignmentSummaryUseCaseImpl>(
+      TYPES.GetBeneficiariesAssignmentSummaryUseCase
+    );
+    const getModulesForBeneficiaryUseCase = context.get<GetModulesForBeneficiaryUseCaseImpl>(
+      TYPES.GetModulesForBeneficiaryUseCase
+    );
+    const assignModulesUseCase = context.get<AssignModulesToBeneficiaryUseCaseImpl>(
+      TYPES.AssignModulesToBeneficiaryUseCase
+    );
 
-    return new BeneficiaryController(createUC, updateUC, repo);
+    return new BeneficiaryController(
+      createUC,
+      updateUC,
+      repo,
+      getAssignmentSummaryUseCase,
+      getModulesForBeneficiaryUseCase,
+      assignModulesUseCase
+    );
   })
   .inSingletonScope();
 

@@ -14,24 +14,24 @@ model User {
 }
 
 model Beneficiary {
-  id              String            @id @default(uuid())
-  organizationId  String
-  clerkUserId     String            @unique
+  id             String @id @default(uuid())
+  organizationId String
+  clerkUserId    String @unique
 
-  firstName       String
-  lastName        String
-  email           String
-  phone           String?
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
 
-  status          BeneficiaryStatus @default(ACTIVE)
-  progressPercent Int               @default(0)
+  status            BeneficiaryStatus  @default(ACTIVE)
+  progressPercent   Int                @default(0)
+  moduleAssignments ModuleAssignment[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
+  @@unique([organizationId, email])
   @@index([organizationId])
   @@index([status])
-  @@unique([organizationId, email])
 }
 
 enum BeneficiaryStatus {
@@ -55,7 +55,7 @@ model Institution {
 }
 
 model Service {
-  id                   String          @id @default(uuid())
+  id                   String      @id @default(uuid())
   name                 String
   longName             String
   type                 TypeService
@@ -63,8 +63,8 @@ model Service {
   conditionAccess      String[]
   plafonds             String[]
   infrastructureAccess String[]
-  montantMin           Float?         
-  montantMax           Float? 
+  montantMin           Float?
+  montantMax           Float?
 
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onUpdate: Cascade)
@@ -113,28 +113,27 @@ enum Country {
   SENEGAL
   CAMEROUN
 }
+
 model Module {
-  id                     String   @id @default(uuid())
-  title                  String   @db.VarChar(200)
-  description            String   @db.Text
-  thematics              String @db.VarChar(200) @unique
+  id          String @id @default(uuid())
+  title       String @db.VarChar(200)
+  description String @db.Text
+  thematics   String @unique @db.VarChar(200)
 
-  imageMediaId      String?
-  imageMedia        Media?         @relation("ModuleImage", fields: [imageMediaId], references: [id])
+  imageMediaId String?
+  imageMedia   Media?             @relation("ModuleImage", fields: [imageMediaId], references: [id])
+  assignments  ModuleAssignment[]
 
-
-  difficultyLevel        DifficultyLevel
-  estimatedDuration      Float   
-  status                 ModuleStatus @default(DRAFT)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  difficultyLevel   DifficultyLevel
+  estimatedDuration Float
+  status            ModuleStatus    @default(DRAFT)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([status])
   @@index([difficultyLevel])
   @@index([createdAt])
 }
-
-
 
 enum ModuleStatus {
   DRAFT
@@ -161,7 +160,7 @@ model Media {
   metadata     Json?
   isTemporary  Boolean   @default(false)
   expiresAt    DateTime?
-  moduleImage  Module[]   @relation("ModuleImage")
+  moduleImage  Module[]  @relation("ModuleImage")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -174,7 +173,37 @@ enum MediaType {
   VIDEO
   PDF
   AUDIO
-   IMAGE
+  IMAGE
+}
+
+// ==================== Assignation  module====================
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  REMOVED
+}
+
+model ModuleAssignment {
+  id String @id @default(uuid())
+
+  beneficiaryId String
+  moduleId      String
+
+  status   AssignmentStatus @default(ASSIGNED)
+  progress Int              @default(0)
+
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  removedAt   DateTime?
+
+  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  module      Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryId, moduleId])
+  @@index([beneficiaryId])
+  @@index([moduleId])
+  @@index([status])
 }
 
 // ==================== STREAMING ====================
@@ -208,42 +237,42 @@ model HlsVariant {
   segmentCount    Int           @default(0)
   segmentDuration Float         @default(10.0)
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([mediaId, quality])
   @@index([mediaId])
 }
 
 model TranscodingJob {
-  id              String            @id @default(uuid())
-  mediaId         String            @unique
-  status          TranscodingStatus @default(PENDING)
-  progress        Float             @default(0)
-  errorMessage    String?
-  startedAt       DateTime?
-  completedAt     DateTime?
+  id           String            @id @default(uuid())
+  mediaId      String            @unique
+  status       TranscodingStatus @default(PENDING)
+  progress     Float             @default(0)
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([mediaId])
 }
 
 model MediaProgress {
-  id              String    @id @default(uuid())
-  userId          String
-  mediaId         String
+  id      String @id @default(uuid())
+  userId  String
+  mediaId String
 
-  currentPosition Float     @default(0)
-  duration        Float     @default(0)
-  completionRate  Float     @default(0)
-  isCompleted     Boolean   @default(false)
+  currentPosition Float   @default(0)
+  duration        Float   @default(0)
+  completionRate  Float   @default(0)
+  isCompleted     Boolean @default(false)
 
-  lastWatchedAt   DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  lastWatchedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([userId, mediaId])
   @@index([userId])
@@ -252,16 +281,15 @@ model MediaProgress {
 }
 
 model StreamToken {
-  id              String    @id @default(uuid())
-  userId          String
-  mediaId         String
-  token           String    @unique
-  expiresAt       DateTime
+  id        String   @id @default(uuid())
+  userId    String
+  mediaId   String
+  token     String   @unique
+  expiresAt DateTime
 
-  createdAt       DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([token])
   @@index([mediaId, userId])
   @@index([expiresAt])
 }
-
