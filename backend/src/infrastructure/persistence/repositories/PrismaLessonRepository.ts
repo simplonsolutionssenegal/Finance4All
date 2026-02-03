@@ -14,9 +14,10 @@ type PrismaLesson = Prisma.LessonGetPayload<{
     chapters: {
       include: {
         media: true;
+        quizzes: true; // ⭐ AJOUT : inclure les quizzes des chapitres
       };
     };
-    quizzes: true; // ✅ Ajouter les quizzes
+    quizzes: true;
   };
 }>;
 
@@ -26,6 +27,15 @@ export class PrismaLessonRepository implements LessonRepository {
   async findById(id: string): Promise<Lesson | null> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
+      include: {
+        chapters: {
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return lesson ? this.toDomain(lesson) : null;
@@ -39,6 +49,15 @@ export class PrismaLessonRepository implements LessonRepository {
         skip,
         take: params.limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          chapters: {
+            include: {
+              media: true,
+              quizzes: true, // ⭐ AJOUT
+            },
+          },
+          quizzes: true,
+        },
       }),
       this.prisma.lesson.count(),
     ]);
@@ -55,11 +74,44 @@ export class PrismaLessonRepository implements LessonRepository {
   }
 
   async update(lesson: Lesson): Promise<Lesson> {
-    const data = this.toPrismaUpdateData(lesson);
+    const lessonData = this.toPrismaUpdateData(lesson);
+    const quizzes = lesson.quizzes;
 
+    // Récupérer la lesson existante pour comparer les quizzes
+    const existingLesson = await this.prisma.lesson.findUnique({
+      where: { id: lesson.id.getValue() },
+      include: {
+        chapters: {
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
+        },
+        quizzes: true,
+      },
+    });
+
+    const existingQuizIds = new Set(existingLesson?.quizzes.map(q => q.id) || []);
+    const newQuizzes = quizzes.filter(q => !existingQuizIds.has(q.id.getValue()));
+
+    // Mettre à jour la lesson et créer les nouveaux quizzes
     const updated = await this.prisma.lesson.update({
       where: { id: lesson.id.getValue() },
-      data,
+      data: {
+        ...lessonData,
+        ...(newQuizzes.length > 0
+          ? { quizzes: { create: newQuizzes.map(q => this.mapQuizToPrisma(q)) } }
+          : {}),
+      },
+      include: {
+        chapters: {
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return this.toDomain(updated);
@@ -76,27 +128,42 @@ export class PrismaLessonRepository implements LessonRepository {
       description: prismaLesson.description,
       duration: prismaLesson.duration,
       order: prismaLesson.order,
-      chapters, // ✅ Utiliser les instances créées
+      chapters,
+      quizzes,
       status: prismaLesson.status as LessonStatus,
     });
   }
 
+  // ⭐ MODIFIER pour inclure les quizzes du chapitre
   private mapChapterToDomain(prismaChapter: PrismaLesson['chapters'][number]): Chapter {
+    // Mapper les quizzes du chapitre
+    const chapterQuizzes = (prismaChapter.quizzes ?? []).map(q => this.mapQuizToDomain(q));
+
     return new Chapter(
       EntityId.from(prismaChapter.id),
       prismaChapter.title,
       prismaChapter.description,
       prismaChapter.mediaId ?? undefined,
-      prismaChapter.order
+      prismaChapter.order,
+      undefined, // media (peut être ajouté si nécessaire)
+      chapterQuizzes, // ⭐ AJOUT : passer les quizzes
+      prismaChapter.createdAt,
+      prismaChapter.updatedAt
     );
   }
 
-  private mapQuizToDomain(prismaQuiz: PrismaLesson['quizzes'][number]): Quiz {
+  private mapQuizToDomain(
+    prismaQuiz:
+      | PrismaLesson['quizzes'][number]
+      | PrismaLesson['chapters'][number]['quizzes'][number]
+  ): Quiz {
     const questions = questionsFromJson(prismaQuiz.questions);
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
+      moduleId: prismaQuiz.moduleId ?? undefined,
       lessonId: prismaQuiz.lessonId ?? undefined,
+      chapterId: prismaQuiz.chapterId ?? undefined, // ⭐ AJOUT
       title: prismaQuiz.title,
       description: prismaQuiz.description,
       status: prismaQuiz.status as QuizStatus,

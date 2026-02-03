@@ -1,5 +1,13 @@
 import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLessonUseCaseImpl';
+import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
+import type { AddLessonCommand } from '@/domain/formations/ports/in/AddLessonUseCase';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
+import { EntityId } from '@/domain/shared/EntityId';
+import {
+  Module,
+  ModuleStatus,
+  DifficultyLevel,
+} from '@/domain/formations/entities/ModuleFormation';
 import { LessonStatus } from '@/domain/formations/entities/Lesson';
 import { TypeQuestion } from '@/domain/formations/entities/Question';
 
@@ -802,9 +810,9 @@ describe('AddLessonUseCaseImpl', () => {
     it('should throw error for undefined TypeQuestion', async () => {
       const command: AddLessonCommand = {
         moduleId,
-        title: 'T',
-        description: 'D',
-        duration: 10,
+        title: 'Leçon',
+        description: 'Description',
+        duration: 30,
         order: 0,
         status: LessonStatus.DRAFT,
         chapters: [],

@@ -22,8 +22,8 @@ type PrismaModuleRow = {
   id: string;
   title: string;
   description: string;
-  imageMediaId: string | null;
-  thematics: string;
+  imageUrl: string | null;
+  thematics: string[];
   difficultyLevel: string | null;
   estimatedDuration: number | null;
   status: string;
@@ -441,6 +441,7 @@ describe('PrismaModuleFormationRepository', () => {
       const found = await repository.findById('non-existent-id');
       expect(found).toBeNull();
     });
+  });
 
     it('devrait mapper correctement les lessons avec chapters', async () => {
       const chaptersDto: ChapterDTO[] = [
@@ -845,7 +846,7 @@ describe('PrismaModuleFormationRepository', () => {
         quizzes: [],
       };
 
-      mockPrisma.module!.findFirst.mockResolvedValue(row);
+      mockPrisma.module!.findUnique.mockResolvedValue(row);
 
       const found = await repository.findByThematic('Finance et Comptabilité');
 
@@ -1165,9 +1166,8 @@ describe('PrismaModuleFormationRepository', () => {
       expect(result.lessons).toHaveLength(2);
     });
 
-    it('devrait propager les erreurs de findMany', async () => {
-      const error = new Error('Erreur findMany');
-      mockPrisma.module!.findMany.mockRejectedValue(error);
+    it('devrait propager les erreurs de prisma', async () => {
+      mockPrisma.module!.findMany.mockRejectedValue(new Error('fail'));
       mockPrisma.module!.count.mockResolvedValue(0);
 
       await expect(repository.findAll({ page: 1, limit: 10 })).rejects.toThrow('Erreur findMany');

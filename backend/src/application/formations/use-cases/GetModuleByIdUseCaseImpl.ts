@@ -5,6 +5,7 @@ import type {
   GetModuleByIdUseCase,
 } from '@/domain/formations/ports/in/GetModuleByIdUseCase';
 import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
+import type { QuizDTO } from '@/domain/formations/value-objects/QuizDTO';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 

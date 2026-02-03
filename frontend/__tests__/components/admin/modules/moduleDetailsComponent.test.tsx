@@ -188,8 +188,7 @@ describe('ModuleDetailsComponent', () => {
           order: 2,
           status: 'DRAFT',
           chapters: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          chaptersCount: 0,
         },
         {
           id: 'l2',

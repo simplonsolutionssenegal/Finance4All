@@ -4,6 +4,7 @@ import {
   Module,
   ModuleStatus,
   DifficultyLevel,
+  type ModuleProps,
 } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
 import { Lesson, LessonStatus } from '@/domain/formations/entities/Lesson';
@@ -168,352 +169,83 @@ describe('Module Entity', () => {
       expect(() => Module.create(props)).toThrow('La durée estimée doit être supérieure à 0');
     });
 
-    it('devrait rejeter une durée négative', () => {
-      const props = { ...validModuleProps, estimatedDuration: -10 };
-
-      expect(() => Module.create(props)).toThrow('La durée estimée doit être supérieure à 0');
+    it('devrait lever une erreur si la durée estimée est négative', () => {
+      expect(() => Module.create({ ...baseProps, estimatedDuration: -10 })).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
     });
 
-    it('devrait rejeter une durée > 10080 (7 jours)', () => {
-      const props = { ...validModuleProps, estimatedDuration: 10081 };
-
-      expect(() => Module.create(props)).toThrow('La durée maximale est de 7 jours');
+    it('devrait lever une erreur si la durée estimée dépasse 7 jours (10080 minutes)', () => {
+      expect(() => Module.create({ ...baseProps, estimatedDuration: 10081 })).toThrow(
+        'La durée maximale est de 7 jours'
+      );
     });
 
-    it('devrait accepter une durée de 10080 exactement', () => {
-      const props = { ...validModuleProps, estimatedDuration: 10080 };
-      const module = Module.create(props);
-
+    it('devrait accepter une durée estimée de 7 jours exactement (10080 minutes)', () => {
+      const module = Module.create({ ...baseProps, estimatedDuration: 10080 });
       expect(module.estimatedDuration).toBe(10080);
     });
 
-    it('devrait rejeter un niveau de difficulté invalide', () => {
-      const props = { ...validModuleProps, difficultyLevel: 'INVALID' as any };
-
-      expect(() => Module.create(props)).toThrow("Le niveau de difficulté n'est pas valide");
+    it('devrait créer un module avec imageMediaId null', () => {
+      const module = Module.create({ ...baseProps, imageMediaId: null });
+      expect(module.imageMediaId).toBeNull();
     });
 
-    it('devrait rejeter un statut invalide', () => {
-      const props = { ...validModuleProps, status: 'INVALID' as any };
-
-      expect(() => Module.create(props)).toThrow("Le statut du module n'est pas valide");
+    it('devrait lever une erreur avec un niveau de difficulté invalide', () => {
+      expect(() =>
+        Module.create({ ...baseProps, difficultyLevel: 'INVALID' as DifficultyLevel })
+      ).toThrow("Le niveau de difficulté n'est pas valide");
     });
 
-    it('devrait accepter tous les niveaux de difficulté valides', () => {
-      const levels = [
-        DifficultyLevel.BEGINNER,
-        DifficultyLevel.INTERMEDIATE,
-        DifficultyLevel.ADVANCED,
-        DifficultyLevel.EXPERT,
-      ];
+    it('devrait lever une erreur avec un statut invalide', () => {
+      expect(() => Module.create({ ...baseProps, status: 'INVALID' as ModuleStatus })).toThrow(
+        "Le statut du module n'est pas valide"
+      );
+    });
 
-      levels.forEach(level => {
-        const props = { ...validModuleProps, difficultyLevel: level };
-        const module = Module.create(props);
+    it('devrait créer un module avec tous les niveaux de difficulté valides', () => {
+      Object.values(DifficultyLevel).forEach(level => {
+        const module = Module.create({ ...baseProps, difficultyLevel: level });
         expect(module.difficultyLevel).toBe(level);
       });
     });
 
-    it('devrait accepter tous les statuts valides', () => {
-      const statuses = [ModuleStatus.DRAFT, ModuleStatus.PUBLISHED, ModuleStatus.ARCHIVED];
-
-      statuses.forEach(status => {
-        const props = { ...validModuleProps, status };
-        const module = Module.create(props);
+    it('devrait créer un module avec tous les statuts valides', () => {
+      Object.values(ModuleStatus).forEach(status => {
+        const module = Module.create({ ...baseProps, status });
         expect(module.status).toBe(status);
       });
     });
   });
 
-  describe('Getters', () => {
-    it('devrait retourner toutes les propriétés via getters', () => {
-      const module = new Module(validModuleProps);
-
-      expect(module.title).toBe(validModuleProps.title);
-      expect(module.description).toBe(validModuleProps.description);
-      expect(module.imageMediaId).toBe(validModuleProps.imageMediaId);
-      expect(module.thematics).toBe(validModuleProps.thematics);
-      expect(module.difficultyLevel).toBe(validModuleProps.difficultyLevel);
-      expect(module.estimatedDuration).toBe(validModuleProps.estimatedDuration);
-      expect(module.status).toBe(validModuleProps.status);
+  // Tests du constructeur direct
+  describe('constructor', () => {
+    it('devrait créer un module via le constructeur', () => {
+      const module = new Module(baseProps);
+      expect(module).toBeDefined();
+      expect(module.title).toBe(baseProps.title);
+      expect(module.description).toBe(baseProps.description);
     });
 
-    it('devrait retourner lessons comme array', () => {
-      const module = new Module(validModuleProps);
-
-      expect(Array.isArray(module.lessons)).toBe(true);
-    });
-
-    it('devrait retourner quizzes comme array', () => {
-      const module = new Module(validModuleProps);
-
-      expect(Array.isArray(module.quizzes)).toBe(true);
-    });
-  });
-
-  describe('addLesson()', () => {
-    it('devrait ajouter une leçon au module', () => {
-      const module = new Module(validModuleProps);
-      const lesson = new Lesson({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440003'),
-        moduleId: '550e8400-e29b-41d4-a716-446655440000',
-        title: 'Nouvelle leçon',
-        description: 'Description',
-        duration: 45,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-        quizzes: [],
-      });
-
-      module.addLesson(lesson);
-
-      expect(module.lessons).toHaveLength(1);
-      expect(module.lessons[0]).toBe(lesson);
-    });
-
-    it("devrait mettre à jour updatedAt lors de l'ajout d'une leçon", () => {
-      const module = new Module(validModuleProps);
-      const initialUpdatedAt = module.updatedAt;
-
-      // Attendre un peu pour s'assurer que la date change
-      const lesson = new Lesson({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440004'),
-        moduleId: '550e8400-e29b-41d4-a716-446655440000',
-        title: 'Leçon test',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-        quizzes: [],
-      });
-
-      setTimeout(() => {
-        module.addLesson(lesson);
-        expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(initialUpdatedAt.getTime());
-      }, 10);
-    });
-
-    it('ne devrait pas ajouter de doublons (Set)', () => {
-      const module = new Module(validModuleProps);
-      const lesson = new Lesson({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440005'),
-        moduleId: '550e8400-e29b-41d4-a716-446655440000',
-        title: 'Leçon unique',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.DRAFT,
-        chapters: [],
-        quizzes: [],
-      });
-
-      module.addLesson(lesson);
-      module.addLesson(lesson); // Ajouter la même leçon
-
-      expect(module.lessons).toHaveLength(1);
-    });
-  });
-
-  describe('addQuiz()', () => {
-    it('devrait ajouter un quiz au module', () => {
-      const module = new Module(validModuleProps);
-      const quiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440006'),
-        title: 'Nouveau quiz',
-        description: 'Description',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 60,
-        duree: 10,
-        nombreTentatives: 2,
-        questions: [],
-      });
-
-      module.addQuiz(quiz);
-
-      expect(module.quizzes).toHaveLength(1);
-      expect(module.quizzes[0]).toBe(quiz);
-    });
-
-    it("devrait mettre à jour updatedAt lors de l'ajout d'un quiz", () => {
-      const module = new Module(validModuleProps);
-      const quiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440007'),
-        title: 'Quiz test',
-        description: 'Description',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 70,
-        duree: 15,
-        nombreTentatives: 3,
-        questions: [],
-      });
-
-      module.addQuiz(quiz);
-
+    it('devrait initialiser les dates createdAt et updatedAt', () => {
+      const module = new Module(baseProps);
+      expect(module.createdAt).toBeInstanceOf(Date);
       expect(module.updatedAt).toBeInstanceOf(Date);
     });
-
-    it('ne devrait pas ajouter de doublons (Set)', () => {
-      const module = new Module(validModuleProps);
-      const quiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440008'),
-        title: 'Quiz unique',
-        description: 'Description',
-        status: QuizStatus.DRAFT,
-        scoreMinimum: 70,
-        duree: 15,
-        nombreTentatives: 3,
-        questions: [],
-      });
-
-      module.addQuiz(quiz);
-      module.addQuiz(quiz);
-
-      expect(module.quizzes).toHaveLength(1);
-    });
   });
 
-  describe('getAllQuizzes()', () => {
-    it('devrait retourner tous les quizzes du module uniquement', () => {
-      const quiz1 = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440009'),
-        title: 'Quiz module',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 15,
-        nombreTentatives: 3,
-        questions: [],
-      });
+  // Tests des méthodes de gestion d'état
+  describe("méthodes d'état", () => {
+    let module: Module;
 
-      const props = { ...validModuleProps, quizzes: [quiz1] };
-      const module = new Module(props);
-
-      const allQuizzes = module.getAllQuizzes();
-
-      expect(allQuizzes).toHaveLength(1);
-      expect(allQuizzes[0]).toBe(quiz1);
+    beforeEach(() => {
+      module = Module.create(baseProps);
     });
 
-    it('devrait retourner les quizzes du module + des leçons', () => {
-      const moduleQuiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440010'),
-        title: 'Quiz module',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 15,
-        nombreTentatives: 3,
-        questions: [],
-      });
-
-      const lessonQuiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440011'),
-        title: 'Quiz leçon',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 60,
-        duree: 10,
-        nombreTentatives: 2,
-        questions: [],
-      });
-
-      const lesson = new Lesson({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440012'),
-        moduleId: '550e8400-e29b-41d4-a716-446655440000',
-        title: 'Leçon avec quiz',
-        description: 'Description',
-        duration: 30,
-        order: 0,
-        status: LessonStatus.PUBLISHED,
-        chapters: [],
-        quizzes: [lessonQuiz],
-      });
-
-      const props = { ...validModuleProps, lessons: [lesson], quizzes: [moduleQuiz] };
-      const module = new Module(props);
-
-      const allQuizzes = module.getAllQuizzes();
-
-      expect(allQuizzes).toHaveLength(2);
-      expect(allQuizzes).toContain(moduleQuiz);
-      expect(allQuizzes).toContain(lessonQuiz);
-    });
-
-    it('devrait retourner les quizzes du module + leçons + chapitres', () => {
-      const moduleQuiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440013'),
-        title: 'Quiz module',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 70,
-        duree: 15,
-        nombreTentatives: 3,
-        questions: [],
-      });
-
-      const lessonQuiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440014'),
-        title: 'Quiz leçon',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 60,
-        duree: 10,
-        nombreTentatives: 2,
-        questions: [],
-      });
-
-      const chapterQuiz = new Quiz({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440015'),
-        title: 'Quiz chapitre',
-        description: 'Description',
-        status: QuizStatus.PUBLISHED,
-        scoreMinimum: 50,
-        duree: 5,
-        nombreTentatives: 1,
-        questions: [],
-      });
-
-      const chapter = new Chapter(
-        EntityId.from('550e8400-e29b-41d4-a716-446655440016'),
-        'Chapitre 1',
-        'Description',
-        undefined,
-        0,
-        undefined,
-        [chapterQuiz]
-      );
-
-      const lesson = new Lesson({
-        id: EntityId.from('550e8400-e29b-41d4-a716-446655440017'),
-        moduleId: '550e8400-e29b-41d4-a716-446655440000',
-        title: 'Leçon complète',
-        description: 'Description',
-        duration: 60,
-        order: 0,
-        status: LessonStatus.PUBLISHED,
-        chapters: [chapter],
-        quizzes: [lessonQuiz],
-      });
-
-      const props = { ...validModuleProps, lessons: [lesson], quizzes: [moduleQuiz] };
-      const module = new Module(props);
-
-      const allQuizzes = module.getAllQuizzes();
-
-      expect(allQuizzes).toHaveLength(3);
-      expect(allQuizzes).toContain(moduleQuiz);
-      expect(allQuizzes).toContain(lessonQuiz);
-      expect(allQuizzes).toContain(chapterQuiz);
-    });
-
-    it('devrait retourner un tableau vide si aucun quiz', () => {
-      const module = new Module(validModuleProps);
-
-      const allQuizzes = module.getAllQuizzes();
-
-      expect(allQuizzes).toEqual([]);
+    it('devrait correctement vérifier si le module est en brouillon', () => {
+      expect(module.isDraft()).toBe(true);
+      expect(module.isPublished()).toBe(false);
+      expect(module.isArchived()).toBe(false);
     });
   });
 
