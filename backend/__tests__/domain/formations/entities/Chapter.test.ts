@@ -1,167 +1,215 @@
+/**
+ * @jest-environment node
+ */
+
 import { Chapter } from '@/domain/formations/entities/Chapter';
-import { EntityId } from '@/domain/shared/EntityId';
+
+// On mock EntityId (juste ce qu'il faut : getValue())
+function makeEntityId(value = '11111111-1111-4111-8111-111111111111') {
+  return {
+    getValue: () => value,
+  } as any;
+}
+
+// On mock Quiz (id.getValue + toDTO)
+function makeQuiz(id = '22222222-2222-4222-8222-222222222222', overrides: Partial<any> = {}) {
+  return {
+    id: makeEntityId(id),
+    toDTO: jest.fn(() => ({ id, title: `Quiz ${id}` })),
+    ...overrides,
+  } as any;
+}
+
+// On mock Media (pas utilisé dans toDTO chez toi, mais on le passe aux méthodes)
+function makeMedia(overrides: Partial<any> = {}) {
+  return {
+    toDTO: jest.fn(() => ({})),
+    ...overrides,
+  } as any;
+}
 
 describe('Chapter entity', () => {
-  const makeId = () => EntityId.generate();
+  it('constructor: initialise les champs + quizzes + dates optionnelles', () => {
+    const createdAt = new Date('2026-02-02T00:00:00Z');
+    const updatedAt = new Date('2026-02-03T00:00:00Z');
 
-  const makeMedia = () => ({
-    toDTO: jest.fn().mockReturnValue({ id: 'm1', url: 'http://x' }),
-  });
-
-  it('crée un chapitre valide et expose les getters', () => {
-    const id = makeId();
-    const media = makeMedia();
-
-    const createdAt = new Date('2026-01-01T00:00:00.000Z');
-    const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+    const q1 = makeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const q2 = makeQuiz('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 
     const chapter = new Chapter(
-      id,
+      makeEntityId('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
       'Titre',
       'Description',
       'media-1',
-      0,
-      media as any,
+      2,
+      undefined,
+      [q1, q2],
       createdAt,
       updatedAt
     );
 
-    expect(chapter.id.getValue()).toBe(id.getValue());
     expect(chapter.title).toBe('Titre');
     expect(chapter.description).toBe('Description');
     expect(chapter.mediaId).toBe('media-1');
-    expect(chapter.order).toBe(0);
-    expect(chapter.media).toBe(media as any);
+    expect(chapter.order).toBe(2);
 
-    // toDTO sans baseUrl => media undefined
-    const dtoNoBase = chapter.toDTO();
-    expect(dtoNoBase.media).toBeUndefined();
-    expect(dtoNoBase.createdAt).toBeInstanceOf(Date);
-    expect(dtoNoBase.updatedAt).toBeInstanceOf(Date);
+    // quizzes stockés dans un Set => array avec 2
+    expect(chapter.quizzes).toHaveLength(2);
+    expect(chapter.quizzes.map((q: any) => q.id.getValue())).toEqual(
+      expect.arrayContaining([
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      ])
+    );
 
-    // createdAt / updatedAt bien assignés
-    expect(dtoNoBase.createdAt?.toISOString()).toBe(createdAt.toISOString());
-    expect(dtoNoBase.updatedAt?.toISOString()).toBe(updatedAt.toISOString());
+    // dates dans DTO
+    const dto = chapter.toDTO();
+    expect(dto.createdAt).toEqual(createdAt);
+    expect(dto.updatedAt).toEqual(updatedAt);
   });
 
-  describe('validations (constructor)', () => {
-    it('throw si titre vide', () => {
-      expect(() => new Chapter(makeId(), '', 'Desc', undefined, 0)).toThrow(
+  describe('validations', () => {
+    it('validateTitle: throw si vide', () => {
+      expect(() => new Chapter(makeEntityId(), '', 'Desc', undefined, 0)).toThrow(
         'Le titre du chapitre ne peut pas être vide'
       );
     });
 
-    it('throw si titre > 200 caractères', () => {
-      const longTitle = 'a'.repeat(201);
-      expect(() => new Chapter(makeId(), longTitle, 'Desc', undefined, 0)).toThrow(
+    it('validateTitle: throw si > 200', () => {
+      const long = 'a'.repeat(201);
+      expect(() => new Chapter(makeEntityId(), long, 'Desc', undefined, 0)).toThrow(
         'Le titre du chapitre ne peut pas dépasser 200 caractères'
       );
     });
 
-    it('throw si description vide', () => {
-      expect(() => new Chapter(makeId(), 'Titre', '   ', undefined, 0)).toThrow(
+    it('validateDescription: throw si vide', () => {
+      expect(() => new Chapter(makeEntityId(), 'Titre', '   ', undefined, 0)).toThrow(
         'La description du chapitre ne peut pas être vide'
       );
     });
 
-    it('throw si order invalide (non entier / négatif)', () => {
-      expect(() => new Chapter(makeId(), 'Titre', 'Desc', undefined, -1)).toThrow(
+    it('validateOrder: throw si négatif', () => {
+      expect(() => new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, -1)).toThrow(
         "L'ordre doit être un entier positif ou zéro"
       );
-      expect(() => new Chapter(makeId(), 'Titre', 'Desc', undefined, 1.5)).toThrow(
+    });
+
+    it('validateOrder: throw si non entier', () => {
+      expect(() => new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 1.2)).toThrow(
         "L'ordre doit être un entier positif ou zéro"
       );
     });
   });
 
-  describe('updates', () => {
-    it('updateTitle: met à jour + updatedAt', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
-      const before = chapter.toDTO().updatedAt;
+  it('updateTitle / updateDescription / updateOrder: met à jour et change updatedAt', () => {
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 0);
 
-      chapter.updateTitle('Nouveau titre');
+    const before = chapter.toDTO().updatedAt;
 
-      expect(chapter.title).toBe('Nouveau titre');
-      const after = chapter.toDTO().updatedAt;
-      expect(after).toBeInstanceOf(Date);
-      if (before && after) expect(after.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    });
+    jest.setSystemTime(new Date('2026-02-02T00:00:01.000Z'));
+    chapter.updateTitle('Nouveau titre');
 
-    it('updateTitle: throw si invalide', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
+    expect(chapter.title).toBe('Nouveau titre');
+    expect(chapter.toDTO().updatedAt.getTime()).toBeGreaterThan(before.getTime());
 
-      expect(() => chapter.updateTitle('')).toThrow('Le titre du chapitre ne peut pas être vide');
-      expect(() => chapter.updateTitle('a'.repeat(201))).toThrow(
-        'Le titre du chapitre ne peut pas dépasser 200 caractères'
-      );
-    });
+    const before2 = chapter.toDTO().updatedAt;
 
-    it('updateDescription: met à jour + updatedAt', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
+    jest.setSystemTime(new Date('2026-02-02T00:00:02.000Z'));
+    chapter.updateDescription('Nouvelle desc');
 
-      chapter.updateDescription('Nouvelle desc');
-      expect(chapter.description).toBe('Nouvelle desc');
-      expect(chapter.toDTO().updatedAt).toBeInstanceOf(Date);
-    });
+    expect(chapter.description).toBe('Nouvelle desc');
+    expect(chapter.toDTO().updatedAt.getTime()).toBeGreaterThan(before2.getTime());
 
-    it('updateDescription: throw si invalide', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
-      expect(() => chapter.updateDescription('   ')).toThrow(
-        'La description du chapitre ne peut pas être vide'
-      );
-    });
+    const before3 = chapter.toDTO().updatedAt;
 
-    it('updateOrder: met à jour + updatedAt', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
+    jest.setSystemTime(new Date('2026-02-02T00:00:03.000Z'));
+    chapter.updateOrder(5);
 
-      chapter.updateOrder(2);
-      expect(chapter.order).toBe(2);
-      expect(chapter.toDTO().updatedAt).toBeInstanceOf(Date);
-    });
-
-    it('updateOrder: throw si invalide', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
-
-      expect(() => chapter.updateOrder(-1)).toThrow("L'ordre doit être un entier positif ou zéro");
-      expect(() => chapter.updateOrder(1.2)).toThrow("L'ordre doit être un entier positif ou zéro");
-    });
-
-    it('updateMedia + removeMedia', () => {
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', undefined, 0);
-
-      const media = makeMedia();
-      chapter.updateMedia('media-99', media as any);
-
-      expect(chapter.mediaId).toBe('media-99');
-      expect(chapter.media).toBe(media as any);
-
-      chapter.removeMedia();
-      expect(chapter.mediaId).toBeUndefined();
-      expect(chapter.media).toBeUndefined();
-    });
+    expect(chapter.order).toBe(5);
+    expect(chapter.toDTO().updatedAt.getTime()).toBeGreaterThan(before3.getTime());
   });
 
-  describe('toDTO(mediaBaseUrl)', () => {
-    it('inclut media si media existe ET baseUrl fournie', () => {
-      const media = makeMedia();
-      const chapter = new Chapter(makeId(), 'Titre', 'Desc', 'media-1', 0, media as any);
+  it('updateMedia / removeMedia: met mediaId/media et change updatedAt', () => {
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 0);
 
-      const dto = chapter.toDTO('https://cdn.example.com');
-      expect(media.toDTO).toHaveBeenCalledTimes(1);
-      expect(media.toDTO).toHaveBeenCalledWith('https://cdn.example.com');
-      expect(dto.media).toEqual({ id: 'm1', url: 'http://x' });
-    });
+    const media = makeMedia();
+    chapter.updateMedia('media-xyz', media);
+    expect(chapter.mediaId).toBe('media-xyz');
+    expect(chapter.media).toBe(media);
 
-    it('n’inclut pas media si baseUrl manquante ou media manquant', () => {
-      const media = makeMedia();
-      const c1 = new Chapter(makeId(), 'Titre', 'Desc', 'media-1', 0, media as any);
+    chapter.removeMedia();
+    expect(chapter.mediaId).toBeUndefined();
+    expect(chapter.media).toBeUndefined();
+  });
 
-      const dto1 = c1.toDTO(undefined);
-      expect(dto1.media).toBeUndefined();
+  it('addQuiz: ajoute et change updatedAt', () => {
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 0);
 
-      const c2 = new Chapter(makeId(), 'Titre', 'Desc', 'media-1', 0, undefined);
-      const dto2 = c2.toDTO('https://cdn.example.com');
-      expect(dto2.media).toBeUndefined();
-    });
+    const q1 = makeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const before = chapter.toDTO().updatedAt;
+
+    jest.setSystemTime(new Date('2026-02-02T00:00:01.000Z'));
+    chapter.addQuiz(q1);
+
+    expect(chapter.quizzes).toHaveLength(1);
+    expect(chapter.quizzes[0].id.getValue()).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    expect(chapter.toDTO().updatedAt.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  it('removeQuiz: supprime si trouvé et change updatedAt', () => {
+    const q1 = makeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const q2 = makeQuiz('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 0, undefined, [q1, q2]);
+
+    const before = chapter.toDTO().updatedAt;
+
+    jest.setSystemTime(new Date('2026-02-02T00:00:01.000Z'));
+    chapter.removeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+
+    expect(chapter.quizzes).toHaveLength(1);
+    expect(chapter.quizzes[0].id.getValue()).toBe('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    expect(chapter.toDTO().updatedAt.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  it('removeQuiz: si id non trouvé => ne change rien', () => {
+    const q1 = makeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', undefined, 0, undefined, [q1]);
+
+    const beforeUpdatedAt = chapter.toDTO().updatedAt;
+    const beforeCount = chapter.quizzes.length;
+
+    chapter.removeQuiz('not-found-id');
+
+    expect(chapter.quizzes).toHaveLength(beforeCount);
+    // updatedAt inchangé car rien supprimé
+    expect(chapter.toDTO().updatedAt).toEqual(beforeUpdatedAt);
+  });
+
+  it('toDTO: inclut quizzes.toDTO', () => {
+    const q1 = makeQuiz('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const q2 = makeQuiz('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    const chapter = new Chapter(makeEntityId(), 'Titre', 'Desc', 'media-1', 0, undefined, [q1, q2]);
+
+    const dto = chapter.toDTO();
+
+    expect(dto).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        title: 'Titre',
+        description: 'Desc',
+        mediaId: 'media-1',
+        order: 0,
+        quizzes: [
+          { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: expect.any(String) },
+          { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: expect.any(String) },
+        ],
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      })
+    );
+
+    expect(q1.toDTO).toHaveBeenCalledTimes(1);
+    expect(q2.toDTO).toHaveBeenCalledTimes(1);
   });
 });

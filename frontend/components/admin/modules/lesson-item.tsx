@@ -4,7 +4,6 @@ import { Clock, Layers, ClipboardCheck, Check, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 import type { Lesson } from '@/types/modules/Lesson';
-
 function minutesLabel(n: number) {
   const v = Math.round(Number(n) || 0);
   return `${v} min`;
@@ -41,8 +40,8 @@ type LessonItemProps = {
   lesson: Lesson;
   resourcesCount?: number;
   quizLabel?: string | null;
-  href?: string; // lien vers le détail
-  onEdit?: (lesson: Lesson) => void; // ouvre ton edit form/popup
+  href?: string;
+  onEdit?: (lesson: Lesson) => void;
 };
 
 export default function LessonItem({
@@ -54,14 +53,11 @@ export default function LessonItem({
 }: LessonItemProps) {
   return (
     <div className='rounded-2xl bg-white shadow-sm border border-slate-100 px-6 py-5 flex gap-4'>
-      {/* Left icon */}
       <div className='h-8 w-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0'>
         <Layers className='h-4 w-4 text-sky-500' />
       </div>
 
-      {/* Content */}
       <div className='flex-1 min-w-0'>
-        {/* meta row */}
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <div className='flex flex-wrap items-center gap-2'>
             <span className='text-xs text-slate-500'>Leçon {lesson.order ?? 0}</span>
@@ -76,7 +72,6 @@ export default function LessonItem({
             </span>
           </div>
 
-          {/* bouton edit */}
           {onEdit && (
             <button
               type='button'
@@ -89,7 +84,6 @@ export default function LessonItem({
           )}
         </div>
 
-        {/* title cliquable */}
         <div className='mt-1 text-sm text-slate-900 truncate'>
           {href ? (
             <Link
@@ -103,10 +97,8 @@ export default function LessonItem({
           )}
         </div>
 
-        {/* subtitle */}
         <div className='mt-1 text-xs text-slate-500 line-clamp-1'>{lesson.description}</div>
 
-        {/* footer row */}
         <div className='mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500'>
           <span className='inline-flex text-xs items-center gap-1.5'>
             <Clock className='h-3 w-3' />

@@ -8,10 +8,15 @@ import LessonItem from './lesson-item';
 
 type LessonListProps = {
   lessons: Lesson[];
-  moduleId: string; // ✅ pour construire le lien détail
+  moduleId: string;
   onCreate?: () => void;
-  onEdit?: (lesson: Lesson) => void; // ✅ handler edit
+  onEdit?: (lesson: Lesson) => void;
 };
+
+function countLessonResources(lesson: Lesson): number {
+  const chapters = lesson.chapters ?? [];
+  return chapters.filter(ch => !!ch.mediaId && String(ch.mediaId).trim().length > 0).length;
+}
 
 export default function LessonList({ lessons, moduleId, onCreate, onEdit }: LessonListProps) {
   if (!lessons || lessons.length === 0) {
@@ -42,8 +47,8 @@ export default function LessonList({ lessons, moduleId, onCreate, onEdit }: Less
         <LessonItem
           key={l.id}
           lesson={l}
-          resourcesCount={0}
-          href={`/modules/${moduleId}/lessons/${l.id}`} // ✅ adapte à ta route réelle
+          resourcesCount={countLessonResources(l)}
+          href={`/modules/${moduleId}/lessons/${l.id}`}
           onEdit={onEdit ? () => onEdit(l) : undefined}
         />
       ))}

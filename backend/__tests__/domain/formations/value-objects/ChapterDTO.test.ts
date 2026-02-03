@@ -1,67 +1,58 @@
+/**
+ * @jest-environment node
+ */
+
 import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 
-describe('ChapterDTO', () => {
-  it('should accept a valid ChapterDTO (compile-time) and runtime checks', () => {
+describe('ChapterDTO (runtime shape test)', () => {
+  it('should allow creating an object that matches the ChapterDTO structure', () => {
+    const now = new Date('2026-02-02T00:00:00.000Z');
+
     const dto: ChapterDTO = {
       id: 'chapter-1',
       title: 'Chapitre 1',
-      description: 'Description chapitre',
+      description: 'Description',
       order: 0,
+      createdAt: now,
+      updatedAt: now,
+
       // optionnels
       mediaId: 'media-1',
-      quizId: 'quiz-1',
+      media: undefined,
+      quizzes: [],
     };
 
+    // assertions runtime (sur l'objet, pas sur le type)
     expect(dto.id).toBe('chapter-1');
     expect(dto.title).toBe('Chapitre 1');
+    expect(dto.description).toBe('Description');
     expect(dto.order).toBe(0);
-    expect(dto.mediaId).toBe('media-1');
-    expect(dto.quizId).toBe('quiz-1');
-  });
-
-  it('should allow optional fields to be omitted', () => {
-    const dto: ChapterDTO = {
-      id: 'chapter-2',
-      title: 'Chapitre 2',
-      description: 'Description',
-      order: 1,
-      // ✅ mediaId / quizId / media / dates omis
-    };
-
-    expect(dto.mediaId).toBeUndefined();
-    expect(dto.quizId).toBeUndefined();
-    expect(dto.media).toBeUndefined();
-    expect(dto.createdAt).toBeUndefined();
-    expect(dto.updatedAt).toBeUndefined();
-  });
-
-  it('should allow createdAt/updatedAt to be provided', () => {
-    const dto: ChapterDTO = {
-      id: 'chapter-3',
-      title: 'Chapitre 3',
-      description: 'Description',
-      order: 2,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
     expect(dto.createdAt).toBeInstanceOf(Date);
     expect(dto.updatedAt).toBeInstanceOf(Date);
+
+    // optionnels
+    expect(dto.mediaId).toBe('media-1');
+    expect(dto.media).toBeUndefined();
+    expect(Array.isArray(dto.quizzes)).toBe(true);
+    expect(dto.quizzes).toHaveLength(0);
   });
 
-  it('should allow media to be provided (as MediaDTO)', () => {
-    // On ne connaît pas la shape exacte de MediaDTO ici,
-    // donc on le met en any juste pour vérifier que ChapterDTO l’accepte.
-    const media = { id: 'm1', url: 'https://cdn.example.com/file.pdf' } as any;
+  it('should allow omitting optional fields', () => {
+    const now = new Date('2026-02-02T00:00:00.000Z');
 
     const dto: ChapterDTO = {
-      id: 'chapter-4',
-      title: 'Chapitre 4',
-      description: 'Description',
-      order: 3,
-      media,
+      id: 'chapter-2',
+      title: 'Chapitre 2',
+      description: 'Description 2',
+      order: 1,
+      createdAt: now,
+      updatedAt: now,
+      // ✅ mediaId/media/quizzes omis
     };
 
-    expect(dto.media).toEqual(media);
+    expect(dto.mediaId).toBeUndefined();
+    expect(dto.media).toBeUndefined();
+    expect(dto.quizzes).toBeUndefined();
   });
 });

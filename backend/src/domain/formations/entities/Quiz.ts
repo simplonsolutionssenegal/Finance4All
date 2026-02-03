@@ -110,19 +110,6 @@ export class Quiz extends DomainEntity<EntityId> {
     return this._questions.reduce((sum, q) => sum + q.points, 0);
   }
 
-  // --- Validations privées ---
-
-  // private validateParentReferences( // ⭐ AJOUT
-  //   moduleId?: string,
-  //   lessonId?: string,
-  //   chapterId?: string
-  // ): void {
-  //   // Un quiz doit être lié à au moins une entité parent
-  //   if (!moduleId && !lessonId && !chapterId) {
-  //     throw new Error('Le quiz doit être lié à au moins un module, une leçon ou un chapitre');
-  //   }
-  // }
-
   private validateScoreMinimum(score: number): void {
     if (!Number.isInteger(score) || score < 0 || score > 100) {
       throw new Error('Le score minimum doit être un entier entre 0 et 100');

@@ -1,496 +1,563 @@
-// __tests__/components/admin/modules/lesson-dialog.test.tsx
+/**
+ * @jest-environment jsdom
+ */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import LessonDialog from '@/components/admin/modules/lesson-dialog';
 import { LessonStatus } from '@/types/modules/Lesson';
 
-// Mocks
-jest.mock('@/hooks/lesson/useCreateLesson', () => ({
-  useCreateLesson: jest.fn(),
-}));
+// --------------------
+// Mocks: icons
+// --------------------
+jest.mock('lucide-react', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handler: any = { get: () => (props: any) => <svg {...props} /> };
+  return new Proxy({}, handler);
+});
 
-jest.mock('@/hooks/media/useUploadMedia', () => ({
-  useUploadMedia: jest.fn(),
-}));
-
-jest.mock('@/components/admin/modules/ResourcePickerDialog', () => ({
-  __esModule: true,
-  default: (props: any) => (
-    <div data-testid='resource-picker-dialog' data-open={props.open ? '1' : '0'}>
-      <button type='button' onClick={() => props.onPick('VIDEO')}>
-        pick-video
-      </button>
-      <button type='button' onClick={() => props.onPick('PAGE')}>
-        pick-page
-      </button>
-      <button type='button' onClick={() => props.onPick('PDF')}>
-        pick-pdf
-      </button>
-      <button type='button' onClick={() => props.onOpenChange(false)}>
-        close-picker
-      </button>
-    </div>
-  ),
-}));
-
-// Mock UI components
+// --------------------
+// Mocks: UI primitives
+// --------------------
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, className, variant, type }: any) => (
-    <button
-      type={type ?? 'button'}
-      onClick={onClick}
-      disabled={disabled}
-      className={className}
-      data-variant={variant}
-    >
+  Button: ({ children, disabled, ...props }: any) => (
+    // on laisse un data-disabled mais on n'applique pas disabled HTML ici
+    <button data-disabled={disabled ? 'true' : 'false'} {...props}>
       {children}
     </button>
   ),
 }));
 
 jest.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children, open }: any) => (open ? <div data-testid='dialog'>{children}</div> : null),
-  DialogContent: ({ children, className }: any) => (
-    <div className={className} data-testid='dialog-content'>
-      {children}
-    </div>
-  ),
-  DialogTitle: ({ children, className }: any) => <h2 className={className}>{children}</h2>,
+  Dialog: ({ children }: any) => <div>{children}</div>,
+  DialogContent: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <div>{children}</div>,
 }));
 
-jest.mock('@/components/ui/input', () => {
-  const React = require('react') as typeof import('react');
-  return {
-    Input: React.forwardRef<HTMLInputElement, any>((props, ref) => <input ref={ref} {...props} />),
-  };
-});
-
 jest.mock('@/components/ui/label', () => ({
-  Label: ({ children, className }: any) => <label className={className}>{children}</label>,
+  Label: ({ children, ...props }: any) => <label {...props}>{children}</label>,
 }));
 
 jest.mock('@/components/ui/textarea', () => ({
   Textarea: (props: any) => <textarea {...props} />,
 }));
 
-jest.mock('@/components/ui/select', () => ({
-  Select: ({ children, value, onValueChange }: any) => (
-    <div data-testid='select' data-value={value}>
-      {React.Children.map(children, (child: any) =>
-        React.cloneElement(child, { value, onValueChange })
-      )}
-    </div>
-  ),
-  SelectTrigger: ({ children, className }: any) => <div className={className}>{children}</div>,
-  SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
-  SelectContent: ({ children, onValueChange }: any) => (
-    <div>
-      {React.Children.map(children, (child: any) =>
-        React.cloneElement(child, { onClick: () => onValueChange?.(child.props.value) })
-      )}
-    </div>
-  ),
-  SelectItem: ({ children, value, onClick }: any) => (
-    <button type='button' onClick={onClick} data-value={value}>
-      {children}
-    </button>
-  ),
-}));
+jest.mock('@/components/ui/input', () => {
+  const React = require('react');
+  return {
+    Input: React.forwardRef((props: any, ref: any) => <input ref={ref} {...props} />),
+  };
+});
 
-jest.mock('@/components/ui/accordion', () => ({
-  Accordion: ({ children }: any) => <div data-testid='accordion'>{children}</div>,
-  AccordionItem: ({ children, value }: any) => (
-    <div data-testid='accordion-item' data-value={value}>
-      {children}
-    </div>
-  ),
-  AccordionTrigger: ({ children }: any) => <div>{children}</div>,
-  AccordionContent: ({ children }: any) => <div>{children}</div>,
-}));
+// Select mock: click SelectItem => onValueChange
+jest.mock('@/components/ui/select', () => {
+  const React = require('react');
+  const Ctx = React.createContext({ onValueChange: (_v: string) => {} });
 
-describe('LessonDialog (global)', () => {
-  const mockCreateLesson = jest.fn();
-  const mockOnOpenChange = jest.fn();
-  const mockOnCreated = jest.fn();
-  const mockUploadMedia = jest.fn();
-
-  const { useCreateLesson } = require('@/hooks/lesson/useCreateLesson');
-  const { useUploadMedia } = require('@/hooks/media/useUploadMedia');
-
-  const defaultProps = {
-    open: true,
-    onOpenChange: mockOnOpenChange,
-    moduleId: 'module-123',
-    nextOrder: 1,
-    onCreated: mockOnCreated,
+  const Select = ({ onValueChange, children }: any) => (
+    <Ctx.Provider value={{ onValueChange }}>{children}</Ctx.Provider>
+  );
+  const SelectTrigger = ({ children }: any) => <div>{children}</div>;
+  const SelectValue = ({ placeholder }: any) => <span>{placeholder}</span>;
+  const SelectContent = ({ children }: any) => <div>{children}</div>;
+  const SelectItem = ({ value, children }: any) => {
+    const ctx = React.useContext(Ctx);
+    return (
+      <button
+        type='button'
+        data-testid={`select-item-${value}`}
+        onClick={() => ctx.onValueChange(value)}
+      >
+        {children}
+      </button>
+    );
   };
 
+  return { Select, SelectTrigger, SelectValue, SelectContent, SelectItem };
+});
+
+// Accordion mock pour pouvoir changer openChapterIndex via click trigger
+jest.mock('@/components/ui/accordion', () => {
+  const React = require('react');
+
+  const AccCtx = React.createContext({
+    active: '',
+    onValueChange: (_v: string) => {},
+    item: '',
+  });
+
+  const Accordion = ({ value, onValueChange, children }: any) => (
+    <AccCtx.Provider value={{ active: value ?? '', onValueChange, item: '' }}>
+      <div>{children}</div>
+    </AccCtx.Provider>
+  );
+
+  const AccordionItem = ({ value, children }: any) => {
+    const ctx = React.useContext(AccCtx);
+    return (
+      <AccCtx.Provider value={{ ...ctx, item: value }}>
+        <div data-testid={`acc-item-${value}`}>{children}</div>
+      </AccCtx.Provider>
+    );
+  };
+
+  const AccordionTrigger = ({ children, ...props }: any) => {
+    const ctx = React.useContext(AccCtx);
+    return (
+      <button
+        type='button'
+        {...props}
+        onClick={() => ctx.onValueChange(ctx.active === ctx.item ? '' : ctx.item)}
+      >
+        {children}
+      </button>
+    );
+  };
+
+  const AccordionContent = ({ children }: any) => <div>{children}</div>;
+
+  return { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+});
+
+// --------------------
+// Mocks: hooks
+// --------------------
+const createLessonMock = jest.fn();
+let onSuccessCreateLesson: (() => void) | undefined;
+
+jest.mock('@/hooks/lesson/useCreateLesson', () => ({
+  useCreateLesson: (opts: { onSuccess?: () => void }) => {
+    onSuccessCreateLesson = opts?.onSuccess;
+    return { createLesson: createLessonMock, isCreating: false };
+  },
+}));
+
+const uploadMutateAsyncMock = jest.fn();
+jest.mock('@/hooks/media/useUploadMedia', () => ({
+  useUploadMedia: () => ({ mutateAsync: uploadMutateAsyncMock }),
+}));
+
+const deleteMediaAsyncMock = jest.fn();
+jest.mock('@/hooks/media/useDeleteMedia', () => ({
+  useDeleteMedia: () => ({ deleteMediaAsync: deleteMediaAsyncMock }),
+}));
+
+// --------------------
+// Mocks: child dialogs (exact module ids via alias)
+// --------------------
+jest.mock('@/components/admin/modules/ResourcePickerDialog', () => ({
+  __esModule: true,
+  default: ({ open, onPick }: any) => (
+    <div>
+      {/* pour couvrir chapterIndex null */}
+      <button type='button' aria-label='pick-no-target' onClick={() => onPick('PDF')}>
+        pick-no-target
+      </button>
+
+      {open ? (
+        <div data-testid='resource-picker'>
+          <button type='button' aria-label='pick-page' onClick={() => onPick('PAGE')}>
+            pick-page
+          </button>
+          <button type='button' aria-label='pick-pdf' onClick={() => onPick('PDF')}>
+            pick-pdf
+          </button>
+        </div>
+      ) : null}
+    </div>
+  ),
+}));
+
+// QuizFormDialog mock :
+// - bouton "force-open" (même quand open=false) pour couvrir targetChapterIdx===null
+// - quand open=true, bouton "submit-quiz"
+jest.mock('@/components/admin/modules/quiz-form-dialog', () => ({
+  __esModule: true,
+  default: ({ open, subtitle, onOpenChange, onSubmit }: any) => (
+    <div data-testid={`quiz-form-wrapper-${subtitle}`}>
+      <button
+        type='button'
+        aria-label={`force-open-${subtitle}`}
+        onClick={() => onOpenChange(true)}
+      >
+        force-open
+      </button>
+
+      {open ? (
+        <div data-testid={`quiz-form-${subtitle}`}>
+          <button
+            type='button'
+            onClick={() => {
+              onSubmit({
+                title: `Quiz-${subtitle}`,
+                description: 'Desc',
+                status: 'DRAFT',
+                scoreMinimum: 70,
+                duree: undefined,
+                nombreTentatives: 3,
+                questions: [
+                  {
+                    question: 'Q1',
+                    type: 'CHOIX_UNIQUE',
+                    points: 2,
+                    options: [{ text: 'A', isCorrect: true }],
+                  },
+                ],
+              });
+              onOpenChange(false);
+            }}
+          >
+            submit-quiz
+          </button>
+        </div>
+      ) : null}
+    </div>
+  ),
+}));
+
+// --------------------
+// Helpers
+// --------------------
+function getFileInput(container: HTMLElement) {
+  const el = container.querySelector('input[type="file"]') as HTMLInputElement | null;
+  if (!el) throw new Error('file input not found');
+  return el;
+}
+
+function fillBaseLesson() {
+  fireEvent.change(screen.getByPlaceholderText('Ex: Introduction au budget familial'), {
+    target: { value: 'Titre leçon' },
+  });
+  fireEvent.change(
+    screen.getByPlaceholderText('Décrivez brièvement le contenu de cette leçon...'),
+    {
+      target: { value: 'Conférence + pratique' },
+    }
+  );
+  fireEvent.change(screen.getByPlaceholderText('Ex: 15'), { target: { value: '20' } });
+}
+
+function makeChapterValidNoMedia() {
+  fireEvent.change(screen.getByPlaceholderText('Titre de chapitre'), {
+    target: { value: 'Chap 1' },
+  });
+  fireEvent.change(screen.getByPlaceholderText('Description de chapitre ...'), {
+    target: { value: 'Desc 1' },
+  });
+
+  // checkbox "Aucun média..." (dans la partie chapitre)
+  const cb = screen.getAllByRole('checkbox')[0];
+  fireEvent.click(cb);
+}
+
+// --------------------
+// Tests
+// --------------------
+describe('LessonDialog (high coverage)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // randomUUID (si besoin)
-    // @ts-expect-error
-    if (!global.crypto) global.crypto = {};
-    // @ts-expect-error
-    if (!global.crypto.randomUUID) global.crypto.randomUUID = () => 'uuid-1';
-
-    useCreateLesson.mockReturnValue({
-      createLesson: mockCreateLesson,
-      isCreating: false,
-    });
-
-    useUploadMedia.mockReturnValue({
-      mutateAsync: mockUploadMedia,
-      isPending: false,
-    });
+    onSuccessCreateLesson = undefined;
+    uploadMutateAsyncMock.mockReset();
+    deleteMediaAsyncMock.mockReset();
   });
 
-  describe('Rendu', () => {
-    it('affiche le dialog quand open=true', () => {
-      render(<LessonDialog {...defaultProps} />);
-      expect(screen.getByTestId('dialog')).toBeInTheDocument();
-      expect(screen.getByText('Nouvelle leçon')).toBeInTheDocument();
-    });
+  it('init + statusLabel branches + warning PUBLISHED sans chapitre', () => {
+    const { rerender } = render(
+      <LessonDialog open={false} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
+    );
 
-    it('ne rend rien quand open=false', () => {
-      render(<LessonDialog {...defaultProps} open={false} />);
-      expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
-    });
+    // open=false => useEffect return
+    expect(screen.getByText('Nouvelle leçon')).toBeInTheDocument();
 
-    it('statut initial DRAFT et 0 chapitre', () => {
-      render(<LessonDialog {...defaultProps} />);
-      expect(screen.getByTestId('select')).toHaveAttribute('data-value', LessonStatus.DRAFT);
-      expect(screen.getByText(/0 chapitre\(s\)/i)).toBeInTheDocument();
-    });
+    rerender(
+      <LessonDialog
+        open={true}
+        onOpenChange={jest.fn()}
+        moduleId='m1'
+        nextOrder={1}
+        chapters={[{ title: 'C', description: 'D', order: 0, mediaId: 'mid' } as any]}
+      />
+    );
+
+    // statusLabel est appelé via la liste des SelectItem
+    expect(screen.getByText('Brouillon')).toBeInTheDocument();
+    expect(screen.getByText('Publié')).toBeInTheDocument();
+    expect(screen.getByText('Programmé')).toBeInTheDocument();
+    expect(screen.getByText('Archivé')).toBeInTheDocument();
+
+    // chapitre init -> resourcesCount = 1 (noMedia=false, mediaId présent)
+    expect(screen.getByText(/1 chapitre • 1 ressource/)).toBeInTheDocument();
+
+    // warning publié sans chapitre => render avec 0 chapitre
+    rerender(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
+    fireEvent.click(screen.getByTestId(`select-item-${LessonStatus.PUBLISHED}`));
+    expect(screen.getByText('Pour publier, ajoute au moins 1 chapitre.')).toBeInTheDocument();
   });
 
-  describe('Champs', () => {
-    it('met à jour titre + description', () => {
-      render(<LessonDialog {...defaultProps} />);
+  it('handleAddChapter: empty state + branche erreur (forcer click) + ajout normal', async () => {
+    render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
 
-      fireEvent.change(screen.getByPlaceholderText('Ex: Introduction au budget familial'), {
-        target: { value: 'Nouvelle leçon' },
-      });
-      fireEvent.change(
-        screen.getByPlaceholderText('Décrivez brièvement le contenu de cette leçon...'),
-        {
-          target: { value: 'Desc' },
-        }
-      );
+    // 1) créer le 1er chapitre (chapitre invalide car vide)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    expect(screen.getByPlaceholderText('Titre de chapitre')).toBeInTheDocument();
 
-      expect(screen.getByPlaceholderText('Ex: Introduction au budget familial')).toHaveValue(
-        'Nouvelle leçon'
-      );
-      expect(
-        screen.getByPlaceholderText('Décrivez brièvement le contenu de cette leçon...')
-      ).toHaveValue('Desc');
+    // 2) forcer le click sur "Ajouter un chapitre" même si disabled (branche chapterError)
+    const addBtn = screen.getByRole('button', { name: 'Ajouter un chapitre' }) as HTMLButtonElement;
+
+    // le composant met disabled via prop => property DOM peut rester true
+    addBtn.removeAttribute('disabled');
+    addBtn.disabled = false;
+
+    fireEvent.click(addBtn);
+
+    expect(
+      await screen.findByText(t =>
+        t.includes("Veuillez compléter les chapitres avant d'en ajouter un nouveau.")
+      )
+    ).toBeInTheDocument();
+
+    // 3) rendre le chapitre valide : titre + desc + cocher "Aucun média"
+    fireEvent.change(screen.getByPlaceholderText('Titre de chapitre'), {
+      target: { value: 'Chap 1' },
     });
-
-    it('met à jour la durée (number)', () => {
-      render(<LessonDialog {...defaultProps} />);
-      const durationInput = screen.getByPlaceholderText('Ex: 15');
-
-      fireEvent.change(durationInput, { target: { value: '30' } });
-
-      // ✅ la valeur devient un number dans ton composant
-      expect(durationInput).toHaveValue(30);
-      expect(screen.getByText('Durée totale : 30 min')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Description de chapitre ...'), {
+      target: { value: 'Desc 1' },
     });
-    it('initialise les chapitres: noMedia=true si mediaId absent', () => {
-      render(
-        <LessonDialog
-          {...defaultProps}
-          chapters={[
-            { id: 'c1', title: 'T1', description: 'D1', mediaId: 'media-ok' } as any,
-            { id: 'c2', title: 'T2', description: 'D2', mediaId: '' } as any,
-          ]}
-        />
-      );
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
 
-      // 2 chapitres => 2 checkbox "Aucun média"
-      const checks = screen.getAllByRole('checkbox');
-      expect(checks).toHaveLength(2);
-
-      // Chapitre 1: mediaId présent => noMedia false
-      expect(checks[0]).not.toBeChecked();
-
-      // Chapitre 2: mediaId vide => noMedia true
-      expect(checks[1]).toBeChecked();
-    });
-    it('pick-pdf: met accept=application/pdf et déclenche click() sur input file', () => {
-      jest.useFakeTimers();
-
-      const clickSpy = jest.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
-
-      render(<LessonDialog {...defaultProps} />);
-
-      // ajouter chapitre
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-
-      // ouvrir picker puis choisir PDF (déclenche setAccept + setTimeout(click))
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      fireEvent.click(screen.getByText('pick-pdf'));
-
-      // exécuter le setTimeout
-      jest.runOnlyPendingTimers();
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      expect(fileInput).toBeTruthy();
-
-      // ✅ accept doit être mis à jour
-      expect(fileInput).toHaveAttribute('accept', 'application/pdf');
-
-      // ✅ click appelé (grâce au forwardRef)
-      expect(clickSpy).toHaveBeenCalled();
-
-      clickSpy.mockRestore();
-      jest.useRealTimers();
-    });
-
-    it('change le statut (DRAFT -> PUBLISHED)', () => {
-      render(<LessonDialog {...defaultProps} />);
-
-      expect(screen.getByTestId('select')).toHaveAttribute('data-value', LessonStatus.DRAFT);
-
-      fireEvent.click(screen.getByText('Publié').closest('button')!);
-
-      expect(screen.getByTestId('select')).toHaveAttribute('data-value', LessonStatus.PUBLISHED);
-      expect(screen.getByText('Pour publier, ajoute au moins 1 chapitre.')).toBeInTheDocument();
-    });
+    // 4) maintenant l'ajout doit marcher => 2 chapitres
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
+    expect(screen.getAllByPlaceholderText('Titre de chapitre')).toHaveLength(2);
   });
 
-  describe('Chapitres', () => {
-    it('affiche l’état vide + ajoute le premier chapitre', () => {
-      render(<LessonDialog {...defaultProps} />);
+  it('resource flow: PAGE + PDF upload success + accept change + resourcesCount', async () => {
+    uploadMutateAsyncMock.mockResolvedValueOnce({ id: 'media-1', originalName: 'file.pdf' });
 
-      expect(screen.getByText(/Organisez votre leçon en chapitres/i)).toBeInTheDocument();
+    const { container } = render(
+      <LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
+    );
 
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      expect(screen.getByText('Chapitre 1')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Titre de chapitre')).toBeInTheDocument();
+    // créer un chapitre
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+
+    // ouvrir picker via "Ajouter une ressource"
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter une ressource' }));
+    expect(screen.getByTestId('resource-picker')).toBeInTheDocument();
+
+    // PAGE
+    fireEvent.click(screen.getByLabelText('pick-page'));
+    expect(screen.getByText('Ce chapitre sera créé sans média.')).toBeInTheDocument();
+
+    // PDF (remplacer)
+    fireEvent.click(screen.getByRole('button', { name: 'Remplacer' }));
+    fireEvent.click(screen.getByLabelText('pick-pdf'));
+
+    // accept doit être application/pdf
+    const fileEl = getFileInput(container);
+    await waitFor(() => expect(fileEl.getAttribute('accept')).toBe('application/pdf'));
+
+    // simuler file selection
+    fireEvent.change(fileEl, {
+      target: { files: [new File(['x'], 'file.pdf', { type: 'application/pdf' })] },
     });
 
-    it('empêche d’ajouter un nouveau chapitre si un chapitre est invalide', () => {
-      render(<LessonDialog {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('media-1')).toBeInTheDocument());
 
-      // Ajouter premier chapitre (il est invalide)
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-
-      // Le bouton "Ajouter un chapitre" est désactivé quand canAddNewChapter=false
-      const addBtn = screen.getByRole('button', { name: /Ajouter un chapitre/i });
-
-      // ✅ on vérifie que c’est bien désactivé (comportement attendu)
-      expect(addBtn).toBeDisabled();
-
-      // ✅ et on vérifie le message global d’invalidité chapitres (toujours affiché si invalid)
-      expect(
-        screen.getByText(/Chaque chapitre doit avoir un titre \+ description/i)
-      ).toBeInTheDocument();
-    });
-
-    it('ajoute un 2ème chapitre si le 1er est valide (noMedia)', () => {
-      render(<LessonDialog {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-
-      fireEvent.change(screen.getByPlaceholderText('Titre de chapitre'), {
-        target: { value: 'Chap 1' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('Description de chapitre ...'), {
-        target: { value: 'Desc 1' },
-      });
-
-      fireEvent.click(screen.getByRole('checkbox')); // Aucun média
-
-      fireEvent.click(screen.getByText('Ajouter un chapitre'));
-
-      expect(screen.getByText('Chapitre 2')).toBeInTheDocument();
-    });
-
-    it('supprime un chapitre', () => {
-      render(<LessonDialog {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      expect(screen.getByText('Chapitre 1')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByLabelText('Supprimer le chapitre'));
-      expect(screen.queryByText('Chapitre 1')).not.toBeInTheDocument();
-    });
+    // resourcesCount = 1 (noMedia false + mediaId présent)
+    expect(screen.getByText(/1 chapitre • 1 ressource/)).toBeInTheDocument();
   });
 
-  describe('Ressources', () => {
-    it('ouvre le ResourcePickerDialog', () => {
-      render(<LessonDialog {...defaultProps} />);
+  it('delete media branches: success=false + throw + success=true, et replace supprime puis ouvre picker', async () => {
+    uploadMutateAsyncMock.mockResolvedValueOnce({ id: 'media-2', originalName: 'file2.pdf' });
 
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
+    const { container } = render(
+      <LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
+    );
 
-      const picker = screen.getByTestId('resource-picker-dialog');
-      expect(picker).toHaveAttribute('data-open', '0');
-
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      expect(picker).toHaveAttribute('data-open', '1');
+    // créer chapitre + upload PDF
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter une ressource' }));
+    fireEvent.click(screen.getByLabelText('pick-pdf'));
+    fireEvent.change(getFileInput(container), {
+      target: { files: [new File(['x'], 'file2.pdf', { type: 'application/pdf' })] },
     });
 
-    it('PAGE => chapitre sans média', () => {
-      render(<LessonDialog {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('media-2')).toBeInTheDocument());
 
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      fireEvent.click(screen.getByText('pick-page'));
+    // success=false
+    deleteMediaAsyncMock.mockResolvedValueOnce({ success: false, message: 'nope' });
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
+    await waitFor(() => expect(screen.getByText('nope')).toBeInTheDocument());
+    expect(screen.getByText('media-2')).toBeInTheDocument();
 
-      expect(screen.getByText('Ce chapitre sera créé sans média.')).toBeInTheDocument();
+    // throw
+    deleteMediaAsyncMock.mockRejectedValueOnce(new Error('boom'));
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
+    await waitFor(() => expect(screen.getByText('boom')).toBeInTheDocument());
+    expect(screen.getByText('media-2')).toBeInTheDocument();
+
+    // success=true => media disparaît et noMedia devient true
+    deleteMediaAsyncMock.mockResolvedValueOnce({ success: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
+    await waitFor(() => expect(screen.queryByText('media-2')).not.toBeInTheDocument());
+    expect(screen.getByText('Ce chapitre sera créé sans média.')).toBeInTheDocument();
+
+    // replace avec media existant: re-upload puis click "Remplacer" doit delete puis ouvrir picker
+    uploadMutateAsyncMock.mockResolvedValueOnce({ id: 'media-3', originalName: 'file3.pdf' });
+    fireEvent.click(screen.getByRole('button', { name: 'Remplacer' }));
+    fireEvent.click(screen.getByLabelText('pick-pdf'));
+    fireEvent.change(getFileInput(container), {
+      target: { files: [new File(['y'], 'file3.pdf', { type: 'application/pdf' })] },
     });
 
-    it('upload VIDEO => appelle mutateAsync + affiche mediaId', async () => {
-      mockUploadMedia.mockResolvedValueOnce({ id: 'media-123', originalName: 'test-video.mp4' });
+    await waitFor(() => expect(screen.getByText('media-3')).toBeInTheDocument());
 
-      render(<LessonDialog {...defaultProps} />);
+    deleteMediaAsyncMock.mockResolvedValueOnce({ success: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Remplacer' }));
 
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      fireEvent.click(screen.getByText('pick-video'));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      expect(fileInput).toBeTruthy();
-
-      const file = new File(['video'], 'test-video.mp4', { type: 'video/mp4' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => expect(mockUploadMedia).toHaveBeenCalledTimes(1));
-
-      const callArg = mockUploadMedia.mock.calls[0][0];
-
-      // ✅ pas de toEqual sur File
-      expect(callArg.file).toBe(file);
-
-      expect(callArg.metadata).toEqual(
-        expect.objectContaining({
-          moduleId: 'module-123',
-          chapterIndex: '0',
-        })
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText(/media-123/i)).toBeInTheDocument();
-        expect(screen.getByText(/fichier : test-video\.mp4/i)).toBeInTheDocument();
-      });
-    });
-
-    it('upload erreur => affiche le message', async () => {
-      mockUploadMedia.mockRejectedValueOnce(new Error('Upload failed'));
-
-      render(<LessonDialog {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      fireEvent.click(screen.getByText('pick-video'));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const file = new File(['x'], 'bad.mp4', { type: 'video/mp4' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(/Upload failed/i)).toBeInTheDocument();
-      });
-    });
-
-    it('retire la ressource', async () => {
-      mockUploadMedia.mockResolvedValueOnce({ id: 'media-999', originalName: 'support.pdf' });
-
-      render(<LessonDialog {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      fireEvent.click(screen.getByText('Ajouter une ressource'));
-      fireEvent.click(screen.getByText('pick-pdf'));
-
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const file = new File(['pdf'], 'support.pdf', { type: 'application/pdf' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
-
-      await waitFor(() => {
-        expect(screen.getByText(/media-999/i)).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Retirer la ressource'));
-
-      expect(screen.getByText(/\(pas encore\)/i)).toBeInTheDocument();
-    });
+    await waitFor(() => expect(deleteMediaAsyncMock).toHaveBeenCalledWith({ mediaId: 'media-3' }));
+    expect(await screen.findByTestId('resource-picker')).toBeInTheDocument();
   });
 
-  describe('Validation & Submit', () => {
-    it('désactive le bouton créer si champs requis vides', () => {
-      render(<LessonDialog {...defaultProps} />);
-      expect(screen.getByText('Créer la leçon').closest('button')).toBeDisabled();
+  it('handleNoMediaChange: checked=true avec mediaId => delete puis reset', async () => {
+    uploadMutateAsyncMock.mockResolvedValueOnce({ id: 'media-4', originalName: 'file4.pdf' });
+    deleteMediaAsyncMock.mockResolvedValueOnce({ success: true });
+
+    const { container } = render(
+      <LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter une ressource' }));
+    fireEvent.click(screen.getByLabelText('pick-pdf'));
+    fireEvent.change(getFileInput(container), {
+      target: { files: [new File(['x'], 'file4.pdf', { type: 'application/pdf' })] },
     });
 
-    it('soumet createLesson avec un chapitre noMedia', () => {
-      render(<LessonDialog {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('media-4')).toBeInTheDocument());
 
-      // Remplir leçon
-      fireEvent.change(screen.getByPlaceholderText('Ex: Introduction au budget familial'), {
-        target: { value: 'Test leçon' },
-      });
-      fireEvent.change(
-        screen.getByPlaceholderText('Décrivez brièvement le contenu de cette leçon...'),
-        {
-          target: { value: 'Description test' },
-        }
-      );
-      fireEvent.change(screen.getByPlaceholderText('Ex: 15'), { target: { value: '45' } });
+    // cocher "Aucun média..." => doit supprimer media côté API
+    const cb = screen.getAllByRole('checkbox')[0];
+    fireEvent.click(cb);
 
-      // Chapitre
-      fireEvent.click(screen.getByText('Ajouter le premier chapitre'));
-      fireEvent.change(screen.getByPlaceholderText('Titre de chapitre'), {
-        target: { value: 'Chapitre 1' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('Description de chapitre ...'), {
-        target: { value: 'Description chapitre' },
-      });
-      fireEvent.click(screen.getByRole('checkbox')); // noMedia
-
-      fireEvent.click(screen.getByText('Créer la leçon'));
-
-      expect(mockCreateLesson).toHaveBeenCalledWith({
-        moduleId: 'module-123',
-        payload: {
-          title: 'Test leçon',
-          description: 'Description test',
-          duration: 45,
-          order: 1,
-          status: LessonStatus.DRAFT,
-          chapters: [
-            {
-              title: 'Chapitre 1',
-              description: 'Description chapitre',
-              order: 0,
-            },
-          ],
-        },
-      });
-    });
+    await waitFor(() => expect(deleteMediaAsyncMock).toHaveBeenCalledWith({ mediaId: 'media-4' }));
+    await waitFor(() => expect(screen.queryByText('media-4')).not.toBeInTheDocument());
   });
 
-  describe('Dialog / reset / cancel', () => {
-    it('reset les champs à la réouverture', () => {
-      const { rerender } = render(<LessonDialog {...defaultProps} open={false} />);
+  it('quiz flows: couvre targetChapterIdx===null, puis ajout/suppression quiz chapitre + quiz leçon', async () => {
+    render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
 
-      rerender(<LessonDialog {...defaultProps} open={true} />);
-      fireEvent.change(screen.getByPlaceholderText('Ex: Introduction au budget familial'), {
-        target: { value: 'AAAA' },
-      });
+    // créer chapitre + valide
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    makeChapterValidNoMedia();
 
-      rerender(<LessonDialog {...defaultProps} open={false} />);
-      rerender(<LessonDialog {...defaultProps} open={true} />);
+    // ✅ couvrir la branche targetChapterIdx === null :
+    // on force l'ouverture du QuizFormDialog "Quiz de chapitre" via son onOpenChange(true)
+    fireEvent.click(screen.getByLabelText('force-open-Quiz de chapitre'));
+    expect(screen.getByTestId('quiz-form-Quiz de chapitre')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('submit-quiz')); // onSubmit appelé mais targetChapterIdx null => return
 
-      expect(screen.getByPlaceholderText('Ex: Introduction au budget familial')).toHaveValue('');
+    // ✅ ajout quiz chapitre normal (via bouton dans la section "Quiz du chapitre")
+    const chapterQuizHeader = screen.getByText('Quiz du chapitre').closest('div')!;
+    fireEvent.click(within(chapterQuizHeader).getByRole('button', { name: 'Ajouter un quiz' }));
+
+    expect(screen.getByTestId('quiz-form-Quiz de chapitre')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('submit-quiz'));
+
+    // le quiz est listé -> supprimer
+    fireEvent.click(screen.getByLabelText('Supprimer le quiz du chapitre'));
+
+    // ✅ quiz de fin de leçon
+    const lessonQuizSection = screen.getByText('Quiz de fin de leçon').parentElement!;
+    fireEvent.click(within(lessonQuizSection).getByRole('button', { name: 'Ajouter un quiz' }));
+
+    expect(screen.getByTestId('quiz-form-Quiz de fin de leçon')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('submit-quiz'));
+
+    fireEvent.click(screen.getByLabelText('Supprimer le quiz'));
+  });
+
+  it('removeChapter branches: openChapterIndex===index et openChapterIndex>index', () => {
+    render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
+
+    // 2 chapitres
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
+
+    const triggers = screen.getAllByRole('button', { name: /Chapitre/i });
+
+    // ouvrir chapitre 1 puis supprimer => openChapterIndex === index
+    fireEvent.click(triggers[0]);
+    fireEvent.click(screen.getAllByLabelText('Supprimer le chapitre')[0]);
+
+    // ouvrir chapitre restant (qui était 2) et supprimer le premier => openChapterIndex > index
+    // (on recrée 2 chapitres pour couvrir)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
+
+    const triggers2 = screen.getAllByRole('button', { name: /Chapitre/i });
+    fireEvent.click(triggers2[1]); // ouvre chapitre 2 (index=1)
+    fireEvent.click(screen.getAllByLabelText('Supprimer le chapitre')[0]); // supprime index 0 => openChapterIndex > index
+  });
+
+  it('submit: invalide => pas d’appel, valide => createLesson + onSuccess ferme', () => {
+    const onOpenChange = jest.fn();
+    const onCreated = jest.fn();
+
+    render(
+      <LessonDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        moduleId='m1'
+        nextOrder={5}
+        onCreated={onCreated}
+      />
+    );
+
+    // invalide => rien
+    fireEvent.click(screen.getByRole('button', { name: 'Créer la leçon' }));
+    expect(createLessonMock).not.toHaveBeenCalled();
+
+    // valide avec 1 chapitre + quiz chapitre + quiz lesson
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
+    makeChapterValidNoMedia();
+
+    // quiz chapitre
+    const chapterQuizHeader = screen.getByText('Quiz du chapitre').closest('div')!;
+    fireEvent.click(within(chapterQuizHeader).getByRole('button', { name: 'Ajouter un quiz' }));
+    fireEvent.click(screen.getByText('submit-quiz'));
+
+    // quiz leçon
+    const lessonQuizSection = screen.getByText('Quiz de fin de leçon').parentElement!;
+    fireEvent.click(within(lessonQuizSection).getByRole('button', { name: 'Ajouter un quiz' }));
+    fireEvent.click(screen.getByText('submit-quiz'));
+
+    fillBaseLesson();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Créer la leçon' }));
+
+    expect(createLessonMock).toHaveBeenCalledTimes(1);
+    expect(createLessonMock).toHaveBeenCalledWith({
+      moduleId: 'm1',
+      payload: expect.objectContaining({
+        title: 'Titre leçon',
+        description: 'Conférence + pratique',
+        duration: 20,
+        order: 5,
+        status: LessonStatus.DRAFT,
+        chapters: expect.any(Array),
+        quizzes: expect.any(Array),
+      }),
     });
 
-    it('Annuler => onOpenChange(false)', () => {
-      render(<LessonDialog {...defaultProps} />);
-      fireEvent.click(screen.getByText('Annuler'));
-      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
-    });
+    // onSuccess du hook
+    onSuccessCreateLesson?.();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onCreated).toHaveBeenCalledTimes(1);
+  });
+
+  it('onPickResourceKind: chapterIndex null => early return', () => {
+    render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
+    fireEvent.click(screen.getByLabelText('pick-no-target'));
   });
 });

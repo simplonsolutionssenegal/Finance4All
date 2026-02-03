@@ -173,6 +173,20 @@ export class Module extends DomainEntity<EntityId> {
     this._updatedAt = new Date();
   }
 
+  getAllQuizzes(): Quiz[] {
+    const allQuizzes: Quiz[] = [];
+    allQuizzes.push(...this.quizzes);
+    for (const lesson of this._lessons) {
+      allQuizzes.push(...lesson.quizzes);
+
+      for (const chapter of lesson.chapters) {
+        allQuizzes.push(...chapter.quizzes);
+      }
+    }
+
+    return allQuizzes;
+  }
+
   public publish(): void {
     if (this._status === ModuleStatus.PUBLISHED) {
       throw new Error('Le module est déjà publié');
@@ -221,6 +235,7 @@ export class Module extends DomainEntity<EntityId> {
       status: this._status,
       lessons: this.lessons.map(lesson => lesson.toDTO()),
       quizzes: this.quizzes.map(quiz => quiz.toDTO()),
+      quizzesGlobal: this.getAllQuizzes().map(q => q.toDTO()),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+
 import type { ModuleResponseDTO } from '@/domain/formations/value-objects/ModuleFormationDTO';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 

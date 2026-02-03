@@ -1,5 +1,6 @@
 // domain/formations/value-objects/ChapterDTO.ts
 
+import type { QuizDTO } from './QuizDTO'; // ⭐ AJOUT
 import type { MediaDTO } from '@/domain/media/value-objects/MediaDTO';
 
 export interface ChapterDTO {
@@ -8,8 +9,8 @@ export interface ChapterDTO {
   description: string;
   mediaId?: string;
   order: number;
-  quizId?: string;
   media?: MediaDTO;
-  createdAt?: Date;
-  updatedAt?: Date;
+  quizzes?: QuizDTO[]; // ⭐ AJOUT
+  createdAt: Date;
+  updatedAt: Date;
 }

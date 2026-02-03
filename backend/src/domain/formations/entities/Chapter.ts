@@ -4,13 +4,15 @@ import type { EntityId } from '@/domain/shared/EntityId';
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { ChapterDTO } from '@/domain/formations/value-objects/ChapterDTO';
 import type { Media } from '@/domain/media/entities/Media';
+import type { Quiz } from './Quiz'; // ⭐ AJOUT
 
 export class Chapter extends DomainEntity<EntityId> {
   private _title: string;
   private _description: string;
   private _mediaId?: string;
   private _order: number;
-  private _media?: Media; // ✅ Ajout du média
+  private _media?: Media;
+  private readonly _quizzes: Set<Quiz>; // ⭐ AJOUT
 
   constructor(
     id: EntityId,
@@ -18,7 +20,8 @@ export class Chapter extends DomainEntity<EntityId> {
     description: string,
     mediaId?: string,
     order: number = 0,
-    media?: Media, // ✅ Ajout du paramètre media
+    media?: Media,
+    quizzes: Quiz[] = [], // ⭐ AJOUT
     createdAt?: Date,
     updatedAt?: Date
   ) {
@@ -32,9 +35,9 @@ export class Chapter extends DomainEntity<EntityId> {
     this._description = description;
     this._mediaId = mediaId;
     this._order = order;
-    this._media = media; // ✅ Assigner le média
+    this._media = media;
+    this._quizzes = new Set(quizzes); // ⭐ AJOUT
 
-    // ✅ Assigner les dates si fournies
     if (createdAt) {
       Object.assign(this, { _createdAt: createdAt });
     }
@@ -62,8 +65,29 @@ export class Chapter extends DomainEntity<EntityId> {
   }
 
   get media(): Media | undefined {
-    // ✅ Nouveau getter
     return this._media;
+  }
+
+  get quizzes(): Quiz[] {
+    // ⭐ AJOUT
+    return Array.from(this._quizzes);
+  }
+
+  // --- Gestion des Quiz ---
+
+  addQuiz(quiz: Quiz): void {
+    // ⭐ AJOUT
+    this._quizzes.add(quiz);
+    this._updatedAt = new Date();
+  }
+
+  removeQuiz(quizId: string): void {
+    // ⭐ AJOUT
+    const quiz = Array.from(this._quizzes).find(q => q.id.getValue() === quizId);
+    if (quiz) {
+      this._quizzes.delete(quiz);
+      this._updatedAt = new Date();
+    }
   }
 
   // --- Validations privées ---
@@ -110,14 +134,12 @@ export class Chapter extends DomainEntity<EntityId> {
   }
 
   updateMedia(mediaId: string, media?: Media): void {
-    // ✅ Nouvelle méthode
     this._mediaId = mediaId;
     this._media = media;
     this._updatedAt = new Date();
   }
 
   removeMedia(): void {
-    // ✅ Nouvelle méthode
     this._mediaId = undefined;
     this._media = undefined;
     this._updatedAt = new Date();
@@ -125,15 +147,15 @@ export class Chapter extends DomainEntity<EntityId> {
 
   // --- DTO ---
 
-  toDTO(mediaBaseUrl?: string): ChapterDTO {
-    // ✅ Ajout du paramètre mediaBaseUrl
+  toDTO(): ChapterDTO {
     return {
       id: this.id.getValue(),
       title: this._title,
       description: this._description,
       mediaId: this._mediaId,
       order: this._order,
-      media: this._media && mediaBaseUrl ? this._media.toDTO(mediaBaseUrl) : undefined, // ✅ Inclure le média
+      // media: this._media && mediaBaseUrl ? this._media.toDTO(mediaBaseUrl) : undefined,
+      quizzes: this.quizzes.map(q => q.toDTO()), // ⭐ AJOUT
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

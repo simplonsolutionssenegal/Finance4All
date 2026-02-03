@@ -25,6 +25,7 @@ export interface Module {
   estimatedDuration: number;
   lessons: Lesson[];
   quizzes: Quiz[];
+  quizzesGlobal?: Quiz[];
   status: ModuleStatus;
   createdAt: string;
   updatedAt: string;

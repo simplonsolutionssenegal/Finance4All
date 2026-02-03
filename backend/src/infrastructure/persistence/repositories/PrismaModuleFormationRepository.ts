@@ -180,20 +180,24 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
   }
 
   private mapLessonToDomain(prismaLesson: ModuleWithLessonsAndQuizzes['lessons'][number]): Lesson {
-    const raw = prismaLesson.chapters;
-    const chaptersDto: ChapterDTO[] = Array.isArray(raw) ? (raw as unknown as ChapterDTO[]) : [];
+    const chaptersDto: ChapterDTO[] = Array.isArray(prismaLesson.chapters)
+      ? (prismaLesson.chapters as unknown as ChapterDTO[])
+      : [];
 
     const chapters = chaptersDto.map(c => this.mapChapterToDomain(c));
 
+    // ⭐ Mapper les quizzes de la leçon
+    const quizzes = (prismaLesson.quizzes ?? []).map(q => this.mapQuizToDomain(q));
+
     return new Lesson({
       id: EntityId.from(prismaLesson.id),
-      moduleId: prismaLesson.moduleId, // ✅ AJOUTE ÇA
+      moduleId: prismaLesson.moduleId,
       title: prismaLesson.title,
       description: prismaLesson.description,
       duration: prismaLesson.duration,
       order: prismaLesson.order,
       chapters,
-      quizzes: [], // ou prismaLesson.quizzes.map(...)
+      quizzes, // ⭐ Ajouter les quizzes
       status: prismaLesson.status as LessonStatus,
     });
   }
@@ -239,29 +243,71 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       order: lesson.order,
       status: lesson.status as any,
 
-      // ✅ chapters est une relation => nested create
+      // ✅ Créer les chapitres avec leurs quizzes
       chapters: {
-        create: lesson.chapters.map(c => ({
-          id: c.id.getValue(),
-          title: c.title,
-          description: c.description,
-          mediaId: c.mediaId ?? null, // si mediaId est optionnel
-          order: c.order,
+        create: lesson.chapters.map(chapter => ({
+          id: chapter.id.getValue(),
+          title: chapter.title,
+          description: chapter.description,
+          mediaId: chapter.mediaId ?? null,
+          order: chapter.order,
+
+          // ⭐ Créer les quizzes du chapitre
+          quizzes: {
+            create: chapter.quizzes.map(quiz => ({
+              id: quiz.id.getValue(),
+              title: quiz.title,
+              description: quiz.description,
+              status: quiz.status as any,
+              scoreMinimum: quiz.scoreMinimum,
+              duree: quiz.duree ?? null,
+              nombreTentatives: quiz.nombreTentatives,
+              questions: quiz.questions.map(q => q.toDTO()) as unknown as Prisma.InputJsonValue,
+            })),
+          },
         })),
       },
 
-      // (optionnel) si tu veux aussi créer des quizzes dans la lesson ici
-      // quizzes: { create: ... }
+      // ✅ Créer les quizzes liés directement à la leçon
+      quizzes: {
+        create: lesson.quizzes.map(q => ({
+          id: q.id.getValue(),
+          title: q.title,
+          description: q.description,
+          status: q.status as any,
+          scoreMinimum: q.scoreMinimum,
+          duree: q.duree ?? null,
+          nombreTentatives: q.nombreTentatives,
+          questions: q.questions.map(question =>
+            question.toDTO()
+          ) as unknown as Prisma.InputJsonValue,
+        })),
+      },
     };
   }
 
   private mapChapterToDomain(dto: ChapterDTO): Chapter {
+    const quizzes = (dto.quizzes ?? []).map(quizDto => {
+      const prismaQuizFormat = {
+        ...quizDto,
+        duree: quizDto.duree ?? null,
+        moduleId: quizDto.moduleId ?? null,
+        lessonId: quizDto.lessonId ?? null,
+        chapterId: quizDto.chapterId ?? null,
+        questions: quizDto.questions as unknown as Prisma.JsonValue,
+      };
+
+      return this.mapQuizToDomain(prismaQuizFormat);
+    });
+
     return new Chapter(
-      EntityId.from(dto.id), // ✅ 1er param = EntityId
+      EntityId.from(dto.id),
       dto.title,
       dto.description,
-      dto.mediaId ?? undefined, // si optionnel
-      dto.order
+      dto.mediaId ?? undefined,
+      dto.order,
+      undefined, // media
+      quizzes
     );
   }
 
@@ -274,7 +320,6 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       return new QuestionChoixMultiple(dto.question, dto.points, dto.options, dto.explication);
     }
 
-    // sécurité
     throw new Error(`TypeQuestion inconnu: ${String((dto as any).type)}`);
   }
   // -------------------------
@@ -298,7 +343,6 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     
 
-      // ✅ nested create des lessons (comme Institution -> services)
       lessons: {
         create: module.lessons.map(l => this.mapLessonToPrisma(l)),
       },

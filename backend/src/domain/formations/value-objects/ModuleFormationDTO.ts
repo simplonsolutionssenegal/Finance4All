@@ -13,6 +13,7 @@ export interface ModuleResponseDTO {
   status: ModuleStatus;
   lessons: LessonDTO[];
   quizzes: QuizDTO[];
+  quizzesGlobal?: QuizDTO[];
   createdAt: Date;
   updatedAt: Date;
 }

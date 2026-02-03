@@ -137,8 +137,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const thematicLabel = thematic ? THEMATIC_LABELS[thematic] : 'Thématique';
   const thematicIcon = thematic ? THEMATIC_ICONS[thematic] : '📘';
 
-  const quizzes = module.quizzes ?? [];
-  const quizCount = quizzes.length;
+  const quizzesGlobal = module.quizzesGlobal ?? [];
+  const quizCount = quizzesGlobal.length;
   return (
     <div className='min-h-screen text-white p-4'>
       <div className='max-w-6xl mx-auto space-y-6'>
@@ -286,7 +286,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                   </button>
                 </div>
 
-                <QuizList quizzes={quizzes} />
+                <QuizList quizzes={quizzesGlobal} />
               </div>
             </TabsContent>
           </Tabs>

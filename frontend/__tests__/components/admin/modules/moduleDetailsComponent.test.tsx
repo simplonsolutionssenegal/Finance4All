@@ -135,8 +135,22 @@ describe('ModuleDetailsComponent', () => {
     jest.clearAllMocks();
     useLoaderMock.mockReturnValue({ showLoader, hideLoader });
   });
-
   function baseModule(overrides?: Partial<any>) {
+    const quizzes = [
+      {
+        id: 'q1',
+        title: 'Q1',
+        description: 'D',
+        status: 'DRAFT',
+        scoreMinimum: 50,
+        nombreTentatives: 1,
+        questions: [],
+        totalPoints: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
     return {
       id: 'm1',
       title: 'Mon module',
@@ -156,6 +170,7 @@ describe('ModuleDetailsComponent', () => {
           status: 'DRAFT',
           chapters: [],
           chaptersCount: 0,
+          quizzes: [], // ⭐ AJOUT : quizzes de la leçon
         },
         {
           id: 'l2',
@@ -166,26 +181,14 @@ describe('ModuleDetailsComponent', () => {
           status: 'PUBLISHED',
           chapters: [],
           chaptersCount: 0,
+          quizzes: [], // ⭐ AJOUT : quizzes de la leçon
         },
       ],
-      quizzes: [
-        {
-          id: 'q1',
-          title: 'Q1',
-          description: 'D',
-          status: 'DRAFT',
-          scoreMinimum: 50,
-          nombreTentatives: 1,
-          questions: [],
-          totalPoints: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
+      quizzes, // Quizzes du module uniquement
+      quizzesGlobal: quizzes, // ⭐ AJOUT : Tous les quizzes (module + leçons + chapitres)
       ...overrides,
     };
   }
-
   it('should render error UI when isError=true', () => {
     useGetModuleByIdMock.mockReturnValue({
       module: undefined,

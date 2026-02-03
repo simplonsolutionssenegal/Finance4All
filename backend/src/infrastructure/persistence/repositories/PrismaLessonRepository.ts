@@ -14,9 +14,10 @@ type PrismaLesson = Prisma.LessonGetPayload<{
     chapters: {
       include: {
         media: true;
+        quizzes: true; // ⭐ AJOUT : inclure les quizzes des chapitres
       };
     };
-    quizzes: true; // ✅ Ajouter les quizzes
+    quizzes: true;
   };
 }>;
 
@@ -28,9 +29,12 @@ export class PrismaLessonRepository implements LessonRepository {
       where: { id },
       include: {
         chapters: {
-          include: { media: true },
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
         },
-        quizzes: true, // ✅ Inclure les quizzes
+        quizzes: true,
       },
     });
 
@@ -46,8 +50,13 @@ export class PrismaLessonRepository implements LessonRepository {
         take: params.limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          chapters: { include: { media: true } },
-          quizzes: true, // ✅ Inclure les quizzes
+          chapters: {
+            include: {
+              media: true,
+              quizzes: true, // ⭐ AJOUT
+            },
+          },
+          quizzes: true,
         },
       }),
       this.prisma.lesson.count(),
@@ -72,7 +81,12 @@ export class PrismaLessonRepository implements LessonRepository {
     const existingLesson = await this.prisma.lesson.findUnique({
       where: { id: lesson.id.getValue() },
       include: {
-        chapters: { include: { media: true } },
+        chapters: {
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
+        },
         quizzes: true,
       },
     });
@@ -90,7 +104,12 @@ export class PrismaLessonRepository implements LessonRepository {
           : {}),
       },
       include: {
-        chapters: { include: { media: true } },
+        chapters: {
+          include: {
+            media: true,
+            quizzes: true, // ⭐ AJOUT
+          },
+        },
         quizzes: true,
       },
     });
@@ -110,27 +129,41 @@ export class PrismaLessonRepository implements LessonRepository {
       duration: prismaLesson.duration,
       order: prismaLesson.order,
       chapters,
-      quizzes, // ✅ Passer les quizzes
+      quizzes,
       status: prismaLesson.status as LessonStatus,
     });
   }
 
+  // ⭐ MODIFIER pour inclure les quizzes du chapitre
   private mapChapterToDomain(prismaChapter: PrismaLesson['chapters'][number]): Chapter {
+    // Mapper les quizzes du chapitre
+    const chapterQuizzes = (prismaChapter.quizzes ?? []).map(q => this.mapQuizToDomain(q));
+
     return new Chapter(
       EntityId.from(prismaChapter.id),
       prismaChapter.title,
       prismaChapter.description,
       prismaChapter.mediaId ?? undefined,
-      prismaChapter.order
+      prismaChapter.order,
+      undefined, // media (peut être ajouté si nécessaire)
+      chapterQuizzes, // ⭐ AJOUT : passer les quizzes
+      prismaChapter.createdAt,
+      prismaChapter.updatedAt
     );
   }
 
-  private mapQuizToDomain(prismaQuiz: PrismaLesson['quizzes'][number]): Quiz {
+  private mapQuizToDomain(
+    prismaQuiz:
+      | PrismaLesson['quizzes'][number]
+      | PrismaLesson['chapters'][number]['quizzes'][number]
+  ): Quiz {
     const questions = questionsFromJson(prismaQuiz.questions);
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
+      moduleId: prismaQuiz.moduleId ?? undefined,
       lessonId: prismaQuiz.lessonId ?? undefined,
+      chapterId: prismaQuiz.chapterId ?? undefined, // ⭐ AJOUT
       title: prismaQuiz.title,
       description: prismaQuiz.description,
       status: prismaQuiz.status as QuizStatus,
@@ -164,7 +197,6 @@ export class PrismaLessonRepository implements LessonRepository {
       duration: lesson.duration,
       order: lesson.order,
       status: lesson.status as any,
-      // ⚠️ pas de chapters ni quizzes ici (gérés séparément dans update())
     };
   }
 }
