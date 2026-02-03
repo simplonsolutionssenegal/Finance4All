@@ -3,8 +3,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 import { EntityId } from '@/domain/shared/EntityId';
-
-import type { Thematic } from '@/domain/formations/value-objects/Thematic';
 import {
   Module,
   type ModuleStatus,
@@ -70,7 +68,6 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return module ? this.toDomain(module) : null;
   }
   async findByThematic(thematic: string): Promise<Module | null> {
-    // Normaliser la recherche en minuscules pour la comparaison
     const normalizedThematic = thematic.toLowerCase().trim();
 
     const module = await this.prisma.module.findFirst({
@@ -79,6 +76,16 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
           equals: normalizedThematic,
           mode: 'insensitive',
         },
+      },
+      // ✅ Ajoutez l'include comme dans les autres méthodes
+      include: {
+        lessons: {
+          include: {
+            chapters: true,
+            quizzes: true,
+          },
+        },
+        quizzes: true,
       },
     });
 
@@ -164,10 +171,8 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return new Module({
       id: EntityId.from(prismaModule.id),
       title: prismaModule.title,
-
       thematics: prismaModule.thematics,
-
-      imageUrl: prismaModule.imageUrl ?? null,
+      imageMediaId: prismaModule.imageMediaId,
       description: prismaModule.description,
       difficultyLevel: prismaModule.difficultyLevel as DifficultyLevel,
       estimatedDuration: prismaModule.estimatedDuration,
@@ -341,8 +346,6 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
         },
       }),
 
-    
-
       lessons: {
         create: module.lessons.map(l => this.mapLessonToPrisma(l)),
       },
@@ -353,7 +356,10 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return {
       title: module.title,
       description: module.description,
-      imageUrl: module.imageUrl,
+      // ✅ Gérer la relation imageMedia correctement
+      ...(module.imageMediaId
+        ? { imageMedia: { connect: { id: module.imageMediaId } } }
+        : { imageMedia: { disconnect: true } }),
       thematics: module.thematics,
       difficultyLevel: module.difficultyLevel as any,
       estimatedDuration: module.estimatedDuration,

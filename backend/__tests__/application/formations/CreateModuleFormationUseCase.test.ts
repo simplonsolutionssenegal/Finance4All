@@ -13,7 +13,6 @@ import {
   DuplicateThematicException,
   DuplicateTitleException,
 } from '@/domain/shared/exceptions/FormationDomainException';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 
 // Mock du repository
 const mockModuleRepository: jest.Mocked<ModuleRepository> = {
@@ -58,11 +57,11 @@ describe('CreateModuleFormationUseCaseImpl', () => {
     beforeEach(() => {
       mockEntityId.mockReturnValue(mockGeneratedId);
       mockModuleRepository.findByTitle.mockResolvedValue(null);
+      mockModuleRepository.findByThematic.mockResolvedValue(null);
     });
 
     it('devrait créer un module avec succès', async () => {
       // Arrange
-
       const savedModule = new Module({
         id: mockGeneratedId,
         title: validCreateModuleDTO.title,
@@ -85,9 +84,8 @@ describe('CreateModuleFormationUseCaseImpl', () => {
 
       // Assert
       expect(mockModuleRepository.findByTitle).toHaveBeenCalledWith(validCreateModuleDTO.title);
-      expect(EntityId.generate).toHaveBeenCalledTimes(1);
-      expect(mockModuleRepository.findByTitle).toHaveBeenCalledWith(validCreateModuleDTO.title);
       expect(mockModuleRepository.findByThematic).toHaveBeenCalledWith('finance et comptabilité');
+      expect(EntityId.generate).toHaveBeenCalledTimes(1);
       expect(mockModuleRepository.save).toHaveBeenCalledTimes(1);
 
       const savedModuleArg = mockModuleRepository.save.mock.calls[0][0];
@@ -103,9 +101,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         ...validCreateModuleDTO,
         imageMediaId: null,
       };
-
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
 
       const savedModule = new Module({
         id: mockGeneratedId,
@@ -138,9 +133,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         ...validCreateModuleDTO,
         thematics: 'GESTION DE PROJET',
       };
-
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
 
       const savedModule = new Module({
         id: mockGeneratedId,
@@ -175,9 +167,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         estimatedDuration: 180, // 3 heures pour un niveau expert
       };
 
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
-
       const savedModule = new Module({
         id: mockGeneratedId,
         title: inputExpert.title,
@@ -205,9 +194,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
 
     it('devrait toujours créer un module avec le statut DRAFT', async () => {
       // Arrange
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
-
       const savedModule = new Module({
         id: mockGeneratedId,
         title: validCreateModuleDTO.title,
@@ -232,14 +218,11 @@ describe('CreateModuleFormationUseCaseImpl', () => {
       expect(result.status).toBe(ModuleStatus.DRAFT);
 
       const savedModuleArg = mockModuleRepository.save.mock.calls[0][0];
-      expect(savedModuleArg.toDTO().status).toBe(ModuleStatus.DRAFT);
+      expect(savedModuleArg.status).toBe(ModuleStatus.DRAFT);
     });
 
     it('devrait propager les erreurs du repository', async () => {
       // Arrange
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
-
       const repositoryError = new Error('Erreur de base de données');
       mockModuleRepository.save.mockRejectedValue(repositoryError);
 
@@ -261,6 +244,8 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,
+        lessons: [],
+        quizzes: [],
       });
 
       mockModuleRepository.findByTitle.mockResolvedValue(existingModule);
@@ -282,9 +267,10 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,
+        lessons: [],
+        quizzes: [],
       });
 
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
       mockModuleRepository.findByThematic.mockResolvedValue(existingModule);
 
       // Act & Assert
@@ -311,9 +297,10 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,
+        lessons: [],
+        quizzes: [],
       });
 
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
       mockModuleRepository.findByThematic.mockResolvedValue(existingModule);
 
       // Act & Assert
@@ -323,13 +310,10 @@ describe('CreateModuleFormationUseCaseImpl', () => {
 
     it('devrait générer un nouvel ID à chaque création', async () => {
       // Arrange
-      const mockId1 = EntityId.from('id-1');
-      const mockId2 = EntityId.from('id-2');
+      const mockId1 = EntityId.from('550e8400-e29b-41d4-a716-446655440001');
+      const mockId2 = EntityId.from('550e8400-e29b-41d4-a716-446655440002');
 
       mockEntityId.mockReturnValueOnce(mockId1).mockReturnValueOnce(mockId2);
-
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
 
       const savedModule1 = new Module({
         id: mockId1,
@@ -348,7 +332,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
 
       const savedModule2 = new Module({
         id: mockId2,
-
         title: 'Module 2',
         description: validCreateModuleDTO.description,
         imageMediaId: validCreateModuleDTO.imageMediaId,
@@ -366,22 +349,32 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         .mockResolvedValueOnce(savedModule1)
         .mockResolvedValueOnce(savedModule2);
 
+      // Reset des mocks pour chaque appel
+      mockModuleRepository.findByTitle.mockResolvedValue(null);
+      mockModuleRepository.findByThematic.mockResolvedValue(null);
+
       // Act
-      const result1 = await useCase.execute({ ...validCreateModuleDTO, title: 'Module 1' });
-      const result2 = await useCase.execute({ ...validCreateModuleDTO, title: 'Module 2' });
+      const result1 = await useCase.execute({
+        ...validCreateModuleDTO,
+        title: 'Module 1',
+        thematics: 'Finance et Comptabilité',
+      });
+
+      const result2 = await useCase.execute({
+        ...validCreateModuleDTO,
+        title: 'Module 2',
+        thematics: 'Marketing Digital',
+      });
 
       // Assert
       expect(EntityId.generate).toHaveBeenCalledTimes(2);
-      expect(result1.id).toBe('id-1');
-      expect(result2.id).toBe('id-2');
+      expect(result1.id).toBe('550e8400-e29b-41d4-a716-446655440001');
+      expect(result2.id).toBe('550e8400-e29b-41d4-a716-446655440002');
       expect(result1.id).not.toBe(result2.id);
     });
 
     it('devrait valider que le DTO retourné correspond au module sauvegardé', async () => {
       // Arrange
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
-
       const savedModule = new Module({
         id: mockGeneratedId,
         title: validCreateModuleDTO.title,
@@ -391,7 +384,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         difficultyLevel: validCreateModuleDTO.difficultyLevel,
         estimatedDuration: validCreateModuleDTO.estimatedDuration,
         status: ModuleStatus.DRAFT,
-
         lessons: [],
         quizzes: [],
       });
@@ -436,12 +428,15 @@ describe('CreateModuleFormationUseCaseImpl', () => {
       status: ModuleStatus.DRAFT,
     };
 
+    beforeEach(() => {
+      mockModuleRepository.findByTitle.mockResolvedValue(null);
+      mockModuleRepository.findByThematic.mockResolvedValue(null);
+    });
+
     it('devrait gérer les erreurs de validation du repository', async () => {
       // Arrange
-      mockModuleRepository.findByTitle.mockReset().mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockReset().mockResolvedValue(null);
       const validationError = new Error('Validation failed: Title is required');
-      mockModuleRepository.save.mockReset().mockRejectedValue(validationError);
+      mockModuleRepository.save.mockRejectedValue(validationError);
 
       // Act & Assert
       await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(validationError);
@@ -449,8 +444,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
 
     it('devrait gérer les erreurs de connectivité', async () => {
       // Arrange
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
       const connectionError = new Error('Connection timeout');
       mockModuleRepository.save.mockRejectedValue(connectionError);
 
@@ -467,6 +460,7 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         mockGeneratedId
       );
       mockModuleRepository.findByTitle.mockResolvedValue(null);
+      mockModuleRepository.findByThematic.mockResolvedValue(null);
     });
 
     it('devrait préserver toutes les propriétés lors de la sauvegarde', async () => {
@@ -481,9 +475,6 @@ describe('CreateModuleFormationUseCaseImpl', () => {
         estimatedDuration: 240, // 4 heures
         status: ModuleStatus.DRAFT,
       };
-
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
 
       const savedModule = new Module({
         id: mockGeneratedId,
@@ -508,8 +499,8 @@ describe('CreateModuleFormationUseCaseImpl', () => {
       // Assert
       expect(result.title).toBe(complexInput.title);
       expect(result.description).toBe(complexInput.description);
-      expect(result.thematics).toEqual(complexInput.thematics);
-      expect(result.imageUrl).toBe(complexInput.imageUrl);
+      expect(result.thematics).toBe('entrepreneuriat et fiscalité');
+      expect(result.imageMediaId).toBe(complexInput.imageMediaId);
       expect(result.difficultyLevel).toBe(complexInput.difficultyLevel);
       expect(result.estimatedDuration).toBe(complexInput.estimatedDuration);
       expect(result.status).toBe(ModuleStatus.DRAFT);

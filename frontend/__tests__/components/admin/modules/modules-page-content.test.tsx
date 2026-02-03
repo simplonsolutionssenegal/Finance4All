@@ -126,6 +126,9 @@ describe('ModulesPageContent', () => {
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
     status,
+    imageMediaId: null,
+    quizzes: [],
+    lessons: [],
     createdAt: new Date('2024-01-01').toISOString(),
     updatedAt: new Date('2024-01-01').toISOString(),
   });

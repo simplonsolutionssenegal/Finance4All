@@ -14,16 +14,13 @@ CREATE TYPE "public"."InstitutionType" AS ENUM ('ETABLISSEMENT_MONNAIE_ELECTRONI
 CREATE TYPE "public"."Country" AS ENUM ('SENEGAL', 'CAMEROUN');
 
 -- CreateEnum
-CREATE TYPE "public"."Thematic" AS ENUM ('FINANCIAL_EDUCATION', 'PERSONAL_DEVELOPMENT', 'FINANCIAL_LOAN', 'BANK_CREDIT', 'INVESTMENT', 'BUDGET_MANAGEMENT', 'SAVING', 'ENTREPRENEURSHIP', 'TAXATION', 'INSURANCE');
-
--- CreateEnum
 CREATE TYPE "public"."ModuleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
 
 -- CreateEnum
 CREATE TYPE "public"."DifficultyLevel" AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT');
 
 -- CreateEnum
-CREATE TYPE "public"."MediaType" AS ENUM ('VIDEO', 'PDF', 'AUDIO');
+CREATE TYPE "public"."MediaType" AS ENUM ('VIDEO', 'PDF', 'AUDIO', 'IMAGE');
 
 -- CreateEnum
 CREATE TYPE "public"."TranscodingStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
@@ -104,8 +101,8 @@ CREATE TABLE "public"."Module" (
     "id" TEXT NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "description" TEXT NOT NULL,
-    "thematics" "public"."Thematic"[],
-    "imageUrl" VARCHAR(500),
+    "thematics" VARCHAR(200) NOT NULL,
+    "imageMediaId" TEXT,
     "difficultyLevel" "public"."DifficultyLevel" NOT NULL,
     "estimatedDuration" DOUBLE PRECISION NOT NULL,
     "status" "public"."ModuleStatus" NOT NULL DEFAULT 'DRAFT',
@@ -265,6 +262,9 @@ CREATE UNIQUE INDEX "Institution_name_key" ON "public"."Institution"("name");
 CREATE INDEX "Service_institutionId_idx" ON "public"."Service"("institutionId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Module_thematics_key" ON "public"."Module"("thematics");
+
+-- CreateIndex
 CREATE INDEX "Module_status_idx" ON "public"."Module"("status");
 
 -- CreateIndex
@@ -356,6 +356,9 @@ CREATE INDEX "Quiz_status_idx" ON "public"."Quiz"("status");
 
 -- AddForeignKey
 ALTER TABLE "public"."Service" ADD CONSTRAINT "Service_institutionId_fkey" FOREIGN KEY ("institutionId") REFERENCES "public"."Institution"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Module" ADD CONSTRAINT "Module_imageMediaId_fkey" FOREIGN KEY ("imageMediaId") REFERENCES "public"."Media"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Lesson" ADD CONSTRAINT "Lesson_moduleId_fkey" FOREIGN KEY ("moduleId") REFERENCES "public"."Module"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -81,6 +81,9 @@ describe('Types de module', () => {
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
+      quizzes: [],
+      lessons: [],
+      imageMediaId: null,
       status: ModuleStatus.PUBLISHED,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-15T00:00:00.000Z',
@@ -110,7 +113,6 @@ describe('Types de module', () => {
 
     it('ne contient pas imageUrl dans sa structure', () => {
       expect(mockModule).not.toHaveProperty('imageUrl');
-      expect(mockModule).not.toHaveProperty('imageMediaId');
     });
 
     it('thematics est une chaîne de caractères obligatoire', () => {
@@ -244,9 +246,10 @@ describe('Types de module', () => {
       const convertToModule = (data: CreateModuleData): Module => {
         return {
           id: `module-${Date.now()}`,
-          lessons: [], // ✅
-          quizzes: [], // ✅
+          lessons: [],
+          quizzes: [],
           ...data,
+          imageMediaId: data.imageMediaId ?? null, // force string | null, élimine undefined
           status: ModuleStatus.DRAFT,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -333,6 +336,7 @@ describe('Types de module', () => {
         lessons: [], // ✅
         quizzes: [], // ✅
         ...createData,
+        imageMediaId: createData.imageMediaId ?? null,
         status: ModuleStatus.DRAFT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -377,6 +381,7 @@ describe('Types de module', () => {
         status: ModuleStatus.PUBLISHED,
         lessons: [], // ✅
         quizzes: [], // ✅
+        imageMediaId: 'media-456',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: ['populaire', 'recommandé'],
@@ -506,7 +511,10 @@ describe('Types de module', () => {
         thematics: 'test',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
+        quizzes: [], // ✅
+        lessons: [], // ✅
         status: ModuleStatus.DRAFT,
+        imageMediaId: 'media-123',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -525,6 +533,9 @@ describe('Types de module', () => {
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
+      quizzes: [], // ✅
+      lessons: [], // ✅
+      imageMediaId: 'media-456',
       status: ModuleStatus.PUBLISHED,
       createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString(),
       updatedAt: new Date('2024-01-02T00:00:00.000Z').toISOString(),

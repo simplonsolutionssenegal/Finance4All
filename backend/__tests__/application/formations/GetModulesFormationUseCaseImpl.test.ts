@@ -44,6 +44,8 @@ describe('GetModulesFormationUseCaseImpl', () => {
           thematics: 'finance et comptabilité',
           difficultyLevel: DifficultyLevel.BEGINNER,
           estimatedDuration: 30,
+          quizzes: [],
+          lessons: [],
           status: ModuleStatus.DRAFT,
         }),
         new Module({
@@ -52,6 +54,8 @@ describe('GetModulesFormationUseCaseImpl', () => {
           description: "Stratégies d'investissement",
           imageMediaId: null,
           thematics: 'investissement',
+          quizzes: [],
+          lessons: [],
           difficultyLevel: DifficultyLevel.ADVANCED,
           estimatedDuration: 90,
           status: ModuleStatus.PUBLISHED,
@@ -114,6 +118,8 @@ describe('GetModulesFormationUseCaseImpl', () => {
           title: 'Module page 2',
           description: 'Description page 2',
           imageMediaId: null,
+          quizzes: [],
+          lessons: [],
           thematics: 'entrepreneuriat',
           difficultyLevel: DifficultyLevel.INTERMEDIATE,
           estimatedDuration: 60,
@@ -151,22 +157,9 @@ describe('GetModulesFormationUseCaseImpl', () => {
         estimatedDuration: 120,
         lessons: [],
         quizzes: [],
-       
-        status: ModuleStatus.DRAFT,
-      }),
-      new Module({
-        id: EntityId.from(TEST_UUIDS.B),
-        title: 'M2',
-        description: 'd2',
-        imageMediaId: null,
-        thematics: 'investissement',
-        difficultyLevel: DifficultyLevel.ADVANCED,
-        lessons: [],
-        quizzes: [],
-        estimatedDuration: 90,
-        status: ModuleStatus.PUBLISHED,
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-15T14:30:00Z'),
+        status: ModuleStatus.PUBLISHED, // ✅ Changé de DRAFT à PUBLISHED
+        createdAt: new Date('2024-01-01T10:00:00Z'), // ✅ Ajouté
+        updatedAt: new Date('2024-01-15T14:30:00Z'), // ✅ Ajouté
       });
 
       const paginated = {
@@ -216,6 +209,8 @@ describe('GetModulesFormationUseCaseImpl', () => {
             description: `Description ${i + 1}`,
             imageMediaId: null,
             thematics: 'finance',
+            quizzes: [],
+            lessons: [],
             difficultyLevel: DifficultyLevel.BEGINNER,
             estimatedDuration: 30,
             status: ModuleStatus.DRAFT,

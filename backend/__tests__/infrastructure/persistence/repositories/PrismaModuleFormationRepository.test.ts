@@ -13,7 +13,6 @@ import {
   QuestionChoixMultiple,
   TypeQuestion,
 } from '@/domain/formations/entities/Question';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 import type { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import type { QuestionDTO } from '@/domain/formations/value-objects/QuestionDTO';
@@ -23,8 +22,8 @@ type PrismaModuleRow = {
   id: string;
   title: string;
   description: string;
-  imageUrl: string | null;
-  thematics: string[];
+  imageMediaId: string | null;
+  thematics: string;
   difficultyLevel: string | null;
   estimatedDuration: number | null;
   status: string;
@@ -74,10 +73,10 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Titre A',
         description: 'Desc A',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
+        imageMediaId: null,
         lessons: [],
         quizzes: [],
         status: ModuleStatus.DRAFT,
@@ -87,8 +86,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: domainModule.title,
         description: domainModule.description,
-        imageUrl: domainModule.imageUrl,
-        thematics: domainModule.thematics,
+        imageMediaId: domainModule.imageMediaId,
+        thematics: 'financial_education',
         difficultyLevel: domainModule.difficultyLevel,
         estimatedDuration: domainModule.estimatedDuration,
         status: domainModule.status,
@@ -107,7 +106,7 @@ describe('PrismaModuleFormationRepository', () => {
           id: uuid1,
           title: 'Titre A',
           description: 'Desc A',
-          thematics: [Thematic.FINANCIAL_EDUCATION],
+          thematics: 'financial_education',
           difficultyLevel: DifficultyLevel.BEGINNER,
           estimatedDuration: 60,
           status: ModuleStatus.DRAFT,
@@ -153,8 +152,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Module avec lessons',
         description: 'Description',
-        imageUrl: 'http://example.com/image.jpg',
-        thematics: [Thematic.SAVING, Thematic.INVESTMENT],
+        imageMediaId: 'http://example.com/image.jpg',
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 120,
         lessons: [lesson1],
@@ -166,7 +165,7 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: domainModule.title,
         description: domainModule.description,
-        imageUrl: domainModule.imageUrl,
+        imageMediaId: domainModule.imageMediaId,
         thematics: domainModule.thematics,
         difficultyLevel: domainModule.difficultyLevel,
         estimatedDuration: domainModule.estimatedDuration,
@@ -218,8 +217,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Titre B',
         description: 'Desc B',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'financial_education',
         lessons: [],
         quizzes: [],
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
@@ -244,8 +243,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid2,
         title: 'Found',
         description: 'd',
-        imageUrl: null,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: null,
+        thematics: 'investment',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 90,
         status: ModuleStatus.PUBLISHED,
@@ -286,8 +285,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module by ID',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 45,
         status: ModuleStatus.DRAFT,
@@ -317,18 +316,36 @@ describe('PrismaModuleFormationRepository', () => {
       expect(found).toBeNull();
     });
 
+    // Remplacez cette section dans votre test:
+
     it('devrait mapper correctement les lessons avec chapters', async () => {
       const chaptersDto: ChapterDTO[] = [
-        { id: randomUUID(), title: 'Ch1', description: 'Desc1', mediaId: 'media1', order: 1 },
-        { id: randomUUID(), title: 'Ch2', description: 'Desc2', mediaId: 'media2', order: 2 },
+        {
+          id: randomUUID(),
+          title: 'Ch1',
+          description: 'Desc1',
+          mediaId: 'media1',
+          order: 1,
+          createdAt: new Date(), // ✅ Ajouté
+          updatedAt: new Date(), // ✅ Ajouté
+        },
+        {
+          id: randomUUID(),
+          title: 'Ch2',
+          description: 'Desc2',
+          mediaId: 'media2',
+          order: 2,
+          createdAt: new Date(), // ✅ Ajouté
+          updatedAt: new Date(), // ✅ Ajouté
+        },
       ];
 
       const row: PrismaModuleRow = {
         id: uuid1,
         title: 'Module with chapters',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         status: ModuleStatus.PUBLISHED,
@@ -337,7 +354,7 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           {
             id: uuid2,
-            moduleId: uuid1, // ✅ Ajout
+            moduleId: uuid1,
             title: 'Lesson with chapters',
             description: 'Lesson desc',
             duration: 30,
@@ -359,7 +376,6 @@ describe('PrismaModuleFormationRepository', () => {
       expect(found?.lessons[0].chapters[0]).toBeInstanceOf(Chapter);
       expect(found?.lessons[0].chapters[0].title).toBe('Ch1');
     });
-
     it('devrait mapper correctement les quizzes avec questions', async () => {
       const questionsDto: QuestionDTO[] = [
         {
@@ -389,8 +405,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module with quiz',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: null,
+        thematics: 'investment',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 90,
         status: ModuleStatus.PUBLISHED,
@@ -427,8 +443,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,
@@ -462,8 +478,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 45,
         status: ModuleStatus.PUBLISHED,
@@ -505,8 +521,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: null,
+        thematics: 'investment',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 60,
         status: ModuleStatus.PUBLISHED,
@@ -545,8 +561,8 @@ describe('PrismaModuleFormationRepository', () => {
           id: uuid1,
           title: 'M1',
           description: 'd1',
-          imageUrl: null,
-          thematics: [Thematic.FINANCIAL_EDUCATION],
+          imageMediaId: null,
+          thematics: 'financial_education',
           difficultyLevel: DifficultyLevel.BEGINNER,
           estimatedDuration: 10,
           status: ModuleStatus.DRAFT,
@@ -559,8 +575,8 @@ describe('PrismaModuleFormationRepository', () => {
           id: uuid2,
           title: 'M2',
           description: 'd2',
-          imageUrl: null,
-          thematics: [Thematic.INVESTMENT],
+          imageMediaId: null,
+          thematics: 'investment',
           difficultyLevel: DifficultyLevel.ADVANCED,
           estimatedDuration: 20,
           status: ModuleStatus.PUBLISHED,
@@ -624,8 +640,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Old Title',
         description: 'Old Desc',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: 'http://example.com/old.jpg',
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,
@@ -639,8 +655,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'New Title',
         description: 'New Desc',
-        imageUrl: 'http://example.com/new.jpg',
-        thematics: [Thematic.SAVING],
+        imageMediaId: 'http://example.com/new.jpg',
+        thematics: 'saving',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         lessons: [],
@@ -652,8 +668,8 @@ describe('PrismaModuleFormationRepository', () => {
         ...existingModule,
         title: 'New Title',
         description: 'New Desc',
-        imageUrl: 'http://example.com/new.jpg',
-        thematics: [Thematic.SAVING],
+        imageMediaId: 'http://example.com/new.jpg',
+        thematics: 'saving',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         status: ModuleStatus.PUBLISHED,
@@ -674,8 +690,8 @@ describe('PrismaModuleFormationRepository', () => {
         data: {
           title: 'New Title',
           description: 'New Desc',
-          imageUrl: 'http://example.com/new.jpg',
-          thematics: [Thematic.SAVING],
+          imageMedia: { connect: { id: 'http://example.com/new.jpg' } },
+          thematics: 'saving',
           difficultyLevel: DifficultyLevel.INTERMEDIATE,
           estimatedDuration: 60,
           status: ModuleStatus.PUBLISHED,
@@ -704,8 +720,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,
@@ -731,8 +747,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 55,
         lessons: [
@@ -813,8 +829,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: null,
+        thematics: 'investment',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 90,
         status: ModuleStatus.PUBLISHED,
@@ -839,8 +855,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: null,
+        thematics: 'investment',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 90,
         lessons: [],
@@ -906,8 +922,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'saving',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,
@@ -944,8 +960,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'saving',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         lessons: [newLesson],
@@ -1006,8 +1022,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: EntityId.from(uuid1),
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         lessons: [],
@@ -1019,8 +1035,8 @@ describe('PrismaModuleFormationRepository', () => {
         id: uuid1,
         title: 'Module',
         description: 'Desc',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'financial_education',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,

@@ -4,8 +4,6 @@ import { FileText, HelpCircle, Clock, Check } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { useState, useRef, useEffect } from 'react';
-
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import type { Module } from '@/types/modules/module';
 

@@ -1,6 +1,5 @@
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import { EntityId } from '@/domain/shared/EntityId';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { randomUUID } from 'crypto';
 import { GetModuleByIdUseCaseImpl } from '@/application/formations/use-cases/GetModuleByIdUseCaseImpl';
@@ -21,10 +20,10 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
     mockRepository = {
       findById: jest.fn(),
       findByTitle: jest.fn(),
+      findByThematic: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
     } as any;
 
     useCase = new GetModuleByIdUseCaseImpl(mockRepository);
@@ -37,12 +36,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
   describe('execute(query)', () => {
     it('devrait retourner le DTO du module quand il existe', async () => {
       // Arrange
-      const domainModule = Module.create({
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: 'Module de test',
         description: 'Description complète du module',
-        imageUrl: 'https://example.com/image.jpg',
-        thematics: [Thematic.FINANCIAL_EDUCATION, Thematic.INVESTMENT],
+        imageMediaId: 'image-123',
+        thematics: 'finance et comptabilité',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 120,
         status: ModuleStatus.PUBLISHED,
@@ -63,25 +62,26 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         id: moduleId,
         title: 'Module de test',
         description: 'Description complète du module',
-        imageUrl: 'https://example.com/image.jpg',
-        thematics: [Thematic.FINANCIAL_EDUCATION, Thematic.INVESTMENT],
+        imageMediaId: 'image-123',
+        thematics: 'finance et comptabilité',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 120,
         status: ModuleStatus.PUBLISHED,
         lessons: [],
         quizzes: [],
+        quizzesGlobal: [], // ✅ Ajouté par le use case
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
     });
 
-    it('devrait retourner un module avec une seule thématique', async () => {
-      const domainModule = Module.create({
+    it('devrait retourner un module avec imageMediaId null', async () => {
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: 'Module simple',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'épargne',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,
@@ -93,39 +93,40 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
 
       const result = await useCase.execute({ id: moduleId });
 
-      expect(result.thematics).toEqual([Thematic.SAVING]);
-      expect(result.thematics).toHaveLength(1);
+      expect(result.imageMediaId).toBeNull();
+      expect(result.thematics).toBe('épargne');
     });
 
-    it('devrait retourner un module avec toutes les thématiques possibles', async () => {
-      const allThematics = [
-        Thematic.FINANCIAL_EDUCATION,
-        Thematic.INVESTMENT,
-        Thematic.SAVING,
-        Thematic.BUDGET_MANAGEMENT,
-        Thematic.ENTREPRENEURSHIP,
-        Thematic.INSURANCE,
+    it('devrait retourner un module avec différentes thématiques', async () => {
+      const thematics = [
+        'finance et comptabilité',
+        'investissement',
+        'épargne',
+        'gestion de budget',
+        'entrepreneuriat',
+        'assurance',
       ];
 
-      const domainModule = Module.create({
-        id: EntityId.from(moduleId),
-        title: 'Module complet',
-        description: 'Toutes les thématiques',
-        imageUrl: 'https://example.com/complete.jpg',
-        thematics: allThematics,
-        difficultyLevel: DifficultyLevel.EXPERT,
-        estimatedDuration: 300,
-        status: ModuleStatus.PUBLISHED,
-        lessons: [],
-        quizzes: [],
-      });
+      for (const thematic of thematics) {
+        const domainModule = new Module({
+          id: EntityId.from(moduleId),
+          title: `Module ${thematic}`,
+          description: 'Description',
+          imageMediaId: null,
+          thematics: thematic,
+          difficultyLevel: DifficultyLevel.INTERMEDIATE,
+          estimatedDuration: 90,
+          status: ModuleStatus.PUBLISHED,
+          lessons: [],
+          quizzes: [],
+        });
 
-      mockRepository.findById.mockResolvedValue(domainModule);
+        mockRepository.findById.mockResolvedValue(domainModule);
 
-      const result = await useCase.execute({ id: moduleId });
+        const result = await useCase.execute({ id: moduleId });
 
-      expect(result.thematics).toEqual(allThematics);
-      expect(result.thematics).toHaveLength(allThematics.length);
+        expect(result.thematics).toBe(thematic);
+      }
     });
 
     it('devrait gérer tous les niveaux de difficulté', async () => {
@@ -137,12 +138,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       ];
 
       for (const difficulty of difficulties) {
-        const domainModule = Module.create({
+        const domainModule = new Module({
           id: EntityId.from(moduleId),
           title: `Module ${difficulty}`,
           description: 'Description',
-          imageUrl: null,
-          thematics: [Thematic.FINANCIAL_EDUCATION],
+          imageMediaId: null,
+          thematics: 'finance et comptabilité',
           difficultyLevel: difficulty,
           estimatedDuration: 90,
           status: ModuleStatus.PUBLISHED,
@@ -162,12 +163,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       const statuses = [ModuleStatus.DRAFT, ModuleStatus.PUBLISHED, ModuleStatus.ARCHIVED];
 
       for (const status of statuses) {
-        const domainModule = Module.create({
+        const domainModule = new Module({
           id: EntityId.from(moduleId),
           title: `Module ${status}`,
           description: 'Description',
-          imageUrl: null,
-          thematics: [Thematic.INVESTMENT],
+          imageMediaId: null,
+          thematics: 'investissement',
           difficultyLevel: DifficultyLevel.INTERMEDIATE,
           estimatedDuration: 60,
           status,
@@ -181,27 +182,6 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
 
         expect(result.status).toBe(status);
       }
-    });
-
-    it('devrait retourner un module sans imageUrl (null)', async () => {
-      const domainModule = Module.create({
-        id: EntityId.from(moduleId),
-        title: 'Module sans image',
-        description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.BUDGET_MANAGEMENT],
-        difficultyLevel: DifficultyLevel.BEGINNER,
-        estimatedDuration: 45,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-      });
-
-      mockRepository.findById.mockResolvedValue(domainModule);
-
-      const result = await useCase.execute({ id: moduleId });
-
-      expect(result.imageUrl).toBeNull();
     });
 
     it("devrait lever une NotFoundError si le module n'existe pas", async () => {
@@ -252,12 +232,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       const durations = [15, 30, 60, 120, 240, 360];
 
       for (const duration of durations) {
-        const domainModule = Module.create({
+        const domainModule = new Module({
           id: EntityId.from(moduleId),
           title: `Module ${duration}min`,
           description: 'Description',
-          imageUrl: null,
-          thematics: [Thematic.INSURANCE],
+          imageMediaId: null,
+          thematics: 'assurance',
           difficultyLevel: DifficultyLevel.INTERMEDIATE,
           estimatedDuration: duration,
           status: ModuleStatus.PUBLISHED,
@@ -272,18 +252,40 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         expect(result.estimatedDuration).toBe(duration);
       }
     });
+
+    it('devrait inclure quizzesGlobal vide si aucun quiz', async () => {
+      const domainModule = new Module({
+        id: EntityId.from(moduleId),
+        title: 'Module sans quiz',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance et comptabilité',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        status: ModuleStatus.DRAFT,
+        lessons: [],
+        quizzes: [],
+      });
+
+      mockRepository.findById.mockResolvedValue(domainModule);
+
+      const result = await useCase.execute({ id: moduleId });
+
+      expect(result.quizzesGlobal).toEqual([]);
+      expect(result.quizzes).toEqual([]);
+    });
   });
 
   describe('Cas limites et edge cases', () => {
     it('devrait gérer un titre très long', async () => {
       const longTitle = 'A'.repeat(200); // Maximum autorisé
 
-      const domainModule = Module.create({
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: longTitle,
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.INSURANCE],
+        imageMediaId: null,
+        thematics: 'assurance',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 30,
         status: ModuleStatus.DRAFT,
@@ -302,12 +304,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
     it('devrait gérer une description très longue', async () => {
       const longDescription = 'Lorem ipsum '.repeat(100);
 
-      const domainModule = Module.create({
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: 'Module test',
         description: longDescription,
-        imageUrl: null,
-        thematics: [Thematic.SAVING],
+        imageMediaId: null,
+        thematics: 'épargne',
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
         estimatedDuration: 60,
         status: ModuleStatus.PUBLISHED,
@@ -322,15 +324,15 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       expect(result.description).toBe(longDescription);
     });
 
-    it("devrait gérer une URL d'image très longue", async () => {
-      const longUrl = `https://example.com/images/${'a'.repeat(200)}.jpg`;
+    it('devrait gérer un imageMediaId très long', async () => {
+      const longMediaId = `media-${'a'.repeat(200)}`;
 
-      const domainModule = Module.create({
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
-        title: 'Module avec longue URL',
+        title: 'Module avec long mediaId',
         description: 'Description',
-        imageUrl: longUrl,
-        thematics: [Thematic.INVESTMENT],
+        imageMediaId: longMediaId,
+        thematics: 'investissement',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 90,
         status: ModuleStatus.PUBLISHED,
@@ -342,16 +344,16 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
 
       const result = await useCase.execute({ id: moduleId });
 
-      expect(result.imageUrl).toBe(longUrl);
+      expect(result.imageMediaId).toBe(longMediaId);
     });
 
     it('devrait appeler toDTO() une seule fois', async () => {
-      const domainModule = Module.create({
+      const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: 'Module test',
         description: 'Description',
-        imageUrl: null,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        imageMediaId: null,
+        thematics: 'finance et comptabilité',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
         status: ModuleStatus.DRAFT,

@@ -21,6 +21,7 @@ export interface Module {
   title: string;
   description: string;
   thematics: string;
+  imageMediaId: string | null;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   lessons: Lesson[];

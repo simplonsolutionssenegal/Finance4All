@@ -9,12 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
 // import type { Lesson, Module } from '@/types/modules/module';
-import {
-  DIFFICULTY_LABELS,
-  DIFFICULTY_COLORS,
-  THEMATIC_LABELS,
-  THEMATIC_ICONS,
-} from '@/lib/constants/module-constants';
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
 import type { Lesson } from '@/types/modules/Lesson';
 
 import LessonDialog from './lesson-dialog';
@@ -133,10 +128,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
     );
   }
 
-  const thematic = module.thematics?.[0];
-  const thematicLabel = thematic ? THEMATIC_LABELS[thematic] : 'Thématique';
-  const thematicIcon = thematic ? THEMATIC_ICONS[thematic] : '📘';
-
   const quizzesGlobal = module.quizzesGlobal ?? [];
   const quizCount = quizzesGlobal.length;
   return (
@@ -159,10 +150,10 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
           {/* Bloc gauche (image + infos) */}
           <div className='flex items-start gap-4 min-w-0'>
             <div className='h-16 w-16 rounded-2xl overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center'>
-              {module.imageUrl ? (
-                <Image src={module.imageUrl} alt={module.title} width={64} height={64} />
+              {module.imageMediaId ? (
+                <Image src={module.imageMediaId} alt={module.title} width={64} height={64} />
               ) : (
-                <span className='text-3xl'>{thematicIcon}</span>
+                <span className='text-3xl'>📘</span>
               )}
             </div>
 
@@ -171,7 +162,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
 
               <div className='mt-2 flex flex-wrap items-center gap-2'>
                 <span className='inline-flex  items-center rounded-full border border-slate-500/50 px-3 text-xs  text-slate-900'>
-                  {thematicLabel}
+                  {module.thematics}
                 </span>
                 <span
                   className={`inline-flex items-center rounded-full px-3 text-xs font-medium ${DIFFICULTY_COLORS[module.difficultyLevel]}`}
