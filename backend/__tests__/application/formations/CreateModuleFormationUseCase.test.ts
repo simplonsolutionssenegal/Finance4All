@@ -13,7 +13,6 @@ import {
   DuplicateThematicException,
   DuplicateTitleException,
 } from '@/domain/shared/exceptions/FormationDomainException';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 
 // Mock du repository
 const mockModuleRepository: jest.Mocked<ModuleRepository> = {

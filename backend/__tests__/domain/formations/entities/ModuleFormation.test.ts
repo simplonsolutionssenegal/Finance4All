@@ -4,7 +4,6 @@ import {
   Module,
   ModuleStatus,
   DifficultyLevel,
-  type ModuleProps,
 } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
 import { Lesson, LessonStatus } from '@/domain/formations/entities/Lesson';
