@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { DifficultyLevel, Thematic } from '@/types/modules/module';
+import { DifficultyLevel } from '@/types/modules/module';
 
 export const createModuleSchema = z.object({
   title: z
@@ -23,7 +23,10 @@ export const createModuleSchema = z.object({
     .min(5, 'La durée minimale est de 5 minutes')
     .max(10080, 'La durée maximale est de 7 jours'),
 
-  thematics: z.array(z.nativeEnum(Thematic)).min(1, 'Au moins une thématique est requise'),
+  thematics: z
+    .string()
+    .min(3, 'Doit contenir au moins 3 caractères')
+    .max(100, 'Ne peut pas dépasser 100 caractères'),
 });
 
 export type CreateModuleFormData = z.infer<typeof createModuleSchema>;

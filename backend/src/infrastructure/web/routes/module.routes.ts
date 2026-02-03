@@ -5,6 +5,7 @@ import {
   handleValidationErrors,
   validateCreateModule,
   validateGetModules,
+  validatePagination,
 } from '../validators/module.validator';
 
 export const ModuleFormationRoutes = (): Router => {
@@ -16,7 +17,13 @@ export const ModuleFormationRoutes = (): Router => {
     getAll: controller.getAll.bind(controller),
   };
 
-  router.get('/', validateGetModules, handleValidationErrors, boundController.getAll);
+  router.get(
+    '/',
+    validatePagination,
+    validateGetModules,
+    handleValidationErrors,
+    boundController.getAll
+  );
   router.post('/', validateCreateModule, handleValidationErrors, boundController.create);
 
   return router;

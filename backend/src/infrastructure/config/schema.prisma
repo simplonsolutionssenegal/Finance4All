@@ -117,29 +117,25 @@ model Module {
   id                     String   @id @default(uuid())
   title                  String   @db.VarChar(200)
   description            String   @db.Text
-  thematics              Thematic[]
-  imageUrl               String?         @db.VarChar(500)
+  thematics              String @db.VarChar(200) @unique
+
+  imageMediaId      String?
+  imageMedia        Media?         @relation("ModuleImage", fields: [imageMediaId], references: [id])
+
+
   difficultyLevel        DifficultyLevel
   estimatedDuration      Float   
   status                 ModuleStatus @default(DRAFT)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+
   @@index([status])
   @@index([difficultyLevel])
   @@index([createdAt])
 }
-enum Thematic {
-  FINANCIAL_EDUCATION
-  PERSONAL_DEVELOPMENT
-  FINANCIAL_LOAN
-  BANK_CREDIT
-  INVESTMENT
-  BUDGET_MANAGEMENT
-  SAVING
-  ENTREPRENEURSHIP
-  TAXATION
-  INSURANCE
-}
+
+
+
 enum ModuleStatus {
   DRAFT
   PUBLISHED
@@ -165,7 +161,7 @@ model Media {
   metadata     Json?
   isTemporary  Boolean   @default(false)
   expiresAt    DateTime?
-
+  moduleImage  Module[]   @relation("ModuleImage")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -178,6 +174,7 @@ enum MediaType {
   VIDEO
   PDF
   AUDIO
+   IMAGE
 }
 
 // ==================== STREAMING ====================

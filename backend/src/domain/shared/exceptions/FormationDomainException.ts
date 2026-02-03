@@ -16,6 +16,14 @@ export class DuplicateTitleException extends DomainException {
   }
 }
 
+export class DuplicateThematicException extends DomainException {
+  constructor(thematic: string) {
+    super(`Un module avec la thématique "${thematic}" existe déjà`);
+    this.name = 'DuplicateThematicException';
+    Object.setPrototypeOf(this, DuplicateThematicException.prototype);
+  }
+}
+
 export class ModuleNotFoundException extends DomainException {
   constructor(id: string) {
     super(`Le module avec l'ID "${id}" n'a pas été trouvé`);

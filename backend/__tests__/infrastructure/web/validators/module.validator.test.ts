@@ -5,10 +5,10 @@ import { validationResult } from 'express-validator';
 import {
   validateCreateModule,
   validateGetModules,
+  validatePagination,
   handleValidationErrors,
 } from '@/infrastructure/web/validators/module.validator';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 
 // Helper to run validation middleware
 const runValidation = async (req: Request, validations: any[]) => {
@@ -60,7 +60,7 @@ describe('Module Validator', () => {
       mockRequest.body = {
         title: '', // Invalid title
         description: '', // Invalid description
-        thematics: [], // Invalid thematics
+        thematics: '', // Invalid thematics
         difficultyLevel: 'INVALID', // Invalid difficulty
         estimatedDuration: -1, // Invalid duration
       };
@@ -70,7 +70,7 @@ describe('Module Validator', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       const jsonCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
-      expect(jsonCall.errors.length).toBeGreaterThanOrEqual(5); // Au moins 5 erreurs, peut-être plus
+      expect(jsonCall.errors.length).toBeGreaterThanOrEqual(5);
     });
   });
 
@@ -78,7 +78,7 @@ describe('Module Validator', () => {
     const validData = {
       title: 'Introduction aux Finances',
       description: "Module d'introduction aux concepts financiers de base pour débutants",
-      thematics: [Thematic.FINANCIAL_EDUCATION, Thematic.BUDGET_MANAGEMENT],
+      thematics: 'finance et comptabilité',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 60,
     };
@@ -136,6 +136,12 @@ describe('Module Validator', () => {
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.isEmpty()).toBe(true);
       });
+
+      it('devrait trim les espaces du titre', async () => {
+        mockRequest.body = { ...validData, title: '  Mon Titre  ' };
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
+      });
     });
 
     describe('Validation de la description', () => {
@@ -183,11 +189,17 @@ describe('Module Validator', () => {
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.isEmpty()).toBe(true);
       });
+
+      it('devrait trim les espaces de la description', async () => {
+        mockRequest.body = { ...validData, description: '  Description valide du module  ' };
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
+      });
     });
 
-    describe('Validation des thématiques', () => {
-      it('devrait échouer si les thématiques sont manquantes', async () => {
-        mockRequest.body = { ...validData, thematics: [] };
+    describe('Validation de la thématique', () => {
+      it('devrait échouer si la thématique est manquante', async () => {
+        mockRequest.body = { ...validData, thematics: '' };
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.array()).toEqual(
           expect.arrayContaining([
@@ -199,8 +211,8 @@ describe('Module Validator', () => {
         );
       });
 
-      it('devrait échouer si les thématiques ne sont pas un tableau', async () => {
-        mockRequest.body = { ...validData, thematics: 'not-an-array' };
+      it('devrait échouer si la thématique contient uniquement des espaces', async () => {
+        mockRequest.body = { ...validData, thematics: '   ' };
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.array()).toEqual(
           expect.arrayContaining([
@@ -212,31 +224,42 @@ describe('Module Validator', () => {
         );
       });
 
-      it('devrait échouer si une thématique est invalide', async () => {
-        mockRequest.body = {
-          ...validData,
-          thematics: [Thematic.FINANCIAL_EDUCATION, 'INVALID_THEMATIC'],
-        };
+      it('devrait échouer si la thématique fait moins de 3 caractères', async () => {
+        mockRequest.body = { ...validData, thematics: 'ab' }; // 2 caractères
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.array()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              path: 'thematics[1]', // express-validator utilise le format [index] au lieu de .index
-              msg: 'Thématique invalide',
+              path: 'thematics',
+              msg: 'La thématique doit contenir au moins 3 caractères',
             }),
           ])
         );
       });
 
-      it('devrait valider toutes les thématiques valides', async () => {
-        const allThematics = Object.values(Thematic);
-        mockRequest.body = { ...validData, thematics: allThematics };
+      it('devrait valider une thématique de 3 caractères exactement', async () => {
+        mockRequest.body = { ...validData, thematics: 'fin' };
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.isEmpty()).toBe(true);
       });
 
-      it('devrait valider une seule thématique valide', async () => {
-        mockRequest.body = { ...validData, thematics: [Thematic.INVESTMENT] };
+      it('devrait valider une thématique valide', async () => {
+        mockRequest.body = { ...validData, thematics: 'finance et comptabilité' };
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider une thématique longue', async () => {
+        mockRequest.body = {
+          ...validData,
+          thematics: 'gestion budgétaire et planification financière',
+        };
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait trim les espaces de la thématique', async () => {
+        mockRequest.body = { ...validData, thematics: '  investissement  ' };
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.isEmpty()).toBe(true);
       });
@@ -273,6 +296,20 @@ describe('Module Validator', () => {
         const errors = await runValidation(mockRequest as Request, validateCreateModule);
         expect(errors.isEmpty()).toBe(true);
       });
+
+      it('devrait échouer si le niveau de difficulté est manquant', async () => {
+        const dataWithoutDifficulty = { ...validData };
+        delete (dataWithoutDifficulty as any).difficultyLevel;
+        mockRequest.body = dataWithoutDifficulty;
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'difficultyLevel',
+            }),
+          ])
+        );
+      });
     });
 
     describe('Validation de la durée estimée', () => {
@@ -300,6 +337,12 @@ describe('Module Validator', () => {
             }),
           ])
         );
+      });
+
+      it('devrait valider une durée minimale de 0.1', async () => {
+        mockRequest.body = { ...validData, estimatedDuration: 0.1 };
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
       });
 
       it('devrait valider une durée de 1 minute', async () => {
@@ -338,6 +381,12 @@ describe('Module Validator', () => {
           ])
         );
       });
+
+      it('devrait valider une durée très longue', async () => {
+        mockRequest.body = { ...validData, estimatedDuration: 10080 }; // 7 jours
+        const errors = await runValidation(mockRequest as Request, validateCreateModule);
+        expect(errors.isEmpty()).toBe(true);
+      });
     });
   });
 
@@ -349,7 +398,7 @@ describe('Module Validator', () => {
         objective: 'Apprendre les bases',
         status: ModuleStatus.PUBLISHED,
         difficultyLevel: DifficultyLevel.INTERMEDIATE,
-        thematic: Thematic.INVESTMENT,
+        thematics: 'investissement',
         imageUrl: 'https://example.com/image.jpg',
       };
       const errors = await runValidation(mockRequest as Request, validateGetModules);
@@ -379,6 +428,13 @@ describe('Module Validator', () => {
 
       it('devrait valider un titre vide ou avec espaces (sera trimé)', async () => {
         mockRequest.query = { title: '   ' };
+        const errors = await runValidation(mockRequest as Request, validateGetModules);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider un titre de 200 caractères exactement', async () => {
+        const exactLengthTitle = 'A'.repeat(200);
+        mockRequest.query = { title: exactLengthTitle };
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.isEmpty()).toBe(true);
       });
@@ -420,6 +476,13 @@ describe('Module Validator', () => {
             }),
           ])
         );
+      });
+
+      it('devrait valider un objectif de 200 caractères exactement', async () => {
+        const exactLengthObjective = 'A'.repeat(200);
+        mockRequest.query = { objective: exactLengthObjective };
+        const errors = await runValidation(mockRequest as Request, validateGetModules);
+        expect(errors.isEmpty()).toBe(true);
       });
     });
 
@@ -490,39 +553,34 @@ describe('Module Validator', () => {
     });
 
     describe('Validation de la thématique en query', () => {
-      it('devrait échouer si la thématique est invalide', async () => {
-        mockRequest.query = { thematic: 'INVALID_THEMATIC' };
+      it('devrait échouer si la thématique dépasse 200 caractères', async () => {
+        const longThematic = 'A'.repeat(201);
+        mockRequest.query = { thematics: longThematic };
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.array()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              path: 'thematic',
-              msg: 'Thématique invalide',
+              path: 'thematics',
+              msg: 'Ne peut pas dépasser 20 caractères',
             }),
           ])
         );
       });
 
-      it('devrait valider la thématique éducation financière', async () => {
-        mockRequest.query = { thematic: Thematic.FINANCIAL_EDUCATION };
+      it('devrait valider une thématique valide', async () => {
+        mockRequest.query = { thematics: 'finance' };
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.isEmpty()).toBe(true);
       });
 
-      it('devrait valider la thématique gestion budget', async () => {
-        mockRequest.query = { thematic: Thematic.BUDGET_MANAGEMENT };
+      it('devrait valider une thématique avec espaces', async () => {
+        mockRequest.query = { thematics: 'gestion budgétaire' };
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.isEmpty()).toBe(true);
       });
 
-      it('devrait valider la thématique investissement', async () => {
-        mockRequest.query = { thematic: Thematic.INVESTMENT };
-        const errors = await runValidation(mockRequest as Request, validateGetModules);
-        expect(errors.isEmpty()).toBe(true);
-      });
-
-      it('devrait valider la thématique épargne', async () => {
-        mockRequest.query = { thematic: Thematic.SAVING };
+      it('devrait trim les espaces de la thématique', async () => {
+        mockRequest.query = { thematics: '  investissement  ' };
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.isEmpty()).toBe(true);
       });
@@ -559,6 +617,12 @@ describe('Module Validator', () => {
         const errors = await runValidation(mockRequest as Request, validateGetModules);
         expect(errors.isEmpty()).toBe(true);
       });
+
+      it('devrait valider une URL avec query params', async () => {
+        mockRequest.query = { imageUrl: 'https://example.com/image.jpg?size=large&format=webp' };
+        const errors = await runValidation(mockRequest as Request, validateGetModules);
+        expect(errors.isEmpty()).toBe(true);
+      });
     });
   });
 
@@ -568,12 +632,7 @@ describe('Module Validator', () => {
         title: 'Module Complet de Formation Financière',
         description:
           'Ce module couvre tous les aspects essentiels de la gestion financière personnelle et professionnelle',
-        thematics: [
-          Thematic.FINANCIAL_EDUCATION,
-          Thematic.BUDGET_MANAGEMENT,
-          Thematic.INVESTMENT,
-          Thematic.SAVING,
-        ],
+        thematics: 'finance et comptabilité avancée',
         difficultyLevel: DifficultyLevel.ADVANCED,
         estimatedDuration: 150,
       };
@@ -587,7 +646,7 @@ describe('Module Validator', () => {
       const invalidData = {
         title: '', // Titre vide
         description: 'court', // Description trop courte
-        thematics: ['INVALID'], // Thématique invalide
+        thematics: 'ab', // Thématique trop courte
         difficultyLevel: 'WRONG', // Niveau invalide
         estimatedDuration: -5, // Durée négative
       };
@@ -596,13 +655,12 @@ describe('Module Validator', () => {
       const errors = await runValidation(mockRequest as Request, validateCreateModule);
 
       expect(errors.array().length).toBeGreaterThanOrEqual(5);
-      // Vérifier que les paths incluent les champs attendus (en utilisant le format express-validator)
       const paths = errors.array().map(e => (e as any).path);
       expect(paths).toEqual(
         expect.arrayContaining([
           'title',
           'description',
-          'thematics[0]',
+          'thematics',
           'difficultyLevel',
           'estimatedDuration',
         ])
@@ -614,11 +672,330 @@ describe('Module Validator', () => {
         title: 'Finance',
         status: ModuleStatus.PUBLISHED,
         difficultyLevel: DifficultyLevel.BEGINNER,
-        thematic: Thematic.BUDGET_MANAGEMENT,
+        thematics: 'gestion budgétaire',
       };
 
       const errors = await runValidation(mockRequest as Request, validateGetModules);
       expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('devrait valider un module avec durée minimale', async () => {
+      const minimalModule = {
+        title: 'Titre',
+        description: '1234567890',
+        thematics: 'fin',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 0.1,
+      };
+
+      mockRequest.body = minimalModule;
+      const errors = await runValidation(mockRequest as Request, validateCreateModule);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('devrait valider un module avec titre et description aux limites maximales', async () => {
+      const maximalModule = {
+        title: 'A'.repeat(200),
+        description: 'B'.repeat(100), // Pas de limite max pour description dans validateCreateModule
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 120,
+      };
+
+      mockRequest.body = maximalModule;
+      const errors = await runValidation(mockRequest as Request, validateCreateModule);
+      expect(errors.isEmpty()).toBe(true);
+    });
+  });
+
+  describe('validatePagination', () => {
+    it('devrait valider sans paramètres de pagination (utilise les valeurs par défaut)', async () => {
+      mockRequest.query = {};
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    it('devrait valider avec page et limit valides', async () => {
+      mockRequest.query = { page: '1', limit: '10' };
+      const errors = await runValidation(mockRequest as Request, validatePagination);
+      expect(errors.isEmpty()).toBe(true);
+    });
+
+    describe('Validation de page', () => {
+      it('devrait échouer si page est inférieure à 1', async () => {
+        mockRequest.query = { page: '0' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si page est négative', async () => {
+        mockRequest.query = { page: '-1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+
+      it('devrait valider page = 1', async () => {
+        mockRequest.query = { page: '1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page = 10', async () => {
+        mockRequest.query = { page: '10' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page = 100', async () => {
+        mockRequest.query = { page: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it("devrait échouer si page n'est pas un entier", async () => {
+        mockRequest.query = { page: '1.5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+            }),
+          ])
+        );
+      });
+
+      it("devrait échouer si page n'est pas un nombre", async () => {
+        mockRequest.query = { page: 'abc' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+              msg: 'Page must be a positive integer',
+            }),
+          ])
+        );
+      });
+    });
+
+    describe('Validation de limit', () => {
+      it('devrait échouer si limit est inférieur à 1', async () => {
+        mockRequest.query = { limit: '0' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si limit est supérieur à 100', async () => {
+        mockRequest.query = { limit: '101' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait valider limit = 1', async () => {
+        mockRequest.query = { limit: '1' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 10', async () => {
+        mockRequest.query = { limit: '10' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 50', async () => {
+        mockRequest.query = { limit: '50' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider limit = 100', async () => {
+        mockRequest.query = { limit: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it("devrait échouer si limit n'est pas un entier", async () => {
+        mockRequest.query = { limit: '10.5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+            }),
+          ])
+        );
+      });
+
+      it("devrait échouer si limit n'est pas un nombre", async () => {
+        mockRequest.query = { limit: 'xyz' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+
+      it('devrait échouer si limit est négatif', async () => {
+        mockRequest.query = { limit: '-5' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
+    });
+
+    describe('Validation combinée page et limit', () => {
+      it('devrait valider page=1, limit=6 (valeurs par défaut)', async () => {
+        mockRequest.query = { page: '1', limit: '6' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page=5, limit=20', async () => {
+        mockRequest.query = { page: '5', limit: '20' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider page=100, limit=100', async () => {
+        mockRequest.query = { page: '100', limit: '100' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait échouer si page et limit sont tous deux invalides', async () => {
+        mockRequest.query = { page: '0', limit: '101' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array().length).toBeGreaterThanOrEqual(2);
+        const paths = errors.array().map(e => (e as any).path);
+        expect(paths).toEqual(expect.arrayContaining(['page', 'limit']));
+      });
+
+      it('devrait valider avec seulement page (limit par défaut)', async () => {
+        mockRequest.query = { page: '3' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait valider avec seulement limit (page optionnelle)', async () => {
+        mockRequest.query = { limit: '25' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.isEmpty()).toBe(true);
+      });
+    });
+
+    describe('Conversion de types', () => {
+      it('devrait convertir page en entier', async () => {
+        mockRequest.query = { page: '42' };
+        await runValidation(mockRequest as Request, validatePagination);
+        // Note: express-validator toInt() convertit la valeur
+        expect(mockRequest.query.page).toBe(42);
+      });
+
+      it('devrait convertir limit en entier', async () => {
+        mockRequest.query = { limit: '25' };
+        await runValidation(mockRequest as Request, validatePagination);
+        expect(mockRequest.query.limit).toBe(25);
+      });
+
+      it('devrait appliquer la valeur par défaut pour limit si absent', async () => {
+        mockRequest.query = { page: '1' };
+        await runValidation(mockRequest as Request, validatePagination);
+        // La valeur par défaut devrait être appliquée
+        expect(mockRequest.query.limit).toBe(6);
+      });
+
+      it('devrait convertir les deux paramètres', async () => {
+        mockRequest.query = { page: '10', limit: '50' };
+        await runValidation(mockRequest as Request, validatePagination);
+        expect(mockRequest.query.page).toBe(10);
+        expect(mockRequest.query.limit).toBe(50);
+      });
+    });
+
+    describe('Cas limites', () => {
+      it('devrait gérer une chaîne vide pour page', async () => {
+        mockRequest.query = { page: '' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        // Une chaîne vide devrait être considérée comme invalide
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'page',
+            }),
+          ])
+        );
+      });
+
+      it('devrait gérer une chaîne vide pour limit', async () => {
+        mockRequest.query = { limit: '' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+            }),
+          ])
+        );
+      });
+
+      it('devrait gérer des espaces dans les valeurs', async () => {
+        mockRequest.query = { page: ' 5 ', limit: ' 10 ' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        // Les espaces devraient être gérés correctement
+        expect(errors.isEmpty()).toBe(true);
+      });
+
+      it('devrait échouer avec des valeurs très grandes', async () => {
+        mockRequest.query = { page: '999999999999', limit: '1000' };
+        const errors = await runValidation(mockRequest as Request, validatePagination);
+        expect(errors.array()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: 'limit',
+              msg: 'Limit must be between 1 and 100',
+            }),
+          ])
+        );
+      });
     });
   });
 });

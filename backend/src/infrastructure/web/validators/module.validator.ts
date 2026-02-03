@@ -3,7 +3,6 @@
 import { body, query, validationResult, type ValidationChain } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
-import { Thematic } from '@/domain/formations/value-objects/Thematic';
 
 /**
  * Middleware pour gérer les erreurs de validation
@@ -38,9 +37,12 @@ export const validateCreateModule: ValidationChain[] = [
     .isLength({ min: 10 })
     .withMessage('La description doit contenir au moins 10 caractères'),
 
-  body('thematics').isArray({ min: 1 }).withMessage('Au moins une thématique est requise'),
-
-  body('thematics.*').isIn(Object.values(Thematic)).withMessage('Thématique invalide'),
+  body('thematics')
+    .trim()
+    .notEmpty()
+    .withMessage('Au moins une thématique est requise')
+    .isLength({ min: 3 })
+    .withMessage('La thématique doit contenir au moins 3 caractères'),
 
   body('difficultyLevel')
     .isIn(Object.values(DifficultyLevel))
@@ -76,8 +78,21 @@ export const validateGetModules: ValidationChain[] = [
     .optional()
     .isIn(Object.values(DifficultyLevel))
     .withMessage('Niveau de difficulté invalide'),
-
-  query('thematic').optional().isIn(Object.values(Thematic)).withMessage('Thématique invalide'),
+  query('thematics')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Ne peut pas dépasser 20 caractères'),
 
   query('imageUrl').optional().isURL().withMessage("URL de l'image invalide"),
+];
+export const validatePagination = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer').toInt(),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100')
+    .toInt()
+    .default(6), // ✅ défaut
 ];

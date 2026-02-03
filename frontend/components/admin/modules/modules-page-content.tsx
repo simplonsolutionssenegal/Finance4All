@@ -1,100 +1,64 @@
 // frontend/src/components/admin/modules/modules-page-content.tsx
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import ContentTabs from '@/components/admin/modules/content-tabs';
 import FiltersBar from '@/components/admin/modules/filters-bar';
 import ModuleDialog from '@/components/admin/modules/module-dialog';
 import ModuleList from '@/components/admin/modules/module-list';
 import StatsCards from '@/components/admin/modules/stats-cards';
-import QuizList from '@/components/admin/quiz/quiz-list';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetModules } from '@/hooks/module/useGetModules';
-import type { Thematic } from '@/types/modules/module';
 
 export default function ModulesPageContent() {
   const { showLoader, hideLoader } = useLoader();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const pageLimit = 100;
 
-  // États des filtres
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [thematicFilter, setThematicFilter] = useState<Thematic | ''>('');
+  // Pagination API (on récupère tout et on pagine côté client)
+  const pageLimit = 100;
 
   // Pagination locale
   const itemsPerPage = 6;
   const [localPage, setLocalPage] = useState(1);
-
-  // Récupérer les modules
   const { modules, isLoading, isError, refetch } = useGetModules({
     page: 1,
     limit: pageLimit,
   });
 
-  // Appliquer les filtres côté client
-  const filteredModules = useMemo(() => {
-    if (!Array.isArray(modules)) return [];
-
-    return modules.filter(module => {
-      // Filtre par recherche
-      const searchLower = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        searchQuery === '' ||
-        (module.title && module.title.toLowerCase().includes(searchLower)) ||
-        (module.description && module.description.toLowerCase().includes(searchLower));
-
-      // Filtre par statut
-      const matchesStatus = statusFilter === '' || module.status === statusFilter;
-
-      // Filtre par thématique
-      const matchesThematic =
-        thematicFilter === '' ||
-        (Array.isArray(module.thematics) && module.thematics.includes(thematicFilter));
-
-      return matchesSearch && matchesStatus && matchesThematic;
-    });
-  }, [modules, searchQuery, statusFilter, thematicFilter]);
+  // des hooks useMemo changent à chaque rendu lorsque `modules` est undefined.
+  const allModules = useMemo(() => (Array.isArray(modules) ? modules : []), [modules]);
 
   // Pagination locale
   const paginatedModules = useMemo(() => {
     const startIndex = (localPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredModules.slice(startIndex, endIndex);
-  }, [filteredModules, localPage]);
+    return allModules.slice(startIndex, endIndex);
+  }, [allModules, localPage]);
 
   const localPagination = useMemo(() => {
+    const total = allModules.length;
     return {
       page: localPage,
       limit: itemsPerPage,
-      total: filteredModules.length,
-      totalPages: Math.ceil(filteredModules.length / itemsPerPage),
+      total,
+      totalPages: Math.ceil(total / itemsPerPage),
     };
-  }, [filteredModules.length, localPage]);
+  }, [allModules.length, localPage]);
 
-  // Réinitialiser la page lors du changement de filtres
+  // Loader global
   useEffect(() => {
-    setLocalPage(1);
-  }, [searchQuery, statusFilter, thematicFilter]);
-
-  // Gérer le loader global
-  useEffect(() => {
-    if (isLoading) {
-      showLoader();
-    } else {
-      hideLoader();
-    }
+    if (isLoading) showLoader();
+    else hideLoader();
   }, [isLoading, showLoader, hideLoader]);
 
   // Statistiques
-  const totalModules = modules.length;
-  const publishedModules = modules.filter(m => m.status === 'PUBLISHED').length;
-  const totalQuizzes = 2;
+  const totalModules = allModules.length;
+  const publishedModules = allModules.filter(m => m.status === 'PUBLISHED').length;
+
+  // si tu veux garder ces chiffres en dur, ok. Sinon remplace par un calcul réel
+  const totalQuizzes = 20;
   const totalLearners = 688;
 
-  // Gérer le changement de page
   const handlePageChange = (page: number) => {
     setLocalPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -111,42 +75,19 @@ export default function ModulesPageContent() {
           totalLearners={totalLearners}
         />
 
-        {/* Tabs pour Modules / Quiz */}
-        <ContentTabs>
-          {activeTab => (
-            <>
-              {/* Barre de filtres */}
-              <FiltersBar
-                onNewClick={() => setIsDialogOpen(true)}
-                buttonLabel={activeTab === 'modules' ? 'Nouveau module' : 'Nouveau quiz'}
-                onSearchChange={setSearchQuery}
-                onStatusChange={setStatusFilter}
-                onThematicChange={value =>
-                  setThematicFilter(value === '' ? '' : (value as Thematic))
-                }
-                searchValue={searchQuery}
-                statusValue={statusFilter}
-                thematicValue={thematicFilter}
-                totalResults={filteredModules.length}
-              />
+        {/* Actions rapides (juste le bouton) */}
+        <FiltersBar onNewClick={() => setIsDialogOpen(true)} />
 
-              {/* Contenu principal */}
-              {activeTab === 'modules' ? (
-                <ModuleList
-                  modules={paginatedModules}
-                  pagination={localPagination}
-                  isLoading={isLoading}
-                  isError={isError}
-                  onPageChange={handlePageChange}
-                />
-              ) : (
-                <QuizList />
-              )}
-            </>
-          )}
-        </ContentTabs>
+        {/* Liste des modules */}
+        <ModuleList
+          modules={paginatedModules}
+          pagination={localPagination}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+        />
 
-        {/* Dialog de création/édition */}
+        {/* Dialog création/édition */}
         <ModuleDialog
           isOpen={isDialogOpen}
           onClose={() => {

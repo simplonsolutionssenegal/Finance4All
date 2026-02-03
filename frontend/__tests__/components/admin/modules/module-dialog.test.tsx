@@ -1,25 +1,19 @@
-// __tests__/components/admin/modules/module-dialog.test.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import '@testing-library/jest-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModuleDialog from '@/components/admin/modules/module-dialog';
 import { useCreateModule } from '@/hooks/module/useCreateModule';
-import { DifficultyLevel, Thematic } from '@/types/modules/module';
+import { DifficultyLevel } from '@/types/modules/module';
 
-interface ModuleDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-// Mocks
 jest.mock('@/hooks/module/useCreateModule', () => ({
   useCreateModule: jest.fn(),
 }));
 
 jest.mock('lucide-react', () => ({
-  X: () => <span data-testid='close-icon'>✕</span>,
+  X: (props: any) => <svg data-testid='icon-x' {...props} />,
+  Upload: (props: any) => <svg data-testid='icon-upload' {...props} />,
 }));
 
 jest.mock('@/lib/constants/module-constants', () => ({
@@ -29,339 +23,325 @@ jest.mock('@/lib/constants/module-constants', () => ({
     ADVANCED: 'Avancé',
     EXPERT: 'Expert',
   },
-  THEMATIC_LABELS: {
-    FINANCIAL_EDUCATION: 'Éducation financière',
-    PERSONAL_DEVELOPMENT: 'Développement personnel',
-    INVESTMENT: 'Investissement',
-  },
 }));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
+const mockedUseCreateModule = useCreateModule as unknown as jest.Mock;
 
 describe('ModuleDialog', () => {
-  const mockOnClose = jest.fn();
-  const mockCreateModule = jest.fn();
+  const onClose = jest.fn();
+  const createModuleSpy = jest.fn();
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001/api/v1';
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useCreateModule as jest.Mock).mockReturnValue({
-      createModule: mockCreateModule,
+    (global as any).fetch = jest.fn();
+
+    mockedUseCreateModule.mockImplementation(({ onSuccess }: { onSuccess?: () => void }) => ({
       isCreating: false,
-    });
+      createModule: (payload: any) => {
+        createModuleSpy(payload);
+        onSuccess?.();
+      },
+    }));
   });
 
-  // Helper pour le rendu avec le provider
-  const renderWithProviders = (props: ModuleDialogProps) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <ModuleDialog {...props} />
-      </QueryClientProvider>
-    );
-  };
+  async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText(/Titre/i), 'Module Test');
+    await user.type(screen.getByLabelText(/Description/i), 'Description suffisamment longue');
+    await user.type(screen.getByLabelText(/Thématiques/i), 'Finance');
+    const duration = screen.getByLabelText(/Durée estimée/i);
+    await user.clear(duration);
+    // IMPORTANT: ton zod impose min 5 (vu dans ton DOM: "La durée minimale est de 5 minutes")
+    await user.type(duration, '10');
+  }
 
-  it('ne rend rien quand isOpen est false', () => {
-    const { container } = renderWithProviders({ isOpen: false, onClose: mockOnClose });
+  it('ne rend rien quand isOpen=false', () => {
+    const { container } = render(<ModuleDialog isOpen={false} onClose={onClose} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('affiche le dialog quand isOpen est true', () => {
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
-
+  it('rend le dialog quand isOpen=true', () => {
+    render(<ModuleDialog isOpen onClose={onClose} />);
     expect(screen.getByText('Nouveau module')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Créez un nouveau module apprentissage. Vous pourrez ensuite ajouter des leçons et des quiz.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Créez un nouveau module/i)).toBeInTheDocument();
   });
 
-  it('affiche tous les champs du formulaire', () => {
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+  it('affiche les champs principaux et les valeurs par défaut', () => {
+    render(<ModuleDialog isOpen onClose={onClose} />);
 
-    expect(screen.getByLabelText(/Titre/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Description/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Thématique/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Difficulté/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Image du module/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Durée estimée/)).toBeInTheDocument();
-  });
+    expect(screen.getByLabelText(/Titre/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Thématiques/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Difficulté/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Durée estimée/i)).toBeInTheDocument();
+    expect(screen.getByText('JPG, PNG, GIF (max 5MB)')).toBeInTheDocument();
 
-  it('affiche les valeurs par défaut correctes', () => {
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
-
-    const durationInput = screen.getByLabelText(/Durée estimée/) as HTMLInputElement;
-    expect(durationInput.value).toBe('60');
-
-    const thematicSelect = screen.getByLabelText(/Thématique/) as HTMLSelectElement;
-    expect(thematicSelect.value).toBe(Thematic.FINANCIAL_EDUCATION);
-
-    const difficultySelect = screen.getByLabelText(/Difficulté/) as HTMLSelectElement;
+    const difficultySelect = screen.getByLabelText(/Difficulté/i) as HTMLSelectElement;
     expect(difficultySelect.value).toBe(DifficultyLevel.BEGINNER);
   });
 
-  it('affiche les options de thématique', () => {
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
-
-    expect(screen.getByText('Éducation financière')).toBeInTheDocument();
-    expect(screen.getByText('Développement personnel')).toBeInTheDocument();
-    expect(screen.getByText('Investissement')).toBeInTheDocument();
-  });
-
-  it('affiche les options de difficulté', () => {
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
-
-    expect(screen.getByText('Débutant')).toBeInTheDocument();
-    expect(screen.getByText('Intermédiaire')).toBeInTheDocument();
-    expect(screen.getByText('Avancé')).toBeInTheDocument();
-    expect(screen.getByText('Expert')).toBeInTheDocument();
-  });
-
-  it('ferme le dialog au clic sur le bouton X', async () => {
+  it('ferme via bouton Annuler', async () => {
     const user = userEvent.setup();
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    render(<ModuleDialog isOpen onClose={onClose} />);
 
-    const closeButton = screen.getByTestId('close-icon').parentElement;
-    expect(closeButton).toBeInTheDocument();
-    await user.click(closeButton as HTMLElement);
-
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: /Annuler/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('ferme le dialog au clic sur le bouton Annuler', async () => {
+  it('ferme via bouton X', async () => {
     const user = userEvent.setup();
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    render(<ModuleDialog isOpen onClose={onClose} />);
 
-    const cancelButton = screen.getByText('Annuler');
-    await user.click(cancelButton);
-
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: /Fermer/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('ferme le dialog au clic sur le backdrop', async () => {
+  it('ferme via backdrop', async () => {
     const user = userEvent.setup();
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    render(<ModuleDialog isOpen onClose={onClose} />);
 
-    const backdrop = document.querySelector('.bg-black\\/50');
-    expect(backdrop).toBeInTheDocument();
-
-    await user.click(backdrop as HTMLElement);
-
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: /Fermer le dialog/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('soumet le formulaire avec des données valides', async () => {
+  it('ferme au clavier avec Escape quand isCreating=false', () => {
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('ne ferme pas quand isCreating=true (backdrop, X, Escape)', async () => {
     const user = userEvent.setup();
-    (useCreateModule as jest.Mock).mockReturnValue({
-      createModule: mockCreateModule,
-      isCreating: false,
+
+    mockedUseCreateModule.mockReturnValue({
+      isCreating: true,
+      createModule: jest.fn(),
     });
 
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
 
-    // Remplir les champs obligatoires
-    await user.type(screen.getByLabelText(/Titre/), 'Module Test Complet');
-    await user.type(screen.getByLabelText(/Description/), 'Description complète du module de test');
+    await user.click(screen.getByRole('button', { name: /Fermer/i }));
+    await user.click(screen.getByRole('button', { name: /Fermer le dialog/i }));
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: 'Escape' });
 
-    // Modifier la durée
-    const durationInput = screen.getByLabelText(/Durée estimée/);
-    await user.clear(durationInput);
-    await user.type(durationInput, '120');
+    expect(onClose).not.toHaveBeenCalled();
+  });
 
-    // Ajouter une URL d'image
-    await user.type(screen.getByLabelText(/Image du module/), 'https://example.com/image.jpg');
+  it('désactive les champs et affiche "Création..." quand isCreating=true', () => {
+    mockedUseCreateModule.mockReturnValue({
+      isCreating: true,
+      createModule: jest.fn(),
+    });
 
-    // Soumettre
-    const submitButton = screen.getByText('Créer');
-    await user.click(submitButton);
+    render(<ModuleDialog isOpen onClose={onClose} />);
+
+    expect(screen.getByLabelText(/Titre/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Description/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Thématiques/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Difficulté/i)).toBeDisabled();
+    expect(screen.getByLabelText(/Durée estimée/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Annuler/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Fermer le dialog/i })).toBeDisabled();
+
+    expect(screen.getByText('Création...')).toBeInTheDocument();
+  });
+
+  it('ne soumet pas si formulaire invalide (ex: durée < 5)', async () => {
+    const user = userEvent.setup();
+    render(<ModuleDialog isOpen onClose={onClose} />);
+
+    await user.type(screen.getByLabelText(/Titre/i), 'Module Test');
+    await user.type(screen.getByLabelText(/Description/i), 'Description suffisamment longue');
+    await user.type(screen.getByLabelText(/Thématiques/i), 'Finance');
+
+    const duration = screen.getByLabelText(/Durée estimée/i);
+    await user.clear(duration);
+    await user.type(duration, '2'); // invalide selon ton schema
+
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
 
     await waitFor(() => {
-      expect(mockCreateModule).toHaveBeenCalledWith({
-        title: 'Module Test Complet',
-        description: 'Description complète du module de test',
-        imageUrl: 'https://example.com/image.jpg',
+      expect(createModuleSpy).not.toHaveBeenCalled();
+      expect((global as any).fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  it('soumet sans image : createModule appelé avec imageMediaId=null', async () => {
+    const user = userEvent.setup();
+    render(<ModuleDialog isOpen onClose={onClose} />);
+
+    await fillValidForm(user);
+
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
+
+    await waitFor(() => {
+      expect(createModuleSpy).toHaveBeenCalledWith({
+        title: 'Module Test',
+        description: 'Description suffisamment longue',
         difficultyLevel: DifficultyLevel.BEGINNER,
-        estimatedDuration: 120,
-        thematics: [Thematic.FINANCIAL_EDUCATION],
+        estimatedDuration: 10,
+        thematics: 'Finance',
+        imageMediaId: null,
       });
     });
+
+    // onClose déclenché via onSuccess du hook mocké
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('affiche un loader pendant la soumission', async () => {
+  it('affiche le nom du fichier après sélection', async () => {
     const user = userEvent.setup();
-    mockCreateModule.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ id: '1' } as any);
-          }, 100);
-        })
-    );
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
 
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    const file = new File(['test'], 'image.png', { type: 'image/png' });
 
-    // Remplir le formulaire
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
+    await user.upload(input, file);
 
-    const submitButton = screen.getByText('Créer');
-    await user.click(submitButton);
-
-    // Attendre la fin de la soumission
-    await waitFor(
-      () => {
-        expect(screen.queryByText('Création...')).not.toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
+    expect(screen.getByText('image.png')).toBeInTheDocument();
   });
 
-  it('désactive les boutons pendant la soumission', async () => {
+  it('upload image OK : appelle fetch puis createModule avec imageMediaId', async () => {
     const user = userEvent.setup();
-    mockCreateModule.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ id: '1' } as any);
-          }, 100);
-        })
-    );
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
 
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
+    // mock fetch success avec wrapper data
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: 'media-123' } }),
+    });
 
-    // Remplir le formulaire
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
+    await fillValidForm(user);
 
-    const submitButton = screen.getByText('Créer');
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    const file = new File(['test'], 'module.png', { type: 'image/png' });
+    await user.upload(input, file);
 
-    await user.click(submitButton);
-
-    await waitFor(
-      () => {
-        expect(submitButton).not.toBeDisabled();
-      },
-      { timeout: 2000 }
-    );
-  });
-
-  it("affiche un message d'erreur en cas d'échec", async () => {
-    const user = userEvent.setup();
-
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
-
-    // Remplir le formulaire
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
-
-    await user.click(screen.getByText('Créer'));
-
-    // Le dialog ne doit pas se fermer en cas d'erreur
-    expect(mockOnClose).not.toHaveBeenCalled();
-  });
-
-  it('valide les champs obligatoires', async () => {
-    const user = userEvent.setup();
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
-
-    // Essayer de soumettre sans remplir les champs
-    const submitButton = screen.getByText('Créer');
-    await user.click(submitButton);
-
-    // Le formulaire ne doit pas être soumis
-    expect(mockCreateModule).not.toHaveBeenCalled();
-  });
-
-  it('permet de changer la thématique', async () => {
-    const user = userEvent.setup();
-    mockCreateModule.mockResolvedValue({ id: '1' } as any);
-
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
-
-    // Changer la thématique
-    const thematicSelect = screen.getByLabelText(/Thématique/);
-    await user.selectOptions(thematicSelect, Thematic.INVESTMENT);
-
-    // Remplir les champs obligatoires
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
-
-    await user.click(screen.getByText('Créer'));
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
 
     await waitFor(() => {
-      expect(mockCreateModule).toHaveBeenCalledWith(
+      expect((global as any).fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/media',
         expect.objectContaining({
-          thematics: [Thematic.INVESTMENT],
+          method: 'POST',
+          body: expect.any(FormData),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(createModuleSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageMediaId: 'media-123',
         })
       );
     });
   });
 
-  it('permet de changer le niveau de difficulté', async () => {
+  it('upload image OK (sans data wrapper) : utilise json direct (id)', async () => {
     const user = userEvent.setup();
-    (useCreateModule as jest.Mock).mockReturnValue({
-      createModule: mockCreateModule,
-      isCreating: false,
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
+
+    // mock fetch success sans data
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 'media-direct-456' }),
     });
 
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    await fillValidForm(user);
 
-    // Changer la difficulté
-    const difficultySelect = screen.getByLabelText(/Difficulté/);
-    await user.selectOptions(difficultySelect, DifficultyLevel.ADVANCED);
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    const file = new File(['test'], 'module.png', { type: 'image/png' });
+    await user.upload(input, file);
 
-    // Remplir les champs obligatoires
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
-
-    await user.click(screen.getByText('Créer'));
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
 
     await waitFor(() => {
-      expect(mockCreateModule).toHaveBeenCalledWith(
+      expect(createModuleSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          difficultyLevel: DifficultyLevel.ADVANCED,
+          imageMediaId: 'media-direct-456',
         })
       );
     });
   });
 
-  it("gère correctement l'URL d'image vide", async () => {
+  it('upload image KO (res.ok=false) : ne doit pas appeler createModule', async () => {
     const user = userEvent.setup();
-    (useCreateModule as jest.Mock).mockReturnValue({
-      createModule: mockCreateModule,
-      isCreating: false,
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
+
+    // IMPORTANT: on évite que l’erreur fasse échouer le test via logs
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ message: 'Erreur upload' }),
     });
 
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    await fillValidForm(user);
 
-    // Remplir les champs obligatoires sans image
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    const file = new File(['test'], 'module.png', { type: 'image/png' });
+    await user.upload(input, file);
 
-    await user.click(screen.getByText('Créer'));
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
+
+    await waitFor(() => {
+      expect((global as any).fetch).toHaveBeenCalled();
+      expect(createModuleSpy).not.toHaveBeenCalled();
+    });
+
+    consoleSpy.mockRestore();
   });
 
-  it('remet à zéro le formulaire après succès', async () => {
+  it('upload image KO (json parsing fail) : ne doit pas appeler createModule', async () => {
     const user = userEvent.setup();
-    (useCreateModule as jest.Mock).mockReturnValue({
-      createModule: mockCreateModule,
-      isCreating: false,
+    const { container } = render(<ModuleDialog isOpen onClose={onClose} />);
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => {
+        throw new Error('Invalid JSON');
+      },
     });
 
-    renderWithProviders({ isOpen: true, onClose: mockOnClose });
+    await fillValidForm(user);
 
-    // Remplir et soumettre
-    await user.type(screen.getByLabelText(/Titre/), 'Test Module');
-    await user.type(screen.getByLabelText(/Description/), 'Test description');
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    const file = new File(['test'], 'module.png', { type: 'image/png' });
+    await user.upload(input, file);
 
-    await user.click(screen.getByText('Créer'));
+    await user.click(screen.getByRole('button', { name: /Créer le module/i }));
 
-    // Rouvrir le dialog (simulé en re-render)
-    render(<ModuleDialog isOpen={true} onClose={mockOnClose} />);
+    await waitFor(() => {
+      expect((global as any).fetch).toHaveBeenCalled();
+      expect(createModuleSpy).not.toHaveBeenCalled();
+    });
+
+    consoleSpy.mockRestore();
+  });
+
+  it('reset quand on ferme (isOpen passe à false) puis réouvre', async () => {
+    const user = userEvent.setup();
+    const { container, rerender } = render(<ModuleDialog isOpen onClose={onClose} />);
+
+    await fillValidForm(user);
+
+    const input = container.querySelector('#moduleImage') as HTMLInputElement;
+    await user.upload(input, new File(['test'], 'reset.png', { type: 'image/png' }));
+    expect(screen.getByText('reset.png')).toBeInTheDocument();
+
+    // fermer
+    rerender(<ModuleDialog isOpen={false} onClose={onClose} />);
+    // réouvrir
+    rerender(<ModuleDialog isOpen onClose={onClose} />);
+
+    expect((screen.getByLabelText(/Titre/i) as HTMLInputElement).value).toBe('');
+    expect(screen.queryByText('reset.png')).not.toBeInTheDocument();
+    expect(screen.getByText('Cliquez pour télécharger une image')).toBeInTheDocument();
   });
 });

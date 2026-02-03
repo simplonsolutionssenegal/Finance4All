@@ -8,7 +8,7 @@ import { useGetModules } from '@/hooks/module/useGetModules';
 import { apiClient } from '@/lib/api-client';
 import type { Module } from '@/types/modules/module';
 // eslint-disable-next-line no-duplicate-imports
-import { DifficultyLevel, ModuleStatus, Thematic } from '@/types/modules/module';
+import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 
 // Mocks
 jest.mock('@clerk/nextjs', () => ({
@@ -45,8 +45,7 @@ describe('useGetModules', () => {
     id: '1',
     title: 'Module Test',
     description: 'Description test',
-    imageUrl: 'https://example.com/image.jpg',
-    thematics: [Thematic.FINANCIAL_EDUCATION],
+    thematics: 'finance',
     difficultyLevel: DifficultyLevel.BEGINNER,
     estimatedDuration: 60,
     status: ModuleStatus.DRAFT,

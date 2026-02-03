@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "public"."BeneficiaryStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
+-- CreateEnum
 CREATE TYPE "public"."InstitutionStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING');
 
 -- CreateEnum
@@ -11,7 +14,7 @@ CREATE TYPE "public"."InstitutionType" AS ENUM ('ETABLISSEMENT_MONNAIE_ELECTRONI
 CREATE TYPE "public"."Country" AS ENUM ('SENEGAL', 'CAMEROUN');
 
 -- CreateEnum
-CREATE TYPE "public"."Thematic" AS ENUM ('FINANCIAL_EDUCATION', 'PERSONAL_DEVELOPMENT', 'FINANCIAL_LOAN', 'BANK_CREDIT', 'INVESTMENT', 'BUDGET_MANAGEMENT', 'SAVING', 'ENTREPRENEURSHIP', 'TAXATION', 'INSURANCE');
+CREATE TYPE "public"."MediaType" AS ENUM ('VIDEO', 'PDF', 'AUDIO', 'IMAGE');
 
 -- CreateEnum
 CREATE TYPE "public"."ModuleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
@@ -26,6 +29,23 @@ CREATE TABLE "public"."User" (
     "email" TEXT NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Beneficiary" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "clerkUserId" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT,
+    "status" "public"."BeneficiaryStatus" NOT NULL DEFAULT 'ACTIVE',
+    "progressPercent" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Beneficiary_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -69,8 +89,8 @@ CREATE TABLE "public"."Module" (
     "id" TEXT NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "description" TEXT NOT NULL,
-    "thematics" "public"."Thematic"[],
-    "imageUrl" VARCHAR(500),
+    "thematics" VARCHAR(200) NOT NULL,
+    "imageMediaId" TEXT,
     "difficultyLevel" "public"."DifficultyLevel" NOT NULL,
     "estimatedDuration" DOUBLE PRECISION NOT NULL,
     "status" "public"."ModuleStatus" NOT NULL DEFAULT 'DRAFT',
@@ -80,14 +100,48 @@ CREATE TABLE "public"."Module" (
     CONSTRAINT "Module_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."Media" (
+    "id" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "type" "public"."MediaType" NOT NULL,
+    "size" INTEGER NOT NULL,
+    "bucket" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "metadata" JSONB,
+    "isTemporary" BOOLEAN NOT NULL DEFAULT false,
+    "expiresAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Media_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Beneficiary_clerkUserId_key" ON "public"."Beneficiary"("clerkUserId");
+
+-- CreateIndex
+CREATE INDEX "Beneficiary_organizationId_idx" ON "public"."Beneficiary"("organizationId");
+
+-- CreateIndex
+CREATE INDEX "Beneficiary_status_idx" ON "public"."Beneficiary"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Beneficiary_organizationId_email_key" ON "public"."Beneficiary"("organizationId", "email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Institution_name_key" ON "public"."Institution"("name");
 
 -- CreateIndex
 CREATE INDEX "Service_institutionId_idx" ON "public"."Service"("institutionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Module_thematics_key" ON "public"."Module"("thematics");
 
 -- CreateIndex
 CREATE INDEX "Module_status_idx" ON "public"."Module"("status");
@@ -98,5 +152,17 @@ CREATE INDEX "Module_difficultyLevel_idx" ON "public"."Module"("difficultyLevel"
 -- CreateIndex
 CREATE INDEX "Module_createdAt_idx" ON "public"."Module"("createdAt");
 
+-- CreateIndex
+CREATE INDEX "Media_type_idx" ON "public"."Media"("type");
+
+-- CreateIndex
+CREATE INDEX "Media_createdAt_idx" ON "public"."Media"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "Media_isTemporary_expiresAt_idx" ON "public"."Media"("isTemporary", "expiresAt");
+
 -- AddForeignKey
 ALTER TABLE "public"."Service" ADD CONSTRAINT "Service_institutionId_fkey" FOREIGN KEY ("institutionId") REFERENCES "public"."Institution"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Module" ADD CONSTRAINT "Module_imageMediaId_fkey" FOREIGN KEY ("imageMediaId") REFERENCES "public"."Media"("id") ON DELETE SET NULL ON UPDATE CASCADE;

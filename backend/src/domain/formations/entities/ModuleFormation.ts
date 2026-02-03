@@ -1,7 +1,6 @@
 //domain/formations/entities/Module.ts
 
 import { DomainEntity } from '@/domain/shared/Entity';
-import type { Thematic } from '../value-objects/Thematic';
 import type { EntityId } from '@/domain/shared/EntityId';
 import type { ModuleResponseDTO } from '../value-objects/ModuleFormationDTO';
 
@@ -9,6 +8,12 @@ export enum ModuleStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
   ARCHIVED = 'ARCHIVED',
+}
+export enum MediaType {
+  VIDEO = 'VIDEO',
+  PDF = 'PDF',
+  AUDIO = 'AUDIO',
+  IMAGE = 'IMAGE',
 }
 
 export enum DifficultyLevel {
@@ -22,8 +27,8 @@ export interface ModuleProps {
   id: EntityId;
   title: string;
   description: string;
-  imageUrl: string | null;
-  thematics: Thematic[];
+  imageMediaId: string | null;
+  thematics: string;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   status: ModuleStatus;
@@ -34,8 +39,8 @@ export interface ModuleProps {
 export class Module extends DomainEntity<EntityId> {
   private _title: string;
   private _description: string;
-  private _thematics: Thematic[];
-  private _imageUrl: string | null;
+  private _thematics: string;
+  private _imageMediaId: string | null;
   private _difficultyLevel: DifficultyLevel;
   private _estimatedDuration: number;
   private _status: ModuleStatus;
@@ -43,12 +48,30 @@ export class Module extends DomainEntity<EntityId> {
   constructor(props: ModuleProps) {
     super(props.id);
     this._title = props.title;
-    this._imageUrl = props.imageUrl;
+    this._imageMediaId = props.imageMediaId;
     this._description = props.description;
     this._thematics = props.thematics;
     this._difficultyLevel = props.difficultyLevel;
     this._estimatedDuration = props.estimatedDuration;
     this._status = props.status;
+
+    // Préserver les dates si fournies (pour la reconstitution depuis la BD)
+    if (props.createdAt) {
+      Object.defineProperty(this, '_createdAt', {
+        value: props.createdAt,
+        writable: false,
+        enumerable: false,
+        configurable: true,
+      });
+    }
+    if (props.updatedAt) {
+      Object.defineProperty(this, '_updatedAt', {
+        value: props.updatedAt,
+        writable: true,
+        enumerable: false,
+        configurable: true,
+      });
+    }
   }
 
   public static create(props: ModuleProps): Module {
@@ -61,20 +84,26 @@ export class Module extends DomainEntity<EntityId> {
       throw new Error('Le titre ne peut pas dépasser 200 caractères');
     }
 
-    if (props.imageUrl !== null && props.imageUrl.trim().length === 0) {
-      throw new Error("L'URL de l'image ne peut pas être une chaîne vide");
-    }
-
     if (!props.description || props.description.trim().length === 0) {
       throw new Error('La description du module est obligatoire');
     }
-
-    if (!props.thematics || props.thematics.length === 0) {
+    if (!props.thematics || props.thematics.trim().length === 0) {
       throw new Error('Au moins une thématique est requise');
     }
 
     if (props.estimatedDuration <= 0) {
       throw new Error('La durée estimée doit être supérieure à 0');
+    }
+
+    if (props.estimatedDuration > 10080) {
+      throw new Error('La durée maximale est de 7 jours');
+    }
+
+    if (!Object.values(DifficultyLevel).includes(props.difficultyLevel)) {
+      throw new Error("Le niveau de difficulté n'est pas valide");
+    }
+    if (!Object.values(ModuleStatus).includes(props.status)) {
+      throw new Error("Le statut du module n'est pas valide");
     }
 
     // Créer et retourner l'instance
@@ -88,12 +117,13 @@ export class Module extends DomainEntity<EntityId> {
   get description(): string {
     return this._description;
   }
-  get imageUrl(): string | null {
-    return this._imageUrl;
+
+  get imageMediaId(): string | null {
+    return this._imageMediaId;
   }
 
-  get thematics(): Thematic[] {
-    return [...this._thematics];
+  get thematics(): string {
+    return this._thematics;
   }
 
   get difficultyLevel(): DifficultyLevel {
@@ -106,14 +136,6 @@ export class Module extends DomainEntity<EntityId> {
 
   get status(): ModuleStatus {
     return this._status;
-  }
-
-  get createdAt(): Date {
-    return this._createdAt || new Date();
-  }
-
-  get updatedAt(): Date {
-    return this._updatedAt || new Date();
   }
 
   public publish(): void {
@@ -132,42 +154,12 @@ export class Module extends DomainEntity<EntityId> {
     this._updatedAt = new Date();
   }
 
-  public updateImageUrl(imageUrl: string | null): void {
-    if (!imageUrl || imageUrl.trim().length === 0) {
-      throw new Error("L'URL de l'image est obligatoire");
-    }
-    this._imageUrl = imageUrl;
-    this._updatedAt = new Date();
-  }
-
   public updateDescription(description: string): void {
     if (!description || description.trim().length === 0) {
       throw new Error('La description du module est obligatoire');
     }
     this._description = description;
     this._updatedAt = new Date();
-  }
-
-  public addThematic(thematic: Thematic): void {
-    if (!this._thematics.includes(thematic)) {
-      this._thematics.push(thematic);
-      this._updatedAt = new Date();
-    }
-  }
-
-  public removeThematic(thematic: Thematic): void {
-    const index = this._thematics.indexOf(thematic);
-    if (index > -1) {
-      if (this._thematics.length === 1) {
-        throw new Error('Le module doit avoir au moins une thématique');
-      }
-      this._thematics.splice(index, 1);
-      this._updatedAt = new Date();
-    }
-  }
-
-  public hasThematic(thematic: Thematic): boolean {
-    return this._thematics.includes(thematic);
   }
 
   public isPublished(): boolean {
@@ -188,7 +180,7 @@ export class Module extends DomainEntity<EntityId> {
       title: this._title,
       description: this._description,
       thematics: this._thematics,
-      imageUrl: this._imageUrl,
+      imageMediaId: this._imageMediaId,
       difficultyLevel: this._difficultyLevel,
       estimatedDuration: this._estimatedDuration,
       status: this._status,

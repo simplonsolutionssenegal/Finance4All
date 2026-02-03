@@ -2,6 +2,7 @@ export enum MediaType {
   VIDEO = 'VIDEO',
   PDF = 'PDF',
   AUDIO = 'AUDIO',
+  IMAGE = 'IMAGE',
 }
 
 export const ALLOWED_MIME_TYPES: Record<MediaType, string[]> = {
@@ -15,12 +16,22 @@ export const ALLOWED_MIME_TYPES: Record<MediaType, string[]> = {
     'audio/webm',
     'audio/aac',
   ],
+  [MediaType.IMAGE]: [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/svg+xml',
+    'image/jpg',
+  ],
 };
 
 export const MAX_FILE_SIZES: Record<MediaType, number> = {
   [MediaType.VIDEO]: 500 * 1024 * 1024, // 500MB
   [MediaType.PDF]: 50 * 1024 * 1024, // 50MB
   [MediaType.AUDIO]: 100 * 1024 * 1024, // 100MB
+  [MediaType.IMAGE]: 5 * 1024 * 1024, // 5MB
 };
 
 export function getMediaTypeFromMimeType(mimeType: string): MediaType | null {
