@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
-// import type { Lesson, Module } from '@/types/modules/module';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
 import type { Lesson } from '@/types/modules/Lesson';
 

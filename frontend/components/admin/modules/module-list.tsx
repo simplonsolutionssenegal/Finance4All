@@ -4,10 +4,10 @@
 
 import { ArrowRight, Loader2 } from 'lucide-react';
 
-import type { Module } from '@/types/modules/module';
-
 import { CustomPagination } from './custom-pagination';
 import ModuleCard from './module-card';
+
+import type { Module } from '@/types/modules/module';
 
 interface PaginationInfo {
   page: number;

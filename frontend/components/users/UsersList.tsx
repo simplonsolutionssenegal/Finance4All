@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+import UserInfoModal from './UserInfoModal';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,8 +47,6 @@ import ConfirmDesactivationModal from '@/components/users/ConfirmDesactivationMo
 import EditUserModal from '@/components/users/EditUserModal';
 import { useRemoveUserFromOrganization, useCreateUser, useUpdateUserRole } from '@/lib/clerk-utils';
 import type OrganizationUser from '@/types/OrganizationUser';
-
-import UserInfoModal from './UserInfoModal';
 
 interface UsersListProps {
   selectedRole?: string;
