@@ -83,7 +83,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
   async findById(id: string): Promise<Module | null> {
     const module = await this.prisma.module.findUnique({
       where: { id },
-      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+      include: {
+        lessons: {
+          include: {
+            chapters: { include: { quizzes: true } },
+            quizzes: true,
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return module ? this.toDomain(module) : null;
@@ -121,7 +129,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       include: {
         lessons: {
           include: {
-            chapters: true,
+            chapters: { include: { quizzes: true } },
             quizzes: true,
           },
         },
@@ -156,7 +164,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: modules.map(m => this.toDomain(m)), // ✅ maintenant ça compile
+      data: modules.map(m => this.toDomain(m)),
       pagination: {
         page: params.page,
         limit: params.limit,
