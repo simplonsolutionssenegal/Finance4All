@@ -5,12 +5,6 @@ import { ArrowRight, DollarSign, Funnel, TrendingDown, ArrowLeft, ChartColumn } 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
-import { computeFee } from '../../lib/FeeCalculator';
-
-import { ComparatorChartsView } from './ComparatorChartsView';
-import { ComparatorTableView } from './ComparatorTableView';
-import { ServiceList } from './ServiceList';
-
 import {
   Select,
   SelectTrigger,
@@ -21,6 +15,12 @@ import {
 import { useCompareServices } from '@/hooks/service/useCompareServices';
 import { useGetServices } from '@/hooks/service/useGetServices';
 import { TypeService } from '@/types/Service';
+
+import { computeFee } from '../../lib/FeeCalculator';
+
+import { ComparatorChartsView } from './ComparatorChartsView';
+import { ComparatorTableView } from './ComparatorTableView';
+import { ServiceList } from './ServiceList';
 
 type ProductType = 'TRANSFERT' | 'CREDIT' | 'EPARGNE';
 

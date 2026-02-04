@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import QuestionDialog from './question-dialog';
-
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -29,6 +27,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { QuestionDTO } from '@/types/modules/Question';
 import { QuizStatus, type Quiz } from '@/types/modules/Quiz';
+
+import QuestionDialog from './question-dialog';
 
 type QuizDraftBase = Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'totalPoints'>;
 

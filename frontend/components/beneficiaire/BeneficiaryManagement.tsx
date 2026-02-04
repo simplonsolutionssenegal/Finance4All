@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import BeneficiaryTable from './BeneficiaryTable';
-
 import AddBeneficiaryModal, {
   type CreateBeneficiaryPayload,
   type UpdateBeneficiaryPayload,
@@ -19,6 +17,8 @@ import { useCreateBeneficiaryAdmin } from '@/hooks/beneficiary/useCreateBenefici
 import type { Beneficiary } from '@/types/beneficiaire/beneficiary';
 // eslint-disable-next-line no-duplicate-imports
 import { BeneficiaryStatus } from '@/types/beneficiaire/beneficiary';
+
+import BeneficiaryTable from './BeneficiaryTable';
 
 export function uuidToInt(uuid: string): number {
   const hex = uuid.replace(/-/g, '').toLowerCase();

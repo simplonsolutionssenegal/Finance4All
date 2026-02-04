@@ -5,15 +5,6 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import type { Control, FieldErrors, UseFormWatch } from 'react-hook-form';
 
-import {
-  AVAILABLE_ZONES,
-  COUNTRIES,
-  INSTITUTION_TYPES,
-  COUNTRY_FLAGS,
-  removeZone,
-  type InstitutionFormData,
-} from './InstitutionFormSchema';
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +17,15 @@ import {
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+
+import {
+  AVAILABLE_ZONES,
+  COUNTRIES,
+  INSTITUTION_TYPES,
+  COUNTRY_FLAGS,
+  removeZone,
+  type InstitutionFormData,
+} from './InstitutionFormSchema';
 
 interface InstitutionFormFieldsProps {
   control: Control<InstitutionFormData>;

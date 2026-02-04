@@ -1,10 +1,10 @@
 import { DollarSign, TrendingDown, Zap } from 'lucide-react';
 import Image from 'next/image';
 
-import { computeFee } from '../../lib/FeeCalculator';
-
 import { formatCurrency } from '@/lib/format-utils';
 import { type ServiceDTO } from '@/types/Service';
+
+import { computeFee } from '../../lib/FeeCalculator';
 
 interface ComparaisonTableViewProps {
   comparedServices: ServiceDTO[];
