@@ -5,6 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
+import LessonDialog from './lesson-dialog';
+import LessonList from './lesson-list';
+import QuizDialog from './quiz-dialog';
+import QuizList from './quiz-list';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
