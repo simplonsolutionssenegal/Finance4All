@@ -5,17 +5,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useLoader } from '@/contexts/LoaderContext';
-import { useGetModuleById } from '@/hooks/module/useGetModuleById';
-// import type { Lesson, Module } from '@/types/modules/module';
-import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
-import type { Lesson } from '@/types/modules/Lesson';
-
 import LessonDialog from './lesson-dialog';
 import LessonList from './lesson-list';
 import QuizDialog from './quiz-dialog';
 import QuizList from './quiz-list';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useMediaUrl } from '@/hooks/module/media/useMedia';
+import { useGetModuleById } from '@/hooks/module/useGetModuleById';
+// import type { Lesson, Module } from '@/types/modules/module';
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
+import type { Lesson } from '@/types/modules/Lesson';
 
 function minutesLabel(n: number) {
   const v = Math.round(n);
@@ -72,6 +73,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const [activeTab, setActiveTab] = useState<'lessons' | 'quiz'>('lessons');
   const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
+
+  const { url: imageUrl } = useMediaUrl((module as any)?.imageMediaId ?? null);
 
   useEffect(() => {
     if (isLoading) showLoader();
@@ -150,8 +153,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
           {/* Bloc gauche (image + infos) */}
           <div className='flex items-start gap-4 min-w-0'>
             <div className='h-16 w-16 rounded-2xl overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center'>
-              {module.imageMediaId ? (
-                <Image src={module.imageMediaId} alt={module.title} width={64} height={64} />
+              {imageUrl ? (
+                <Image src={imageUrl} alt={module.title} width={64} height={64} />
               ) : (
                 <span className='text-3xl'>📘</span>
               )}

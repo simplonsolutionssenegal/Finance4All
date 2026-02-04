@@ -156,7 +156,7 @@ describe('ModuleDetailsComponent', () => {
       title: 'Mon module',
       description: 'Desc',
       imageUrl: 'https://img.test/x.png',
-      thematics: ['FINANCIAL_EDUCATION'],
+      thematics: 'Éducation financière',
       difficultyLevel: 'BEGINNER',
       estimatedDuration: 120,
       status: 'PUBLISHED',
@@ -327,7 +327,7 @@ describe('ModuleDetailsComponent', () => {
 
   it('should show emoji fallback when imageUrl is null and fallback thematic label/icon when thematics is empty', () => {
     useGetModuleByIdMock.mockReturnValue({
-      module: baseModule({ imageUrl: null, thematics: [] }),
+      module: baseModule({ imageUrl: null, thematics: 'Éducation financière' }),
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
@@ -335,9 +335,11 @@ describe('ModuleDetailsComponent', () => {
 
     render(<ModuleDetailsComponent moduleId='m1' />);
 
-    // Fallback label and icon
-    expect(screen.getByText('Thématique')).toBeInTheDocument();
+    // Emoji fallback (quand imageUrl est null)
     expect(screen.getByText('📘')).toBeInTheDocument();
+
+    // La thématique s'affiche normalement
+    expect(screen.getByText('Éducation financière')).toBeInTheDocument();
   });
 
   it.each([
