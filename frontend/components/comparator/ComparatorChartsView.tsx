@@ -16,9 +16,9 @@ import {
   Cell,
 } from 'recharts';
 
-import { type ServiceDTO } from '@/types/Service';
-
 import { computeFee } from '../../lib/FeeCalculator';
+
+import { type ServiceDTO } from '@/types/Service';
 
 interface ComparisonChartsViewProps {
   comparedServices: ServiceDTO[];

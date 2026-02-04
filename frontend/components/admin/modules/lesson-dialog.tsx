@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
+import ResourcePickerDialog, { type ResourceKind } from './ResourcePickerDialog';
+
 import {
   Accordion,
   AccordionContent,
@@ -35,9 +38,6 @@ import { useCreateLesson } from '@/hooks/lesson/useCreateLesson';
 import { useDeleteMedia } from '@/hooks/media/useDeleteMedia';
 import { useUploadMedia } from '@/hooks/media/useUploadMedia';
 import { LessonStatus, type ChapterDto } from '@/types/modules/Lesson';
-
-import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
-import ResourcePickerDialog, { type ResourceKind } from './ResourcePickerDialog';
 
 type LessonDialogProps = {
   open: boolean;

@@ -2,9 +2,9 @@
 
 import { FileText, Plus } from 'lucide-react';
 
-import type { Lesson } from '@/types/modules/Lesson';
-
 import LessonItem from './lesson-item';
+
+import type { Lesson } from '@/types/modules/Lesson';
 
 type LessonListProps = {
   lessons: Lesson[];

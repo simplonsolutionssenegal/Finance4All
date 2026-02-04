@@ -3,9 +3,9 @@
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import * as React from 'react';
 
-import { cn } from '@/lib/utils';
-
 import { Input } from './ui/input';
+
+import { cn } from '@/lib/utils';
 
 export interface PasswordInputProps extends Omit<React.ComponentProps<'input'>, 'type'> {
   showPasswordToggle?: boolean;
