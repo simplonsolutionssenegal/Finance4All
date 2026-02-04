@@ -112,7 +112,15 @@ describe('PrismaModuleFormationRepository', () => {
           status: ModuleStatus.DRAFT,
           lessons: { create: [] },
         }),
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(saved).toBeInstanceOf(Module);
@@ -138,13 +146,13 @@ describe('PrismaModuleFormationRepository', () => {
 
       const lesson1 = new Lesson({
         id: EntityId.from(uuid2),
-        moduleId: uuid1, // ✅ Ajout
+        moduleId: uuid1,
         title: 'Leçon 1',
         description: 'Description leçon 1',
         duration: 30,
         order: 1,
         chapters: [chapter1, chapter2],
-        quizzes: [], // ✅ Ajout
+        quizzes: [],
         status: LessonStatus.PUBLISHED,
       });
 
@@ -181,7 +189,16 @@ describe('PrismaModuleFormationRepository', () => {
             duration: 30,
             order: 1,
             status: LessonStatus.PUBLISHED,
-            chapters: [chapter1.toDTO(), chapter2.toDTO()],
+            chapters: [
+              {
+                ...chapter1.toDTO(),
+                quizzes: [],
+              },
+              {
+                ...chapter2.toDTO(),
+                quizzes: [],
+              },
+            ],
             quizzes: [],
           },
         ],
@@ -205,7 +222,15 @@ describe('PrismaModuleFormationRepository', () => {
             ]),
           },
         }),
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(saved.lessons).toHaveLength(1);
@@ -260,7 +285,15 @@ describe('PrismaModuleFormationRepository', () => {
 
       expect(mockPrisma.module!.findFirst).toHaveBeenCalledWith({
         where: { title: { equals: 'Found' } },
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
       expect(found).not.toBeNull();
       expect(found).toBeInstanceOf(Module);
@@ -302,7 +335,15 @@ describe('PrismaModuleFormationRepository', () => {
 
       expect(mockPrisma.module!.findUnique).toHaveBeenCalledWith({
         where: { id: uuid1 },
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
       expect(found).not.toBeNull();
       expect(found).toBeInstanceOf(Module);
@@ -316,8 +357,6 @@ describe('PrismaModuleFormationRepository', () => {
       expect(found).toBeNull();
     });
 
-    // Remplacez cette section dans votre test:
-
     it('devrait mapper correctement les lessons avec chapters', async () => {
       const chaptersDto: ChapterDTO[] = [
         {
@@ -326,8 +365,9 @@ describe('PrismaModuleFormationRepository', () => {
           description: 'Desc1',
           mediaId: 'media1',
           order: 1,
-          createdAt: new Date(), // ✅ Ajouté
-          updatedAt: new Date(), // ✅ Ajouté
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          quizzes: [],
         },
         {
           id: randomUUID(),
@@ -335,8 +375,9 @@ describe('PrismaModuleFormationRepository', () => {
           description: 'Desc2',
           mediaId: 'media2',
           order: 2,
-          createdAt: new Date(), // ✅ Ajouté
-          updatedAt: new Date(), // ✅ Ajouté
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          quizzes: [],
         },
       ];
 
@@ -376,6 +417,7 @@ describe('PrismaModuleFormationRepository', () => {
       expect(found?.lessons[0].chapters[0]).toBeInstanceOf(Chapter);
       expect(found?.lessons[0].chapters[0].title).toBe('Ch1');
     });
+
     it('devrait mapper correctement les quizzes avec questions', async () => {
       const questionsDto: QuestionDTO[] = [
         {
@@ -436,6 +478,8 @@ describe('PrismaModuleFormationRepository', () => {
       expect(found?.quizzes[0].questions).toHaveLength(2);
       expect(found?.quizzes[0].questions[0]).toBeInstanceOf(QuestionChoixUnique);
       expect(found?.quizzes[0].questions[1]).toBeInstanceOf(QuestionChoixMultiple);
+      // ✅ Vérifier que moduleId est correctement mappé
+      expect(found?.quizzes[0].moduleId).toBe(uuid1);
     });
 
     it('devrait gérer les chapters vides ou non-array', async () => {
@@ -453,7 +497,7 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           {
             id: uuid2,
-            moduleId: uuid1, // ✅ Ajout
+            moduleId: uuid1,
             title: 'Lesson',
             description: 'Desc',
             duration: 20,
@@ -548,6 +592,206 @@ describe('PrismaModuleFormationRepository', () => {
 
       await expect(repository.findById(uuid1)).rejects.toThrow('TypeQuestion inconnu');
     });
+
+    it('devrait mapper correctement les quizzes de leçon avec lessonId', async () => {
+      const questionsDto: QuestionDTO[] = [
+        {
+          type: TypeQuestion.CHOIX_UNIQUE,
+          question: 'Question leçon?',
+          points: 10,
+          options: [
+            { text: 'A', isCorrect: true },
+            { text: 'B', isCorrect: false },
+          ],
+          explication: 'Exp',
+        },
+      ];
+
+      const row: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'financial_education',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [
+          {
+            id: uuid2,
+            moduleId: uuid1,
+            title: 'Lesson',
+            description: 'Desc',
+            duration: 30,
+            order: 1,
+            status: LessonStatus.PUBLISHED,
+            chapters: [],
+            quizzes: [
+              {
+                id: uuid3,
+                lessonId: uuid2,
+                title: 'Quiz Leçon',
+                description: 'Quiz desc',
+                status: QuizStatus.PUBLISHED,
+                scoreMinimum: 60,
+                duree: 20,
+                nombreTentatives: 2,
+                questions: questionsDto,
+              },
+            ],
+          },
+        ],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(row);
+
+      const found = await repository.findById(uuid1);
+
+      expect(found?.lessons[0].quizzes).toHaveLength(1);
+      // ✅ Vérifier que lessonId est correctement mappé
+      expect(found?.lessons[0].quizzes[0].lessonId).toBe(uuid2);
+      expect(found?.lessons[0].quizzes[0].moduleId).toBe(uuid1);
+    });
+
+    it('devrait mapper correctement les quizzes de chapitre avec chapterId', async () => {
+      const quizId = randomUUID();
+      const chapterId = randomUUID();
+
+      const questionsDto: QuestionDTO[] = [
+        {
+          type: TypeQuestion.CHOIX_UNIQUE,
+          question: 'Question chapitre?',
+          points: 5,
+          options: [
+            { text: 'A', isCorrect: true },
+            { text: 'B', isCorrect: false },
+          ],
+          explication: 'Exp',
+        },
+      ];
+
+      const chaptersDto: ChapterDTO[] = [
+        {
+          id: chapterId,
+          title: 'Chapitre 1',
+          description: 'Desc',
+          mediaId: 'media1',
+          order: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          quizzes: [
+            {
+              id: quizId,
+              chapterId,
+              title: 'Quiz Chapitre',
+              description: 'Quiz desc',
+              status: QuizStatus.PUBLISHED,
+              scoreMinimum: 50,
+              duree: 15,
+              nombreTentatives: 1,
+              questions: questionsDto,
+              totalPoints: 5, // ✅ Ajouté
+              createdAt: new Date(), // ✅ Ajouté
+              updatedAt: new Date(), // ✅ Ajouté
+            },
+          ],
+        },
+      ];
+
+      const row: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'financial_education',
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 60,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [
+          {
+            id: uuid2,
+            moduleId: uuid1,
+            title: 'Lesson',
+            description: 'Desc',
+            duration: 30,
+            order: 1,
+            status: LessonStatus.PUBLISHED,
+            chapters: chaptersDto,
+            quizzes: [],
+          },
+        ],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findUnique.mockResolvedValue(row);
+
+      const found = await repository.findById(uuid1);
+
+      expect(found?.lessons[0].chapters[0].quizzes).toHaveLength(1);
+      // ✅ Vérifier que chapterId et lessonId sont correctement mappés
+      expect(found?.lessons[0].chapters[0].quizzes[0].chapterId).toBe(chapterId);
+      expect(found?.lessons[0].chapters[0].quizzes[0].lessonId).toBe(uuid2);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // findByThematic(thematic)
+  // ---------------------------------------------------------------------------
+
+  describe('findByThematic(thematic)', () => {
+    it('devrait retourner Module quand trouvé par thématique (insensible à la casse)', async () => {
+      const row: PrismaModuleRow = {
+        id: uuid1,
+        title: 'Module Finance',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance et comptabilité',
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 90,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(row);
+
+      const found = await repository.findByThematic('Finance et Comptabilité');
+
+      expect(mockPrisma.module!.findFirst).toHaveBeenCalledWith({
+        where: {
+          thematics: {
+            equals: 'finance et comptabilité',
+            mode: 'insensitive',
+          },
+        },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
+      });
+      expect(found).not.toBeNull();
+      expect(found).toBeInstanceOf(Module);
+      expect(found?.thematics).toBe('finance et comptabilité');
+    });
+
+    it('devrait retourner null si thématique introuvable', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      const found = await repository.findByThematic('Thématique inexistante');
+      expect(found).toBeNull();
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -597,7 +841,15 @@ describe('PrismaModuleFormationRepository', () => {
         skip: 5,
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
       expect(mockPrisma.module!.count).toHaveBeenCalled();
 
@@ -696,7 +948,15 @@ describe('PrismaModuleFormationRepository', () => {
           estimatedDuration: 60,
           status: ModuleStatus.PUBLISHED,
         },
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(result).toBeInstanceOf(Module);
@@ -733,13 +993,13 @@ describe('PrismaModuleFormationRepository', () => {
 
       const newLesson = new Lesson({
         id: EntityId.from(uuid3),
-        moduleId: uuid1, // ✅ Ajout
+        moduleId: uuid1,
         title: 'New Lesson',
         description: 'New Desc',
         duration: 25,
         order: 2,
         chapters: [],
-        quizzes: [], // ✅ Ajout
+        quizzes: [],
         status: LessonStatus.DRAFT,
       });
 
@@ -754,13 +1014,13 @@ describe('PrismaModuleFormationRepository', () => {
         lessons: [
           new Lesson({
             id: EntityId.from(uuid2),
-            moduleId: uuid1, // ✅ Ajout
+            moduleId: uuid1,
             title: 'Existing Lesson',
             description: 'Desc',
             duration: 20,
             order: 1,
             chapters: [],
-            quizzes: [], // ✅ Ajout
+            quizzes: [],
             status: LessonStatus.PUBLISHED,
           }),
           newLesson,
@@ -806,7 +1066,15 @@ describe('PrismaModuleFormationRepository', () => {
             ],
           },
         }),
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(result.lessons).toHaveLength(2);
@@ -911,7 +1179,15 @@ describe('PrismaModuleFormationRepository', () => {
             ],
           },
         }),
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(result.quizzes).toHaveLength(2);
@@ -935,13 +1211,13 @@ describe('PrismaModuleFormationRepository', () => {
 
       const newLesson = new Lesson({
         id: EntityId.from(uuid2),
-        moduleId: uuid1, // ✅ Ajout
+        moduleId: uuid1,
         title: 'New Lesson',
         description: 'Lesson Desc',
         duration: 30,
         order: 1,
         chapters: [],
-        quizzes: [], // ✅ Ajout
+        quizzes: [],
         status: LessonStatus.DRAFT,
       });
 
@@ -1010,7 +1286,15 @@ describe('PrismaModuleFormationRepository', () => {
           lessons: { create: expect.any(Array) },
           quizzes: { create: expect.any(Array) },
         }),
-        include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+        include: {
+          lessons: {
+            include: {
+              chapters: { include: { quizzes: true } },
+              quizzes: true,
+            },
+          },
+          quizzes: true,
+        },
       });
 
       expect(result.lessons).toHaveLength(1);

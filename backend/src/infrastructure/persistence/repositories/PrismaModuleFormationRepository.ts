@@ -26,7 +26,11 @@ type ModuleWithLessonsAndQuizzes = Prisma.ModuleGetPayload<{
   include: {
     lessons: {
       include: {
-        chapters: true;
+        chapters: {
+          include: {
+            quizzes: true;
+          };
+        };
         quizzes: true;
       };
     };
@@ -42,7 +46,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     const saved = await this.prisma.module.create({
       data,
-      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+      include: {
+        lessons: {
+          include: {
+            chapters: { include: { quizzes: true } },
+            quizzes: true,
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return this.toDomain(saved);
@@ -53,7 +65,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       where: {
         title: { equals: title },
       },
-      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+      include: {
+        lessons: {
+          include: {
+            chapters: { include: { quizzes: true } },
+            quizzes: true,
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return module ? this.toDomain(module) : null;
@@ -62,11 +82,20 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
   async findById(id: string): Promise<Module | null> {
     const module = await this.prisma.module.findUnique({
       where: { id },
-      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+      include: {
+        lessons: {
+          include: {
+            chapters: { include: { quizzes: true } },
+            quizzes: true,
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return module ? this.toDomain(module) : null;
   }
+
   async findByThematic(thematic: string): Promise<Module | null> {
     const normalizedThematic = thematic.toLowerCase().trim();
 
@@ -77,11 +106,10 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
           mode: 'insensitive',
         },
       },
-      // ✅ Ajoutez l'include comme dans les autres méthodes
       include: {
         lessons: {
           include: {
-            chapters: true,
+            chapters: { include: { quizzes: true } },
             quizzes: true,
           },
         },
@@ -103,7 +131,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
         include: {
           lessons: {
             include: {
-              chapters: true,
+              chapters: { include: { quizzes: true } },
               quizzes: true,
             },
           },
@@ -116,7 +144,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     const totalPages = Math.ceil(total / params.limit);
 
     return {
-      data: modules.map(m => this.toDomain(m)), // ✅ maintenant ça compile
+      data: modules.map(m => this.toDomain(m)),
       pagination: {
         page: params.page,
         limit: params.limit,
@@ -155,7 +183,15 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
           ? { quizzes: { create: newQuizzes.map(q => this.mapQuizToPrisma(q)) } }
           : {}),
       },
-      include: { lessons: { include: { chapters: true, quizzes: true } }, quizzes: true },
+      include: {
+        lessons: {
+          include: {
+            chapters: { include: { quizzes: true } },
+            quizzes: true,
+          },
+        },
+        quizzes: true,
+      },
     });
 
     return this.toDomain(updated);
@@ -165,8 +201,9 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
   // Mapping Prisma -> Domain
   // -------------------------
   private toDomain(prismaModule: ModuleWithLessonsAndQuizzes): Module {
-    const lessons = prismaModule.lessons?.map(l => this.mapLessonToDomain(l)) || [];
-    const quizzes = prismaModule.quizzes?.map(q => this.mapQuizToDomain(q)) || [];
+    const lessons =
+      prismaModule.lessons?.map(l => this.mapLessonToDomain(l, prismaModule.id)) || [];
+    const quizzes = prismaModule.quizzes?.map(q => this.mapQuizToDomain(q, prismaModule.id)) || [];
 
     return new Module({
       id: EntityId.from(prismaModule.id),
@@ -184,15 +221,20 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     });
   }
 
-  private mapLessonToDomain(prismaLesson: ModuleWithLessonsAndQuizzes['lessons'][number]): Lesson {
+  private mapLessonToDomain(
+    prismaLesson: ModuleWithLessonsAndQuizzes['lessons'][number],
+    moduleId: string
+  ): Lesson {
     const chaptersDto: ChapterDTO[] = Array.isArray(prismaLesson.chapters)
       ? (prismaLesson.chapters as unknown as ChapterDTO[])
       : [];
 
-    const chapters = chaptersDto.map(c => this.mapChapterToDomain(c));
+    const chapters = chaptersDto.map(c => this.mapChapterToDomain(c, prismaLesson.id));
 
-    // ⭐ Mapper les quizzes de la leçon
-    const quizzes = (prismaLesson.quizzes ?? []).map(q => this.mapQuizToDomain(q));
+    // ⭐ Mapper les quizzes de la leçon avec lessonId
+    const quizzes = (prismaLesson.quizzes ?? []).map(q =>
+      this.mapQuizToDomain(q, moduleId, prismaLesson.id)
+    );
 
     return new Lesson({
       id: EntityId.from(prismaLesson.id),
@@ -202,12 +244,18 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
       duration: prismaLesson.duration,
       order: prismaLesson.order,
       chapters,
-      quizzes, // ⭐ Ajouter les quizzes
+      quizzes,
       status: prismaLesson.status as LessonStatus,
     });
   }
 
-  private mapQuizToDomain(prismaQuiz: ModuleWithLessonsAndQuizzes['quizzes'][number]): Quiz {
+  // ⭐ MODIFICATION PRINCIPALE : Ajouter les paramètres moduleId, lessonId, chapterId
+  private mapQuizToDomain(
+    prismaQuiz: any, // Type simplifié car il peut venir de différents niveaux
+    moduleId?: string,
+    lessonId?: string,
+    chapterId?: string
+  ): Quiz {
     const raw = prismaQuiz.questions;
 
     const questionsDto: QuestionDTO[] = Array.isArray(raw) ? (raw as unknown as QuestionDTO[]) : [];
@@ -216,6 +264,9 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     return new Quiz({
       id: EntityId.from(prismaQuiz.id),
+      moduleId, // ⭐ Ajouté
+      lessonId, // ⭐ Ajouté
+      chapterId, // ⭐ Ajouté
       title: prismaQuiz.title,
       description: prismaQuiz.description,
       status: prismaQuiz.status as QuizStatus,
@@ -291,7 +342,8 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     };
   }
 
-  private mapChapterToDomain(dto: ChapterDTO): Chapter {
+  // ⭐ Ajouter lessonId comme paramètre
+  private mapChapterToDomain(dto: ChapterDTO, lessonId: string): Chapter {
     const quizzes = (dto.quizzes ?? []).map(quizDto => {
       const prismaQuizFormat = {
         ...quizDto,
@@ -302,7 +354,13 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
         questions: quizDto.questions as unknown as Prisma.JsonValue,
       };
 
-      return this.mapQuizToDomain(prismaQuizFormat);
+      // ⭐ Passer les IDs appropriés
+      return this.mapQuizToDomain(
+        prismaQuizFormat,
+        quizDto.moduleId,
+        lessonId,
+        dto.id // chapterId
+      );
     });
 
     return new Chapter(
@@ -327,6 +385,7 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
     throw new Error(`TypeQuestion inconnu: ${String((dto as any).type)}`);
   }
+
   // -------------------------
   // Mapping Domain -> Prisma
   // -------------------------
@@ -348,6 +407,10 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
 
       lessons: {
         create: module.lessons.map(l => this.mapLessonToPrisma(l)),
+      },
+
+      quizzes: {
+        create: module.quizzes.map(q => this.mapQuizToPrisma(q)),
       },
     };
   }

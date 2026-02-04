@@ -49,6 +49,9 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      // ✅ Mock de getAllQuizzes()
+      const getAllQuizzesSpy = jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
+
       mockRepository.findById.mockResolvedValue(domainModule);
 
       // Act
@@ -57,6 +60,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       // Assert
       expect(mockRepository.findById).toHaveBeenCalledWith(moduleId);
       expect(mockRepository.findById).toHaveBeenCalledTimes(1);
+      expect(getAllQuizzesSpy).toHaveBeenCalled();
 
       expect(result).toEqual({
         id: moduleId,
@@ -69,7 +73,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         status: ModuleStatus.PUBLISHED,
         lessons: [],
         quizzes: [],
-        quizzesGlobal: [], // ✅ Ajouté par le use case
+        quizzesGlobal: [],
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       });
@@ -89,6 +93,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       const result = await useCase.execute({ id: moduleId });
@@ -121,6 +126,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
           quizzes: [],
         });
 
+        jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
         mockRepository.findById.mockResolvedValue(domainModule);
 
         const result = await useCase.execute({ id: moduleId });
@@ -151,6 +157,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
           quizzes: [],
         });
 
+        jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
         mockRepository.findById.mockResolvedValue(domainModule);
 
         const result = await useCase.execute({ id: moduleId });
@@ -176,6 +183,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
           quizzes: [],
         });
 
+        jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
         mockRepository.findById.mockResolvedValue(domainModule);
 
         const result = await useCase.execute({ id: moduleId });
@@ -245,6 +253,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
           quizzes: [],
         });
 
+        jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
         mockRepository.findById.mockResolvedValue(domainModule);
 
         const result = await useCase.execute({ id: moduleId });
@@ -267,10 +276,12 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      const getAllQuizzesSpy = jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       const result = await useCase.execute({ id: moduleId });
 
+      expect(getAllQuizzesSpy).toHaveBeenCalled();
       expect(result.quizzesGlobal).toEqual([]);
       expect(result.quizzes).toEqual([]);
     });
@@ -278,7 +289,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
 
   describe('Cas limites et edge cases', () => {
     it('devrait gérer un titre très long', async () => {
-      const longTitle = 'A'.repeat(200); // Maximum autorisé
+      const longTitle = 'A'.repeat(200);
 
       const domainModule = new Module({
         id: EntityId.from(moduleId),
@@ -293,6 +304,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       const result = await useCase.execute({ id: moduleId });
@@ -317,6 +329,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       const result = await useCase.execute({ id: moduleId });
@@ -340,6 +353,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
         quizzes: [],
       });
 
+      jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       const result = await useCase.execute({ id: moduleId });
@@ -347,7 +361,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       expect(result.imageMediaId).toBe(longMediaId);
     });
 
-    it('devrait appeler toDTO() une seule fois', async () => {
+    it('devrait appeler toDTO() et getAllQuizzes()', async () => {
       const domainModule = new Module({
         id: EntityId.from(moduleId),
         title: 'Module test',
@@ -362,11 +376,13 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       });
 
       const toDtoSpy = jest.spyOn(domainModule, 'toDTO');
+      const getAllQuizzesSpy = jest.spyOn(domainModule, 'getAllQuizzes').mockReturnValue([]);
       mockRepository.findById.mockResolvedValue(domainModule);
 
       await useCase.execute({ id: moduleId });
 
-      expect(toDtoSpy).toHaveBeenCalledTimes(1);
+      expect(toDtoSpy).toHaveBeenCalled();
+      expect(getAllQuizzesSpy).toHaveBeenCalled();
     });
   });
 });
