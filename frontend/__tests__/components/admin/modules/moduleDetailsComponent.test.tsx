@@ -245,7 +245,6 @@ describe('ModuleDetailsComponent', () => {
 
   it('should render main UI, sort lessons, compute duration from lessons, open dialogs, call refetch via onCreated, and call onEdit', () => {
     const refetch = jest.fn();
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     useGetModuleByIdMock.mockReturnValue({
       module: baseModule(),
@@ -262,9 +261,8 @@ describe('ModuleDetailsComponent', () => {
     expect(screen.getByText('Débutant')).toBeInTheDocument();
     expect(screen.getByText('PUBLISHED')).toBeInTheDocument();
 
-    // ✅ Ne JAMAIS faire getByText('2') si ça peut apparaître plusieurs fois
     expect(screen.getAllByText('2').length).toBeGreaterThan(0); // totalLessons
-    expect(screen.getAllByText('1').length).toBeGreaterThan(0); // quizCount (peut apparaître plusieurs fois)
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0); // quizCount
 
     // Durée: 10 + 45 = 55 => "55min"
     expect(screen.getByText('55min')).toBeInTheDocument();
@@ -302,14 +300,13 @@ describe('ModuleDetailsComponent', () => {
     // Close lesson dialog avant d'appeler onEdit
     fireEvent.click(screen.getByText('lesson-close'));
 
+    // ✅ onEdit est appelé mais ne fait rien pour le moment (TODO)
     fireEvent.click(screen.getByText('call-onEdit'));
-    expect(consoleSpy).toHaveBeenCalledWith('edit lesson', expect.objectContaining({ id: 'l2' }));
+    // Pas d'assertion ici car la fonctionnalité n'est pas encore implémentée
 
     // ✅ Test onCreated pour lesson dialog
     fireEvent.click(screen.getByText('lesson-created'));
     expect(refetch).toHaveBeenCalledTimes(2); // 1 quiz + 1 lesson
-
-    consoleSpy.mockRestore();
   });
 
   it('should use estimatedDuration when there are no lessons (totalLessons=0)', () => {

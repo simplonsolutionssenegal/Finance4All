@@ -14,8 +14,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import InstitutionModal from './InstitutionModal';
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +26,8 @@ import {
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetInstitutions } from '@/hooks/institution/useGetInstitutions';
 import { type Institution, InstitutionStatus } from '@/types/Institution';
+
+import InstitutionModal from './InstitutionModal';
 
 const TYPE_LABELS: Record<string, string> = {
   ETABLISSEMENT_MONNAIE_ELECTRONIQUE: 'Établissement de monnaie électronique',

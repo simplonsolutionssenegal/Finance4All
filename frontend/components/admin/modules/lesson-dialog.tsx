@@ -4,17 +4,14 @@ import {
   Clock,
   Check,
   Save,
-  FileText,
   Plus,
   Trash2,
   Upload,
   X,
   SquareCheckBig,
+  LayoutList,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
-import ResourcePickerDialog, { type ResourceKind } from './ResourcePickerDialog';
 
 import {
   Accordion,
@@ -38,6 +35,9 @@ import { useCreateLesson } from '@/hooks/lesson/useCreateLesson';
 import { useDeleteMedia } from '@/hooks/media/useDeleteMedia';
 import { useUploadMedia } from '@/hooks/media/useUploadMedia';
 import { LessonStatus, type ChapterDto } from '@/types/modules/Lesson';
+
+import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
+import ResourcePickerDialog, { type ResourceKind } from './ResourcePickerDialog';
 
 type LessonDialogProps = {
   open: boolean;
@@ -562,9 +562,9 @@ export default function LessonDialog({
             {chapterError && <p className='text-xs text-orange-600'>{chapterError}</p>}
 
             {chapters.length === 0 ? (
-              <div className='rounded-xl border border-slate-200 bg-white p-10 text-center'>
+              <div className='rounded-xl border border-slate-200 bg-white p-5 text-center'>
                 <div className='mx-auto mb-4 h-8 w-8 rounded-2xl bg-slate-50 flex items-center justify-center'>
-                  <FileText className='h-6 w-6 text-slate-400' />
+                  <LayoutList className='h-8 w-8 text-slate-400' />
                 </div>
                 <p className='text-sm text-slate-900'>Aucun chapitre</p>
                 <p className='mt-1 text-xs text-slate-500'>
@@ -780,9 +780,9 @@ export default function LessonDialog({
             <p className='text-sm font-semibold text-slate-900'>Quiz de fin de leçon</p>
 
             {lessonQuizzes.length === 0 ? (
-              <div className='rounded-xl border border-slate-200 bg-white p-10 text-center'>
+              <div className='rounded-xl border border-slate-200 bg-white p-5 text-center'>
                 <div className='mx-auto mb-4 h-8 w-8 rounded-2xl bg-slate-50 flex items-center justify-center'>
-                  <SquareCheckBig className='h-6 w-6 text-slate-400' />
+                  <SquareCheckBig className='h-8 w-8 text-slate-400' />
                 </div>
 
                 <p className='text-sm text-slate-700'>

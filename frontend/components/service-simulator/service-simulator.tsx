@@ -14,15 +14,15 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-
 import { useSimulator } from '@/hooks/useSimulator';
 import type { DropdownOption } from '@/lib/dropdown-types';
 import { computeFee } from '@/lib/FeeCalculator';
 import { formatCurrency, validateValue } from '@/lib/format-utils';
 import type { Institution, Service } from '@/lib/simulator-types';
 import type { RecentSim, ServiceDTO } from '@/types/Service';
+
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 
 const DEFAULT_MAX_AMOUNT = 20_000_000;
 

@@ -5,9 +5,6 @@ import { Check, ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { InstitutionFormFields } from './shared/InstitutionFormFields';
-import { institutionSchema, type InstitutionFormData } from './shared/InstitutionFormSchema';
-
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +17,9 @@ import { Form } from '@/components/ui/form';
 import { useCreateInstitution } from '@/hooks/institution/useCreateInstitution';
 import { useUpdateInstitution } from '@/hooks/institution/useUpdateInstitution';
 import type { Institution } from '@/types/Institution';
+
+import { InstitutionFormFields } from './shared/InstitutionFormFields';
+import { institutionSchema, type InstitutionFormData } from './shared/InstitutionFormSchema';
 
 interface InstitutionModalProps {
   open: boolean;

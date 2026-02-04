@@ -1,8 +1,8 @@
 'use client';
 
-import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
-
 import { useCreateQuiz } from '@/hooks/quiz/useCreateQuiz';
+
+import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
 
 type Props = {
   open: boolean;

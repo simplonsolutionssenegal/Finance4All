@@ -5,17 +5,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import LessonDialog from './lesson-dialog';
-import LessonList from './lesson-list';
-import QuizDialog from './quiz-dialog';
-import QuizList from './quiz-list';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
 import type { Lesson } from '@/types/modules/Lesson';
+
+// ✅ Les imports locaux relatifs viennent APRÈS les imports de types
+import LessonDialog from './lesson-dialog';
+import LessonList from './lesson-list';
+import QuizDialog from './quiz-dialog';
+import QuizList from './quiz-list';
 
 function minutesLabel(n: number) {
   const v = Math.round(n);
@@ -73,7 +74,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
 
-  const { url: imageUrl } = useMediaUrl((module as any)?.imageMediaId ?? null);
+  const { url: imageUrl } = useMediaUrl(module?.imageMediaId ?? null);
 
   useEffect(() => {
     if (isLoading) showLoader();
@@ -89,8 +90,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const totalLessons = lessonsSorted.length;
   const totalDuration =
     totalLessons > 0 ? sumLessonDuration(lessonsSorted) : (module?.estimatedDuration ?? 0);
-
-  // const enrolledCount = 189;
 
   if (isError) {
     return (
@@ -115,7 +114,9 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             </div>
 
             <p className='text-slate-900 font-medium text-lg'>Module introuvable</p>
-            <p className='mt-1 text-sm text-slate-500'>Ce module n’existe pas ou a été supprimé.</p>
+            <p className='mt-1 text-sm text-slate-500'>
+              Ce module n&apos;existe pas ou a été supprimé.
+            </p>
 
             <Link
               href='/modules'
@@ -132,11 +133,10 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
 
   const quizzesGlobal = module.quizzesGlobal ?? [];
   const quizCount = quizzesGlobal.length;
+
   return (
     <div className='min-h-screen text-white p-4'>
       <div className='max-w-6xl mx-auto space-y-6'>
-        {/* Top bar */}
-        {/* Retour */}
         <div>
           <Link
             href='/modules'
@@ -147,9 +147,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
           </Link>
         </div>
 
-        {/* Header + bouton modifier aligné */}
         <div className='flex items-start justify-between gap-6'>
-          {/* Bloc gauche (image + infos) */}
           <div className='flex items-start gap-4 min-w-0'>
             <div className='h-16 w-16 rounded-2xl overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center'>
               {imageUrl ? (
@@ -176,7 +174,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             </div>
           </div>
 
-          {/* Bloc droit (bouton modifier) */}
           <button className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium shrink-0'>
             <Pencil className='h-4 w-4' />
             Modifier
@@ -212,6 +209,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             label='Inscrits'
           />
         </div>
+
         <div className='mt-4'>
           <Tabs
             defaultValue='lessons'
@@ -257,9 +255,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                   lessons={lessonsSorted}
                   moduleId={moduleId}
                   onCreate={() => setIsLessonDialogOpen(true)}
-                  onEdit={lesson => {
-                    // ici tu ouvres ton formulaire d’édition (dialog/side panel) avec la lesson
-                    console.log('edit lesson', lesson);
+                  onEdit={() => {
+                    // TODO: implement edit functionality
                   }}
                 />
               </div>
@@ -284,6 +281,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             </TabsContent>
           </Tabs>
         </div>
+
         <LessonDialog
           open={isLessonDialogOpen}
           onOpenChange={setIsLessonDialogOpen}

@@ -4,14 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { InstitutionFormFields } from './shared/InstitutionFormFields';
-import { institutionSchema, type InstitutionFormData } from './shared/InstitutionFormSchema';
-
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useUpdateInstitution } from '@/hooks/institution/useUpdateInstitution';
 import type { Institution } from '@/types/Institution';
+
+import { InstitutionFormFields } from './shared/InstitutionFormFields';
+import { institutionSchema, type InstitutionFormData } from './shared/InstitutionFormSchema';
 
 interface EditInstitutionModalProps {
   open: boolean;

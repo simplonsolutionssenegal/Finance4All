@@ -1,6 +1,6 @@
-import type { SimulationParams, Estimation } from './simulator-types';
-
 import type { Service } from '@/types/Service';
+
+import type { SimulationParams, Estimation } from './simulator-types';
 
 /**
  * Calcule les frais réels d'un service
