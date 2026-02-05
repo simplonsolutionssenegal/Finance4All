@@ -3,7 +3,8 @@
 import { FileText, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { Lesson, Quiz } from '@/types/learning/lesson';
+import type { Lesson, Quiz, LessonProgressStatus } from '@/types/learning/lesson';
+import type { QuizProgressDTO } from '@/types/learning/quiz-progress';
 
 import LessonList from './LessonList';
 import QuizList from './QuizList';
@@ -13,9 +14,20 @@ interface ModuleTabsProps {
   readonly lessons: Lesson[];
   readonly totalLessons: number;
   readonly quizzes: Quiz[];
+  readonly lessonStatuses: Map<string, LessonProgressStatus>;
+  readonly quizAvailability: Map<string, boolean>;
+  readonly quizProgressMap: Map<string, QuizProgressDTO>;
 }
 
-export default function ModuleTabs({ moduleId, lessons, totalLessons, quizzes }: ModuleTabsProps) {
+export default function ModuleTabs({
+  moduleId,
+  lessons,
+  totalLessons,
+  quizzes,
+  lessonStatuses,
+  quizAvailability,
+  quizProgressMap,
+}: ModuleTabsProps) {
   const [activeTab, setActiveTab] = useState<'lessons' | 'quizzes'>('lessons');
   const totalQuizzes = quizzes.length;
 
@@ -55,10 +67,15 @@ export default function ModuleTabs({ moduleId, lessons, totalLessons, quizzes }:
 
       {/* Contenu selon l'onglet actif */}
       {activeTab === 'lessons' ? (
-        <LessonList moduleId={moduleId} lessons={lessons} />
+        <LessonList moduleId={moduleId} lessons={lessons} lessonStatuses={lessonStatuses} />
       ) : (
         <>
-          <QuizList moduleId={moduleId} quizzes={quizzes} />
+          <QuizList
+            moduleId={moduleId}
+            quizzes={quizzes}
+            quizAvailability={quizAvailability}
+            quizProgressMap={quizProgressMap}
+          />
         </>
       )}
     </>

@@ -1,13 +1,15 @@
-'use client';
+﻿'use client';
 
 import { BookOpen, Award, TrendingUp, Clock, Target, Trophy } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useMemo } from 'react';
 
 import ModuleTabs from '@/components/learning/ModuleTabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGetMediaById } from '@/hooks/media/useGetMediaById';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
+import { useQuizProgressMap } from '@/hooks/quiz/useQuizProgressMap';
 import { DIFFICULTY_LABELS } from '@/lib/constants/module-constants';
 import {
   mapLessonSummary,
@@ -15,19 +17,28 @@ import {
   type BackendLesson,
   type BackendQuiz,
 } from '@/lib/learning/learning-adapters';
-import { QuizStatus, type Lesson, type Quiz } from '@/types/learning/lesson';
+import {
+  QuizStatus,
+  type Lesson,
+  type Quiz,
+  type LessonProgressStatus,
+  type ChapterProgressStatus,
+} from '@/types/learning/lesson';
 
 export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
   const { module: moduleData, isLoading, isError } = useGetModuleById(moduleId);
   const { media: moduleImage } = useGetMediaById(moduleData?.imageMediaId ?? '');
 
-  const lessons = useMemo<Lesson[]>(() => {
-    const rawLessons = (moduleData?.lessons ?? []) as BackendLesson[];
+  const rawLessons = useMemo(() => (moduleData?.lessons ?? []) as BackendLesson[], [moduleData]);
+  const rawLessonsSorted = useMemo(() => {
     return rawLessons
       .filter(lesson => lesson.status === 'PUBLISHED')
-      .map(lesson => mapLessonSummary(lesson, moduleData?.id ?? moduleId))
-      .sort((a, b) => a.order - b.order);
-  }, [moduleData, moduleId]);
+      .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+  }, [rawLessons]);
+
+  const lessons = useMemo<Lesson[]>(() => {
+    return rawLessonsSorted.map(lesson => mapLessonSummary(lesson, moduleData?.id ?? moduleId));
+  }, [rawLessonsSorted, moduleData, moduleId]);
 
   const quizzes = useMemo<Quiz[]>(() => {
     const rawQuizzes = (moduleData?.quizzesGlobal ?? []) as BackendQuiz[];
@@ -36,12 +47,130 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
     );
   }, [moduleData, moduleId]);
 
+  const { progressMap } = useQuizProgressMap(quizzes.map(quiz => quiz.id));
+
+  const { lessonStatuses, quizAvailability, completedLessons } = useMemo(() => {
+    const lessonStatuses = new Map<string, LessonProgressStatus>();
+    const lessonCompletionMap = new Map<string, boolean>();
+    const lessonChapterCompleteMap = new Map<string, boolean>();
+    const chapterStatusMap = new Map<string, ChapterProgressStatus>();
+    const quizAvailability = new Map<string, boolean>();
+
+    const quizzesByChapter = new Map<string, Quiz[]>();
+    const quizzesByLesson = new Map<string, Quiz[]>();
+
+    const hasPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
+
+    quizzes.forEach(quiz => {
+      if (quiz.chapterId) {
+        const list = quizzesByChapter.get(quiz.chapterId) ?? [];
+        list.push(quiz);
+        quizzesByChapter.set(quiz.chapterId, list);
+        return;
+      }
+      if (quiz.lessonId) {
+        const list = quizzesByLesson.get(quiz.lessonId) ?? [];
+        list.push(quiz);
+        quizzesByLesson.set(quiz.lessonId, list);
+        return;
+      }
+      // module-level quiz
+    });
+
+    let lessonsUnlocked = true;
+
+    rawLessonsSorted.forEach(lesson => {
+      const isLessonUnlocked = lessonsUnlocked;
+      const chapters = [...(lesson.chapters ?? [])].sort(
+        (a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)
+      );
+      let chapterUnlocked = true;
+      let allChaptersComplete = true;
+
+      chapters.forEach(chapter => {
+        const chapterQuizzes = quizzesByChapter.get(chapter.id) ?? [];
+        const chapterComplete =
+          chapterQuizzes.length === 0 || chapterQuizzes.every(q => hasPassed(q.id));
+
+        if (!chapterComplete) {
+          allChaptersComplete = false;
+        }
+
+        let status: ChapterProgressStatus = 'LOCKED';
+        if (isLessonUnlocked) {
+          status = chapterUnlocked ? (chapterComplete ? 'DONE' : 'CURRENT') : 'LOCKED';
+        }
+
+        chapterStatusMap.set(chapter.id, status);
+
+        if (isLessonUnlocked && chapterUnlocked && !chapterComplete) {
+          chapterUnlocked = false;
+        }
+      });
+
+      const lessonQuizzes = quizzesByLesson.get(lesson.id) ?? [];
+      const lessonQuizComplete =
+        lessonQuizzes.length === 0 || lessonQuizzes.every(q => hasPassed(q.id));
+      const lessonComplete = allChaptersComplete && lessonQuizComplete;
+
+      let lessonStatus: LessonProgressStatus = 'LOCKED';
+      if (isLessonUnlocked) {
+        lessonStatus = lessonComplete ? 'DONE' : 'CURRENT';
+      }
+
+      lessonStatuses.set(lesson.id, lessonStatus);
+      lessonCompletionMap.set(lesson.id, lessonComplete);
+      lessonChapterCompleteMap.set(lesson.id, allChaptersComplete);
+
+      if (lessonsUnlocked && !lessonComplete) {
+        lessonsUnlocked = false;
+      }
+    });
+
+    const completedLessons = rawLessonsSorted.filter(lesson =>
+      lessonCompletionMap.get(lesson.id)
+    ).length;
+
+    const allLessonsComplete =
+      rawLessonsSorted.length > 0 &&
+      rawLessonsSorted.every(lesson => lessonCompletionMap.get(lesson.id));
+
+    quizzes.forEach(quiz => {
+      let available = true;
+      if (quiz.chapterId) {
+        available = chapterStatusMap.get(quiz.chapterId) !== 'LOCKED';
+      } else if (quiz.lessonId) {
+        const lessonStatus = lessonStatuses.get(quiz.lessonId);
+        const chaptersComplete = lessonChapterCompleteMap.get(quiz.lessonId) ?? false;
+        available = lessonStatus !== 'LOCKED' && chaptersComplete;
+      } else {
+        available = allLessonsComplete;
+      }
+      quizAvailability.set(quiz.id, available);
+    });
+
+    return {
+      lessonStatuses,
+      quizAvailability,
+      completedLessons,
+    };
+  }, [rawLessonsSorted, quizzes, progressMap]);
+
   const totalLessons = lessons.length;
   const totalQuizzes = quizzes.length;
-  const completedLessons = 0;
-  const quizzesPassed = 0;
-  const averageScore = 0;
-  const globalProgress = 0;
+  const quizzesPassed = useMemo(
+    () => quizzes.filter(quiz => progressMap.get(quiz.id)?.hasPassed).length,
+    [quizzes, progressMap]
+  );
+  const averageScore = useMemo(() => {
+    const scores = quizzes
+      .map(quiz => progressMap.get(quiz.id)?.bestScorePercent)
+      .filter((score): score is number => typeof score === 'number');
+    if (scores.length === 0) return 0;
+    const total = scores.reduce((sum, score) => sum + score, 0);
+    return Math.round(total / scores.length);
+  }, [quizzes, progressMap]);
+  const globalProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -73,15 +202,15 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
     <div className='min-h-[calc(100vh-3rem)] bg-grey-50 secondary-400'>
       <div className='mx-auto flex max-w-5xl flex-col gap-8 px-4 pb-10 pt-4'>
         {/* Lien retour */}
-        <button
-          type='button'
+        <Link
+          href='/learning'
           className='inline-flex items-center gap-2 text-sm text-grey-600 hover:text-primary-600 self-start'
         >
           <span className='inline-flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm'>
             ←
           </span>{' '}
           Retour aux modules
-        </button>
+        </Link>
 
         {/* En-tête module */}
         <Card className='border-none bg-white shadow-secondary-lg'>
@@ -150,7 +279,7 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
               <div className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-50'>
                 <BookOpen className='h-4 w-4 text-primary-600' />
               </div>
-              <p className='text-xs textsecondary-300'>Leçons complétées</p>
+              <p className='text-xs text-secondary-300'>Leçons complétées</p>
               <p className='text-xl font-semibold text-secondary-400'>
                 {completedLessons}/{totalLessons}
               </p>
@@ -163,7 +292,7 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
                 <TrendingUp className='h-4 w-4 text-success-600' />
               </div>
               <p className='text-xs text-secondary-300'>Progression</p>
-              <p className='text-xl font-semibold secondary-400'>{globalProgress}%</p>
+              <p className='text-xl font-semibold text-secondary-400'>{globalProgress}%</p>
             </CardContent>
           </Card>
 
@@ -185,18 +314,21 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
                 <Target className='h-4 w-4 text-primary-600' />
               </div>
               <p className='text-xs text-secondary-300'>Score moyen</p>
-              <p className='text-xl font-semibold secondary-400'>{averageScore}%</p>
+              <p className='text-xl font-semibold text-secondary-400'>{averageScore}%</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs Leçons / Quiz + contenu */}
+        {/* Tabs leçons / Quiz + contenu */}
         <div className='flex flex-col gap-4'>
           <ModuleTabs
             moduleId={moduleData.id}
             lessons={lessons}
             totalLessons={totalLessons}
             quizzes={quizzes}
+            lessonStatuses={lessonStatuses}
+            quizAvailability={quizAvailability}
+            quizProgressMap={progressMap}
           />
         </div>
       </div>

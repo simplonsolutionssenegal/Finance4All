@@ -1,30 +1,25 @@
 'use client';
 
-import { HelpCircle, CheckCircle2, Award, Clock, RotateCcw, Lock } from 'lucide-react';
+import { Lock, Trophy, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { QuizStatus, type Quiz } from '@/types/learning/lesson';
+import type { QuizProgressDTO } from '@/types/learning/quiz-progress';
 
 interface QuizListProps {
   readonly moduleId: string;
   readonly quizzes: Quiz[];
+  readonly quizAvailability: Map<string, boolean>;
+  readonly quizProgressMap: Map<string, QuizProgressDTO>;
 }
 
-function formatStatus(status: QuizStatus): string {
-  switch (status) {
-    case QuizStatus.PUBLISHED:
-      return 'Publié';
-    case QuizStatus.DRAFT:
-      return 'Brouillon';
-    case QuizStatus.ARCHIVED:
-      return 'Archivé';
-    default:
-      return status;
-  }
-}
-
-export default function QuizList({ moduleId, quizzes }: QuizListProps) {
+export default function QuizList({
+  moduleId,
+  quizzes,
+  quizAvailability,
+  quizProgressMap,
+}: QuizListProps) {
   if (quizzes.length === 0) {
     return (
       <p className='rounded-2xl border border-grey-200 bg-white p-6 text-center text-sm text-grey-600 shadow-sm'>
@@ -34,90 +29,94 @@ export default function QuizList({ moduleId, quizzes }: QuizListProps) {
   }
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-4'>
       {quizzes.map(quiz => {
         const questionCount = quiz.questions.length;
         const isPublished = quiz.status === QuizStatus.PUBLISHED;
-        const available = isPublished;
-        const reason = available ? undefined : 'Quiz non publié.';
+        const available = isPublished && (quizAvailability.get(quiz.id) ?? false);
+
+        const progress = quizProgressMap.get(quiz.id);
+        const totalAttempts = progress?.totalAttempts ?? 0;
+        const remainingAttempts = progress?.remainingAttempts ?? quiz.nombreTentatives;
+        const bestScore = progress?.bestScorePercent;
+
+        const hasAttempts = totalAttempts > 0;
+        const attemptsExhausted = hasAttempts && remainingAttempts <= 0;
+        const buttonLabel = hasAttempts ? 'Refaire' : 'Faire';
 
         const cardContent = (
-          <CardContent className='flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4'>
-            <div className='flex shrink-0 items-center justify-center'>
+          <CardContent className='flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex items-start gap-4'>
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full border-2 ${
-                  available ? 'border-orange-200 bg-orange-50' : 'border-grey-200 bg-grey-100'
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                  available ? 'bg-emerald-600 text-white' : 'bg-grey-200 text-grey-500'
                 }`}
               >
-                {available ? (
-                  <HelpCircle className='h-6 w-6 text-orange-500' />
-                ) : (
-                  <Lock className='h-6 w-6 text-grey-400' />
-                )}
+                {available ? <Trophy className='h-6 w-6' /> : <Lock className='h-6 w-6' />}
+              </div>
+
+              <div className='space-y-1'>
+                <h3
+                  className={`text-sm font-semibold ${
+                    available ? 'text-secondary-400' : 'text-grey-500'
+                  }`}
+                >
+                  {quiz.title}
+                </h3>
+                <div className='flex flex-wrap items-center gap-3 text-xs text-grey-500'>
+                  <span>
+                    {questionCount} question{questionCount > 1 ? 's' : ''}
+                  </span>
+                  <span>Seuil de réussite: {quiz.scoreMinimum}%</span>
+                  {typeof bestScore === 'number' && (
+                    <span className='font-semibold text-emerald-600'>Score: {bestScore}%</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className='min-w-0 flex-1 space-y-2'>
-              <div className='flex flex-wrap items-center gap-2'>
-                <span className='inline-flex items-center rounded-full bg-grey-100 px-2.5 py-0.5 text-xs font-medium text-grey-700'>
-                  {questionCount} question{questionCount > 1 ? 's' : ''}
-                </span>
-                {isPublished && (
-                  <span className='inline-flex items-center gap-1 rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-700'>
-                    <CheckCircle2 className='h-3.5 w-3.5 text-success-600' />
-                    {formatStatus(quiz.status)}
-                  </span>
-                )}
-                {!available && reason && (
-                  <span className='inline-flex items-center gap-1 rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700'>
-                    Non disponible
-                  </span>
-                )}
-              </div>
-
-              <h3
-                className={`text-sm font-semibold ${
-                  available ? 'text-secondary-400' : 'text-grey-600'
-                }`}
-              >
-                {quiz.title}
-              </h3>
-              <p className='text-xs text-grey-600'>{quiz.description}</p>
-              {!available && reason && <p className='text-xs text-grey-500'>{reason}</p>}
-
-              <div className='flex flex-wrap items-center gap-4 text-xs text-grey-500'>
-                <span className='inline-flex items-center gap-1'>
-                  <Award className='h-4 w-4 text-grey-400' aria-hidden />
-                  {quiz.scoreMinimum}% requis
-                </span>
-                <span className='inline-flex items-center gap-1'>
-                  <Clock className='h-4 w-4 text-grey-400' aria-hidden />
-                  {quiz.duree == null ? 'Illimité' : `${quiz.duree} min`}
-                </span>
-                <span className='inline-flex items-center gap-1'>
-                  <RotateCcw className='h-4 w-4 text-grey-400' aria-hidden />
-                  {quiz.nombreTentatives} tentative
-                  {quiz.nombreTentatives > 1 ? 's' : ''}
-                </span>
-              </div>
+            <div>
+              {available ? (
+                attemptsExhausted ? (
+                  <button
+                    type='button'
+                    disabled
+                    className='inline-flex items-center gap-2 rounded-full border border-grey-200 bg-grey-100 px-4 py-2 text-xs font-medium text-grey-500'
+                  >
+                    <RotateCcw className='h-4 w-4' />
+                    {buttonLabel}
+                  </button>
+                ) : (
+                  <Link href={`/learning/${moduleId}/quiz/${quiz.id}`}>
+                    <button
+                      type='button'
+                      className='inline-flex items-center gap-2 rounded-full border border-grey-200 bg-white px-4 py-2 text-xs font-medium text-grey-700 shadow-sm hover:bg-grey-50'
+                    >
+                      <RotateCcw className='h-4 w-4' />
+                      {buttonLabel}
+                    </button>
+                  </Link>
+                )
+              ) : (
+                <button
+                  type='button'
+                  disabled
+                  className='inline-flex items-center gap-2 rounded-full border border-grey-200 bg-grey-100 px-4 py-2 text-xs font-medium text-grey-500'
+                >
+                  <Lock className='h-4 w-4' />
+                  Verrouillé
+                </button>
+              )}
             </div>
           </CardContent>
         );
 
-        if (available) {
-          return (
-            <Link key={quiz.id} href={`/learning/${moduleId}/quiz/${quiz.id}`}>
-              <Card className='overflow-hidden border-grey-200 bg-white shadow-sm transition-shadow hover:shadow-md'>
-                {cardContent}
-              </Card>
-            </Link>
-          );
-        }
-
         return (
           <Card
             key={quiz.id}
-            className='overflow-hidden border-grey-200 bg-grey-50 shadow-sm opacity-90'
+            className={`overflow-hidden border-grey-200 shadow-sm ${
+              available ? 'bg-white' : 'bg-grey-50 opacity-90'
+            }`}
           >
             {cardContent}
           </Card>

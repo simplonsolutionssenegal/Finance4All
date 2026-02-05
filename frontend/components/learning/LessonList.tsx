@@ -1,27 +1,33 @@
 'use client';
 
-import { Clock, Play } from 'lucide-react';
+import { Clock, Play, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Lesson } from '@/types/learning/lesson';
+import type { Lesson, LessonProgressStatus } from '@/types/learning/lesson';
 
 interface LessonListProps {
   readonly moduleId: string;
   readonly lessons: Lesson[];
+  readonly lessonStatuses: Map<string, LessonProgressStatus>;
 }
 
-export default function LessonList({ moduleId, lessons }: LessonListProps) {
+export default function LessonList({ moduleId, lessons, lessonStatuses }: LessonListProps) {
   return (
     <div className='space-y-3'>
       {lessons.map(lesson => {
-        const buttonLabel = 'Commencer';
+        const status = lessonStatuses.get(lesson.id) ?? 'LOCKED';
+        const isLocked = status === 'LOCKED';
+        const isDone = status === 'DONE';
+        const buttonLabel = isDone ? 'Revoir' : 'Continuer';
 
         return (
           <Card
             key={lesson.id}
-            className='flex items-center justify-between border-grey-200 bg-white shadow-sm'
+            className={`flex items-center justify-between border-grey-200 shadow-sm ${
+              isLocked ? 'bg-grey-50 opacity-80' : 'bg-white'
+            }`}
           >
             <CardContent className='flex w-full items-center gap-4 p-4'>
               <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-grey-100 text-sm font-semibold text-grey-700'>
@@ -39,17 +45,30 @@ export default function LessonList({ moduleId, lessons }: LessonListProps) {
                   {lesson.duration} min
                 </span>
 
-                <Link href={`/learning/${moduleId}/lesson/${lesson.order}`}>
+                {isLocked ? (
                   <Button
                     size='sm'
-                    className='rounded-full bg-primary-400 px-4 text-xs font-medium text-white shadow-primary-lg hover:bg-primary-300'
+                    disabled
+                    className='rounded-full bg-grey-200 px-4 text-xs font-medium text-grey-500'
                   >
                     <span className='inline-flex items-center gap-1'>
-                      <Play className='h-3 w-3' />
-                      {buttonLabel}
+                      <Lock className='h-3 w-3' />
+                      Verrouillé
                     </span>
                   </Button>
-                </Link>
+                ) : (
+                  <Link href={`/learning/${moduleId}/lesson/${lesson.order}`}>
+                    <Button
+                      size='sm'
+                      className='rounded-full bg-primary-400 px-4 text-xs font-medium text-white shadow-primary-lg hover:bg-primary-300'
+                    >
+                      <span className='inline-flex items-center gap-1'>
+                        <Play className='h-3 w-3' />
+                        {buttonLabel}
+                      </span>
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>

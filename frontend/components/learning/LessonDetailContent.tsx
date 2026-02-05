@@ -1,25 +1,39 @@
 'use client';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, CircleDot, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import ChapterMedia from '@/components/learning/ChapterMedia';
-import { QuizStatus, type Chapter, type Quiz } from '@/types/learning/lesson';
+import { useQuizProgressMap } from '@/hooks/quiz/useQuizProgressMap';
+import {
+  QuizStatus,
+  type Chapter,
+  type Quiz,
+  type ChapterProgressStatus,
+} from '@/types/learning/lesson';
+
+type ChapterState = {
+  status: ChapterProgressStatus;
+  isComplete: boolean;
+  pendingQuizId: string | null;
+};
 
 function LessonDetailFooter({
   moduleId,
   chapters,
   selectedChapterId,
   setSelectedChapterId,
-  quizzes,
+  chapterStates,
+  pendingLessonQuizId,
 }: {
   readonly moduleId: string;
   readonly chapters: Chapter[];
   readonly selectedChapterId: string | null;
   readonly setSelectedChapterId: (id: string) => void;
-  readonly quizzes: Quiz[];
+  readonly chapterStates: Map<string, ChapterState>;
+  readonly pendingLessonQuizId: string | null;
 }) {
   const computedIndex = selectedChapterId
     ? chapters.findIndex(ch => ch.id === selectedChapterId)
@@ -29,21 +43,8 @@ function LessonDetailFooter({
   const isFirstChapter = currentIndex <= 0;
   const isLastChapter = currentIndex >= chapters.length - 1;
 
-  const chapterQuiz =
-    selectedChapter != null
-      ? (quizzes.find(
-          quiz => quiz.status === QuizStatus.PUBLISHED && quiz.chapterId === selectedChapter.id
-        ) ?? null)
-      : null;
-  const lessonQuiz =
-    selectedChapter != null
-      ? (quizzes.find(
-          quiz =>
-            quiz.status === QuizStatus.PUBLISHED &&
-            quiz.lessonId === selectedChapter.lessonId &&
-            !quiz.chapterId
-        ) ?? null)
-      : null;
+  const selectedChapterState = selectedChapter ? chapterStates.get(selectedChapter.id) : null;
+  const pendingChapterQuizId = selectedChapterState?.pendingQuizId ?? null;
 
   const prevContent = isFirstChapter ? (
     <Link
@@ -65,13 +66,13 @@ function LessonDetailFooter({
   );
 
   let nextContent: React.ReactNode;
-  if (chapterQuiz) {
+  if (pendingChapterQuizId) {
     nextContent = (
       <Link
-        href={`/learning/${moduleId}/quiz/${chapterQuiz.id}`}
+        href={`/learning/${moduleId}/quiz/${pendingChapterQuizId}`}
         className='inline-flex items-center gap-2 rounded-full bg-primary-400 px-5 py-2 text-sm font-medium text-white shadow-primary-lg hover:bg-primary-300'
       >
-        Suivant <span className='text-base'>→</span>
+        Quiz <span className='text-base'>→</span>
       </Link>
     );
   } else if (isLastChapter === false) {
@@ -84,13 +85,13 @@ function LessonDetailFooter({
         Suivant <span className='text-base'>→</span>
       </button>
     );
-  } else if (lessonQuiz) {
+  } else if (pendingLessonQuizId) {
     nextContent = (
       <Link
-        href={`/learning/${moduleId}/quiz/${lessonQuiz.id}`}
+        href={`/learning/${moduleId}/quiz/${pendingLessonQuizId}`}
         className='inline-flex items-center gap-2 rounded-full bg-primary-400 px-5 py-2 text-sm font-medium text-white shadow-primary-lg hover:bg-primary-300'
       >
-        Suivant <span className='text-base'>→</span>
+        Quiz <span className='text-base'>→</span>
       </Link>
     );
   } else {
@@ -113,6 +114,7 @@ function LessonDetailFooter({
 
 interface LessonDetailContentProps {
   readonly moduleId: string;
+  readonly lessonId: string;
   readonly lessonTitle: string;
   readonly lessonDescription: string;
   readonly chapters: Chapter[];
@@ -121,6 +123,7 @@ interface LessonDetailContentProps {
 
 export default function LessonDetailContent({
   moduleId,
+  lessonId,
   lessonTitle,
   lessonDescription,
   chapters,
@@ -129,7 +132,57 @@ export default function LessonDetailContent({
   const searchParams = useSearchParams();
   const chapterFromUrl = searchParams.get('chapter');
   const sortedChapters = useMemo(() => [...chapters].sort((a, b) => a.order - b.order), [chapters]);
-  const defaultChapterId = sortedChapters[0]?.id ?? null;
+  const quizIds = useMemo(() => quizzes.map(quiz => quiz.id), [quizzes]);
+  const { progressMap } = useQuizProgressMap(quizIds);
+
+  const chapterStates = useMemo(() => {
+    const states = new Map<string, ChapterState>();
+    let unlocked = true;
+    const isQuizPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
+
+    sortedChapters.forEach(chapter => {
+      const chapterQuizzes = quizzes.filter(
+        quiz => quiz.status === QuizStatus.PUBLISHED && quiz.chapterId === chapter.id
+      );
+      const pendingQuiz = chapterQuizzes.find(quiz => !isQuizPassed(quiz.id)) ?? null;
+      const isComplete = chapterQuizzes.length === 0 || !pendingQuiz;
+
+      let status: ChapterProgressStatus = 'LOCKED';
+      if (unlocked) {
+        status = isComplete ? 'DONE' : 'CURRENT';
+      }
+
+      states.set(chapter.id, {
+        status,
+        isComplete,
+        pendingQuizId: pendingQuiz?.id ?? null,
+      });
+
+      if (unlocked && !isComplete) {
+        unlocked = false;
+      }
+    });
+
+    return states;
+  }, [sortedChapters, quizzes, progressMap]);
+
+  const pendingLessonQuizId = useMemo(() => {
+    const isQuizPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
+    const lessonQuizzes = quizzes.filter(
+      quiz => quiz.status === QuizStatus.PUBLISHED && quiz.lessonId === lessonId && !quiz.chapterId
+    );
+    const pendingQuiz = lessonQuizzes.find(quiz => !isQuizPassed(quiz.id)) ?? null;
+    return pendingQuiz?.id ?? null;
+  }, [quizzes, lessonId, progressMap]);
+
+  const defaultChapterId = useMemo(() => {
+    const currentChapter = sortedChapters.find(
+      chapter => chapterStates.get(chapter.id)?.status === 'CURRENT'
+    );
+    if (currentChapter?.id) return currentChapter.id;
+    return sortedChapters[0]?.id ?? null;
+  }, [sortedChapters, chapterStates]);
+
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(
     () => chapterFromUrl ?? defaultChapterId
   );
@@ -137,10 +190,15 @@ export default function LessonDetailContent({
   useEffect(() => {
     const chapterId = searchParams.get('chapter');
     const hasValidId = typeof chapterId === 'string' && chapterId.length > 0;
-    if (hasValidId && chapterId && sortedChapters.some(ch => ch.id === chapterId)) {
+    if (!hasValidId || !chapterId) return;
+
+    const chapterExists = sortedChapters.some(ch => ch.id === chapterId);
+    const isLocked = chapterStates.get(chapterId)?.status === 'LOCKED';
+
+    if (chapterExists && !isLocked) {
       setSelectedChapterId(chapterId);
     }
-  }, [chapterFromUrl, sortedChapters, searchParams]);
+  }, [chapterFromUrl, sortedChapters, searchParams, chapterStates]);
 
   useEffect(() => {
     if (!selectedChapterId && defaultChapterId) {
@@ -160,20 +218,36 @@ export default function LessonDetailContent({
           <div className='space-y-2'>
             {sortedChapters.map(chapter => {
               const isSelected = chapter.id === selectedChapterId;
+              const chapterState = chapterStates.get(chapter.id);
+              const isLocked = chapterState?.status === 'LOCKED';
+              const isDone = chapterState?.status === 'DONE';
 
               return (
                 <button
                   key={chapter.id}
                   type='button'
-                  onClick={() => setSelectedChapterId(chapter.id)}
+                  onClick={() => {
+                    if (!isLocked) {
+                      setSelectedChapterId(chapter.id);
+                    }
+                  }}
+                  disabled={isLocked}
                   className={`flex w-full items-center justify-between rounded-2xl px-4 py-2 text-left text-sm transition-all ${
                     isSelected
                       ? 'bg-primary-50 text-grey-900 ring-2 ring-primary-200'
-                      : 'bg-grey-100 text-grey-900 hover:bg-grey-200'
+                      : isLocked
+                        ? 'cursor-not-allowed bg-grey-50 text-grey-400'
+                        : 'bg-grey-100 text-grey-900 hover:bg-grey-200'
                   }`}
                 >
                   <span>{chapter.title}</span>
-                  <CheckCircle2 className='h-4 w-4 shrink-0 text-primary-600' />
+                  {isLocked ? (
+                    <Lock className='h-4 w-4 shrink-0 text-grey-400' />
+                  ) : isDone ? (
+                    <CheckCircle2 className='h-4 w-4 shrink-0 text-success-600' />
+                  ) : (
+                    <CircleDot className='h-4 w-4 shrink-0 text-primary-600' />
+                  )}
                 </button>
               );
             })}
@@ -199,7 +273,8 @@ export default function LessonDetailContent({
           chapters={sortedChapters}
           selectedChapterId={selectedChapterId}
           setSelectedChapterId={setSelectedChapterId}
-          quizzes={quizzes}
+          chapterStates={chapterStates}
+          pendingLessonQuizId={pendingLessonQuizId}
         />
       </section>
     </main>

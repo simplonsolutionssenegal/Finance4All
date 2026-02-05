@@ -132,6 +132,7 @@ export default function LessonPageClient({ moduleId, order }: { moduleId: string
         {/* Carte principale avec colonne gauche (menu leçon) + droite (vidéo + contenu) */}
         <LessonDetailContent
           moduleId={moduleId}
+          lessonId={lessonDetails?.id ?? currentLesson.id}
           lessonTitle={lessonTitle}
           lessonDescription={lessonDescription}
           chapters={chapters}
