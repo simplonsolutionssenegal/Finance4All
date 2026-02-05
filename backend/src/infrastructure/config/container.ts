@@ -116,6 +116,12 @@ import { GetLessonByIdUseCaseImpl } from '@/application/formations/use-cases/Get
 import { LessonController } from '../web/controllers/LessonController';
 import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
 import { AddQuizLessonUseCaseImpl } from '@/application/formations/use-cases/AddQuizLessonUseCaseImpl';
+import type { IQuizProgressRepository } from '@/domain/formations/ports/out/IQuizProgressRepository';
+import { PrismaQuizProgressRepository } from '@/infrastructure/persistence/repositories/PrismaQuizProgressRepository';
+import type { SubmitQuizAttemptUseCase } from '@/domain/formations/ports/in/SubmitQuizAttemptUseCase';
+import { SubmitQuizAttemptUseCaseImpl } from '@/application/formations/use-cases/SubmitQuizAttemptUseCaseImpl';
+import type { GetQuizProgressUseCase } from '@/domain/formations/ports/in/GetQuizProgressUseCase';
+import { GetQuizProgressUseCaseImpl } from '@/application/formations/use-cases/GetQuizProgressUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -131,6 +137,7 @@ export const TYPES = {
   InstitutionRepository: Symbol.for('InstitutionRepository'),
   ServiceRepository: Symbol.for('ServiceRepository'),
   QuizRepository: Symbol.for('QuizRepository'),
+  QuizProgressRepository: Symbol.for('QuizProgressRepository'),
   LessonRepository: Symbol.for('LessonRepository'),
   CompareServicesUseCase: Symbol.for('CompareServicesUseCase'),
 
@@ -154,6 +161,8 @@ export const TYPES = {
 
   // ========== Quiz ==========
   GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
+  SubmitQuizAttemptUseCase: Symbol.for('SubmitQuizAttemptUseCase'),
+  GetQuizProgressUseCase: Symbol.for('GetQuizProgressUseCase'),
   AddQuizLessonUseCase: Symbol.for('AddQuizLessonUseCase'),
   // ========== Lesson ==========
   GetLessonByIdUseCase: Symbol.for('GetLessonByIdUseCase'),
@@ -225,6 +234,14 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaQuizRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<IQuizProgressRepository>(TYPES.QuizProgressRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaQuizProgressRepository(prismaClient);
   })
   .inSingletonScope();
 
@@ -408,6 +425,28 @@ container
   .toDynamicValue(context => {
     const repository = context.get<QuizRepository>(TYPES.QuizRepository);
     return new GetQuizByIdUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<SubmitQuizAttemptUseCase>(TYPES.SubmitQuizAttemptUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    const quizProgressRepository = context.get<IQuizProgressRepository>(
+      TYPES.QuizProgressRepository
+    );
+    return new SubmitQuizAttemptUseCaseImpl(quizRepository, quizProgressRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetQuizProgressUseCase>(TYPES.GetQuizProgressUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    const quizProgressRepository = context.get<IQuizProgressRepository>(
+      TYPES.QuizProgressRepository
+    );
+    return new GetQuizProgressUseCaseImpl(quizRepository, quizProgressRepository);
   })
   .inSingletonScope();
 
@@ -796,9 +835,14 @@ container
   .bind<QuizController>(TYPES.QuizController)
   .toDynamicValue(context => {
     const getQuizByIdUseCase = context.get<GetQuizByIdUseCaseImpl>(TYPES.GetQuizByIdUseCase);
-    // const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
+    const submitQuizAttemptUseCase = context.get<SubmitQuizAttemptUseCase>(
+      TYPES.SubmitQuizAttemptUseCase
+    );
+    const getQuizProgressUseCase = context.get<GetQuizProgressUseCase>(
+      TYPES.GetQuizProgressUseCase
+    );
 
-    return new QuizController(getQuizByIdUseCase);
+    return new QuizController(getQuizByIdUseCase, submitQuizAttemptUseCase, getQuizProgressUseCase);
   })
   .inSingletonScope();
 

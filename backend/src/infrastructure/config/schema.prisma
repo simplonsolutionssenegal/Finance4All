@@ -420,6 +420,7 @@ model Quiz {
   lesson            Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   module            Module?     @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   chapter           Chapter?    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  attempts          QuizAttempt[]
 
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
@@ -434,4 +435,24 @@ enum QuizStatus {
   DRAFT       // Brouillon
   PUBLISHED   // Publié
   ARCHIVED    // Archivé
+}
+
+model QuizAttempt {
+  id            String    @id @default(uuid())
+  quizId         String
+  userId         String
+  attemptNumber  Int
+  earnedPoints   Int
+  totalPoints    Int
+  scorePercent   Float
+  isPassed       Boolean
+  answers        Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  quiz           Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([quizId, userId, attemptNumber])
+  @@index([quizId, userId])
+  @@index([quizId, userId, isPassed])
 }
