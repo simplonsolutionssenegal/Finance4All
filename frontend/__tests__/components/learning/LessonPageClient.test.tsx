@@ -11,7 +11,7 @@ jest.mock('@/hooks/lesson/useGetLessonById', () => ({
   useGetLessonById: jest.fn(),
 }));
 
-const lessonDetailMock = jest.fn(() => <div data-testid='lesson-detail' />);
+const lessonDetailMock = jest.fn((props: unknown) => <div data-testid='lesson-detail' />);
 jest.mock('@/components/learning/LessonDetailContent', () => ({
   __esModule: true,
   default: (props: unknown) => lessonDetailMock(props),

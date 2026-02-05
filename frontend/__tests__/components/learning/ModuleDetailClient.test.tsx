@@ -28,7 +28,7 @@ jest.mock('@/hooks/quiz/useQuizProgressMap', () => ({
   useQuizProgressMap: jest.fn(),
 }));
 
-const moduleTabsMock = jest.fn(() => <div data-testid='module-tabs' />);
+const moduleTabsMock = jest.fn((props: unknown) => <div data-testid='module-tabs' />);
 jest.mock('@/components/learning/ModuleTabs', () => ({
   __esModule: true,
   default: (props: unknown) => moduleTabsMock(props),
