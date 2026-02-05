@@ -615,6 +615,232 @@ describe('Module Entity', () => {
     });
   });
 
+  describe('updateThematics()', () => {
+    it('devrait mettre à jour la thématique', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateThematics('Gestion de Projet');
+
+      expect(module.thematics).toBe('gestion de projet');
+    });
+
+    it('devrait normaliser en minuscules et trim', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateThematics('  COMPTABILITÉ AVANCÉE  ');
+
+      expect(module.thematics).toBe('comptabilité avancée');
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+      const before = module.updatedAt;
+
+      module.updateThematics('nouvelle thématique');
+
+      expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    });
+
+    it('devrait rejeter une thématique vide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics('')).toThrow('Au moins une thématique est requise');
+    });
+
+    it('devrait rejeter une thématique null', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics(null as any)).toThrow(
+        'Au moins une thématique est requise'
+      );
+    });
+
+    it('devrait rejeter une thématique undefined', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics(undefined as any)).toThrow(
+        'Au moins une thématique est requise'
+      );
+    });
+
+    it('devrait rejeter une thématique avec seulement des espaces', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics('   ')).toThrow('Au moins une thématique est requise');
+    });
+  });
+
+  describe('updateDifficultyLevel()', () => {
+    it('devrait mettre à jour le niveau de difficulté', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateDifficultyLevel(DifficultyLevel.EXPERT);
+
+      expect(module.difficultyLevel).toBe(DifficultyLevel.EXPERT);
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateDifficultyLevel(DifficultyLevel.INTERMEDIATE);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait accepter tous les niveaux valides', () => {
+      const module = new Module(validModuleProps);
+
+      const levels = [
+        DifficultyLevel.BEGINNER,
+        DifficultyLevel.INTERMEDIATE,
+        DifficultyLevel.ADVANCED,
+        DifficultyLevel.EXPERT,
+      ];
+
+      levels.forEach(level => {
+        module.updateDifficultyLevel(level);
+        expect(module.difficultyLevel).toBe(level);
+      });
+    });
+
+    it('devrait rejeter un niveau invalide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateDifficultyLevel('INVALID' as any)).toThrow(
+        "Le niveau de difficulté n'est pas valide"
+      );
+    });
+  });
+
+  describe('updateEstimatedDuration()', () => {
+    it('devrait mettre à jour la durée estimée', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(120);
+
+      expect(module.estimatedDuration).toBe(120);
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(90);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait rejeter une durée <= 0', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(0)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée négative', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(-10)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée > 10080', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(10081)).toThrow(
+        'La durée maximale est de 7 jours'
+      );
+    });
+
+    it('devrait accepter une durée de 10080 exactement', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(10080);
+
+      expect(module.estimatedDuration).toBe(10080);
+    });
+
+    it('devrait rejeter une durée non finie (Infinity)', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(Infinity)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée non finie (NaN)', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(NaN)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+  });
+
+  describe('updateImageMediaId()', () => {
+    it("devrait mettre à jour l'imageMediaId", () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId('new-image-456');
+
+      expect(module.imageMediaId).toBe('new-image-456');
+    });
+
+    it("devrait accepter null pour supprimer l'image", () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId(null);
+
+      expect(module.imageMediaId).toBeNull();
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId('new-image-789');
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('updateStatus()', () => {
+    it('devrait mettre à jour le statut', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateStatus(ModuleStatus.PUBLISHED);
+
+      expect(module.status).toBe(ModuleStatus.PUBLISHED);
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateStatus(ModuleStatus.ARCHIVED);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait accepter tous les statuts valides', () => {
+      const module = new Module(validModuleProps);
+
+      const statuses = [ModuleStatus.DRAFT, ModuleStatus.PUBLISHED, ModuleStatus.ARCHIVED];
+
+      statuses.forEach(status => {
+        module.updateStatus(status);
+        expect(module.status).toBe(status);
+      });
+    });
+
+    it('devrait rejeter un statut invalide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateStatus('INVALID' as any)).toThrow(
+        "Le statut du module n'est pas valide"
+      );
+    });
+  });
+
   describe('Status checks', () => {
     it('isPublished() devrait retourner true pour un module publié', () => {
       const props = { ...validModuleProps, status: ModuleStatus.PUBLISHED };

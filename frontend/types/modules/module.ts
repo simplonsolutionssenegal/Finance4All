@@ -1,7 +1,7 @@
 // frontend/src/types/formations/module.ts
 
-import { Lesson } from './Lesson';
-import { Quiz } from './Quiz';
+import type { Lesson } from './Lesson';
+import type { Quiz } from './Quiz';
 
 export enum DifficultyLevel {
   BEGINNER = 'BEGINNER',
@@ -39,4 +39,13 @@ export interface CreateModuleData {
   estimatedDuration: number;
   thematics: string;
   imageMediaId?: string | null;
+}
+export interface UpdateModuleData {
+  title?: string;
+  description?: string;
+  thematics?: string;
+  imageMediaId?: string | null;
+  difficultyLevel?: DifficultyLevel;
+  estimatedDuration?: number;
+  status?: ModuleStatus;
 }

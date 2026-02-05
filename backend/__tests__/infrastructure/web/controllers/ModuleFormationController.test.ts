@@ -33,6 +33,10 @@ type AddQuizUseCaseType = {
   execute: (input: any) => Promise<any>;
 };
 
+type UpdateModuleUseCaseType = {
+  execute: (input: any) => Promise<ModuleResponseDTO>;
+};
+
 describe('ModuleController (unit) — Couverture 100%', () => {
   let controller: ModuleController;
   let mockCreateModuleUseCase: jest.Mocked<CreateModuleUseCaseType>;
@@ -40,6 +44,7 @@ describe('ModuleController (unit) — Couverture 100%', () => {
   let mockGetModuleByIdUseCase: jest.Mocked<GetModuleByIdUseCaseType>;
   let mockAddLessonUseCase: jest.Mocked<AddLessonUseCaseType>;
   let mockAddQuizUseCase: jest.Mocked<AddQuizUseCaseType>;
+  let mockUpdateModuleUseCase: jest.Mocked<UpdateModuleUseCaseType>;
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.MockedFunction<NextFunction>;
@@ -65,12 +70,17 @@ describe('ModuleController (unit) — Couverture 100%', () => {
       execute: jest.fn(),
     } as jest.Mocked<AddQuizUseCaseType>;
 
+    mockUpdateModuleUseCase = {
+      execute: jest.fn(),
+    } as jest.Mocked<UpdateModuleUseCaseType>;
+
     controller = new ModuleController(
       mockCreateModuleUseCase,
       mockGetModulesUseCase,
       mockGetModuleByIdUseCase,
       mockAddLessonUseCase,
-      mockAddQuizUseCase
+      mockAddQuizUseCase,
+      mockUpdateModuleUseCase
     );
 
     req = { body: {}, query: {}, params: {} };
@@ -560,6 +570,207 @@ describe('ModuleController (unit) — Couverture 100%', () => {
 
       expect(next).toHaveBeenCalledWith(error);
       expect(res.status).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // update()
+  // ---------------------------------------------------------------------------
+
+  describe('update', () => {
+    it('should return 200 and the updated module on success', async () => {
+      const moduleId = 'module-123';
+      const updateData = {
+        title: 'Module Updated',
+        description: 'New description',
+        estimatedDuration: 90,
+      };
+      const updatedModule = { id: moduleId, ...updateData } as any;
+
+      req.params = { id: moduleId };
+      req.body = updateData;
+      mockUpdateModuleUseCase.execute.mockResolvedValue(updatedModule);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith({
+        id: moduleId,
+        ...updateData,
+        estimatedDuration: 90,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: updatedModule,
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should convert estimatedDuration string to number', async () => {
+      req.params = { id: 'module-456' };
+      req.body = {
+        title: 'Module Test',
+        estimatedDuration: '120',
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimatedDuration: 120,
+        })
+      );
+    });
+
+    it('should set estimatedDuration to undefined if null', async () => {
+      req.params = { id: 'module-789' };
+      req.body = {
+        title: 'Module Test',
+        estimatedDuration: null,
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimatedDuration: undefined,
+        })
+      );
+    });
+
+    it('should set estimatedDuration to undefined if undefined', async () => {
+      req.params = { id: 'module-abc' };
+      req.body = {
+        title: 'Module Test',
+        estimatedDuration: undefined,
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimatedDuration: undefined,
+        })
+      );
+    });
+
+    it('should handle estimatedDuration set to 0', async () => {
+      req.params = { id: 'module-zero' };
+      req.body = {
+        title: 'Module Test',
+        estimatedDuration: 0,
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimatedDuration: 0,
+        })
+      );
+    });
+
+    it('should update only provided fields', async () => {
+      req.params = { id: 'module-partial' };
+      req.body = {
+        title: 'Only Title Changed',
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith({
+        id: 'module-partial',
+        title: 'Only Title Changed',
+        estimatedDuration: undefined,
+      });
+    });
+
+    it('should handle all updatable fields', async () => {
+      req.params = { id: 'module-full' };
+      req.body = {
+        title: 'Full Update',
+        description: 'Updated description',
+        thematics: 'New thematics',
+        difficultyLevel: 'ADVANCED',
+        estimatedDuration: 180,
+        status: 'PUBLISHED',
+        imageMediaId: 'image-123',
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith({
+        id: 'module-full',
+        ...req.body,
+        estimatedDuration: 180,
+      });
+    });
+
+    it('should call next on use case error', async () => {
+      req.params = { id: 'module-error' };
+      req.body = { title: 'Test' };
+
+      const error = new Error('Update failed');
+      mockUpdateModuleUseCase.execute.mockRejectedValue(error);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should handle DuplicateTitleException from use case', async () => {
+      req.params = { id: 'module-dup' };
+      req.body = { title: 'Duplicate Title' };
+
+      const error = new DuplicateTitleException('Duplicate Title');
+      mockUpdateModuleUseCase.execute.mockRejectedValue(error);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle ValidationException from use case', async () => {
+      req.params = { id: 'module-val' };
+      req.body = { title: '' };
+
+      const error = new ValidationException('Title cannot be empty');
+      mockUpdateModuleUseCase.execute.mockRejectedValue(error);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it('should pass imageMediaId null to remove image', async () => {
+      req.params = { id: 'module-img' };
+      req.body = {
+        title: 'Module',
+        imageMediaId: null,
+      };
+
+      mockUpdateModuleUseCase.execute.mockResolvedValue({} as any);
+
+      await controller.update(req as Request, res as Response, next);
+
+      expect(mockUpdateModuleUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageMediaId: null,
+        })
+      );
     });
   });
 });

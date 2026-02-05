@@ -2,8 +2,8 @@
 
 import type { z } from 'zod';
 
-import { createModuleSchema } from '@/lib/validations/module-schema';
-import { DifficultyLevel } from '@/types/modules/module';
+import { createModuleSchema, updateModuleSchema } from '@/lib/validations/module-schema';
+import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 
 describe('createModuleSchema', () => {
   describe('title validation', () => {
@@ -566,6 +566,428 @@ describe('createModuleSchema', () => {
         expect(typed.estimatedDuration).toBe(data.estimatedDuration);
         expect(typed.thematics).toBe(data.thematics);
       }
+    });
+  });
+});
+
+describe('updateModuleSchema', () => {
+  describe('title validation (optional)', () => {
+    it('devrait valider un titre valide', () => {
+      const data = {
+        title: 'Module mis à jour',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter un objet vide (tous les champs optionnels)', () => {
+      const data = {};
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter un titre avec moins de 3 caractères', () => {
+      const data = {
+        title: 'Ab',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('title');
+      }
+    });
+
+    it('devrait rejeter un titre avec plus de 200 caractères', () => {
+      const data = {
+        title: 'A'.repeat(201),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('title');
+      }
+    });
+
+    it('devrait accepter un titre avec exactement 3 caractères', () => {
+      const data = {
+        title: 'ABC',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter un titre avec exactement 200 caractères', () => {
+      const data = {
+        title: 'A'.repeat(200),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('description validation (optional)', () => {
+    it('devrait valider une description valide', () => {
+      const data = {
+        description: 'Description mise à jour pour ce module',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter une description avec moins de 10 caractères', () => {
+      const data = {
+        description: 'Court',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('description');
+      }
+    });
+
+    it('devrait rejeter une description avec plus de 5000 caractères', () => {
+      const data = {
+        description: 'A'.repeat(5001),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('description');
+      }
+    });
+
+    it('devrait accepter une description avec exactement 10 caractères', () => {
+      const data = {
+        description: 'A'.repeat(10),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter une description avec exactement 5000 caractères', () => {
+      const data = {
+        description: 'A'.repeat(5000),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('thematics validation (optional)', () => {
+    it('devrait valider une thématique valide', () => {
+      const data = {
+        thematics: 'Finance et Comptabilité',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter une thématique avec moins de 3 caractères', () => {
+      const data = {
+        thematics: 'AB',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('thematics');
+      }
+    });
+
+    it('devrait rejeter une thématique avec plus de 100 caractères', () => {
+      const data = {
+        thematics: 'A'.repeat(101),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('thematics');
+      }
+    });
+
+    it('devrait accepter une thématique avec exactement 3 caractères', () => {
+      const data = {
+        thematics: 'ABC',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter une thématique avec exactement 100 caractères', () => {
+      const data = {
+        thematics: 'A'.repeat(100),
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('difficultyLevel validation (optional)', () => {
+    it('devrait valider BEGINNER', () => {
+      const data = {
+        difficultyLevel: DifficultyLevel.BEGINNER,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider INTERMEDIATE', () => {
+      const data = {
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider ADVANCED', () => {
+      const data = {
+        difficultyLevel: DifficultyLevel.ADVANCED,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider EXPERT', () => {
+      const data = {
+        difficultyLevel: DifficultyLevel.EXPERT,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter un niveau de difficulté invalide', () => {
+      const data = {
+        difficultyLevel: 'INVALID_LEVEL',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('estimatedDuration validation (optional)', () => {
+    it('devrait valider une durée de 60 minutes', () => {
+      const data = {
+        estimatedDuration: 60,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter une durée inférieure à 5 minutes', () => {
+      const data = {
+        estimatedDuration: 4,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('estimatedDuration');
+      }
+    });
+
+    it('devrait rejeter une durée supérieure à 10080 minutes', () => {
+      const data = {
+        estimatedDuration: 10081,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain('estimatedDuration');
+      }
+    });
+
+    it('devrait accepter une durée de exactement 5 minutes', () => {
+      const data = {
+        estimatedDuration: 5,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter une durée de exactement 10080 minutes', () => {
+      const data = {
+        estimatedDuration: 10080,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter une durée non numérique', () => {
+      const data = {
+        estimatedDuration: '60' as any,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('status validation (optional)', () => {
+    it('devrait valider DRAFT', () => {
+      const data = {
+        status: ModuleStatus.DRAFT,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider PUBLISHED', () => {
+      const data = {
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider ARCHIVED', () => {
+      const data = {
+        status: ModuleStatus.ARCHIVED,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter un statut invalide', () => {
+      const data = {
+        status: 'INVALID_STATUS',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('validation combinée', () => {
+    it('devrait valider la mise à jour de plusieurs champs', () => {
+      const data = {
+        title: 'Titre mis à jour',
+        description: 'Description mise à jour avec suffisamment de texte',
+        thematics: 'Épargne',
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 90,
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(data);
+      }
+    });
+
+    it("devrait valider la mise à jour d'un seul champ", () => {
+      const data = {
+        title: 'Nouveau titre uniquement',
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait rejeter si plusieurs champs sont invalides', () => {
+      const data = {
+        title: 'AB',
+        description: 'Court',
+        thematics: 'AB',
+        estimatedDuration: 2,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.length).toBeGreaterThan(1);
+      }
+    });
+
+    it('devrait accepter uniquement la modification du statut', () => {
+      const data = {
+        status: ModuleStatus.ARCHIVED,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait accepter uniquement la modification de la difficulté', () => {
+      const data = {
+        difficultyLevel: DifficultyLevel.EXPERT,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('devrait valider la mise à jour partielle avec des champs valides', () => {
+      const data = {
+        title: 'Titre valide mis à jour',
+        estimatedDuration: 120,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('inférence de type', () => {
+    it('devrait inférer le bon type TypeScript depuis le schéma', () => {
+      const data = {
+        title: 'Test Module Update',
+        description: 'Description for test module update',
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 75,
+        thematics: 'Testing Update',
+        status: ModuleStatus.DRAFT,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      if (result.success) {
+        // Type check - devrait compiler sans erreurs
+        const typed: z.infer<typeof updateModuleSchema> = result.data;
+        expect(typed.title).toBe(data.title);
+        expect(typed.description).toBe(data.description);
+        expect(typed.difficultyLevel).toBe(data.difficultyLevel);
+        expect(typed.estimatedDuration).toBe(data.estimatedDuration);
+        expect(typed.thematics).toBe(data.thematics);
+        expect(typed.status).toBe(data.status);
+      }
+    });
+
+    it('devrait accepter des champs optionnels undefined', () => {
+      const data = {
+        title: 'Only title',
+        description: undefined,
+        thematics: undefined,
+      };
+
+      const result = updateModuleSchema.safeParse(data);
+      expect(result.success).toBe(true);
     });
   });
 });

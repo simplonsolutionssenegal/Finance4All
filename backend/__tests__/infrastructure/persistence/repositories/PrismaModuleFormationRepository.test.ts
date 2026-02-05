@@ -1338,4 +1338,276 @@ describe('PrismaModuleFormationRepository', () => {
       expect(result).toBeInstanceOf(Module);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // findByTitleExceptId(title, excludeId)
+  // ---------------------------------------------------------------------------
+
+  describe('findByTitleExceptId(title, excludeId)', () => {
+    it('devrait retourner null si aucun module avec ce titre (hors excludeId)', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findByTitleExceptId('Titre Unique', uuid1);
+
+      expect(result).toBeNull();
+      expect(mockPrisma.module!.findFirst).toHaveBeenCalledWith({
+        where: { title: { equals: 'Titre Unique' }, NOT: { id: uuid1 } },
+        include: {
+          lessons: { include: { chapters: { include: { quizzes: true } }, quizzes: true } },
+          quizzes: true,
+        },
+      });
+    });
+
+    it('devrait retourner un module si le titre existe pour un autre module', async () => {
+      const prismaRow: PrismaModuleRow = {
+        id: uuid2,
+        title: 'Titre Dupliqué',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(prismaRow);
+
+      const result = await repository.findByTitleExceptId('Titre Dupliqué', uuid1);
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result?.title).toBe('Titre Dupliqué');
+      expect(result?.id.getValue()).toBe(uuid2);
+    });
+
+    it('devrait retourner null si le titre existe mais seulement pour le module exclu', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findByTitleExceptId('Mon Titre', uuid1);
+
+      expect(result).toBeNull();
+    });
+
+    it('devrait gérer les modules avec lessons et quizzes', async () => {
+      const lessonId = randomUUID();
+      const quizId = randomUUID();
+
+      const prismaRow: PrismaModuleRow = {
+        id: uuid2,
+        title: 'Module Complet',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.INTERMEDIATE,
+        estimatedDuration: 120,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [
+          {
+            id: lessonId,
+            moduleId: uuid2,
+            title: 'Leçon 1',
+            description: 'Desc',
+            duration: 30,
+            order: 0,
+            status: LessonStatus.PUBLISHED,
+            chapters: [],
+            quizzes: [],
+          },
+        ],
+        quizzes: [
+          {
+            id: quizId,
+            title: 'Quiz 1',
+            description: 'Desc',
+            status: QuizStatus.PUBLISHED,
+            scoreMinimum: 70,
+            duree: 15,
+            nombreTentatives: 3,
+            questions: [],
+            moduleId: uuid2,
+            lessonId: null,
+            chapterId: null,
+          },
+        ],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(prismaRow);
+
+      const result = await repository.findByTitleExceptId('Module Complet', uuid1);
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result?.lessons).toHaveLength(1);
+      expect(result?.quizzes).toHaveLength(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // findByThematicExceptId(thematic, excludeId)
+  // ---------------------------------------------------------------------------
+
+  describe('findByThematicExceptId(thematic, excludeId)', () => {
+    it('devrait retourner null si aucun module avec cette thématique (hors excludeId)', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findByThematicExceptId('comptabilité', uuid1);
+
+      expect(result).toBeNull();
+      expect(mockPrisma.module!.findFirst).toHaveBeenCalledWith({
+        where: {
+          thematics: { equals: 'comptabilité', mode: 'insensitive' },
+          NOT: { id: uuid1 },
+        },
+        include: {
+          lessons: { include: { chapters: { include: { quizzes: true } }, quizzes: true } },
+          quizzes: true,
+        },
+      });
+    });
+
+    it('devrait retourner un module si la thématique existe pour un autre module', async () => {
+      const prismaRow: PrismaModuleRow = {
+        id: uuid2,
+        title: 'Module Finance',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance avancée',
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 90,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(prismaRow);
+
+      const result = await repository.findByThematicExceptId('Finance Avancée', uuid1);
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result?.thematics).toBe('finance avancée');
+      expect(result?.id.getValue()).toBe(uuid2);
+    });
+
+    it('devrait normaliser la thématique en minuscules avec trim', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      await repository.findByThematicExceptId('  GESTION DE PROJET  ', uuid1);
+
+      expect(mockPrisma.module!.findFirst).toHaveBeenCalledWith({
+        where: {
+          thematics: { equals: 'gestion de projet', mode: 'insensitive' },
+          NOT: { id: uuid1 },
+        },
+        include: {
+          lessons: { include: { chapters: { include: { quizzes: true } }, quizzes: true } },
+          quizzes: true,
+        },
+      });
+    });
+
+    it('devrait retourner null si la thématique existe mais seulement pour le module exclu', async () => {
+      mockPrisma.module!.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findByThematicExceptId('finance', uuid1);
+
+      expect(result).toBeNull();
+    });
+
+    it('devrait être insensible à la casse', async () => {
+      const prismaRow: PrismaModuleRow = {
+        id: uuid3,
+        title: 'Module Test',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'comptabilité générale',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 45,
+        status: ModuleStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [],
+        quizzes: [],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(prismaRow);
+
+      const result = await repository.findByThematicExceptId('COMPTABILITÉ GÉNÉRALE', uuid1);
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result?.thematics).toBe('comptabilité générale');
+    });
+
+    it('devrait gérer les modules avec lessons et quizzes', async () => {
+      const lessonId = randomUUID();
+      const chapterId = randomUUID();
+      const quizId = randomUUID();
+
+      const prismaRow: PrismaModuleRow = {
+        id: uuid2,
+        title: 'Module Avancé',
+        description: 'Description',
+        imageMediaId: null,
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.EXPERT,
+        estimatedDuration: 180,
+        status: ModuleStatus.PUBLISHED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lessons: [
+          {
+            id: lessonId,
+            moduleId: uuid2,
+            title: 'Leçon Avancée',
+            description: 'Desc',
+            duration: 60,
+            order: 0,
+            status: LessonStatus.PUBLISHED,
+            chapters: [
+              {
+                id: chapterId,
+                lessonId,
+                title: 'Chapitre 1',
+                description: 'Desc',
+                mediaId: null,
+                order: 0,
+                quizzes: [],
+              },
+            ],
+            quizzes: [],
+          },
+        ],
+        quizzes: [
+          {
+            id: quizId,
+            title: 'Quiz Final',
+            description: 'Desc',
+            status: QuizStatus.PUBLISHED,
+            scoreMinimum: 80,
+            duree: 20,
+            nombreTentatives: 2,
+            questions: [],
+            moduleId: uuid2,
+            lessonId: null,
+            chapterId: null,
+          },
+        ],
+      };
+
+      mockPrisma.module!.findFirst.mockResolvedValue(prismaRow);
+
+      const result = await repository.findByThematicExceptId('finance', uuid1);
+
+      expect(result).toBeInstanceOf(Module);
+      expect(result?.lessons).toHaveLength(1);
+      expect(result?.lessons[0].chapters).toHaveLength(1);
+      expect(result?.quizzes).toHaveLength(1);
+    });
+  });
 });

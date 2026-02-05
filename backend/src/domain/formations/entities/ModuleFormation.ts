@@ -223,6 +223,39 @@ export class Module extends DomainEntity<EntityId> {
     return this._status === ModuleStatus.ARCHIVED;
   }
 
+  public updateThematics(thematics: string): void {
+    const v = thematics?.toLowerCase().trim();
+    if (!v) throw new Error('Au moins une thématique est requise');
+    this._thematics = v;
+    this._updatedAt = new Date();
+  }
+  public updateDifficultyLevel(level: DifficultyLevel): void {
+    if (!Object.values(DifficultyLevel).includes(level)) {
+      throw new Error("Le niveau de difficulté n'est pas valide");
+    }
+    this._difficultyLevel = level;
+    this._updatedAt = new Date();
+  }
+  public updateEstimatedDuration(duration: number): void {
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error('La durée estimée doit être supérieure à 0');
+    }
+    if (duration > 10080) throw new Error('La durée maximale est de 7 jours');
+    this._estimatedDuration = duration;
+    this._updatedAt = new Date();
+  }
+  public updateImageMediaId(imageMediaId: string | null): void {
+    this._imageMediaId = imageMediaId;
+    this._updatedAt = new Date();
+  }
+  public updateStatus(status: ModuleStatus): void {
+    if (!Object.values(ModuleStatus).includes(status)) {
+      throw new Error("Le statut du module n'est pas valide");
+    }
+    this._status = status;
+    this._updatedAt = new Date();
+  }
+
   public toDTO(): ModuleResponseDTO {
     return {
       id: this._id.getValue(),

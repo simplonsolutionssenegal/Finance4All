@@ -116,6 +116,8 @@ import { GetLessonByIdUseCaseImpl } from '@/application/formations/use-cases/Get
 import { LessonController } from '../web/controllers/LessonController';
 import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
 import { AddQuizLessonUseCaseImpl } from '@/application/formations/use-cases/AddQuizLessonUseCaseImpl';
+import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
+import { UpdateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/UpdateModule.usecase';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -151,6 +153,7 @@ export const TYPES = {
   AddQuizUseCase: Symbol.for('AddQuizUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
   ModuleController: Symbol.for('ModuleController'),
+  UpdateModuleUseCase: Symbol.for('UpdateModuleUseCase'),
 
   // ========== Quiz ==========
   GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
@@ -460,6 +463,11 @@ container
   .inSingletonScope();
 
 // ========== modules de formation controllers ==========
+container.bind<UpdateModuleUseCase>(TYPES.UpdateModuleUseCase).toDynamicValue(() => {
+  const repo = container.get<ModuleRepository>(TYPES.ModuleRepository);
+  return new UpdateModuleFormationUseCaseImpl(repo);
+});
+
 container
   .bind<ModuleController>(TYPES.ModuleController)
   .toDynamicValue(context => {
@@ -468,13 +476,15 @@ container
     const getModuleByIdUseCase = context.get<GetModuleByIdUseCase>(TYPES.GetModuleByIdUseCase);
     const addLessonUseCase = context.get<AddLessonUseCase>(TYPES.AddLessonUseCase);
     const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
+    const updateModuleUseCase = context.get<UpdateModuleUseCase>(TYPES.UpdateModuleUseCase);
 
     return new ModuleController(
       createModuleUseCase,
       getModulesUseCase,
       getModuleByIdUseCase,
       addLessonUseCase,
-      addQuizUseCase
+      addQuizUseCase,
+      updateModuleUseCase
     );
   })
   .inSingletonScope();

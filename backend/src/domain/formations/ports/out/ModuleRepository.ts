@@ -10,19 +10,13 @@ export interface ModuleRepository {
 
   findByThematic(thematic: string): Promise<Module | null>;
 
-
   findById(id: string): Promise<Module | null>;
   update(module: Module): Promise<Module>;
-  
+
   findAll(params: PaginationParams): Promise<PaginatedResult<Module>>;
-  // attachQuizToLesson(params: {
-  //   moduleId: string;
-  //   lessonId: string;
-  //   quizId: string;
-  // }): Promise<void>;
-  // attachQuizzesToChapters(params: {
-  //   moduleId: string;
-  //   lessonId: string;
-  //   links: Array<{ chapterId: string; quizId: string }>;
-  // }): Promise<void>;
+  findByTitleExceptId(title: string, excludeId: string): Promise<Module | null>;
+  findByThematicExceptId(thematic: string, excludeId: string): Promise<Module | null>;
+  findById(id: string): Promise<Module | null>;
+  update(module: Module): Promise<Module>;
+  findAll(params: PaginationParams): Promise<PaginatedResult<Module>>;
 }

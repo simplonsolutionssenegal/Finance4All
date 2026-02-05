@@ -14,6 +14,7 @@ import type { Lesson } from '@/types/modules/Lesson';
 
 import LessonDialog from './lesson-dialog';
 import LessonList from './lesson-list';
+import ModuleEditDialog from './module-edit-dialog';
 import QuizDialog from './quiz-dialog';
 import QuizList from './quiz-list';
 
@@ -74,6 +75,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
 
   const { url: imageUrl } = useMediaUrl(module?.imageMediaId ?? null);
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) showLoader();
@@ -173,7 +176,10 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
             </div>
           </div>
 
-          <button className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium shrink-0'>
+          <button
+            onClick={() => setIsEditOpen(true)}
+            className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium shrink-0'
+          >
             <Pencil className='h-4 w-4' />
             Modifier
           </button>
@@ -291,6 +297,12 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
           onOpenChange={setIsQuizDialogOpen}
           moduleId={moduleId}
           onCreated={() => refetch()}
+        />
+        <ModuleEditDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          module={module}
+          onUpdated={() => refetch()}
         />
       </div>
     </div>

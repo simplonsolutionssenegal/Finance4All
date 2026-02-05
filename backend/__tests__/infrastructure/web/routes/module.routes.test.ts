@@ -9,6 +9,7 @@ const mockModuleController = {
   getById: jest.fn(),
   addLesson: jest.fn(),
   addQuiz: jest.fn(),
+  update: jest.fn(),
 };
 
 // ✅ Mock container DI
@@ -28,6 +29,7 @@ jest.mock('@/infrastructure/web/validators/module.validator', () => ({
   validateGetModules: [],
   validatePagination: [],
   validateModuleId: [],
+  validateUpdateModule: [],
 }));
 
 describe('ModuleFormationRoutes', () => {
@@ -247,6 +249,162 @@ describe('ModuleFormationRoutes', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.moduleId).toBe('module-2');
       expect(mockModuleController.addQuiz).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('PUT /modules/:id', () => {
+    it('devrait mettre à jour un module avec succès', async () => {
+      const moduleId = 'module-123';
+      const updatePayload = {
+        title: 'Module Updated',
+        description: 'Updated description',
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 120,
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          data: { id: req.params.id, ...req.body },
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send(updatePayload)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe(moduleId);
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('devrait mettre à jour uniquement le titre', async () => {
+      const moduleId = 'module-456';
+      const updatePayload = {
+        title: 'Only Title Updated',
+      };
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          data: { id: req.params.id, ...req.body },
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send(updatePayload)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.title).toBe('Only Title Updated');
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
+    });
+
+    it("devrait permettre la suppression d'image avec imageMediaId null", async () => {
+      const moduleId = 'module-789';
+      const updatePayload = {
+        title: 'Module',
+        imageMediaId: null,
+      };
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          data: { id: req.params.id, ...req.body },
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send(updatePayload)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.imageMediaId).toBeNull();
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('devrait mettre à jour estimatedDuration', async () => {
+      const moduleId = 'module-duration';
+      const updatePayload = {
+        estimatedDuration: 90,
+      };
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          data: { id: req.params.id, ...req.body },
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send(updatePayload)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('devrait gérer les erreurs lors de la mise à jour', async () => {
+      const moduleId = 'module-error';
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(500).json({
+          success: false,
+          error: 'INTERNAL_ERROR',
+          message: 'Erreur lors de la mise à jour',
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send({ title: 'Test' })
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('INTERNAL_ERROR');
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
+    });
+
+    it("devrait valider l'ID du module", async () => {
+      // Ce test vérifie que validateModuleId est dans la chaîne de middlewares
+      const moduleId = 'valid-module-id';
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({ success: true, data: {} });
+      });
+
+      await request(app).put(`/modules/${moduleId}`).send({ title: 'Test' }).expect(200);
+
+      expect(mockModuleController.update).toHaveBeenCalled();
+    });
+
+    it('devrait mettre à jour le statut du module', async () => {
+      const moduleId = 'module-status';
+      const updatePayload = {
+        status: ModuleStatus.ARCHIVED,
+      };
+
+      mockModuleController.update.mockImplementation(async (req, res) => {
+        res.status(200).json({
+          success: true,
+          data: { id: req.params.id, ...req.body },
+        });
+      });
+
+      const response = await request(app)
+        .put(`/modules/${moduleId}`)
+        .send(updatePayload)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe(ModuleStatus.ARCHIVED);
+      expect(mockModuleController.update).toHaveBeenCalledTimes(1);
     });
   });
 

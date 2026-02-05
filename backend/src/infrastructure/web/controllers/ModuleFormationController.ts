@@ -9,6 +9,7 @@ import {
 import type { GetModuleByIdUseCase } from '@/domain/formations/ports/in/GetModuleByIdUseCase';
 import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
 import type { AddQuizUseCase } from '@/domain/formations/ports/in/AddQuizUseCase';
+import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
 
 export class ModuleController {
   constructor(
@@ -16,7 +17,8 @@ export class ModuleController {
     private readonly getModulesUseCase: GetModulesUseCase,
     private readonly getModuleByIdUseCase: GetModuleByIdUseCase,
     private readonly addLessonUseCase: AddLessonUseCase,
-    private readonly addQuizUseCase: AddQuizUseCase
+    private readonly addQuizUseCase: AddQuizUseCase,
+    private readonly updateModuleUseCase: UpdateModuleUseCase
   ) {}
 
   async create(req: Request, res: Response): Promise<Response> {
@@ -91,6 +93,24 @@ export class ModuleController {
       });
     } catch (error) {
       next(error);
+    }
+  }
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const result = await this.updateModuleUseCase.execute({
+        id,
+        ...req.body,
+        estimatedDuration:
+          req.body.estimatedDuration === undefined || req.body.estimatedDuration === null
+            ? undefined
+            : Number(req.body.estimatedDuration),
+      });
+
+      res.status(200).json({ success: true, data: result });
+    } catch (e) {
+      next(e);
     }
   }
 

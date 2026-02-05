@@ -1,14 +1,15 @@
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 
+import ModuleDetailsComponent from '@/components/admin/modules/moduleDetailsComponent';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
-import ModuleDetailsComponent from '@/components/admin/modules/moduleDetailsComponent';
 
 // --- mocks Next ---
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => <img alt={props.alt ?? ''} {...props} />,
+  // eslint-disable-next-line jsx-a11y/alt-text
+  default: (props: any) => <div data-testid='next-image' {...props} />,
 }));
 
 jest.mock('next/link', () => ({
@@ -27,6 +28,10 @@ jest.mock('@/contexts/LoaderContext', () => ({
 
 jest.mock('@/hooks/module/useGetModuleById', () => ({
   useGetModuleById: jest.fn(),
+}));
+
+jest.mock('@/hooks/module/media/useMedia', () => ({
+  useMediaUrl: jest.fn(),
 }));
 
 // --- mocks constants ---
@@ -124,9 +129,20 @@ jest.mock('@/components/admin/modules/quiz-list', () => ({
   default: (props: any) => <div data-testid='quiz-list'>quizzes:{props.quizzes?.length ?? 0}</div>,
 }));
 
+jest.mock('@/components/admin/modules/module-edit-dialog', () => ({
+  __esModule: true,
+  default: (props: any) => (
+    <div data-testid='module-edit-dialog' data-open={props.open ? '1' : '0'}>
+      <button onClick={props.onUpdated}>module-updated</button>
+      <button onClick={() => props.onOpenChange(false)}>module-edit-close</button>
+    </div>
+  ),
+}));
+
 describe('ModuleDetailsComponent', () => {
   const useLoaderMock = useLoader as unknown as jest.Mock;
   const useGetModuleByIdMock = useGetModuleById as unknown as jest.Mock;
+  const useMediaUrlMock = require('@/hooks/module/media/useMedia').useMediaUrl as jest.Mock;
 
   const showLoader = jest.fn();
   const hideLoader = jest.fn();
@@ -134,6 +150,7 @@ describe('ModuleDetailsComponent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useLoaderMock.mockReturnValue({ showLoader, hideLoader });
+    useMediaUrlMock.mockReturnValue({ url: 'https://img.test/module.png', loading: false });
   });
   function baseModule(overrides?: Partial<any>) {
     const quizzes = [
@@ -155,11 +172,13 @@ describe('ModuleDetailsComponent', () => {
       id: 'm1',
       title: 'Mon module',
       description: 'Desc',
-      imageUrl: 'https://img.test/x.png',
+      imageMediaId: 'media-123',
       thematics: 'Éducation financière',
       difficultyLevel: 'BEGINNER',
       estimatedDuration: 120,
       status: 'PUBLISHED',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       lessons: [
         {
           id: 'l1',
@@ -322,9 +341,11 @@ describe('ModuleDetailsComponent', () => {
     expect(screen.getByText('120min')).toBeInTheDocument();
   });
 
-  it('should show emoji fallback when imageUrl is null and fallback thematic label/icon when thematics is empty', () => {
+  it('should show emoji fallback when imageMediaId is null', () => {
+    useMediaUrlMock.mockReturnValue({ url: null, loading: false });
+
     useGetModuleByIdMock.mockReturnValue({
-      module: baseModule({ imageUrl: null, thematics: 'Éducation financière' }),
+      module: baseModule({ imageMediaId: null }),
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
@@ -332,7 +353,7 @@ describe('ModuleDetailsComponent', () => {
 
     render(<ModuleDetailsComponent moduleId='m1' />);
 
-    // Emoji fallback (quand imageUrl est null)
+    // Emoji fallback (quand imageMediaId est null)
     expect(screen.getByText('📘')).toBeInTheDocument();
 
     // La thématique s'affiche normalement
@@ -381,5 +402,87 @@ describe('ModuleDetailsComponent', () => {
 
     expect(screen.getByTestId('quiz-list')).toBeInTheDocument();
     expect(screen.queryByTestId('lesson-list')).not.toBeInTheDocument();
+  });
+
+  it('devrait ouvrir le dialog de modification quand on clique sur le bouton Modifier', () => {
+    const refetch = jest.fn();
+
+    useGetModuleByIdMock.mockReturnValue({
+      module: baseModule(),
+      isLoading: false,
+      isError: false,
+      refetch,
+    });
+
+    render(<ModuleDetailsComponent moduleId='m1' />);
+
+    // Le dialog est fermé par défaut
+    expect(screen.getByTestId('module-edit-dialog')).toHaveAttribute('data-open', '0');
+
+    // Cliquer sur le bouton Modifier
+    fireEvent.click(screen.getByText('Modifier'));
+
+    // Le dialog s'ouvre
+    expect(screen.getByTestId('module-edit-dialog')).toHaveAttribute('data-open', '1');
+  });
+
+  it('devrait fermer le dialog de modification et appeler refetch quand onUpdated est appelé', () => {
+    const refetch = jest.fn();
+
+    useGetModuleByIdMock.mockReturnValue({
+      module: baseModule(),
+      isLoading: false,
+      isError: false,
+      refetch,
+    });
+
+    render(<ModuleDetailsComponent moduleId='m1' />);
+
+    // Ouvrir le dialog
+    fireEvent.click(screen.getByText('Modifier'));
+    expect(screen.getByTestId('module-edit-dialog')).toHaveAttribute('data-open', '1');
+
+    // Simuler la mise à jour du module
+    fireEvent.click(screen.getByText('module-updated'));
+
+    // Refetch doit être appelé
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('devrait fermer le dialog de modification via le bouton close', () => {
+    useGetModuleByIdMock.mockReturnValue({
+      module: baseModule(),
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+
+    render(<ModuleDetailsComponent moduleId='m1' />);
+
+    // Ouvrir le dialog
+    fireEvent.click(screen.getByText('Modifier'));
+    expect(screen.getByTestId('module-edit-dialog')).toHaveAttribute('data-open', '1');
+
+    // Fermer le dialog
+    fireEvent.click(screen.getByText('module-edit-close'));
+    expect(screen.getByTestId('module-edit-dialog')).toHaveAttribute('data-open', '0');
+  });
+
+  it("devrait afficher l'image du module via useMediaUrl", () => {
+    useMediaUrlMock.mockReturnValue({ url: 'https://media.test/module-image.jpg', loading: false });
+
+    useGetModuleByIdMock.mockReturnValue({
+      module: baseModule({ imageMediaId: 'media-456' }),
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+
+    render(<ModuleDetailsComponent moduleId='m1' />);
+
+    const img = screen.getByTestId('next-image');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', 'https://media.test/module-image.jpg');
+    expect(img).toHaveAttribute('alt', 'Mon module');
   });
 });

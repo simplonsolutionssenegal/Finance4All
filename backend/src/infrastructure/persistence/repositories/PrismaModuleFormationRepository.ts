@@ -197,6 +197,34 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
     return this.toDomain(updated);
   }
 
+  async findByTitleExceptId(title: string, excludeId: string): Promise<Module | null> {
+    const module = await this.prisma.module.findFirst({
+      where: { title: { equals: title }, NOT: { id: excludeId } },
+      include: {
+        lessons: { include: { chapters: { include: { quizzes: true } }, quizzes: true } },
+        quizzes: true,
+      },
+    });
+    return module ? this.toDomain(module) : null;
+  }
+
+  async findByThematicExceptId(thematic: string, excludeId: string): Promise<Module | null> {
+    const normalized = thematic.toLowerCase().trim();
+
+    const module = await this.prisma.module.findFirst({
+      where: {
+        thematics: { equals: normalized, mode: 'insensitive' },
+        NOT: { id: excludeId },
+      },
+      include: {
+        lessons: { include: { chapters: { include: { quizzes: true } }, quizzes: true } },
+        quizzes: true,
+      },
+    });
+
+    return module ? this.toDomain(module) : null;
+  }
+
   // -------------------------
   // Mapping Prisma -> Domain
   // -------------------------
