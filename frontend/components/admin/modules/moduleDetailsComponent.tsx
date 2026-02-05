@@ -12,7 +12,6 @@ import { useGetModuleById } from '@/hooks/module/useGetModuleById';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
 import type { Lesson } from '@/types/modules/Lesson';
 
-// ✅ Les imports locaux relatifs viennent APRÈS les imports de types
 import LessonDialog from './lesson-dialog';
 import LessonList from './lesson-list';
 import QuizDialog from './quiz-dialog';
@@ -255,9 +254,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                   lessons={lessonsSorted}
                   moduleId={moduleId}
                   onCreate={() => setIsLessonDialogOpen(true)}
-                  onEdit={() => {
-                    // TODO: implement edit functionality
-                  }}
+                  onEdit={() => {}}
                 />
               </div>
             </TabsContent>
