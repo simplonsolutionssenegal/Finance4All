@@ -188,8 +188,8 @@ describe('ModuleDetailsComponent', () => {
           order: 2,
           status: 'DRAFT',
           chapters: [],
-          chaptersCount: 0,
-          quizzes: [], // ⭐ AJOUT : quizzes de la leçon
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
         {
           id: 'l2',
@@ -199,8 +199,8 @@ describe('ModuleDetailsComponent', () => {
           order: 1,
           status: 'PUBLISHED',
           chapters: [],
-          chaptersCount: 0,
-          quizzes: [], // ⭐ AJOUT : quizzes de la leçon
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       ],
       quizzes, // Quizzes du module uniquement

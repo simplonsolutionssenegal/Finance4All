@@ -9,6 +9,26 @@ import ModuleList from '@/components/admin/modules/module-list';
 import StatsCards from '@/components/admin/modules/stats-cards';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetModules } from '@/hooks/module/useGetModules';
+import type { Module } from '@/types/modules/module';
+
+function countAllQuizzes(module: Module): number {
+  // 1) quiz au niveau module
+  const moduleQuizzes = Array.isArray(module.quizzes) ? module.quizzes.length : 0;
+
+  // 2) quiz au niveau des chapitres (les leçons n'ont pas de quizzes directement)
+  const lessons = Array.isArray(module.lessons) ? module.lessons : [];
+  const chapterQuizzes = lessons.reduce((acc, l) => {
+    const chapters = Array.isArray(l.chapters) ? l.chapters : [];
+    return acc + chapters.reduce((a: number, c: any) => a + (c.quizzes?.length ?? 0), 0);
+  }, 0);
+
+  // 3) si ton backend renvoie quizzesGlobal déjà calculé
+  // (dans ce cas, ça couvre tout; mais on l'utilise seulement si présent)
+  const global = (module as any).quizzesGlobal;
+  if (Array.isArray(global)) return global.length;
+
+  return moduleQuizzes + chapterQuizzes;
+}
 
 export default function ModulesPageContent() {
   const { showLoader, hideLoader } = useLoader();
@@ -20,13 +40,40 @@ export default function ModulesPageContent() {
   // Pagination locale
   const itemsPerPage = 6;
   const [localPage, setLocalPage] = useState(1);
+
   const { modules, isLoading, isError, refetch } = useGetModules({
     page: 1,
     limit: pageLimit,
   });
 
-  // des hooks useMemo changent à chaque rendu lorsque `modules` est undefined.
   const allModules = useMemo(() => (Array.isArray(modules) ? modules : []), [modules]);
+
+  // Loader global
+  useEffect(() => {
+    if (isLoading) showLoader();
+    else hideLoader();
+  }, [isLoading, showLoader, hideLoader]);
+
+  // ✅ Stats dynamiques
+  const totalModules = allModules.length;
+
+  const publishedModules = useMemo(
+    () => allModules.filter(m => m.status === 'PUBLISHED').length,
+    [allModules]
+  );
+
+  const totalLessons = useMemo(
+    () => allModules.reduce((acc, m) => acc + (m.lessons?.length ?? 0), 0),
+    [allModules]
+  );
+
+  const totalQuizzes = useMemo(
+    () => allModules.reduce((acc, m) => acc + countAllQuizzes(m), 0),
+    [allModules]
+  );
+
+  // TODO: brancher une API "inscriptions" plus tard
+  const totalLearners = useMemo(() => 0, []);
 
   // Pagination locale
   const paginatedModules = useMemo(() => {
@@ -45,20 +92,6 @@ export default function ModulesPageContent() {
     };
   }, [allModules.length, localPage]);
 
-  // Loader global
-  useEffect(() => {
-    if (isLoading) showLoader();
-    else hideLoader();
-  }, [isLoading, showLoader, hideLoader]);
-
-  // Statistiques
-  const totalModules = allModules.length;
-  const publishedModules = allModules.filter(m => m.status === 'PUBLISHED').length;
-
-  // si tu veux garder ces chiffres en dur, ok. Sinon remplace par un calcul réel
-  const totalQuizzes = 20;
-  const totalLearners = 688;
-
   const handlePageChange = (page: number) => {
     setLocalPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -67,18 +100,16 @@ export default function ModulesPageContent() {
   return (
     <div className='min-h-screen bg-gray-50 p-6'>
       <div className='max-w-7xl mx-auto'>
-        {/* Statistiques */}
         <StatsCards
           totalModules={totalModules}
           publishedModules={publishedModules}
+          totalLessons={totalLessons}
           totalQuizzes={totalQuizzes}
           totalLearners={totalLearners}
         />
 
-        {/* Actions rapides (juste le bouton) */}
         <FiltersBar onNewClick={() => setIsDialogOpen(true)} />
 
-        {/* Liste des modules */}
         <ModuleList
           modules={paginatedModules}
           pagination={localPagination}
@@ -87,7 +118,6 @@ export default function ModulesPageContent() {
           onPageChange={handlePageChange}
         />
 
-        {/* Dialog création/édition */}
         <ModuleDialog
           isOpen={isDialogOpen}
           onClose={() => {
