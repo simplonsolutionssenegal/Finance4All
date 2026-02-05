@@ -138,7 +138,7 @@ export default function QuizRunner({ moduleId, quiz, afterSuccessRedirect }: Qui
                       : currentSelection.includes(opt.text);
                   return (
                     <label
-                      key={`${opt.text}-${idx}`}
+                      key={`${current.question}-${opt.text}`}
                       className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
                         isSelected
                           ? 'border-primary-400 bg-primary-50 text-secondary-400'

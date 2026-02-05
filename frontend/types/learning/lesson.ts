@@ -42,7 +42,7 @@ export interface QuestionDTO {
 export interface Quiz {
   id: string;
   moduleId: string;
-  lessonId: string;
+  lessonId?: string;
   chapterId?: string | null;
   isModuleQuiz?: boolean;
   title: string;

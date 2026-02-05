@@ -4,12 +4,11 @@ import { HelpCircle, CheckCircle2, Award, Clock, RotateCcw, Lock } from 'lucide-
 import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { getQuizzesForModule, getQuizAvailability } from '@/lib/mocks/learning-mocks';
-import { QuizStatus } from '@/types/learning/lesson';
+import { QuizStatus, type Quiz } from '@/types/learning/lesson';
 
 interface QuizListProps {
   readonly moduleId: string;
-  readonly totalLessons: number;
+  readonly quizzes: Quiz[];
 }
 
 function formatStatus(status: QuizStatus): string {
@@ -25,9 +24,7 @@ function formatStatus(status: QuizStatus): string {
   }
 }
 
-export default function QuizList({ moduleId, totalLessons }: QuizListProps) {
-  const quizzes = getQuizzesForModule(moduleId);
-
+export default function QuizList({ moduleId, quizzes }: QuizListProps) {
   if (quizzes.length === 0) {
     return (
       <p className='rounded-2xl border border-grey-200 bg-white p-6 text-center text-sm text-grey-600 shadow-sm'>
@@ -41,7 +38,8 @@ export default function QuizList({ moduleId, totalLessons }: QuizListProps) {
       {quizzes.map(quiz => {
         const questionCount = quiz.questions.length;
         const isPublished = quiz.status === QuizStatus.PUBLISHED;
-        const { available, reason } = getQuizAvailability(quiz, totalLessons);
+        const available = isPublished;
+        const reason = available ? undefined : 'Quiz non publié.';
 
         const cardContent = (
           <CardContent className='flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4'>
@@ -72,7 +70,6 @@ export default function QuizList({ moduleId, totalLessons }: QuizListProps) {
                 )}
                 {!available && reason && (
                   <span className='inline-flex items-center gap-1 rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-700'>
-                    <Lock className='h-3.5 w-3.5' />
                     Non disponible
                   </span>
                 )}

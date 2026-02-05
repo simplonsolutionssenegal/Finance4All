@@ -2,29 +2,29 @@ import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api-client';
-import { Quiz } from '@/types/modules/Quiz';
+import type { MediaDTO } from '@/types/media';
 
-type GetQuizByIdResponse<TQuiz = Quiz> = {
+type GetMediaByIdResponse = {
   success: boolean;
-  data: TQuiz;
+  data: MediaDTO;
   message?: string;
 };
 
-export const useGetQuizById = <TQuiz = Quiz>(id: string) => {
+export const useGetMediaById = (id: string) => {
   const { getToken } = useAuth();
 
   const query = useQuery({
-    queryKey: ['quiz', id],
+    queryKey: ['media', id],
     enabled: Boolean(id),
     queryFn: async () => {
       const token = await getToken();
-      return apiClient<GetQuizByIdResponse<TQuiz>>(`quizzes/${id}`, 'GET', token);
+      return apiClient<GetMediaByIdResponse>(`media/${id}`, 'GET', token);
     },
     staleTime: 5 * 60 * 1000,
   });
 
   return {
-    quiz: query.data?.data,
+    media: query.data?.data,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

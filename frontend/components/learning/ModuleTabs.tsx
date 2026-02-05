@@ -3,8 +3,7 @@
 import { FileText, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { getQuizzesForModule } from '@/lib/mocks/learning-mocks';
-import type { Lesson } from '@/types/learning/lesson';
+import type { Lesson, Quiz } from '@/types/learning/lesson';
 
 import LessonList from './LessonList';
 import QuizList from './QuizList';
@@ -13,11 +12,11 @@ interface ModuleTabsProps {
   readonly moduleId: string;
   readonly lessons: Lesson[];
   readonly totalLessons: number;
+  readonly quizzes: Quiz[];
 }
 
-export default function ModuleTabs({ moduleId, lessons, totalLessons }: ModuleTabsProps) {
+export default function ModuleTabs({ moduleId, lessons, totalLessons, quizzes }: ModuleTabsProps) {
   const [activeTab, setActiveTab] = useState<'lessons' | 'quizzes'>('lessons');
-  const quizzes = getQuizzesForModule(moduleId);
   const totalQuizzes = quizzes.length;
 
   return (
@@ -59,7 +58,7 @@ export default function ModuleTabs({ moduleId, lessons, totalLessons }: ModuleTa
         <LessonList moduleId={moduleId} lessons={lessons} />
       ) : (
         <>
-          <QuizList moduleId={moduleId} totalLessons={totalLessons} />
+          <QuizList moduleId={moduleId} quizzes={quizzes} />
         </>
       )}
     </>
