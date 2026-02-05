@@ -27,10 +27,11 @@ jest.mock('@/hooks/lesson/useGetLessonById', () => ({
   useGetLessonById: jest.fn(),
 }));
 
-const quizRunnerMock = jest.fn(() => <div data-testid='quiz-runner' />);
+type QuizRunnerProps = { afterSuccessRedirect: string } & Record<string, unknown>;
+const quizRunnerMock = jest.fn((props: QuizRunnerProps) => <div data-testid='quiz-runner' />);
 jest.mock('@/components/learning/QuizRunner', () => ({
   __esModule: true,
-  default: (props: unknown) => quizRunnerMock(props),
+  default: (props: QuizRunnerProps) => quizRunnerMock(props),
 }));
 
 const mockUseGetModuleById = jest.requireMock('@/hooks/module/useGetModuleById')
@@ -125,7 +126,8 @@ describe('QuizPageClient', () => {
 
     render(<QuizPageClient moduleId='module-1' quizId='chapter-quiz-1' />);
 
-    const props = quizRunnerMock.mock.calls[0][0] as { afterSuccessRedirect: string };
+    expect(quizRunnerMock).toHaveBeenCalled();
+    const props = quizRunnerMock.mock.calls[0][0];
     expect(props.afterSuccessRedirect).toBe('/learning/module-1/lesson/1?chapter=chapter-2');
   });
 
@@ -182,7 +184,8 @@ describe('QuizPageClient', () => {
 
     render(<QuizPageClient moduleId='module-1' quizId='chapter-quiz-2' />);
 
-    const props = quizRunnerMock.mock.calls[0][0] as { afterSuccessRedirect: string };
+    expect(quizRunnerMock).toHaveBeenCalled();
+    const props = quizRunnerMock.mock.calls[0][0];
     expect(props.afterSuccessRedirect).toBe('/learning/module-1/quiz/lesson-quiz-1');
   });
 });
