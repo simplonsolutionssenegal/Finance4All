@@ -61,9 +61,6 @@ export default function Sidebar() {
     if (!isLoaded || !pathname) return;
     const allowedRoles = getAllowedRolesForPath(pathname);
     if (allowedRoles == null) return;
-    if (!canAccessItem(allowedRoles, hasRole, hasOrganizationRole, isFallbackUtilisateur)) {
-      router.replace('/404');
-    }
   }, [isLoaded, pathname, hasRole, hasOrganizationRole, router, isFallbackUtilisateur]);
 
   // États pour le mobile et la déconnexion
