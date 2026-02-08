@@ -7,6 +7,10 @@ import {
   Settings,
   type LucideIcon,
   GraduationCap,
+  Home,
+  Compass,
+  Award,
+  Calculator,
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -23,6 +27,12 @@ export const menuItems: MenuItem[] = [
     label: 'Overview',
     icon: LayoutDashboard,
     href: '/dashboard',
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: Home,
+    href: '/beneficiaire-dashboard',
   },
   {
     id: 'modules',
@@ -61,5 +71,23 @@ export const menuItems: MenuItem[] = [
     label: 'Settings',
     icon: Settings,
     href: '/settings',
+  },
+  {
+    id: 'certificats',
+    label: 'Certificats',
+    icon: Award,
+    href: '/certificats',
+  },
+  {
+    id: 'comparator',
+    label: 'Comparateur',
+    icon: Compass,
+    href: '/comparator',
+  },
+  {
+    id: 'simulator',
+    label: 'Simulateur',
+    icon: Calculator,
+    href: '/simulator',
   },
 ];
