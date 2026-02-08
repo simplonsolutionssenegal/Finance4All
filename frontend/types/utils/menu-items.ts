@@ -77,14 +77,14 @@ export const menuItems: MenuItem[] = [
     id: 'comparator',
     label: 'Comparateur',
     icon: Compass,
-    href: '/comparator',
+    href: '/comparateur',
     allowedRoles: ['org:recipient', 'beneficiary'],
   },
   {
     id: 'simulator',
     label: 'Simulateur',
     icon: Calculator,
-    href: '/simulator',
+    href: '/simulateur',
     allowedRoles: ['org:recipient', 'beneficiary'],
   },
   {

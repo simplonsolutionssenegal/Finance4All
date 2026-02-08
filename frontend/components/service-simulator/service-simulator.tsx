@@ -86,7 +86,11 @@ const createServiceOptions = (services: Service[]): DropdownOption<Service>[] =>
 
 const isHttpUrl = (v: unknown): v is string => typeof v === 'string' && /^https?:\/\//.test(v);
 
-export function ServiceSimulator() {
+interface ServiceSimulatorProps {
+  mode?: 'public' | 'dashboard';
+}
+
+export function ServiceSimulator({ mode = 'public' }: ServiceSimulatorProps) {
   const router = useRouter();
 
   const { params, institutions, isLoading, updateParam, getAvailableServices, resetSimulation } =
@@ -234,32 +238,36 @@ export function ServiceSimulator() {
   };
 
   return (
-    <div className='min-h-screen bg-slate-50 mt-30'>
-      <header className='bg-white border-b border-slate-200'>
-        <div className='mx-auto max-w-7xl px-4 pt-3 pb-3'>
-          <button
-            type='button'
-            onClick={() => router.back()}
-            className='inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900'
-          >
-            <ArrowLeft className='h-4 w-4' />
-            Retour
-          </button>
+    <div
+      className={`min-h-screen ${mode === 'public' ? 'bg-slate-50 mt-30' : 'bg-transparent mt-0'}`}
+    >
+      {mode === 'public' && (
+        <header className='bg-white border-b border-slate-200'>
+          <div className='mx-auto max-w-7xl px-4 pt-3 pb-3'>
+            <button
+              type='button'
+              onClick={() => router.back()}
+              className='inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900'
+            >
+              <ArrowLeft className='h-4 w-4' />
+              Retour
+            </button>
 
-          <div className='mt-3 flex items-center gap-4'>
-            <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-primary-400 text-white'>
-              <Calculator className='h-5 w-5' />
-            </div>
+            <div className='mt-3 flex items-center gap-4'>
+              <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-primary-400 text-white'>
+                <Calculator className='h-5 w-5' />
+              </div>
 
-            <div className='min-w-0'>
-              <div className='text-xl tracking-tight text-slate-900'>Simulateur de services</div>
-              <p className='text-grey-700 text-sm'>Calculez vos frais instantanément</p>
+              <div className='min-w-0'>
+                <div className='text-xl tracking-tight text-slate-900'>Simulateur de services</div>
+                <p className='text-grey-700 text-sm'>Calculez vos frais instantanément</p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <div className='mx-auto max-w-7xl px-4 py-6 bg-[#F8F9FA]'>
+      <div className={`mx-auto max-w-7xl px-4 py-6 ${mode === 'public' ? 'bg-[#F8F9FA]' : ''}`}>
         <div className='grid items-start gap-6 lg:grid-cols-[420px_1fr]'>
           {/* Colonne gauche */}
           <div className='rounded-xl border border-slate-200 bg-white p-4 px-6 shadow-sm'>
