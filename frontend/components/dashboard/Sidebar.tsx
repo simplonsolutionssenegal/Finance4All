@@ -5,21 +5,66 @@ import { LogOut, AlertTriangle, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useUserRoles } from '@/hooks/useUserRoles';
-import { menuItems } from '@/types/utils/menu-items';
+import { menuItems, getAllowedRolesForPath } from '@/types/utils/menu-items';
+
+const BENEFICIARY_ROLES = ['org:recipient', 'beneficiary'];
+
+function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
+  if (!allowedRoles || allowedRoles.length === 0) return false;
+  return allowedRoles.every(r => BENEFICIARY_ROLES.includes(r));
+}
+
+function canAccessItem(
+  allowedRoles: string[] | undefined,
+  hasRole: (r: string) => boolean,
+  hasOrganizationRole: (r: string) => boolean,
+  isFallbackUtilisateur: boolean
+): boolean {
+  if (!allowedRoles || allowedRoles.length === 0) return true;
+  if (isFallbackUtilisateur && isBeneficiaryOnlyRoute(allowedRoles)) return true;
+  return allowedRoles.some(r => {
+    if (r === 'admin') return hasRole('admin');
+    if (BENEFICIARY_ROLES.includes(r)) {
+      return hasOrganizationRole(r) || hasOrganizationRole(r.replace(/^org:/, '')) || hasRole(r);
+    }
+    return hasOrganizationRole(r) || hasOrganizationRole(r.replace(/^org:/, ''));
+  });
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
-  const { roleLabel } = useUserRoles();
+  const { roleLabel, hasRole, hasOrganizationRole, isLoaded, userRoles, organizationRoles } =
+    useUserRoles();
+
+  const isFallbackUtilisateur =
+    isLoaded && userRoles.length === 0 && organizationRoles.length === 0;
+
+  const filteredMenuItems = useMemo(
+    () =>
+      menuItems.filter(item =>
+        canAccessItem(item.allowedRoles, hasRole, hasOrganizationRole, isFallbackUtilisateur)
+      ),
+    [hasRole, hasOrganizationRole, isFallbackUtilisateur]
+  );
+
+  useEffect(() => {
+    if (!isLoaded || !pathname) return;
+    const allowedRoles = getAllowedRolesForPath(pathname);
+    if (allowedRoles == null) return;
+    if (!canAccessItem(allowedRoles, hasRole, hasOrganizationRole, isFallbackUtilisateur)) {
+      router.replace('/404');
+    }
+  }, [isLoaded, pathname, hasRole, hasOrganizationRole, router, isFallbackUtilisateur]);
 
   // États pour le mobile et la déconnexion
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -81,7 +126,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className='flex-1 overflow-y-auto px-4 py-4 space-y-1'>
-        {menuItems.map(item => {
+        {filteredMenuItems.map(item => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           return (
