@@ -82,18 +82,22 @@ function statusLabel(v: LessonStatus) {
           ? 'Archivé'
           : v;
 }
+
 const htmlToText = (html: string) => {
   if (!html) return '';
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
+  if (!html.includes('<') && !html.includes('&')) {
+    return html.replace(/\s+/g, ' ').trim();
+  }
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const text = doc.body.textContent ?? '';
+  return text
+    .replace(/\u00A0/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };
 
 const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
-
-// const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
 
 export default function LessonDialog({
   open,
