@@ -76,9 +76,14 @@ function statusLabel(v: LessonStatus) {
 
 const htmlToText = (html: string) => {
   if (!html) return '';
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
+  if (!html.includes('<') && !html.includes('&')) {
+    return html.replace(/\s+/g, ' ').trim();
+  }
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const text = doc.body.textContent ?? '';
+  return text
+    .replace(/\u00A0/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };
