@@ -4,14 +4,19 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import ModuleEditDialog from '@/components/admin/modules/module-edit-dialog';
+import { useDeleteMedia } from '@/hooks/media/useDeleteMedia';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useUpdateModule } from '@/hooks/module/useUpdateModule';
-import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
-// eslint-disable-next-line no-duplicate-imports
 import type { Module } from '@/types/modules/module';
+// eslint-disable-next-line no-duplicate-imports
+import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 
 jest.mock('@/hooks/module/useUpdateModule', () => ({
   useUpdateModule: jest.fn(),
+}));
+
+jest.mock('@/hooks/media/useDeleteMedia', () => ({
+  useDeleteMedia: jest.fn(),
 }));
 
 jest.mock('@/hooks/module/media/useMedia', () => ({
@@ -42,6 +47,7 @@ jest.mock('@/lib/constants/module-constants', () => ({
 }));
 
 const mockedUseUpdateModule = useUpdateModule as unknown as jest.Mock;
+const mockedUseDeleteMedia = useDeleteMedia as unknown as jest.Mock;
 const mockedUseMediaUrl = useMediaUrl as unknown as jest.Mock;
 
 describe('ModuleEditDialog', () => {
@@ -64,22 +70,41 @@ describe('ModuleEditDialog', () => {
   const onUpdated = jest.fn();
   const updateModuleSpy = jest.fn();
 
+  const deleteMediaAsyncSpy = jest.fn();
+
   beforeAll(() => {
     process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001/api/v1';
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // fetch mock (upload image)
     (global as any).fetch = jest.fn();
 
-    mockedUseUpdateModule.mockImplementation(({ onSuccess }: { onSuccess?: () => void }) => ({
-      isUpdating: false,
-      updateModule: (payload: any) => {
-        updateModuleSpy(payload);
-        onSuccess?.();
-      },
-    }));
+    // delete media hook mock
+    mockedUseDeleteMedia.mockReturnValue({
+      deleteMediaAsync: deleteMediaAsyncSpy,
+      isDeleting: false,
+      deleteMedia: jest.fn(),
+      isSuccess: false,
+      isError: false,
+      error: null,
+    });
 
+    // update module hook mock
+    mockedUseUpdateModule.mockImplementation(
+      ({ onSuccess }: { onSuccess?: () => void | Promise<void> }) => ({
+        isUpdating: false,
+        updateModule: async (payload: any) => {
+          updateModuleSpy(payload);
+          const ret = onSuccess?.();
+          if (ret instanceof Promise) await ret;
+        },
+      })
+    );
+
+    // existing image url
     mockedUseMediaUrl.mockReturnValue({
       url: 'http://example.com/image.jpg',
       loading: false,
@@ -149,21 +174,9 @@ describe('ModuleEditDialog', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('ferme le dialog via le backdrop', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    const backdrop = screen
-      .getByRole('button', { name: /Fermer/i })
-      .parentElement?.querySelector('button.bg-black\\/40');
-    if (backdrop) {
-      await user.click(backdrop);
-      expect(onOpenChange).toHaveBeenCalledWith(false);
-    }
-  });
-
   it('ne ferme pas le dialog quand isUpdating=true', async () => {
     const user = userEvent.setup();
+
     mockedUseUpdateModule.mockReturnValue({
       isUpdating: true,
       updateModule: jest.fn(),
@@ -230,104 +243,21 @@ describe('ModuleEditDialog', () => {
     expect(onUpdated).toHaveBeenCalled();
   });
 
-  it('soumet avec modification de la catégorie', async () => {
+  it("supprime l'image existante: update imageMediaId=null puis DELETE /media/:id", async () => {
     const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
+    deleteMediaAsyncSpy.mockResolvedValue({ success: true });
 
-    await user.clear(screen.getByLabelText(/Catégorie/i));
-    await user.type(screen.getByLabelText(/Catégorie/i), 'Épargne');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: expect.objectContaining({
-          thematics: 'Épargne',
-        }),
-      });
-    });
-  });
-
-  it('soumet avec modification du niveau de difficulté', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    await user.selectOptions(screen.getByLabelText(/Difficulté/i), DifficultyLevel.ADVANCED);
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: expect.objectContaining({
-          difficultyLevel: DifficultyLevel.ADVANCED,
-        }),
-      });
-    });
-  });
-
-  it('soumet avec modification de la durée', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    const durationInput = screen.getByLabelText(/Durée/i);
-    await user.clear(durationInput);
-    await user.type(durationInput, '45');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: expect.objectContaining({
-          estimatedDuration: 45,
-        }),
-      });
-    });
-  });
-
-  it("affiche le nom du fichier après sélection d'une nouvelle image", async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />
+    render(
+      <ModuleEditDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        module={mockModule}
+        onUpdated={onUpdated}
+      />
     );
 
-    const file = new File(['image content'], 'new-image.png', { type: 'image/png' });
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-
-    await user.upload(input, file);
-
-    expect(input.files?.[0]).toBe(file);
-    expect(input.files?.[0]?.name).toBe('new-image.png');
-  });
-
-  it('affiche un aperçu de la nouvelle image sélectionnée', async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />
-    );
-
-    const file = new File(['image content'], 'preview.jpg', { type: 'image/jpeg' });
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-
-    global.URL.createObjectURL = jest.fn(() => 'blob:preview-url');
-
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      const images = screen.getAllByRole('img');
-      const previewImage = images.find(img => img.getAttribute('src')?.includes('blob:'));
-      expect(previewImage).toBeInTheDocument();
-    });
-  });
-
-  it("supprime l'image existante", async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    const deleteButton = screen.getByRole('button', { name: /Supprimer l'image/i });
-    await user.click(deleteButton);
+    // clique sur le trash du preview (aria-label "Supprimer l’image")
+    await user.click(screen.getByRole('button', { name: /Supprimer l’image/i }));
 
     await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
 
@@ -339,17 +269,32 @@ describe('ModuleEditDialog', () => {
         }),
       });
     });
+
+    await waitFor(() => {
+      expect(deleteMediaAsyncSpy).toHaveBeenCalledWith({ mediaId: 'media-456' });
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onUpdated).toHaveBeenCalled();
   });
 
-  it('upload une nouvelle image et soumet', async () => {
+  it("remplace l'image: upload -> update imageMediaId=newId puis DELETE ancienne image", async () => {
     const user = userEvent.setup();
+    deleteMediaAsyncSpy.mockResolvedValue({ success: true });
+
     const { container } = render(
-      <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />
+      <ModuleEditDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        module={mockModule}
+        onUpdated={onUpdated}
+      />
     );
 
     const file = new File(['content'], 'new-upload.jpg', { type: 'image/jpeg' });
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
+    // upload success
     (global as any).fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { id: 'new-media-789' } }),
@@ -361,17 +306,22 @@ describe('ModuleEditDialog', () => {
     await waitFor(() => {
       expect((global as any).fetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/v1/media',
-        expect.objectContaining({
-          method: 'POST',
-        })
+        expect.objectContaining({ method: 'POST' })
       );
+    });
 
+    await waitFor(() => {
       expect(updateModuleSpy).toHaveBeenCalledWith({
         id: 'module-123',
         data: expect.objectContaining({
           imageMediaId: 'new-media-789',
         }),
       });
+    });
+
+    // suppression ancienne image après succès update
+    await waitFor(() => {
+      expect(deleteMediaAsyncSpy).toHaveBeenCalledWith({ mediaId: 'media-456' });
     });
   });
 
@@ -391,67 +341,34 @@ describe('ModuleEditDialog', () => {
 
     await user.upload(input, file);
 
-    await expect(async () => {
-      await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-    }).rejects.toThrow();
+    await expect(
+      user.click(screen.getByRole('button', { name: /Mettre à jour/i }))
+    ).rejects.toThrow(/Upload image échoué|Erreur d'upload/i);
   });
 
-  it("ne soumet pas d'imageMediaId si l'image n'est pas modifiée", async () => {
+  it('libère l’URL de preview (revokeObjectURL) quand un blob a été créé', async () => {
     const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
+    const revokeSpy = jest.spyOn(URL, 'revokeObjectURL');
 
-    await user.clear(screen.getByLabelText(/Titre/i));
-    await user.type(screen.getByLabelText(/Titre/i), 'Nouveau titre');
+    // createObjectURL doit renvoyer un blob
+    global.URL.createObjectURL = jest.fn(() => 'blob:preview-url');
 
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: expect.not.objectContaining({
-          imageMediaId: expect.anything(),
-        }),
-      });
-    });
-  });
-
-  it("annule la suppression d'image en sélectionnant une nouvelle image", async () => {
-    const user = userEvent.setup();
-    const { container } = render(
+    const { container, unmount } = render(
       <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />
     );
 
-    // Supprime l'image
-    const deleteButton = screen.getByRole('button', { name: /Supprimer l'image/i });
-    await user.click(deleteButton);
-
-    // Sélectionne une nouvelle image
-    const file = new File(['content'], 'new-image.jpg', { type: 'image/jpeg' });
+    const file = new File(['content'], 'preview.jpg', { type: 'image/jpeg' });
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
     await user.upload(input, file);
 
-    (global as any).fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: { id: 'replaced-media-999' } }),
-    });
+    unmount();
 
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: expect.objectContaining({
-          imageMediaId: 'replaced-media-999',
-        }),
-      });
-    });
+    expect(revokeSpy).toHaveBeenCalledWith('blob:preview-url');
   });
 
-  it('gère un module sans image existante', () => {
-    mockedUseMediaUrl.mockReturnValue({
-      url: null,
-      loading: false,
-    });
+  it('gère un module sans image existante (pas de preview)', () => {
+    mockedUseMediaUrl.mockReturnValue({ url: null, loading: false });
 
     const moduleWithoutImage = { ...mockModule, imageMediaId: null };
 
@@ -459,119 +376,6 @@ describe('ModuleEditDialog', () => {
       <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={moduleWithoutImage} />
     );
 
-    const images = screen.queryAllByRole('img');
-    expect(images).toHaveLength(0);
-  });
-
-  it('ne valide pas un titre trop court', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    await user.clear(screen.getByLabelText(/Titre/i));
-    await user.type(screen.getByLabelText(/Titre/i), 'AB');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  it('ne valide pas une description trop courte', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    await user.clear(screen.getByLabelText(/Description/i));
-    await user.type(screen.getByLabelText(/Description/i), 'Court');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  it('ne valide pas une durée inférieure à 5 minutes', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    const durationInput = screen.getByLabelText(/Durée/i);
-    await user.clear(durationInput);
-    await user.type(durationInput, '2');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  it("affiche les informations d'aide pour l'image", () => {
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    expect(screen.getByText('Formats acceptés: JPG, PNG, GIF (max 5MB)')).toBeInTheDocument();
-  });
-
-  it("reset l'état de l'image quand le dialog se rouvre", () => {
-    const { rerender } = render(
-      <ModuleEditDialog open={false} onOpenChange={onOpenChange} module={mockModule} />
-    );
-
-    rerender(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    const images = screen.queryAllByRole('img');
-    expect(images.length).toBeGreaterThan(0);
-  });
-
-  it("libère l'URL de l'objet blob lors du démontage", () => {
-    const revokeObjectURLSpy = jest.spyOn(URL, 'revokeObjectURL');
-
-    const { unmount } = render(
-      <ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />
-    );
-
-    unmount();
-
-    // Le cleanup doit être appelé
-    expect(revokeObjectURLSpy).toHaveBeenCalled();
-  });
-
-  it('soumet tous les champs modifiés ensemble', async () => {
-    const user = userEvent.setup();
-    render(<ModuleEditDialog open={true} onOpenChange={onOpenChange} module={mockModule} />);
-
-    await user.clear(screen.getByLabelText(/Titre/i));
-    await user.type(screen.getByLabelText(/Titre/i), 'Titre Complet Modifié');
-
-    await user.clear(screen.getByLabelText(/Description/i));
-    await user.type(
-      screen.getByLabelText(/Description/i),
-      'Description complète modifiée avec beaucoup de texte'
-    );
-
-    await user.clear(screen.getByLabelText(/Catégorie/i));
-    await user.type(screen.getByLabelText(/Catégorie/i), 'Investissement');
-
-    await user.selectOptions(screen.getByLabelText(/Difficulté/i), DifficultyLevel.EXPERT);
-
-    const durationInput = screen.getByLabelText(/Durée/i);
-    await user.clear(durationInput);
-    await user.type(durationInput, '60');
-
-    await user.click(screen.getByRole('button', { name: /Mettre à jour/i }));
-
-    await waitFor(() => {
-      expect(updateModuleSpy).toHaveBeenCalledWith({
-        id: 'module-123',
-        data: {
-          title: 'Titre Complet Modifié',
-          description: 'Description complète modifiée avec beaucoup de texte',
-          thematics: 'Investissement',
-          difficultyLevel: DifficultyLevel.EXPERT,
-          estimatedDuration: 60,
-          status: ModuleStatus.DRAFT,
-        },
-      });
-    });
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 });

@@ -2,11 +2,12 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Trash2, ChevronDown } from 'lucide-react';
+import { ChevronDown, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 
+import { useDeleteMedia } from '@/hooks/media/useDeleteMedia';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useUpdateModule } from '@/hooks/module/useUpdateModule';
 import { DIFFICULTY_LABELS } from '@/lib/constants/module-constants';
@@ -23,6 +24,7 @@ type Props = {
 export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated }: Props) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
+  const previousImageIdRef = useRef<string | null>(module.imageMediaId ?? null);
 
   const { url: existingImageUrl } = useMediaUrl(module?.imageMediaId ?? null);
 
@@ -46,6 +48,9 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
 
   useEffect(() => {
     if (open) {
+      // garder la valeur actuelle à l’ouverture
+      previousImageIdRef.current = module.imageMediaId ?? null;
+
       reset({
         title: module.title,
         description: module.description,
@@ -54,17 +59,39 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
         estimatedDuration: Number(module.estimatedDuration ?? 0),
         status: module.status,
       });
+
       setImageFile(null);
       setRemoveImage(false);
     }
   }, [open, module, reset]);
 
+  // delete media (MinIO + DB)
+  const { deleteMediaAsync, isDeleting } = useDeleteMedia();
+
   const { updateModule, isUpdating } = useUpdateModule({
-    onSuccess: () => {
+    onSuccess: async () => {
+      // on supprime réellement le fichier (MinIO) + l’enregistrement (DB)
+      try {
+        const oldId = previousImageIdRef.current;
+
+        if (removeImage && oldId) {
+          await deleteMediaAsync({ mediaId: oldId });
+          previousImageIdRef.current = null;
+        }
+        if (!removeImage && imageFile && oldId) {
+          await deleteMediaAsync({ mediaId: oldId });
+          previousImageIdRef.current = null;
+        }
+      } catch {
+        // On n’empêche pas la fermeture si la suppression média échoue
+      }
+
       onOpenChange(false);
       onUpdated?.();
     },
   });
+
+  const isBusy = isUpdating || isDeleting;
 
   const imageHelp = useMemo(() => 'Formats acceptés: JPG, PNG, GIF (max 5MB)', []);
 
@@ -86,8 +113,10 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
     let imageMediaId: string | null | undefined = undefined;
 
     if (removeImage) {
+      // ✅ on détache l’image du module
       imageMediaId = null;
     } else if (imageFile) {
+      // ✅ upload nouvelle image => on attache au module
       const uploaded = await uploadModuleImage(imageFile);
       imageMediaId = uploaded.id;
     }
@@ -102,7 +131,7 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
   };
 
   const handleClose = () => {
-    if (!isUpdating) onOpenChange(false);
+    if (!isBusy) onOpenChange(false);
   };
 
   const handlePickFile = (file?: File) => {
@@ -128,21 +157,19 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-2'>
-      {/* Backdrop */}
       <button
         type='button'
         className='absolute inset-0 bg-black/40 cursor-default'
         onClick={handleClose}
         aria-label='Fermer'
-        disabled={isUpdating}
+        disabled={isBusy}
       />
 
       <div className='relative w-full max-w-[560px] bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xl'>
-        {/* Header (compact) */}
         <div className='px-5 pt-4 pb-3'>
           <button
             onClick={handleClose}
-            disabled={isUpdating}
+            disabled={isBusy}
             className='absolute top-3 right-3 p-2 rounded-full hover:bg-slate-100 disabled:opacity-50'
             aria-label='Fermer'
           >
@@ -155,29 +182,26 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
           </p>
         </div>
 
-        {/* Form (compact) */}
         <form onSubmit={handleSubmit(onSubmit)} className='px-5 pb-4 space-y-3'>
-          {/* Titre */}
           <div>
             <label className='block text-xs font-medium text-slate-900 mb-1.5'>
               Titre <span className='text-red-500'>*</span>
             </label>
             <input
               {...register('title')}
-              disabled={isUpdating}
+              disabled={isBusy}
               className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400'
             />
             {errors.title && <p className='mt-1 text-xs text-red-600'>{errors.title.message}</p>}
           </div>
 
-          {/* Description */}
           <div>
             <label className='block text-xs font-medium text-slate-900 mb-1.5'>
               Description <span className='text-red-500'>*</span>
             </label>
             <textarea
               {...register('description')}
-              disabled={isUpdating}
+              disabled={isBusy}
               rows={2}
               className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400 resize-none'
             />
@@ -186,13 +210,12 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             )}
           </div>
 
-          {/* Catégorie + Difficulté */}
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
               <label className='block text-xs font-medium text-slate-900 mb-1.5'>Catégorie</label>
               <input
                 {...register('thematics')}
-                disabled={isUpdating}
+                disabled={isBusy}
                 className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400'
               />
               {errors.thematics && (
@@ -205,7 +228,7 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
               <div className='relative'>
                 <select
                   {...register('difficultyLevel')}
-                  disabled={isUpdating}
+                  disabled={isBusy}
                   className='w-full appearance-none rounded-lg bg-slate-50 px-2 py-1 pr-9 text-sm text-slate-900 disabled:text-slate-900 outline-none focus:ring-2 focus:ring-sky-400'
                 >
                   {Object.entries(DIFFICULTY_LABELS).map(([value, label]) => (
@@ -222,14 +245,13 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             </div>
           </div>
 
-          {/* Image */}
           <div className='space-y-2'>
             <label className='block text-xs font-medium text-slate-900'>Image du module</label>
 
             <input
               type='file'
               accept='image/png,image/jpeg,image/gif'
-              disabled={isUpdating}
+              disabled={isBusy}
               className='block w-full text-xs text-slate-700
                 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-2 file:py-1.5 file:text-xs file:font-medium file:text-slate-700
                 hover:file:bg-slate-200'
@@ -252,22 +274,21 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
 
                 <button
                   type='button'
-                  disabled={isUpdating}
+                  disabled={isBusy}
                   onClick={() => {
                     setImageFile(null);
                     setRemoveImage(true);
                   }}
-                  className='absolute right-3 top-3 h-9 w-9 rounded-lg bg-red-600 hover:bg-primary-400 text-white flex items-center justify-center disabled:opacity-50'
+                  className='absolute right-3 top-3 h-9 w-9 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center disabled:opacity-50'
                   aria-label='Supprimer l’image'
                   title='Supprimer l’image'
                 >
-                  <Trash2 className='h-5 w-5 ' />
+                  <Trash2 className='h-5 w-5' />
                 </button>
               </div>
             ) : null}
           </div>
 
-          {/* Durée */}
           <div>
             <label className='block text-xs font-medium text-slate-900 mb-1.5'>
               Durée (minutes)
@@ -275,7 +296,7 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             <input
               type='number'
               {...register('estimatedDuration', { valueAsNumber: true })}
-              disabled={isUpdating}
+              disabled={isBusy}
               className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 outline-none focus:ring-2 focus:ring-sky-400'
             />
             {errors.estimatedDuration && (
@@ -283,12 +304,11 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             )}
           </div>
 
-          {/* Actions */}
           <div className='pt-2 flex items-center justify-end gap-3'>
             <button
               type='button'
               onClick={handleClose}
-              disabled={isUpdating}
+              disabled={isBusy}
               className='px-4 py-2 text-sm rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50'
             >
               Annuler
@@ -296,10 +316,10 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
 
             <button
               type='submit'
-              disabled={isUpdating}
+              disabled={isBusy}
               className='px-4 py-2 text-sm rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-medium disabled:opacity-50'
             >
-              {isUpdating ? 'Mise à jour...' : 'Mettre à jour'}
+              {isBusy ? 'Mise à jour...' : 'Mettre à jour'}
             </button>
           </div>
         </form>
