@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Clock,
   Check,
@@ -62,6 +61,16 @@ type ChapterForm = {
   quizzes: QuizDraft[];
 };
 
+// function statusLabel(v: LessonStatus) {
+//   return v === LessonStatus.DRAFT
+//     ? 'Brouillon'
+//     : v === LessonStatus.PUBLISHED
+//       ? 'Publié'
+//       : v === LessonStatus.SCHEDULED
+//         ? 'Programmé'
+//         : v === LessonStatus.ARCHIVED
+//           ? 'Archivé'
+
 function statusLabel(v: LessonStatus) {
   return v === LessonStatus.DRAFT
     ? 'Brouillon'
@@ -73,22 +82,18 @@ function statusLabel(v: LessonStatus) {
           ? 'Archivé'
           : v;
 }
-
 const htmlToText = (html: string) => {
   if (!html) return '';
-  if (!html.includes('<') && !html.includes('&')) {
-    return html.replace(/\s+/g, ' ').trim();
-  }
-
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const text = doc.body.textContent ?? '';
-  return text
-    .replace(/\u00A0/g, ' ')
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };
 
 const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
+
+// const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
 
 export default function LessonDialog({
   open,
