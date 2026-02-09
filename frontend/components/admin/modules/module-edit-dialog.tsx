@@ -1,8 +1,8 @@
-// frontend/src/components/modules/module-edit-dialog.tsx
+// frontend/src/components/admin/modules/module-edit-dialog.tsx
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Trash2, X } from 'lucide-react';
+import { X, Trash2, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -24,9 +24,15 @@ type Props = {
 export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated }: Props) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
+
+  // image existante (preview depuis ton endpoint media)
+  const { url: existingImageUrl } = useMediaUrl(module?.imageMediaId ?? null);
+
+  // ✅ on mémorise l’ancienne image pour pouvoir la supprimer après update
   const previousImageIdRef = useRef<string | null>(module.imageMediaId ?? null);
 
-  const { url: existingImageUrl } = useMediaUrl(module?.imageMediaId ?? null);
+  // ✅ si on doit supprimer un media après update
+  const mediaToDeleteAfterUpdateRef = useRef<string | null>(null);
 
   const {
     register,
@@ -46,11 +52,9 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
     },
   });
 
+  // Reset à l’ouverture / changement module
   useEffect(() => {
     if (open) {
-      // garder la valeur actuelle à l’ouverture
-      previousImageIdRef.current = module.imageMediaId ?? null;
-
       reset({
         title: module.title,
         description: module.description,
@@ -62,36 +66,33 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
 
       setImageFile(null);
       setRemoveImage(false);
+
+      previousImageIdRef.current = module.imageMediaId ?? null;
+      mediaToDeleteAfterUpdateRef.current = null;
     }
   }, [open, module, reset]);
 
-  // delete media (MinIO + DB)
-  const { deleteMediaAsync, isDeleting } = useDeleteMedia();
+  const { deleteMediaAsync } = useDeleteMedia();
 
   const { updateModule, isUpdating } = useUpdateModule({
-    onSuccess: async () => {
-      // on supprime réellement le fichier (MinIO) + l’enregistrement (DB)
-      try {
-        const oldId = previousImageIdRef.current;
+    onSuccess: () => {
+      // ✅ IMPORTANT: onSuccess ne doit pas être async (Sonar)
+      const mediaId = mediaToDeleteAfterUpdateRef.current;
 
-        if (removeImage && oldId) {
-          await deleteMediaAsync({ mediaId: oldId });
-          previousImageIdRef.current = null;
-        }
-        if (!removeImage && imageFile && oldId) {
-          await deleteMediaAsync({ mediaId: oldId });
-          previousImageIdRef.current = null;
-        }
-      } catch {
-        // On n’empêche pas la fermeture si la suppression média échoue
-      }
-
+      // Ferme + refresh UI
       onOpenChange(false);
       onUpdated?.();
+
+      // Supprime réellement l’ancienne image (MinIO + DB) après la mise à jour du module
+      if (mediaId) {
+        void deleteMediaAsync({ mediaId }).finally(() => {
+          mediaToDeleteAfterUpdateRef.current = null;
+        });
+      }
     },
   });
 
-  const isBusy = isUpdating || isDeleting;
+  const isBusy = isUpdating;
 
   const imageHelp = useMemo(() => 'Formats acceptés: JPG, PNG, GIF (max 5MB)', []);
 
@@ -108,31 +109,6 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
     if (!res.ok) throw new Error(json?.message ?? 'Upload image échoué');
     return json?.data ?? json; // { id, ... }
   }
-
-  const onSubmit: SubmitHandler<UpdateModuleFormData> = async data => {
-    let imageMediaId: string | null | undefined = undefined;
-
-    if (removeImage) {
-      // ✅ on détache l’image du module
-      imageMediaId = null;
-    } else if (imageFile) {
-      // ✅ upload nouvelle image => on attache au module
-      const uploaded = await uploadModuleImage(imageFile);
-      imageMediaId = uploaded.id;
-    }
-
-    const payload: UpdateModuleData = {
-      ...data,
-      estimatedDuration: data.estimatedDuration ?? undefined,
-      ...(imageMediaId !== undefined ? { imageMediaId } : {}),
-    };
-
-    updateModule({ id: module.id, data: payload });
-  };
-
-  const handleClose = () => {
-    if (!isBusy) onOpenChange(false);
-  };
 
   const handlePickFile = (file?: File) => {
     if (!file) return;
@@ -151,12 +127,49 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
     };
   }, [previewUrl]);
 
-  const title = watch('title');
+  const onSubmit: SubmitHandler<UpdateModuleFormData> = async data => {
+    let imageMediaId: string | null | undefined = undefined;
+
+    const oldId = previousImageIdRef.current;
+
+    // Si l’utilisateur supprime l’image
+    if (removeImage) {
+      imageMediaId = null;
+
+      // ✅ on supprime l’ancienne image après update
+      if (oldId) mediaToDeleteAfterUpdateRef.current = oldId;
+    }
+    // Si l’utilisateur remplace l’image
+    else if (imageFile) {
+      const uploaded = await uploadModuleImage(imageFile);
+      imageMediaId = uploaded.id;
+
+      // ✅ on supprime l’ancienne image après update (si elle existe)
+      if (oldId && oldId !== uploaded.id) {
+        mediaToDeleteAfterUpdateRef.current = oldId;
+      }
+    }
+
+    const payload: UpdateModuleData = {
+      ...data,
+      estimatedDuration: data.estimatedDuration ?? undefined,
+      ...(imageMediaId !== undefined ? { imageMediaId } : {}),
+    };
+
+    updateModule({ id: module.id, data: payload });
+  };
+
+  const handleClose = () => {
+    if (!isBusy) onOpenChange(false);
+  };
+
+  const titleValue = watch('title') || module.title;
 
   if (!open) return null;
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center p-2'>
+      {/* Backdrop */}
       <button
         type='button'
         className='absolute inset-0 bg-black/40 cursor-default'
@@ -165,13 +178,16 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
         disabled={isBusy}
       />
 
+      {/* Modal (compact) */}
       <div className='relative w-full max-w-[560px] bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xl'>
+        {/* Header (compact) */}
         <div className='px-5 pt-4 pb-3'>
           <button
             onClick={handleClose}
             disabled={isBusy}
             className='absolute top-3 right-3 p-2 rounded-full hover:bg-slate-100 disabled:opacity-50'
             aria-label='Fermer'
+            title='Fermer'
           >
             <X className='h-5 w-5 text-slate-500' />
           </button>
@@ -182,12 +198,15 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className='px-5 pb-4 space-y-3'>
+        {/* Form (encore plus compact) */}
+        <form onSubmit={handleSubmit(onSubmit)} className='px-5 pb-4 space-y-2'>
+          {/* Titre */}
           <div>
-            <label className='block text-xs font-medium text-slate-900 mb-1.5'>
+            <label htmlFor='module-title' className='block text-xs font-medium text-slate-900 mb-1'>
               Titre <span className='text-red-500'>*</span>
             </label>
             <input
+              id='module-title'
               {...register('title')}
               disabled={isBusy}
               className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400'
@@ -195,11 +214,16 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             {errors.title && <p className='mt-1 text-xs text-red-600'>{errors.title.message}</p>}
           </div>
 
+          {/* Description */}
           <div>
-            <label className='block text-xs font-medium text-slate-900 mb-1.5'>
+            <label
+              htmlFor='module-description'
+              className='block text-xs font-medium text-slate-900 mb-1'
+            >
               Description <span className='text-red-500'>*</span>
             </label>
             <textarea
+              id='module-description'
               {...register('description')}
               disabled={isBusy}
               rows={2}
@@ -210,10 +234,17 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             )}
           </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {/* Catégorie + Difficulté */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
             <div>
-              <label className='block text-xs font-medium text-slate-900 mb-1.5'>Catégorie</label>
+              <label
+                htmlFor='module-thematics'
+                className='block text-xs font-medium text-slate-900 mb-1'
+              >
+                Catégorie
+              </label>
               <input
+                id='module-thematics'
                 {...register('thematics')}
                 disabled={isBusy}
                 className='w-full rounded-lg bg-slate-50 px-2 py-1 text-sm text-slate-900 disabled:text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400'
@@ -224,9 +255,15 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             </div>
 
             <div>
-              <label className='block text-xs font-medium text-slate-900 mb-1.5'>Difficulté</label>
+              <label
+                htmlFor='module-difficulty'
+                className='block text-xs font-medium text-slate-900 mb-1'
+              >
+                Difficulté
+              </label>
               <div className='relative'>
                 <select
+                  id='module-difficulty'
                   {...register('difficultyLevel')}
                   disabled={isBusy}
                   className='w-full appearance-none rounded-lg bg-slate-50 px-2 py-1 pr-9 text-sm text-slate-900 disabled:text-slate-900 outline-none focus:ring-2 focus:ring-sky-400'
@@ -245,15 +282,21 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             </div>
           </div>
 
-          <div className='space-y-2'>
-            <label className='block text-xs font-medium text-slate-900'>Image du module</label>
+          {/* Image */}
+          <div className='space-y-1.5'>
+            <div className='flex items-center justify-between'>
+              <label htmlFor='module-image' className='block text-xs font-medium text-slate-900'>
+                Image du module
+              </label>
+            </div>
 
             <input
+              id='module-image'
               type='file'
               accept='image/png,image/jpeg,image/gif'
               disabled={isBusy}
               className='block w-full text-xs text-slate-700
-                file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-2 file:py-1.5 file:text-xs file:font-medium file:text-slate-700
+                file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium file:text-slate-700
                 hover:file:bg-slate-200'
               onChange={e => handlePickFile(e.target.files?.[0])}
             />
@@ -261,11 +304,11 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             <p className='text-[11px] text-slate-400'>{imageHelp}</p>
 
             {!removeImage && (previewUrl || existingImageUrl) ? (
-              <div className='relative overflow-hidden rounded-lg bg-slate-100 border border-slate-200'>
-                <div className='relative h-[120px] w-full'>
+              <div className='relative overflow-hidden rounded-xl bg-slate-100 border border-slate-200'>
+                <div className='relative h-[96px] w-full'>
                   <Image
                     src={previewUrl || existingImageUrl || ''}
-                    alt={title || 'Module image'}
+                    alt={titleValue}
                     fill
                     className='object-cover'
                     sizes='560px'
@@ -279,21 +322,26 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
                     setImageFile(null);
                     setRemoveImage(true);
                   }}
-                  className='absolute right-3 top-3 h-9 w-9 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center disabled:opacity-50'
-                  aria-label='Supprimer l’image'
-                  title='Supprimer l’image'
+                  className='absolute right-3 top-3 h-8 w-8 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center disabled:opacity-50'
+                  aria-label="Supprimer l'image"
+                  title="Supprimer l'image"
                 >
-                  <Trash2 className='h-5 w-5' />
+                  <Trash2 className='h-4 w-4' />
                 </button>
               </div>
             ) : null}
           </div>
 
+          {/* Durée */}
           <div>
-            <label className='block text-xs font-medium text-slate-900 mb-1.5'>
+            <label
+              htmlFor='module-duration'
+              className='block text-xs font-medium text-slate-900 mb-1'
+            >
               Durée (minutes)
             </label>
             <input
+              id='module-duration'
               type='number'
               {...register('estimatedDuration', { valueAsNumber: true })}
               disabled={isBusy}
@@ -304,7 +352,8 @@ export default function ModuleEditDialog({ open, onOpenChange, module, onUpdated
             )}
           </div>
 
-          <div className='pt-2 flex items-center justify-end gap-3'>
+          {/* Actions */}
+          <div className='pt-1 flex items-center justify-end gap-3'>
             <button
               type='button'
               onClick={handleClose}
