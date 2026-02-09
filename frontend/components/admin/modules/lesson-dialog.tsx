@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import RichTextEditor from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -72,6 +73,17 @@ function statusLabel(v: LessonStatus) {
           ? 'Archivé'
           : v;
 }
+
+const htmlToText = (html: string) => {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
 
 export default function LessonDialog({
   open,
@@ -156,7 +168,7 @@ export default function LessonDialog({
 
   // validation chapitre: titre+desc + (noMedia OU mediaId) + pas d'upload/suppression en cours
   const isChapterValid = (c: ChapterForm) => {
-    const okText = c.title.trim().length > 0 && c.description.trim().length > 0;
+    const okText = c.title.trim().length > 0 && !isRichTextEmpty(c.description);
     const okBusy = !c.uploading && !c.deleting;
     const okMedia = !!c.noMedia || (!!c.mediaId && c.mediaId.trim().length > 0);
     return okText && okBusy && okMedia;
@@ -406,7 +418,7 @@ export default function LessonDialog({
 
         chapters: chapters.map((c, idx) => ({
           title: c.title.trim(),
-          description: c.description.trim(),
+          description: c.description,
           order: idx,
           ...(c.noMedia ? {} : { mediaId: c.mediaId }),
           quizzes: c.quizzes,
@@ -611,19 +623,24 @@ export default function LessonDialog({
                     </div>
 
                     <AccordionContent className='pb-4'>
-                      <div className='space-y-4 p-2'>
+                      <div className='space-y-2 p-2'>
+                        <Label className='text-xs text-slate-600'>
+                          Titre du chapitre <span className='text-red-500'>*</span>
+                        </Label>
                         <Input
                           value={c.title}
                           onChange={e => updateChapter(idx, { title: e.target.value })}
                           placeholder='Titre de chapitre'
                           className='bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
                         />
-
-                        <Textarea
+                        <Label className='text-xs text-slate-600'>
+                          Description (contenue éditeur) <span className='text-red-500'>*</span>
+                        </Label>
+                        <RichTextEditor
                           value={c.description}
-                          onChange={e => updateChapter(idx, { description: e.target.value })}
+                          onChange={value => updateChapter(idx, { description: value })}
                           placeholder='Description de chapitre ...'
-                          className='min-h-[70px] bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                          minHeightClassName='min-h-[90px]'
                         />
 
                         {/* Ressource */}
