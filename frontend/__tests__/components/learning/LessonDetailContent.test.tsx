@@ -221,4 +221,30 @@ describe('LessonDetailContent', () => {
       expect(screen.getByRole('heading', { name: /chapitre 1/i })).toBeInTheDocument();
     });
   });
+
+  it('renders chapter description as HTML', () => {
+    const chapters: Chapter[] = [
+      createChapter({
+        id: 'chapter-1',
+        order: 1,
+        description: '<p><strong>Texte riche</strong></p>',
+      }),
+    ];
+
+    mockUseQuizProgressMap.mockReturnValue({ progressMap: new Map() });
+
+    render(
+      <LessonDetailContent
+        moduleId='module-1'
+        lessonId='lesson-1'
+        lessonTitle='Leçon'
+        lessonDescription='Desc'
+        chapters={chapters}
+        quizzes={[]}
+      />
+    );
+
+    const strong = screen.getByText('Texte riche');
+    expect(strong.tagName).toBe('STRONG');
+  });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'dompurify';
 import { CheckCircle2, CircleDot, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -208,6 +209,10 @@ export default function LessonDetailContent({
 
   const selectedChapter =
     sortedChapters.find(ch => ch.id === selectedChapterId) ?? sortedChapters[0];
+  const chapterDescriptionHtml = useMemo(() => {
+    const raw = selectedChapter?.description ?? lessonDescription ?? '';
+    return raw ? DOMPurify.sanitize(raw) : '';
+  }, [selectedChapter?.description, lessonDescription]);
 
   return (
     <main className='grid gap-6 rounded-3xl bg-transparent lg:grid-cols-[260px_minmax(0,1fr)]'>
@@ -262,9 +267,10 @@ export default function LessonDetailContent({
           <h1 className='text-3xl font-semibold text-grey-900'>
             {selectedChapter?.title ?? lessonTitle}
           </h1>
-          <p className='mt-3 text-base text-grey-600'>
-            {selectedChapter?.description ?? lessonDescription}
-          </p>
+          <div
+            className='mt-3 text-base text-grey-600'
+            dangerouslySetInnerHTML={{ __html: chapterDescriptionHtml }}
+          />
         </div>
 
         {/* Navigation bas */}
