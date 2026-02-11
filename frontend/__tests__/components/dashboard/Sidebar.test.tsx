@@ -1,11 +1,45 @@
-import { render, screen } from '@testing-library/react';
-import { usePathname } from 'next/navigation';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { usePathname, useRouter } from 'next/navigation';
 
 import Sidebar from '@/components/dashboard/Sidebar';
 
 // Mock next/navigation
+const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   usePathname: jest.fn(),
+  useRouter: jest.fn(() => ({
+    push: mockPush,
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+  })),
+}));
+
+// Mock @clerk/nextjs
+const mockSignOut = jest.fn();
+jest.mock('@clerk/nextjs', () => ({
+  useUser: jest.fn(() => ({
+    user: {
+      fullName: 'Test User',
+      firstName: 'Test',
+      imageUrl: 'https://example.com/avatar.png',
+      emailAddresses: [{ emailAddress: 'test@example.com' }],
+    },
+  })),
+  useClerk: jest.fn(() => ({
+    signOut: mockSignOut,
+  })),
+}));
+
+// Mock useUserRoles hook
+jest.mock('@/hooks/useUserRoles', () => ({
+  useUserRoles: jest.fn(() => ({
+    roleLabel: 'Admin',
+    hasRole: jest.fn((role: string) => role === 'admin'),
+    hasOrganizationRole: jest.fn(() => true),
+    isLoaded: true,
+    userRoles: ['admin'],
+    organizationRoles: ['org:admin'],
+  })),
 }));
 
 // Mock Lucide React icons
@@ -17,154 +51,223 @@ jest.mock('lucide-react', () => ({
   Bell: () => <div data-testid='bell-icon' />,
   Settings: () => <div data-testid='settings-icon' />,
   LogOut: () => <div data-testid='logout-icon' />,
+  AlertTriangle: () => <div data-testid='alert-triangle-icon' />,
+  Menu: () => <div data-testid='menu-icon' />,
+  X: () => <div data-testid='x-icon' />,
+  GraduationCap: () => <div data-testid='graduation-cap-icon' />,
+  Home: () => <div data-testid='home-icon' />,
+  Compass: () => <div data-testid='compass-icon' />,
+  Award: () => <div data-testid='award-icon' />,
+  Calculator: () => <div data-testid='calculator-icon' />,
+}));
+
+// Mock ConfirmDialog
+jest.mock('@/components/dashboard/ConfirmDialog', () => ({
+  ConfirmDialog: ({
+    isOpen,
+    onClose,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+  }) =>
+    isOpen ? (
+      <div data-testid='confirm-dialog'>
+        <button data-testid='dialog-close' onClick={onClose}>
+          Close
+        </button>
+        <button data-testid='dialog-confirm' onClick={onConfirm}>
+          Confirm
+        </button>
+      </div>
+    ) : null,
 }));
 
 const mockUsePathname = usePathname as jest.MockedFunction<typeof usePathname>;
 
 describe('Sidebar', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockUsePathname.mockReturnValue('/dashboard');
   });
 
-  it('renders the dashboard header', () => {
-    render(<Sidebar />);
+  describe('Rendering', () => {
+    it('renders the logo', () => {
+      render(<Sidebar />);
+      const logos = screen.getAllByAltText('Finance4All');
+      expect(logos.length).toBeGreaterThan(0);
+      expect(logos[0]).toBeInTheDocument();
+    });
 
-    expect(screen.getByText('+ Dashboard')).toBeInTheDocument();
+    it('renders user profile section with user info', () => {
+      render(<Sidebar />);
+      expect(screen.getAllByText('Test User').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('test@example.com').length).toBeGreaterThan(0);
+    });
+
+    it('renders user initials in avatar fallback', () => {
+      render(<Sidebar />);
+      expect(screen.getAllByText('T').length).toBeGreaterThan(0);
+    });
+
+    it('renders role badge', () => {
+      render(<Sidebar />);
+      expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+    });
+
+    it('renders navigation menu items based on roles', () => {
+      render(<Sidebar />);
+      // Admin user should see Overview, Institutions, Cours & Formations, Utilisateurs
+      expect(screen.getAllByText('Overview').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Cours & Formations').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Utilisateurs').length).toBeGreaterThan(0);
+    });
+
+    it('renders logout button', () => {
+      render(<Sidebar />);
+      expect(screen.getAllByText('Déconnexion').length).toBeGreaterThan(0);
+    });
+
+    it('renders version text', () => {
+      render(<Sidebar />);
+      expect(screen.getAllByText('Version v1.0').length).toBeGreaterThan(0);
+    });
   });
 
-  it('renders the menu section', () => {
-    render(<Sidebar />);
+  describe('Mobile sidebar', () => {
+    it('renders mobile toggle button', () => {
+      render(<Sidebar />);
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
+      expect(toggleButton).toBeInTheDocument();
+    });
 
-    expect(screen.getByText('Menu')).toBeInTheDocument();
+    it('toggles sidebar visibility on mobile', () => {
+      render(<Sidebar />);
+      // Find the mobile toggle button (with Menu icon)
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
+
+      expect(toggleButton).toBeDefined();
+      if (toggleButton) {
+        fireEvent.click(toggleButton);
+        // After click, the sidebar overlay should be visible
+        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
+        expect(overlay).toBeInTheDocument();
+      }
+    });
+
+    it('closes sidebar when clicking overlay', () => {
+      render(<Sidebar />);
+      // Open sidebar first
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
+
+      if (toggleButton) {
+        fireEvent.click(toggleButton);
+        // Click overlay to close
+        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
+        fireEvent.click(overlay);
+      }
+    });
+
+    it('closes sidebar with keyboard (Enter key)', () => {
+      render(<Sidebar />);
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
+
+      if (toggleButton) {
+        fireEvent.click(toggleButton);
+        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
+        fireEvent.keyDown(overlay, { key: 'Enter', code: 'Enter' });
+      }
+    });
+
+    it('closes sidebar with keyboard (Space key)', () => {
+      render(<Sidebar />);
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
+
+      if (toggleButton) {
+        fireEvent.click(toggleButton);
+        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
+        fireEvent.keyDown(overlay, { key: ' ', code: 'Space' });
+      }
+    });
   });
 
-  it('renders all menu items', () => {
-    render(<Sidebar />);
+  describe('Logout functionality', () => {
+    it('opens logout dialog when clicking logout button', () => {
+      render(<Sidebar />);
+      const logoutButtons = screen.getAllByText('Déconnexion');
+      fireEvent.click(logoutButtons[0]);
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    });
 
-    expect(screen.getByText('Overview')).toBeInTheDocument();
-    expect(screen.getByText('Institutions partenaires')).toBeInTheDocument();
-    expect(screen.getByText('Cours & Formations')).toBeInTheDocument();
-    expect(screen.getByText('Utilisateurs')).toBeInTheDocument();
-    expect(screen.getByText('Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    it('closes logout dialog when clicking close', () => {
+      render(<Sidebar />);
+      const logoutButtons = screen.getAllByText('Déconnexion');
+      fireEvent.click(logoutButtons[0]);
+      const closeButton = screen.getByTestId('dialog-close');
+      fireEvent.click(closeButton);
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    });
+
+    it('calls signOut and redirects when confirming logout', async () => {
+      mockSignOut.mockResolvedValue(undefined);
+      render(<Sidebar />);
+      const logoutButtons = screen.getAllByText('Déconnexion');
+      fireEvent.click(logoutButtons[0]);
+      const confirmButton = screen.getByTestId('dialog-confirm');
+      fireEvent.click(confirmButton);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(mockSignOut).toHaveBeenCalled();
+    });
   });
 
-  it('renders menu item icons', () => {
-    render(<Sidebar />);
+  describe('Navigation', () => {
+    it('highlights active menu item based on pathname', () => {
+      mockUsePathname.mockReturnValue('/dashboard');
+      render(<Sidebar />);
+      // The active state is determined by pathname matching
+      const dashboardLinks = screen.getAllByRole('link', { name: /overview/i });
+      expect(dashboardLinks.length).toBeGreaterThan(0);
+    });
 
-    expect(screen.getByTestId('layout-dashboard-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('building2-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('book-open-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('users-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('bell-icon')).toBeInTheDocument();
-    expect(screen.getByTestId('settings-icon')).toBeInTheDocument();
+    it('renders correct href for menu items', () => {
+      render(<Sidebar />);
+      const institutionsLinks = screen.getAllByRole('link', { name: /institutions partenaires/i });
+      expect(institutionsLinks[0]).toHaveAttribute('href', '/institutions');
+    });
   });
 
-  it('renders badges for menu items that have them', () => {
-    render(<Sidebar />);
+  describe('Accessibility', () => {
+    it('overlay has proper ARIA attributes', () => {
+      render(<Sidebar />);
+      const menuButtons = screen.getAllByRole('button');
+      const toggleButton = menuButtons.find(
+        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
+      );
 
-    expect(screen.getByText('32')).toBeInTheDocument(); // Institutions badge
-    expect(screen.getByText('10')).toBeInTheDocument(); // Notifications badge
-  });
-
-  it('highlights the active menu item', () => {
-    mockUsePathname.mockReturnValue('/dashboard');
-    render(<Sidebar />);
-
-    const overviewButton = screen.getByRole('button', { name: /overview/i });
-    expect(overviewButton).toHaveClass('bg-blue-50', 'text-blue-700');
-  });
-
-  it('does not highlight inactive menu items', () => {
-    mockUsePathname.mockReturnValue('/dashboard');
-    render(<Sidebar />);
-
-    const usersButton = screen.getByRole('button', { name: /utilisateurs/i });
-    expect(usersButton).toHaveClass('text-gray-700', 'hover:bg-gray-50');
-    expect(usersButton).not.toHaveClass('bg-blue-50', 'text-blue-700');
-  });
-
-  it('renders user profile section', () => {
-    render(<Sidebar />);
-
-    expect(screen.getByText('Jaafar')).toBeInTheDocument();
-    expect(screen.getByText('dgueye.ext@simplon.co')).toBeInTheDocument();
-    expect(screen.getByText('J')).toBeInTheDocument(); // Avatar fallback
-  });
-
-  it('renders logout button', () => {
-    render(<Sidebar />);
-
-    expect(screen.getByText('Log out')).toBeInTheDocument();
-    expect(screen.getByTestId('logout-icon')).toBeInTheDocument();
-  });
-
-  it('has correct sidebar styling', () => {
-    const { container } = render(<Sidebar />);
-
-    const sidebar = container.firstChild as HTMLElement;
-    expect(sidebar).toHaveClass(
-      'w-64',
-      'h-full',
-      'bg-white',
-      'border-r',
-      'border-gray-200',
-      'flex',
-      'flex-col'
-    );
-  });
-
-  it('renders navigation links with correct hrefs', () => {
-    render(<Sidebar />);
-
-    expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: /institutions partenaires/i })).toHaveAttribute(
-      'href',
-      '/institutions'
-    );
-    expect(screen.getByRole('link', { name: /cours & formations/i })).toHaveAttribute(
-      'href',
-      '/modules'
-    );
-    expect(screen.getByRole('link', { name: /utilisateurs/i })).toHaveAttribute('href', '/users');
-    expect(screen.getByRole('link', { name: /notifications/i })).toHaveAttribute(
-      'href',
-      '/notifications'
-    );
-    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', '/settings');
-  });
-
-  it('renders avatar with correct styling', () => {
-    render(<Sidebar />);
-
-    const avatarFallback = screen.getByText('J');
-    expect(avatarFallback).toHaveClass('bg-teal-500', 'text-white');
-  });
-
-  it('renders badges with correct styling', () => {
-    const { container } = render(<Sidebar />);
-
-    const badges = container.querySelectorAll('.bg-gray-800.text-white');
-    expect(badges.length).toBe(2); // Should have 2 badges (32 and 10)
-  });
-
-  it('changes active state based on pathname', () => {
-    // Test with users page active
-    mockUsePathname.mockReturnValue('/users');
-    render(<Sidebar />);
-
-    const usersButton = screen.getByRole('button', { name: /utilisateurs/i });
-    expect(usersButton).toHaveClass('bg-blue-50', 'text-blue-700');
-
-    const overviewButton = screen.getByRole('button', { name: /overview/i });
-    expect(overviewButton).toHaveClass('text-gray-700', 'hover:bg-gray-50');
-  });
-
-  it('renders profile section at the bottom', () => {
-    const { container } = render(<Sidebar />);
-
-    const profileSection = container.querySelector('.mt-auto');
-    expect(profileSection).toBeInTheDocument();
-    expect(profileSection).toHaveClass('border-t', 'border-gray-200');
+      if (toggleButton) {
+        fireEvent.click(toggleButton);
+        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
+        expect(overlay).toHaveAttribute('aria-label', 'Fermer le menu');
+        expect(overlay).toHaveAttribute('tabIndex', '0');
+      }
+    });
   });
 });

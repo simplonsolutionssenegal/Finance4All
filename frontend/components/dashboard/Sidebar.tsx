@@ -179,7 +179,16 @@ export default function Sidebar() {
       <div className={`fixed inset-0 z-50 lg:hidden ${isOpen ? 'visible' : 'invisible'}`}>
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+          role='button'
+          tabIndex={0}
           onClick={toggleSidebar}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleSidebar();
+            }
+          }}
+          aria-label='Fermer le menu'
         />
 
         <aside
