@@ -3,6 +3,8 @@
 import { DomainEntity } from '@/domain/shared/Entity';
 import type { EntityId } from '@/domain/shared/EntityId';
 import type { ModuleResponseDTO } from '../value-objects/ModuleFormationDTO';
+import type { Quiz } from './Quiz';
+import type { Lesson } from '@/domain/formations/entities/Lesson';
 
 export enum ModuleStatus {
   DRAFT = 'DRAFT',
@@ -32,6 +34,8 @@ export interface ModuleProps {
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
   status: ModuleStatus;
+  lessons: Lesson[];
+  quizzes: Quiz[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -44,6 +48,8 @@ export class Module extends DomainEntity<EntityId> {
   private _difficultyLevel: DifficultyLevel;
   private _estimatedDuration: number;
   private _status: ModuleStatus;
+  private readonly _lessons: Set<Lesson>;
+  private readonly _quizzes: Set<Quiz>;
 
   constructor(props: ModuleProps) {
     super(props.id);
@@ -72,6 +78,9 @@ export class Module extends DomainEntity<EntityId> {
         configurable: true,
       });
     }
+
+    this._lessons = new Set(props.lessons);
+    this._quizzes = new Set(props.quizzes);
   }
 
   public static create(props: ModuleProps): Module {
@@ -138,6 +147,46 @@ export class Module extends DomainEntity<EntityId> {
     return this._status;
   }
 
+  get createdAt(): Date {
+    return this._createdAt || new Date();
+  }
+
+  get updatedAt(): Date {
+    return this._updatedAt || new Date();
+  }
+
+  get lessons(): Lesson[] {
+    return Array.from(this._lessons);
+  }
+
+  get quizzes(): Quiz[] {
+    return Array.from(this._quizzes);
+  }
+
+  addLesson(lesson: Lesson): void {
+    this._lessons.add(lesson);
+    this._updatedAt = new Date();
+  }
+
+  addQuiz(quiz: Quiz): void {
+    this._quizzes.add(quiz);
+    this._updatedAt = new Date();
+  }
+
+  getAllQuizzes(): Quiz[] {
+    const allQuizzes: Quiz[] = [];
+    allQuizzes.push(...this.quizzes);
+    for (const lesson of this._lessons) {
+      allQuizzes.push(...lesson.quizzes);
+
+      for (const chapter of lesson.chapters) {
+        allQuizzes.push(...chapter.quizzes);
+      }
+    }
+
+    return allQuizzes;
+  }
+
   public publish(): void {
     if (this._status === ModuleStatus.PUBLISHED) {
       throw new Error('Le module est déjà publié');
@@ -174,6 +223,39 @@ export class Module extends DomainEntity<EntityId> {
     return this._status === ModuleStatus.ARCHIVED;
   }
 
+  public updateThematics(thematics: string): void {
+    const v = thematics?.toLowerCase().trim();
+    if (!v) throw new Error('Au moins une thématique est requise');
+    this._thematics = v;
+    this._updatedAt = new Date();
+  }
+  public updateDifficultyLevel(level: DifficultyLevel): void {
+    if (!Object.values(DifficultyLevel).includes(level)) {
+      throw new Error("Le niveau de difficulté n'est pas valide");
+    }
+    this._difficultyLevel = level;
+    this._updatedAt = new Date();
+  }
+  public updateEstimatedDuration(duration: number): void {
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error('La durée estimée doit être supérieure à 0');
+    }
+    if (duration > 10080) throw new Error('La durée maximale est de 7 jours');
+    this._estimatedDuration = duration;
+    this._updatedAt = new Date();
+  }
+  public updateImageMediaId(imageMediaId: string | null): void {
+    this._imageMediaId = imageMediaId;
+    this._updatedAt = new Date();
+  }
+  public updateStatus(status: ModuleStatus): void {
+    if (!Object.values(ModuleStatus).includes(status)) {
+      throw new Error("Le statut du module n'est pas valide");
+    }
+    this._status = status;
+    this._updatedAt = new Date();
+  }
+
   public toDTO(): ModuleResponseDTO {
     return {
       id: this._id.getValue(),
@@ -184,6 +266,9 @@ export class Module extends DomainEntity<EntityId> {
       difficultyLevel: this._difficultyLevel,
       estimatedDuration: this._estimatedDuration,
       status: this._status,
+      lessons: this.lessons.map(lesson => lesson.toDTO()),
+      quizzes: this.quizzes.map(quiz => quiz.toDTO()),
+      quizzesGlobal: this.getAllQuizzes().map(q => q.toDTO()),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

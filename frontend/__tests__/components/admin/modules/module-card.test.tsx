@@ -71,6 +71,8 @@ const createModule = (overrides: Partial<ModuleWithExtras> = {}): ModuleWithExtr
   status: ModuleStatus.PUBLISHED,
   difficultyLevel: DifficultyLevel.BEGINNER,
   imageMediaId: 'media-123',
+  quizzes: [],
+  lessons: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   ...overrides,

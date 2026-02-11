@@ -14,19 +14,46 @@ export default function ModulesPageContent() {
   const { showLoader, hideLoader } = useLoader();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Pagination API (on récupère tout et on pagine côté client)
+  // Pagination API (on récupère beaucoup et on pagine côté client)
   const pageLimit = 100;
 
   // Pagination locale
   const itemsPerPage = 6;
   const [localPage, setLocalPage] = useState(1);
+
   const { modules, isLoading, isError, refetch } = useGetModules({
     page: 1,
     limit: pageLimit,
   });
 
-  // des hooks useMemo changent à chaque rendu lorsque `modules` est undefined.
   const allModules = useMemo(() => (Array.isArray(modules) ? modules : []), [modules]);
+
+  // ✅ Stats dynamiques
+  const totalModules = allModules.length;
+
+  const publishedModules = useMemo(
+    () => allModules.filter(m => m.status === 'PUBLISHED').length,
+    [allModules]
+  );
+
+  const totalLessons = useMemo(
+    () => allModules.reduce((acc, m) => acc + (m.lessons?.length ?? 0), 0),
+    [allModules]
+  );
+
+  const totalQuizzes = useMemo(
+    () =>
+      allModules.reduce((acc, m) => {
+        const q1 = m.quizzes?.length ?? 0;
+        const q2 = m.quizzesGlobal?.length ?? 0;
+        return acc + q1 + q2;
+      }, 0),
+    [allModules]
+  );
+
+  // (si tu n’as pas encore une API apprenants, on laisse 0)
+  const totalLearners = useMemo(() => 0, []);
+  const completionRate = useMemo(() => 0, []);
 
   // Pagination locale
   const paginatedModules = useMemo(() => {
@@ -51,14 +78,6 @@ export default function ModulesPageContent() {
     else hideLoader();
   }, [isLoading, showLoader, hideLoader]);
 
-  // Statistiques
-  const totalModules = allModules.length;
-  const publishedModules = allModules.filter(m => m.status === 'PUBLISHED').length;
-
-  // si tu veux garder ces chiffres en dur, ok. Sinon remplace par un calcul réel
-  const totalQuizzes = 20;
-  const totalLearners = 688;
-
   const handlePageChange = (page: number) => {
     setLocalPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -67,18 +86,17 @@ export default function ModulesPageContent() {
   return (
     <div className='min-h-screen bg-gray-50 p-6'>
       <div className='max-w-7xl mx-auto'>
-        {/* Statistiques */}
         <StatsCards
           totalModules={totalModules}
           publishedModules={publishedModules}
+          totalLessons={totalLessons}
           totalQuizzes={totalQuizzes}
           totalLearners={totalLearners}
+          completionRate={completionRate}
         />
 
-        {/* Actions rapides (juste le bouton) */}
         <FiltersBar onNewClick={() => setIsDialogOpen(true)} />
 
-        {/* Liste des modules */}
         <ModuleList
           modules={paginatedModules}
           pagination={localPagination}
@@ -87,7 +105,6 @@ export default function ModulesPageContent() {
           onPageChange={handlePageChange}
         />
 
-        {/* Dialog création/édition */}
         <ModuleDialog
           isOpen={isDialogOpen}
           onClose={() => {

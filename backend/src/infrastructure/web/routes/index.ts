@@ -9,6 +9,9 @@ import { createStreamingRoutes } from './streaming.routes';
 import { container, TYPES } from '@/infrastructure/config/container';
 import type { StreamingController } from '../controllers/StreamingController';
 
+import { QuizRoutes } from './quiz.route';
+import { LessonRoutes } from './lesson.route';
+
 const router = Router();
 
 router.use('/users', userRoutes);
@@ -21,6 +24,9 @@ router.use('/media', MediaRoutes());
 // Streaming routes (mounted under /media for consistency)
 const streamingController = container.get<StreamingController>(TYPES.StreamingController);
 router.use('/media', createStreamingRoutes(streamingController));
+
+router.use('/quizzes', QuizRoutes());
+router.use('/lessons', LessonRoutes());
 
 // Route de test
 router.get('/test', (req, res) => {

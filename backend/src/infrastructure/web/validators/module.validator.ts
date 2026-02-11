@@ -1,6 +1,6 @@
 //infrastructure/web/validators/module.validator.ts
 
-import { body, query, validationResult, type ValidationChain } from 'express-validator';
+import { body, param, query, validationResult, type ValidationChain } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 import { DifficultyLevel, ModuleStatus } from '@/domain/formations/entities/ModuleFormation';
 
@@ -51,6 +51,40 @@ export const validateCreateModule: ValidationChain[] = [
   body('estimatedDuration')
     .isFloat({ min: 0.1 })
     .withMessage('La durée estimée doit être supérieure à 0'),
+];
+
+export const validateModuleId = [param('id').isUUID().withMessage('Invalid module ID format')];
+export const validateUpdateModule: ValidationChain[] = [
+  body('title').optional().trim().isLength({ max: 200 }).withMessage('Max 200 caractères'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ min: 10 })
+    .withMessage('La description doit contenir au moins 10 caractères'),
+
+  body('thematics')
+    .optional()
+    .trim()
+    .isLength({ min: 3 })
+    .withMessage('La thématique doit contenir au moins 3 caractères'),
+
+  body('difficultyLevel')
+    .optional()
+    .isIn(Object.values(DifficultyLevel))
+    .withMessage('Niveau de difficulté invalide'),
+
+  body('estimatedDuration')
+    .optional()
+    .isFloat({ min: 0.1 })
+    .withMessage('La durée estimée doit être supérieure à 0'),
+
+  body('status').optional().isIn(Object.values(ModuleStatus)).withMessage('Statut invalide'),
+
+  body('imageMediaId')
+    .optional({ nullable: true })
+    .custom(v => v === null || typeof v === 'string')
+    .withMessage('imageMediaId doit être un string ou null'),
 ];
 
 /**

@@ -10,10 +10,10 @@ export const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
 };
 
 export const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
-  [DifficultyLevel.BEGINNER]: 'bg-green-100 text-green-800 hover:bg-green-100 ',
-  [DifficultyLevel.INTERMEDIATE]: 'bg-blue-100 text-blue-800 hover:bg-blue-100 ',
-  [DifficultyLevel.ADVANCED]: 'bg-orange-100 text-orange-800 hover:bg-orange-100 ',
-  [DifficultyLevel.EXPERT]: 'bg-red-100 text-red-800 hover:bg-red-100 ',
+  [DifficultyLevel.BEGINNER]: 'bg-green-100 text-green-800 border border-green-300',
+  [DifficultyLevel.INTERMEDIATE]: 'bg-blue-100 text-blue-800 border border-blue-300',
+  [DifficultyLevel.ADVANCED]: 'bg-orange-100 text-orange-800 border border-orange-300',
+  [DifficultyLevel.EXPERT]: 'bg-red-100 text-red-800 border border-red-300',
 };
 
 export const MODULE_STATUS_LABELS: Record<ModuleStatus, string> = {

@@ -1,4 +1,4 @@
-import type { CreateModuleData, Module } from '@/types/modules/module';
+import type { CreateModuleData, Module, UpdateModuleData } from '@/types/modules/module';
 // eslint-disable-next-line no-duplicate-imports
 import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 
@@ -81,6 +81,9 @@ describe('Types de module', () => {
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
+      quizzes: [],
+      lessons: [],
+      imageMediaId: null,
       status: ModuleStatus.PUBLISHED,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-15T00:00:00.000Z',
@@ -110,7 +113,6 @@ describe('Types de module', () => {
 
     it('ne contient pas imageUrl dans sa structure', () => {
       expect(mockModule).not.toHaveProperty('imageUrl');
-      expect(mockModule).not.toHaveProperty('imageMediaId');
     });
 
     it('thematics est une chaîne de caractères obligatoire', () => {
@@ -244,7 +246,10 @@ describe('Types de module', () => {
       const convertToModule = (data: CreateModuleData): Module => {
         return {
           id: `module-${Date.now()}`,
+          lessons: [],
+          quizzes: [],
           ...data,
+          imageMediaId: data.imageMediaId ?? null, // force string | null, élimine undefined
           status: ModuleStatus.DRAFT,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -316,6 +321,243 @@ describe('Types de module', () => {
     });
   });
 
+  describe('Interface UpdateModuleData', () => {
+    const mockUpdateData: UpdateModuleData = {
+      title: 'Titre Mis à Jour',
+      description: 'Description mise à jour du module de formation',
+      thematics: 'épargne',
+      difficultyLevel: DifficultyLevel.ADVANCED,
+      estimatedDuration: 120,
+      status: ModuleStatus.PUBLISHED,
+      imageMediaId: 'media-updated-456',
+    };
+
+    it('peut être créé avec toutes les propriétés optionnelles', () => {
+      expect(mockUpdateData.title).toBe('Titre Mis à Jour');
+      expect(mockUpdateData.description).toBe('Description mise à jour du module de formation');
+      expect(mockUpdateData.thematics).toBe('épargne');
+      expect(mockUpdateData.difficultyLevel).toBe(DifficultyLevel.ADVANCED);
+      expect(mockUpdateData.estimatedDuration).toBe(120);
+      expect(mockUpdateData.status).toBe(ModuleStatus.PUBLISHED);
+      expect(mockUpdateData.imageMediaId).toBe('media-updated-456');
+    });
+
+    it('peut être un objet vide (tous les champs sont optionnels)', () => {
+      const emptyUpdate: UpdateModuleData = {};
+      expect(Object.keys(emptyUpdate).length).toBe(0);
+    });
+
+    it('peut contenir uniquement le titre', () => {
+      const titleOnlyUpdate: UpdateModuleData = {
+        title: 'Nouveau Titre',
+      };
+      expect(titleOnlyUpdate.title).toBe('Nouveau Titre');
+      expect(titleOnlyUpdate.description).toBeUndefined();
+      expect(titleOnlyUpdate.thematics).toBeUndefined();
+    });
+
+    it('peut contenir uniquement la description', () => {
+      const descriptionOnlyUpdate: UpdateModuleData = {
+        description: 'Nouvelle description complète',
+      };
+      expect(descriptionOnlyUpdate.description).toBe('Nouvelle description complète');
+      expect(descriptionOnlyUpdate.title).toBeUndefined();
+    });
+
+    it('peut contenir uniquement le statut', () => {
+      const statusOnlyUpdate: UpdateModuleData = {
+        status: ModuleStatus.ARCHIVED,
+      };
+      expect(statusOnlyUpdate.status).toBe(ModuleStatus.ARCHIVED);
+      expect(statusOnlyUpdate.title).toBeUndefined();
+    });
+
+    it('peut contenir uniquement la difficulté', () => {
+      const difficultyOnlyUpdate: UpdateModuleData = {
+        difficultyLevel: DifficultyLevel.EXPERT,
+      };
+      expect(difficultyOnlyUpdate.difficultyLevel).toBe(DifficultyLevel.EXPERT);
+      expect(difficultyOnlyUpdate.title).toBeUndefined();
+    });
+
+    it("peut avoir imageMediaId null pour supprimer l'image", () => {
+      const removeImageUpdate: UpdateModuleData = {
+        imageMediaId: null,
+      };
+      expect(removeImageUpdate.imageMediaId).toBeNull();
+    });
+
+    it("peut avoir imageMediaId undefined pour ne pas modifier l'image", () => {
+      const noImageChangeUpdate: UpdateModuleData = {
+        title: 'Titre modifié',
+        imageMediaId: undefined,
+      };
+      expect(noImageChangeUpdate.imageMediaId).toBeUndefined();
+    });
+
+    it('ne contient pas les propriétés non modifiables', () => {
+      const updateData = mockUpdateData as any;
+
+      expect(updateData.id).toBeUndefined();
+      expect(updateData.createdAt).toBeUndefined();
+      expect(updateData.lessons).toBeUndefined();
+      expect(updateData.quizzes).toBeUndefined();
+    });
+
+    it('peut être appliqué à un Module existant', () => {
+      const existingModule: Module = {
+        id: 'module-123',
+        title: 'Ancien Titre',
+        description: 'Ancienne description',
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        status: ModuleStatus.DRAFT,
+        imageMediaId: 'old-media',
+        lessons: [],
+        quizzes: [],
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      const updateData: UpdateModuleData = {
+        title: 'Nouveau Titre',
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const updatedModule: Module = {
+        ...existingModule,
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      expect(updatedModule.title).toBe('Nouveau Titre');
+      expect(updatedModule.status).toBe(ModuleStatus.PUBLISHED);
+      expect(updatedModule.id).toBe(existingModule.id);
+      expect(updatedModule.createdAt).toBe(existingModule.createdAt);
+      expect(updatedModule.updatedAt).not.toBe(existingModule.updatedAt);
+    });
+
+    it('peut être validé avant application', () => {
+      const validateUpdateData = (data: UpdateModuleData): boolean => {
+        if (data.title !== undefined && data.title.length < 3) return false;
+        if (data.description !== undefined && data.description.length < 10) return false;
+        if (data.estimatedDuration !== undefined && data.estimatedDuration < 5) return false;
+        if (data.thematics !== undefined && data.thematics.length < 3) return false;
+        return true;
+      };
+
+      expect(validateUpdateData(mockUpdateData)).toBe(true);
+
+      const invalidUpdate: UpdateModuleData = {
+        title: 'AB',
+        description: 'Court',
+      };
+
+      expect(validateUpdateData(invalidUpdate)).toBe(false);
+    });
+
+    it('peut contenir une combinaison de champs', () => {
+      const partialUpdate: UpdateModuleData = {
+        title: 'Titre Partiel',
+        estimatedDuration: 75,
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      expect(partialUpdate.title).toBe('Titre Partiel');
+      expect(partialUpdate.estimatedDuration).toBe(75);
+      expect(partialUpdate.status).toBe(ModuleStatus.PUBLISHED);
+      expect(partialUpdate.description).toBeUndefined();
+      expect(partialUpdate.thematics).toBeUndefined();
+    });
+
+    it('permet de changer tous les champs modifiables', () => {
+      const fullUpdate: UpdateModuleData = {
+        title: 'Titre Complet Modifié',
+        description: 'Description complète modifiée',
+        thematics: 'investissement avancé',
+        difficultyLevel: DifficultyLevel.EXPERT,
+        estimatedDuration: 180,
+        status: ModuleStatus.ARCHIVED,
+        imageMediaId: 'new-media-789',
+      };
+
+      expect(Object.keys(fullUpdate).length).toBe(7);
+      expect(fullUpdate.title).toBeDefined();
+      expect(fullUpdate.description).toBeDefined();
+      expect(fullUpdate.thematics).toBeDefined();
+      expect(fullUpdate.difficultyLevel).toBeDefined();
+      expect(fullUpdate.estimatedDuration).toBeDefined();
+      expect(fullUpdate.status).toBeDefined();
+      expect(fullUpdate.imageMediaId).toBeDefined();
+    });
+
+    it('peut être utilisé pour créer un historique de modifications', () => {
+      interface ModuleUpdateHistory {
+        updatedAt: string;
+        changes: UpdateModuleData;
+      }
+
+      const history: ModuleUpdateHistory[] = [
+        {
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          changes: { title: 'Premier titre' },
+        },
+        {
+          updatedAt: '2024-01-02T00:00:00.000Z',
+          changes: { description: 'Première description' },
+        },
+        {
+          updatedAt: '2024-01-03T00:00:00.000Z',
+          changes: { status: ModuleStatus.PUBLISHED },
+        },
+      ];
+
+      expect(history).toHaveLength(3);
+      expect(history[0].changes.title).toBe('Premier titre');
+      expect(history[1].changes.description).toBe('Première description');
+      expect(history[2].changes.status).toBe(ModuleStatus.PUBLISHED);
+    });
+
+    it("peut être fusionné avec d'autres mises à jour", () => {
+      const update1: UpdateModuleData = {
+        title: 'Titre 1',
+        description: 'Description 1',
+      };
+
+      const update2: UpdateModuleData = {
+        description: 'Description 2 (écrase 1)',
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const mergedUpdate: UpdateModuleData = {
+        ...update1,
+        ...update2,
+      };
+
+      expect(mergedUpdate.title).toBe('Titre 1');
+      expect(mergedUpdate.description).toBe('Description 2 (écrase 1)');
+      expect(mergedUpdate.status).toBe(ModuleStatus.PUBLISHED);
+    });
+
+    it('peut être utilisé pour vérifier quels champs ont changé', () => {
+      const getChangedFields = (data: UpdateModuleData): string[] => {
+        return Object.keys(data).filter(key => data[key as keyof UpdateModuleData] !== undefined);
+      };
+
+      const update: UpdateModuleData = {
+        title: 'Nouveau',
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const changedFields = getChangedFields(update);
+      expect(changedFields).toContain('title');
+      expect(changedFields).toContain('status');
+      expect(changedFields).not.toContain('description');
+      expect(changedFields).toHaveLength(2);
+    });
+  });
+
   describe('Compatibilité des types', () => {
     it('CreateModuleData est compatible avec les propriétés de Module', () => {
       const createData: CreateModuleData = {
@@ -328,7 +570,10 @@ describe('Types de module', () => {
 
       const moduleData: Module = {
         id: 'generated-id',
+        lessons: [], // ✅
+        quizzes: [], // ✅
         ...createData,
+        imageMediaId: createData.imageMediaId ?? null,
         status: ModuleStatus.DRAFT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -371,6 +616,9 @@ describe('Types de module', () => {
         estimatedDuration: 120,
         thematics: 'entrepreneuriat',
         status: ModuleStatus.PUBLISHED,
+        lessons: [], // ✅
+        quizzes: [], // ✅
+        imageMediaId: 'media-456',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: ['populaire', 'recommandé'],
@@ -399,6 +647,67 @@ describe('Types de module', () => {
       expect(updateData.status).toBe(ModuleStatus.PUBLISHED);
       expect(updateData).not.toHaveProperty('id');
       expect(updateData).not.toHaveProperty('createdAt');
+    });
+
+    it('UpdateModuleData est compatible avec les propriétés de Module', () => {
+      const updateData: UpdateModuleData = {
+        title: 'Titre mis à jour',
+        description: 'Description mise à jour',
+        difficultyLevel: DifficultyLevel.ADVANCED,
+        estimatedDuration: 90,
+        thematics: 'épargne et investissement',
+        status: ModuleStatus.PUBLISHED,
+        imageMediaId: 'new-media',
+      };
+
+      const originalModule: Module = {
+        id: 'module-123',
+        title: 'Ancien titre',
+        description: 'Ancienne description',
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+        status: ModuleStatus.DRAFT,
+        imageMediaId: 'old-media',
+        lessons: [],
+        quizzes: [],
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      const updatedModule: Module = {
+        ...originalModule,
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      expect(updatedModule.title).toBe(updateData.title);
+      expect(updatedModule.description).toBe(updateData.description);
+      expect(updatedModule.difficultyLevel).toBe(updateData.difficultyLevel);
+      expect(updatedModule.estimatedDuration).toBe(updateData.estimatedDuration);
+      expect(updatedModule.thematics).toBe(updateData.thematics);
+      expect(updatedModule.status).toBe(updateData.status);
+      expect(updatedModule.id).toBe(originalModule.id);
+    });
+
+    it('UpdateModuleData peut être un sous-ensemble de CreateModuleData', () => {
+      const createData: CreateModuleData = {
+        title: 'Nouveau Module',
+        description: 'Description complète',
+        thematics: 'finance',
+        difficultyLevel: DifficultyLevel.BEGINNER,
+        estimatedDuration: 60,
+      };
+
+      const updateData: UpdateModuleData = {
+        title: createData.title,
+        description: createData.description,
+        thematics: createData.thematics,
+      };
+
+      expect(updateData.title).toBe(createData.title);
+      expect(updateData.description).toBe(createData.description);
+      expect(updateData.thematics).toBe(createData.thematics);
     });
   });
 
@@ -473,6 +782,51 @@ describe('Types de module', () => {
       expect(isCreateModuleData(invalidCreateData)).toBe(false);
     });
 
+    it('peut créer des guards de type pour UpdateModuleData', () => {
+      const isUpdateModuleData = (obj: any): obj is UpdateModuleData => {
+        if (typeof obj !== 'object' || obj === null) return false;
+
+        // Tous les champs sont optionnels
+        if (obj.title !== undefined && typeof obj.title !== 'string') return false;
+        if (obj.description !== undefined && typeof obj.description !== 'string') return false;
+        if (obj.thematics !== undefined && typeof obj.thematics !== 'string') return false;
+        if (
+          obj.difficultyLevel !== undefined &&
+          !Object.values(DifficultyLevel).includes(obj.difficultyLevel)
+        )
+          return false;
+        if (obj.estimatedDuration !== undefined && typeof obj.estimatedDuration !== 'number')
+          return false;
+        if (obj.status !== undefined && !Object.values(ModuleStatus).includes(obj.status))
+          return false;
+        if (
+          obj.imageMediaId !== undefined &&
+          obj.imageMediaId !== null &&
+          typeof obj.imageMediaId !== 'string'
+        )
+          return false;
+
+        return true;
+      };
+
+      const validUpdateData: UpdateModuleData = {
+        title: 'Titre mis à jour',
+        status: ModuleStatus.PUBLISHED,
+      };
+
+      const validEmptyUpdate: UpdateModuleData = {};
+
+      const invalidUpdateData = {
+        title: 123,
+        status: 'INVALID_STATUS',
+      };
+
+      expect(isUpdateModuleData(validUpdateData)).toBe(true);
+      expect(isUpdateModuleData(validEmptyUpdate)).toBe(true);
+      expect(isUpdateModuleData(invalidUpdateData)).toBe(false);
+      expect(isUpdateModuleData(null)).toBe(false);
+    });
+
     it('peut valider la structure complète des données', () => {
       const validateModuleStructure = (obj: any): obj is Module => {
         const hasRequiredStringProps =
@@ -500,7 +854,10 @@ describe('Types de module', () => {
         thematics: 'test',
         difficultyLevel: DifficultyLevel.BEGINNER,
         estimatedDuration: 60,
+        quizzes: [], // ✅
+        lessons: [], // ✅
         status: ModuleStatus.DRAFT,
+        imageMediaId: 'media-123',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -519,6 +876,9 @@ describe('Types de module', () => {
       thematics: 'éducation financière',
       difficultyLevel: DifficultyLevel.BEGINNER,
       estimatedDuration: 90,
+      quizzes: [], // ✅
+      lessons: [], // ✅
+      imageMediaId: 'media-456',
       status: ModuleStatus.PUBLISHED,
       createdAt: new Date('2024-01-01T00:00:00.000Z').toISOString(),
       updatedAt: new Date('2024-01-02T00:00:00.000Z').toISOString(),
@@ -568,6 +928,93 @@ describe('Types de module', () => {
       expect(createModuleSummary(testModule)).toBe(
         'Introduction aux Finances - éducation financière (1h30min, BEGINNER)'
       );
+    });
+
+    it('peut créer un UpdateModuleData depuis un Module', () => {
+      const moduleToUpdateData = (m: Module): UpdateModuleData => {
+        return {
+          title: m.title,
+          description: m.description,
+          thematics: m.thematics,
+          difficultyLevel: m.difficultyLevel,
+          estimatedDuration: m.estimatedDuration,
+          status: m.status,
+          imageMediaId: m.imageMediaId,
+        };
+      };
+
+      const updateData = moduleToUpdateData(testModule);
+
+      expect(updateData.title).toBe(testModule.title);
+      expect(updateData.description).toBe(testModule.description);
+      expect(updateData.thematics).toBe(testModule.thematics);
+      expect(updateData.difficultyLevel).toBe(testModule.difficultyLevel);
+      expect(updateData.estimatedDuration).toBe(testModule.estimatedDuration);
+      expect(updateData.status).toBe(testModule.status);
+      expect(updateData.imageMediaId).toBe(testModule.imageMediaId);
+    });
+
+    it('peut appliquer une mise à jour partielle à un Module', () => {
+      const applyUpdate = (module: Module, update: UpdateModuleData): Module => {
+        return {
+          ...module,
+          ...update,
+          updatedAt: new Date().toISOString(),
+        };
+      };
+
+      const update: UpdateModuleData = {
+        title: 'Titre modifié',
+        status: ModuleStatus.ARCHIVED,
+      };
+
+      const updatedModule = applyUpdate(testModule, update);
+
+      expect(updatedModule.title).toBe('Titre modifié');
+      expect(updatedModule.status).toBe(ModuleStatus.ARCHIVED);
+      expect(updatedModule.description).toBe(testModule.description);
+      expect(updatedModule.id).toBe(testModule.id);
+      expect(updatedModule.createdAt).toBe(testModule.createdAt);
+      expect(updatedModule.updatedAt).not.toBe(testModule.updatedAt);
+    });
+
+    it('peut comparer Module avant et après mise à jour', () => {
+      const compareModules = (
+        original: Module,
+        updated: UpdateModuleData
+      ): { changed: string[]; unchanged: string[] } => {
+        const changed: string[] = [];
+        const unchanged: string[] = [];
+
+        const checkField = (field: keyof UpdateModuleData) => {
+          if (updated[field] !== undefined && original[field] !== updated[field]) {
+            changed.push(field);
+          } else if (updated[field] === undefined || original[field] === updated[field]) {
+            unchanged.push(field);
+          }
+        };
+
+        checkField('title');
+        checkField('description');
+        checkField('thematics');
+        checkField('difficultyLevel');
+        checkField('estimatedDuration');
+        checkField('status');
+        checkField('imageMediaId');
+
+        return { changed, unchanged };
+      };
+
+      const update: UpdateModuleData = {
+        title: 'Nouveau titre',
+        status: ModuleStatus.ARCHIVED,
+      };
+
+      const comparison = compareModules(testModule, update);
+
+      expect(comparison.changed).toContain('title');
+      expect(comparison.changed).toContain('status');
+      expect(comparison.changed).toHaveLength(2);
     });
   });
 });

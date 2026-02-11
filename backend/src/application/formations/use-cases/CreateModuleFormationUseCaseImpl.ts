@@ -40,6 +40,8 @@ export class CreateModuleFormationUseCaseImpl implements CreateModuleUseCase {
       difficultyLevel: input.difficultyLevel,
       estimatedDuration: input.estimatedDuration,
       status: ModuleStatus.DRAFT,
+      lessons: [],
+      quizzes: [],
     });
 
     const savedModule = await this.moduleRepository.save(module);

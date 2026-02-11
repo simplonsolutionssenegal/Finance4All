@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { DifficultyLevel } from '@/types/modules/module';
+import { DifficultyLevel, ModuleStatus } from '@/types/modules/module';
 
 export const createModuleSchema = z.object({
   title: z
@@ -30,3 +30,14 @@ export const createModuleSchema = z.object({
 });
 
 export type CreateModuleFormData = z.infer<typeof createModuleSchema>;
+
+export const updateModuleSchema = z.object({
+  title: z.string().min(3).max(200).optional(),
+  description: z.string().min(10).max(5000).optional(),
+  thematics: z.string().min(3).max(100).optional(),
+  difficultyLevel: z.nativeEnum(DifficultyLevel).optional(),
+  estimatedDuration: z.number().min(5).max(10080).optional(),
+  status: z.nativeEnum(ModuleStatus).optional(),
+});
+
+export type UpdateModuleFormData = z.infer<typeof updateModuleSchema>;

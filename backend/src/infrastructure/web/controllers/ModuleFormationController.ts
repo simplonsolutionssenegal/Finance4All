@@ -6,11 +6,19 @@ import {
   DuplicateTitleException,
   ValidationException,
 } from '@/domain/shared/exceptions/FormationDomainException';
+import type { GetModuleByIdUseCase } from '@/domain/formations/ports/in/GetModuleByIdUseCase';
+import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
+import type { AddQuizUseCase } from '@/domain/formations/ports/in/AddQuizUseCase';
+import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
 
 export class ModuleController {
   constructor(
     private readonly createModuleUseCase: CreateModuleUseCase,
-    private readonly getModulesUseCase: GetModulesUseCase
+    private readonly getModulesUseCase: GetModulesUseCase,
+    private readonly getModuleByIdUseCase: GetModuleByIdUseCase,
+    private readonly addLessonUseCase: AddLessonUseCase,
+    private readonly addQuizUseCase: AddQuizUseCase,
+    private readonly updateModuleUseCase: UpdateModuleUseCase
   ) {}
 
   async create(req: Request, res: Response): Promise<Response> {
@@ -72,6 +80,81 @@ export class ModuleController {
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.getModuleByIdUseCase.execute({ id });
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const result = await this.updateModuleUseCase.execute({
+        id,
+        ...req.body,
+        estimatedDuration:
+          req.body.estimatedDuration === undefined || req.body.estimatedDuration === null
+            ? undefined
+            : Number(req.body.estimatedDuration),
+      });
+
+      res.status(200).json({ success: true, data: result });
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  async addLesson(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const result = await this.addLessonUseCase.execute({
+        moduleId: id,
+        ...req.body,
+        duration: Number(req.body.duration),
+        order: Number(req.body.order ?? 0),
+      });
+
+      res.status(201).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addQuiz(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const result = await this.addQuizUseCase.execute({
+        moduleId: id,
+        ...req.body,
+        scoreMinimum: Number(req.body.scoreMinimum),
+        nombreTentatives: Number(req.body.nombreTentatives ?? 3),
+        duree:
+          req.body.duree === undefined || req.body.duree === null
+            ? undefined
+            : Number(req.body.duree),
+      });
+
+      res.status(201).json({
+        success: true,
+        data: result,
+      });
+    } catch (e) {
+      next(e);
     }
   }
 }

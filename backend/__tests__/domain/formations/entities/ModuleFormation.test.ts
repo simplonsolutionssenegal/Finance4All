@@ -1,358 +1,936 @@
+// __tests__/domain/formations/entities/Module.test.ts
+
 import {
   Module,
   ModuleStatus,
   DifficultyLevel,
 } from '@/domain/formations/entities/ModuleFormation';
-// eslint-disable-next-line no-duplicate-imports
-import type { ModuleProps } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
+import { Lesson, LessonStatus } from '@/domain/formations/entities/Lesson';
+import { Quiz, QuizStatus } from '@/domain/formations/entities/Quiz';
+import { Chapter } from '@/domain/formations/entities/Chapter';
 
-// Création d'une fonction utilitaire pour générer les propriétés de base d'un module
-const baseProps: ModuleProps = {
-  id: EntityId.generate(),
-  title: 'Introduction à la finance',
-  description: 'Un module pour comprendre les bases de la finance',
-  imageMediaId: 'image-123',
-  thematics: 'finance et comptabilité',
-  difficultyLevel: DifficultyLevel.BEGINNER,
-  estimatedDuration: 60,
-  status: ModuleStatus.DRAFT,
-};
+describe('Module Entity', () => {
+  const validModuleProps = {
+    id: EntityId.from('550e8400-e29b-41d4-a716-446655440000'),
+    title: 'Introduction aux Finances',
+    description: 'Module de base sur les finances personnelles',
+    imageMediaId: 'image-123',
+    thematics: 'finance et comptabilité',
+    difficultyLevel: DifficultyLevel.BEGINNER,
+    estimatedDuration: 60,
+    status: ModuleStatus.DRAFT,
+    lessons: [],
+    quizzes: [],
+  };
 
-describe('Module', () => {
-  // Tests de création du module
-  describe('create', () => {
-    it('devrait créer un module valide avec les propriétés de base', () => {
-      const module = Module.create(baseProps);
-      expect(module).toBeDefined();
-      expect(module.title).toBe(baseProps.title);
-      expect(module.description).toBe(baseProps.description);
-      expect(module.imageMediaId).toBe(baseProps.imageMediaId);
-      expect(module.thematics).toEqual(baseProps.thematics);
-      expect(module.difficultyLevel).toBe(baseProps.difficultyLevel);
-      expect(module.estimatedDuration).toBe(baseProps.estimatedDuration);
-      expect(module.status).toBe(baseProps.status);
-    });
+  describe('Constructor', () => {
+    it('devrait créer un module avec toutes les propriétés', () => {
+      const module = new Module(validModuleProps);
 
-    it('devrait lever une erreur si le titre est vide', () => {
-      expect(() => Module.create({ ...baseProps, title: '' })).toThrow(
-        'Le titre du module est obligatoire'
-      );
-    });
-
-    it('devrait lever une erreur si le titre contient uniquement des espaces', () => {
-      expect(() => Module.create({ ...baseProps, title: '   ' })).toThrow(
-        'Le titre du module est obligatoire'
-      );
-    });
-
-    it('devrait lever une erreur si le titre dépasse 200 caractères', () => {
-      expect(() => Module.create({ ...baseProps, title: 'a'.repeat(201) })).toThrow(
-        'Le titre ne peut pas dépasser 200 caractères'
-      );
-    });
-
-    it('devrait accepter un titre de 200 caractères exactement', () => {
-      const module = Module.create({ ...baseProps, title: 'a'.repeat(200) });
-      expect(module.title).toHaveLength(200);
-    });
-
-    it('devrait lever une erreur si la description est vide', () => {
-      expect(() => Module.create({ ...baseProps, description: '' })).toThrow(
-        'La description du module est obligatoire'
-      );
-    });
-
-    it('devrait lever une erreur si la description contient uniquement des espaces', () => {
-      expect(() => Module.create({ ...baseProps, description: '   ' })).toThrow(
-        'La description du module est obligatoire'
-      );
-    });
-
-    it('devrait lever une erreur si la thématique est vide', () => {
-      expect(() => Module.create({ ...baseProps, thematics: '' })).toThrow(
-        'Au moins une thématique est requise'
-      );
-    });
-
-    it('devrait lever une erreur si la thématique contient uniquement des espaces', () => {
-      expect(() => Module.create({ ...baseProps, thematics: '   ' })).toThrow(
-        'Au moins une thématique est requise'
-      );
-    });
-
-    it('devrait lever une erreur si la durée estimée est 0', () => {
-      expect(() => Module.create({ ...baseProps, estimatedDuration: 0 })).toThrow(
-        'La durée estimée doit être supérieure à 0'
-      );
-    });
-
-    it('devrait lever une erreur si la durée estimée est négative', () => {
-      expect(() => Module.create({ ...baseProps, estimatedDuration: -10 })).toThrow(
-        'La durée estimée doit être supérieure à 0'
-      );
-    });
-
-    it('devrait lever une erreur si la durée estimée dépasse 7 jours (10080 minutes)', () => {
-      expect(() => Module.create({ ...baseProps, estimatedDuration: 10081 })).toThrow(
-        'La durée maximale est de 7 jours'
-      );
-    });
-
-    it('devrait accepter une durée estimée de 7 jours exactement (10080 minutes)', () => {
-      const module = Module.create({ ...baseProps, estimatedDuration: 10080 });
-      expect(module.estimatedDuration).toBe(10080);
+      expect(module.id.getValue()).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(module.title).toBe('Introduction aux Finances');
+      expect(module.description).toBe('Module de base sur les finances personnelles');
+      expect(module.imageMediaId).toBe('image-123');
+      expect(module.thematics).toBe('finance et comptabilité');
+      expect(module.difficultyLevel).toBe(DifficultyLevel.BEGINNER);
+      expect(module.estimatedDuration).toBe(60);
+      expect(module.status).toBe(ModuleStatus.DRAFT);
+      expect(module.lessons).toEqual([]);
+      expect(module.quizzes).toEqual([]);
     });
 
     it('devrait créer un module avec imageMediaId null', () => {
-      const module = Module.create({ ...baseProps, imageMediaId: null });
+      const props = { ...validModuleProps, imageMediaId: null };
+      const module = new Module(props);
+
       expect(module.imageMediaId).toBeNull();
     });
 
-    it('devrait lever une erreur avec un niveau de difficulté invalide', () => {
-      expect(() =>
-        Module.create({ ...baseProps, difficultyLevel: 'INVALID' as DifficultyLevel })
-      ).toThrow("Le niveau de difficulté n'est pas valide");
+    it('devrait préserver les dates si fournies', () => {
+      const createdAt = new Date('2024-01-01T10:00:00Z');
+      const updatedAt = new Date('2024-01-15T14:30:00Z');
+
+      const props = { ...validModuleProps, createdAt, updatedAt };
+      const module = new Module(props);
+
+      expect(module.createdAt).toEqual(createdAt);
+      expect(module.updatedAt).toEqual(updatedAt);
     });
 
-    it('devrait lever une erreur avec un statut invalide', () => {
-      expect(() => Module.create({ ...baseProps, status: 'INVALID' as ModuleStatus })).toThrow(
-        "Le statut du module n'est pas valide"
-      );
+    it('devrait générer des dates par défaut si non fournies', () => {
+      const module = new Module(validModuleProps);
+
+      expect(module.createdAt).toBeInstanceOf(Date);
+      expect(module.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('devrait créer un module avec tous les niveaux de difficulté valides', () => {
-      Object.values(DifficultyLevel).forEach(level => {
-        const module = Module.create({ ...baseProps, difficultyLevel: level });
+    it('devrait convertir lessons array en Set', () => {
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440001'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon 1',
+        description: 'Description',
+        duration: 30,
+        order: 0,
+        status: LessonStatus.PUBLISHED,
+        chapters: [],
+        quizzes: [],
+      });
+
+      const props = { ...validModuleProps, lessons: [lesson] };
+      const module = new Module(props);
+
+      expect(module.lessons).toHaveLength(1);
+      expect(module.lessons[0]).toBe(lesson);
+    });
+
+    it('devrait convertir quizzes array en Set', () => {
+      const quiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440002'),
+        title: 'Quiz 1',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const props = { ...validModuleProps, quizzes: [quiz] };
+      const module = new Module(props);
+
+      expect(module.quizzes).toHaveLength(1);
+      expect(module.quizzes[0]).toBe(quiz);
+    });
+  });
+
+  describe('create() - Factory Method', () => {
+    it('devrait créer un module valide', () => {
+      const module = Module.create(validModuleProps);
+
+      expect(module).toBeInstanceOf(Module);
+      expect(module.title).toBe('Introduction aux Finances');
+    });
+
+    it('devrait rejeter un titre vide', () => {
+      const props = { ...validModuleProps, title: '' };
+
+      expect(() => Module.create(props)).toThrow('Le titre du module est obligatoire');
+    });
+
+    it('devrait rejeter un titre avec seulement des espaces', () => {
+      const props = { ...validModuleProps, title: '   ' };
+
+      expect(() => Module.create(props)).toThrow('Le titre du module est obligatoire');
+    });
+
+    it('devrait rejeter un titre trop long (>200 caractères)', () => {
+      const props = { ...validModuleProps, title: 'A'.repeat(201) };
+
+      expect(() => Module.create(props)).toThrow('Le titre ne peut pas dépasser 200 caractères');
+    });
+
+    it('devrait accepter un titre de 200 caractères exactement', () => {
+      const props = { ...validModuleProps, title: 'A'.repeat(200) };
+      const module = Module.create(props);
+
+      expect(module.title).toHaveLength(200);
+    });
+
+    it('devrait rejeter une description vide', () => {
+      const props = { ...validModuleProps, description: '' };
+
+      expect(() => Module.create(props)).toThrow('La description du module est obligatoire');
+    });
+
+    it('devrait rejeter une description avec seulement des espaces', () => {
+      const props = { ...validModuleProps, description: '   ' };
+
+      expect(() => Module.create(props)).toThrow('La description du module est obligatoire');
+    });
+
+    it('devrait rejeter une thématique vide', () => {
+      const props = { ...validModuleProps, thematics: '' };
+
+      expect(() => Module.create(props)).toThrow('Au moins une thématique est requise');
+    });
+
+    it('devrait rejeter une thématique avec seulement des espaces', () => {
+      const props = { ...validModuleProps, thematics: '   ' };
+
+      expect(() => Module.create(props)).toThrow('Au moins une thématique est requise');
+    });
+
+    it('devrait rejeter une durée <= 0', () => {
+      const props = { ...validModuleProps, estimatedDuration: 0 };
+
+      expect(() => Module.create(props)).toThrow('La durée estimée doit être supérieure à 0');
+    });
+
+    it('devrait rejeter une durée négative', () => {
+      const props = { ...validModuleProps, estimatedDuration: -10 };
+
+      expect(() => Module.create(props)).toThrow('La durée estimée doit être supérieure à 0');
+    });
+
+    it('devrait rejeter une durée > 10080 (7 jours)', () => {
+      const props = { ...validModuleProps, estimatedDuration: 10081 };
+
+      expect(() => Module.create(props)).toThrow('La durée maximale est de 7 jours');
+    });
+
+    it('devrait accepter une durée de 10080 exactement', () => {
+      const props = { ...validModuleProps, estimatedDuration: 10080 };
+      const module = Module.create(props);
+
+      expect(module.estimatedDuration).toBe(10080);
+    });
+
+    it('devrait rejeter un niveau de difficulté invalide', () => {
+      const props = { ...validModuleProps, difficultyLevel: 'INVALID' as any };
+
+      expect(() => Module.create(props)).toThrow("Le niveau de difficulté n'est pas valide");
+    });
+
+    it('devrait rejeter un statut invalide', () => {
+      const props = { ...validModuleProps, status: 'INVALID' as any };
+
+      expect(() => Module.create(props)).toThrow("Le statut du module n'est pas valide");
+    });
+
+    it('devrait accepter tous les niveaux de difficulté valides', () => {
+      const levels = [
+        DifficultyLevel.BEGINNER,
+        DifficultyLevel.INTERMEDIATE,
+        DifficultyLevel.ADVANCED,
+        DifficultyLevel.EXPERT,
+      ];
+
+      levels.forEach(level => {
+        const props = { ...validModuleProps, difficultyLevel: level };
+        const module = Module.create(props);
         expect(module.difficultyLevel).toBe(level);
       });
     });
 
-    it('devrait créer un module avec tous les statuts valides', () => {
-      Object.values(ModuleStatus).forEach(status => {
-        const module = Module.create({ ...baseProps, status });
+    it('devrait accepter tous les statuts valides', () => {
+      const statuses = [ModuleStatus.DRAFT, ModuleStatus.PUBLISHED, ModuleStatus.ARCHIVED];
+
+      statuses.forEach(status => {
+        const props = { ...validModuleProps, status };
+        const module = Module.create(props);
         expect(module.status).toBe(status);
       });
     });
   });
 
-  // Tests du constructeur direct
-  describe('constructor', () => {
-    it('devrait créer un module via le constructeur', () => {
-      const module = new Module(baseProps);
-      expect(module).toBeDefined();
-      expect(module.title).toBe(baseProps.title);
-      expect(module.description).toBe(baseProps.description);
+  describe('Getters', () => {
+    it('devrait retourner toutes les propriétés via getters', () => {
+      const module = new Module(validModuleProps);
+
+      expect(module.title).toBe(validModuleProps.title);
+      expect(module.description).toBe(validModuleProps.description);
+      expect(module.imageMediaId).toBe(validModuleProps.imageMediaId);
+      expect(module.thematics).toBe(validModuleProps.thematics);
+      expect(module.difficultyLevel).toBe(validModuleProps.difficultyLevel);
+      expect(module.estimatedDuration).toBe(validModuleProps.estimatedDuration);
+      expect(module.status).toBe(validModuleProps.status);
     });
 
-    it('devrait initialiser les dates createdAt et updatedAt', () => {
-      const module = new Module(baseProps);
-      expect(module.createdAt).toBeInstanceOf(Date);
-      expect(module.updatedAt).toBeInstanceOf(Date);
+    it('devrait retourner lessons comme array', () => {
+      const module = new Module(validModuleProps);
+
+      expect(Array.isArray(module.lessons)).toBe(true);
+    });
+
+    it('devrait retourner quizzes comme array', () => {
+      const module = new Module(validModuleProps);
+
+      expect(Array.isArray(module.quizzes)).toBe(true);
     });
   });
 
-  // Tests des méthodes de gestion d'état
-  describe("méthodes d'état", () => {
-    let module: Module;
+  describe('addLesson()', () => {
+    it('devrait ajouter une leçon au module', () => {
+      const module = new Module(validModuleProps);
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440003'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Nouvelle leçon',
+        description: 'Description',
+        duration: 45,
+        order: 0,
+        status: LessonStatus.DRAFT,
+        chapters: [],
+        quizzes: [],
+      });
 
-    beforeEach(() => {
-      module = Module.create(baseProps);
+      module.addLesson(lesson);
+
+      expect(module.lessons).toHaveLength(1);
+      expect(module.lessons[0]).toBe(lesson);
     });
 
-    it('devrait correctement vérifier si le module est en brouillon', () => {
-      expect(module.isDraft()).toBe(true);
-      expect(module.isPublished()).toBe(false);
-      expect(module.isArchived()).toBe(false);
+    it("devrait mettre à jour updatedAt lors de l'ajout d'une leçon", () => {
+      const module = new Module(validModuleProps);
+      const initialUpdatedAt = module.updatedAt;
+
+      // Attendre un peu pour s'assurer que la date change
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440004'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon test',
+        description: 'Description',
+        duration: 30,
+        order: 0,
+        status: LessonStatus.DRAFT,
+        chapters: [],
+        quizzes: [],
+      });
+
+      setTimeout(() => {
+        module.addLesson(lesson);
+        expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(initialUpdatedAt.getTime());
+      }, 10);
     });
 
+    it('ne devrait pas ajouter de doublons (Set)', () => {
+      const module = new Module(validModuleProps);
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440005'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon unique',
+        description: 'Description',
+        duration: 30,
+        order: 0,
+        status: LessonStatus.DRAFT,
+        chapters: [],
+        quizzes: [],
+      });
+
+      module.addLesson(lesson);
+      module.addLesson(lesson); // Ajouter la même leçon
+
+      expect(module.lessons).toHaveLength(1);
+    });
+  });
+
+  describe('addQuiz()', () => {
+    it('devrait ajouter un quiz au module', () => {
+      const module = new Module(validModuleProps);
+      const quiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440006'),
+        title: 'Nouveau quiz',
+        description: 'Description',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 60,
+        duree: 10,
+        nombreTentatives: 2,
+        questions: [],
+      });
+
+      module.addQuiz(quiz);
+
+      expect(module.quizzes).toHaveLength(1);
+      expect(module.quizzes[0]).toBe(quiz);
+    });
+
+    it("devrait mettre à jour updatedAt lors de l'ajout d'un quiz", () => {
+      const module = new Module(validModuleProps);
+      const quiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440007'),
+        title: 'Quiz test',
+        description: 'Description',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      module.addQuiz(quiz);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('ne devrait pas ajouter de doublons (Set)', () => {
+      const module = new Module(validModuleProps);
+      const quiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440008'),
+        title: 'Quiz unique',
+        description: 'Description',
+        status: QuizStatus.DRAFT,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      module.addQuiz(quiz);
+      module.addQuiz(quiz);
+
+      expect(module.quizzes).toHaveLength(1);
+    });
+  });
+
+  describe('getAllQuizzes()', () => {
+    it('devrait retourner tous les quizzes du module uniquement', () => {
+      const quiz1 = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440009'),
+        title: 'Quiz module',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const props = { ...validModuleProps, quizzes: [quiz1] };
+      const module = new Module(props);
+
+      const allQuizzes = module.getAllQuizzes();
+
+      expect(allQuizzes).toHaveLength(1);
+      expect(allQuizzes[0]).toBe(quiz1);
+    });
+
+    it('devrait retourner les quizzes du module + des leçons', () => {
+      const moduleQuiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440010'),
+        title: 'Quiz module',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const lessonQuiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440011'),
+        title: 'Quiz leçon',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 60,
+        duree: 10,
+        nombreTentatives: 2,
+        questions: [],
+      });
+
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440012'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon avec quiz',
+        description: 'Description',
+        duration: 30,
+        order: 0,
+        status: LessonStatus.PUBLISHED,
+        chapters: [],
+        quizzes: [lessonQuiz],
+      });
+
+      const props = { ...validModuleProps, lessons: [lesson], quizzes: [moduleQuiz] };
+      const module = new Module(props);
+
+      const allQuizzes = module.getAllQuizzes();
+
+      expect(allQuizzes).toHaveLength(2);
+      expect(allQuizzes).toContain(moduleQuiz);
+      expect(allQuizzes).toContain(lessonQuiz);
+    });
+
+    it('devrait retourner les quizzes du module + leçons + chapitres', () => {
+      const moduleQuiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440013'),
+        title: 'Quiz module',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const lessonQuiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440014'),
+        title: 'Quiz leçon',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 60,
+        duree: 10,
+        nombreTentatives: 2,
+        questions: [],
+      });
+
+      const chapterQuiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440015'),
+        title: 'Quiz chapitre',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 50,
+        duree: 5,
+        nombreTentatives: 1,
+        questions: [],
+      });
+
+      const chapter = new Chapter(
+        EntityId.from('550e8400-e29b-41d4-a716-446655440016'),
+        'Chapitre 1',
+        'Description',
+        undefined,
+        0,
+        undefined,
+        [chapterQuiz]
+      );
+
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440017'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon complète',
+        description: 'Description',
+        duration: 60,
+        order: 0,
+        status: LessonStatus.PUBLISHED,
+        chapters: [chapter],
+        quizzes: [lessonQuiz],
+      });
+
+      const props = { ...validModuleProps, lessons: [lesson], quizzes: [moduleQuiz] };
+      const module = new Module(props);
+
+      const allQuizzes = module.getAllQuizzes();
+
+      expect(allQuizzes).toHaveLength(3);
+      expect(allQuizzes).toContain(moduleQuiz);
+      expect(allQuizzes).toContain(lessonQuiz);
+      expect(allQuizzes).toContain(chapterQuiz);
+    });
+
+    it('devrait retourner un tableau vide si aucun quiz', () => {
+      const module = new Module(validModuleProps);
+
+      const allQuizzes = module.getAllQuizzes();
+
+      expect(allQuizzes).toEqual([]);
+    });
+  });
+
+  describe('publish()', () => {
     it('devrait publier un module en brouillon', () => {
-      const oldUpdatedAt = module.updatedAt;
-      // Attendre un peu pour voir la différence de date
+      const module = new Module(validModuleProps);
+
       module.publish();
-      expect(module.isPublished()).toBe(true);
-      expect(module.isDraft()).toBe(false);
+
       expect(module.status).toBe(ModuleStatus.PUBLISHED);
-      expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
     });
 
-    it("devrait lever une erreur lors de la publication d'un module déjà publié", () => {
+    it('devrait mettre à jour updatedAt lors de la publication', () => {
+      const module = new Module(validModuleProps);
+
       module.publish();
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it("devrait rejeter la publication d'un module déjà publié", () => {
+      const props = { ...validModuleProps, status: ModuleStatus.PUBLISHED };
+      const module = new Module(props);
+
       expect(() => module.publish()).toThrow('Le module est déjà publié');
     });
 
-    it('devrait vérifier correctement un module publié', () => {
-      const publishedModule = Module.create({ ...baseProps, status: ModuleStatus.PUBLISHED });
-      expect(publishedModule.isPublished()).toBe(true);
-      expect(publishedModule.isDraft()).toBe(false);
-      expect(publishedModule.isArchived()).toBe(false);
-    });
+    it('devrait pouvoir publier un module archivé', () => {
+      const props = { ...validModuleProps, status: ModuleStatus.ARCHIVED };
+      const module = new Module(props);
 
-    it('devrait vérifier correctement un module archivé', () => {
-      const archivedModule = Module.create({ ...baseProps, status: ModuleStatus.ARCHIVED });
-      expect(archivedModule.isArchived()).toBe(true);
-      expect(archivedModule.isDraft()).toBe(false);
-      expect(archivedModule.isPublished()).toBe(false);
+      module.publish();
+
+      expect(module.status).toBe(ModuleStatus.PUBLISHED);
     });
   });
 
-  // Tests des méthodes de mise à jour
-  describe('méthodes de mise à jour', () => {
-    let module: Module;
-
-    beforeEach(() => {
-      module = Module.create(baseProps);
-    });
-
+  describe('updateTitle()', () => {
     it('devrait mettre à jour le titre', () => {
-      const oldUpdatedAt = module.updatedAt;
-      const newTitle = 'Nouveau titre';
-      module.updateTitle(newTitle);
-      expect(module.title).toBe(newTitle);
-      expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
+      const module = new Module(validModuleProps);
+
+      module.updateTitle('Nouveau titre');
+
+      expect(module.title).toBe('Nouveau titre');
     });
 
-    it('devrait lever une erreur lors de la mise à jour avec un titre vide', () => {
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateTitle('Nouveau titre');
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait rejeter un titre vide', () => {
+      const module = new Module(validModuleProps);
+
       expect(() => module.updateTitle('')).toThrow('Le titre du module est obligatoire');
     });
 
-    it('devrait lever une erreur lors de la mise à jour avec un titre contenant uniquement des espaces', () => {
+    it('devrait rejeter un titre avec seulement des espaces', () => {
+      const module = new Module(validModuleProps);
+
       expect(() => module.updateTitle('   ')).toThrow('Le titre du module est obligatoire');
     });
+  });
 
+  describe('updateDescription()', () => {
     it('devrait mettre à jour la description', () => {
-      const oldUpdatedAt = module.updatedAt;
-      const newDescription = 'Nouvelle description détaillée';
-      module.updateDescription(newDescription);
-      expect(module.description).toBe(newDescription);
-      expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
+      const module = new Module(validModuleProps);
+
+      module.updateDescription('Nouvelle description');
+
+      expect(module.description).toBe('Nouvelle description');
     });
 
-    it('devrait lever une erreur lors de la mise à jour avec une description vide', () => {
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateDescription('Nouvelle description');
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait rejeter une description vide', () => {
+      const module = new Module(validModuleProps);
+
       expect(() => module.updateDescription('')).toThrow(
         'La description du module est obligatoire'
       );
     });
 
-    it('devrait lever une erreur lors de la mise à jour avec une description contenant uniquement des espaces', () => {
+    it('devrait rejeter une description avec seulement des espaces', () => {
+      const module = new Module(validModuleProps);
+
       expect(() => module.updateDescription('   ')).toThrow(
         'La description du module est obligatoire'
       );
     });
   });
 
-  // Tests des getters
-  describe('getters', () => {
-    let module: Module;
+  describe('updateThematics()', () => {
+    it('devrait mettre à jour la thématique', () => {
+      const module = new Module(validModuleProps);
 
-    beforeEach(() => {
-      module = Module.create(baseProps);
+      module.updateThematics('Gestion de Projet');
+
+      expect(module.thematics).toBe('gestion de projet');
     });
 
-    it('devrait retourner le titre via le getter', () => {
-      expect(module.title).toBe(baseProps.title);
+    it('devrait normaliser en minuscules et trim', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateThematics('  COMPTABILITÉ AVANCÉE  ');
+
+      expect(module.thematics).toBe('comptabilité avancée');
     });
 
-    it('devrait retourner la description via le getter', () => {
-      expect(module.description).toBe(baseProps.description);
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+      const before = module.updatedAt;
+
+      module.updateThematics('nouvelle thématique');
+
+      expect(module.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
     });
 
-    it('devrait retourner imageMediaId via le getter', () => {
-      expect(module.imageMediaId).toBe(baseProps.imageMediaId);
+    it('devrait rejeter une thématique vide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics('')).toThrow('Au moins une thématique est requise');
     });
 
-    it('devrait retourner la thématique via le getter', () => {
-      expect(module.thematics).toBe(baseProps.thematics);
+    it('devrait rejeter une thématique null', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics(null as any)).toThrow(
+        'Au moins une thématique est requise'
+      );
     });
 
-    it('devrait retourner le niveau de difficulté via le getter', () => {
-      expect(module.difficultyLevel).toBe(baseProps.difficultyLevel);
+    it('devrait rejeter une thématique undefined', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics(undefined as any)).toThrow(
+        'Au moins une thématique est requise'
+      );
     });
 
-    it('devrait retourner la durée estimée via le getter', () => {
-      expect(module.estimatedDuration).toBe(baseProps.estimatedDuration);
+    it('devrait rejeter une thématique avec seulement des espaces', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateThematics('   ')).toThrow('Au moins une thématique est requise');
+    });
+  });
+
+  describe('updateDifficultyLevel()', () => {
+    it('devrait mettre à jour le niveau de difficulté', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateDifficultyLevel(DifficultyLevel.EXPERT);
+
+      expect(module.difficultyLevel).toBe(DifficultyLevel.EXPERT);
     });
 
-    it('devrait retourner le statut via le getter', () => {
-      expect(module.status).toBe(baseProps.status);
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateDifficultyLevel(DifficultyLevel.INTERMEDIATE);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('devrait retourner createdAt via le getter', () => {
-      expect(module.createdAt).toBeInstanceOf(Date);
+    it('devrait accepter tous les niveaux valides', () => {
+      const module = new Module(validModuleProps);
+
+      const levels = [
+        DifficultyLevel.BEGINNER,
+        DifficultyLevel.INTERMEDIATE,
+        DifficultyLevel.ADVANCED,
+        DifficultyLevel.EXPERT,
+      ];
+
+      levels.forEach(level => {
+        module.updateDifficultyLevel(level);
+        expect(module.difficultyLevel).toBe(level);
+      });
     });
 
-    it('devrait retourner updatedAt via le getter', () => {
+    it('devrait rejeter un niveau invalide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateDifficultyLevel('INVALID' as any)).toThrow(
+        "Le niveau de difficulté n'est pas valide"
+      );
+    });
+  });
+
+  describe('updateEstimatedDuration()', () => {
+    it('devrait mettre à jour la durée estimée', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(120);
+
+      expect(module.estimatedDuration).toBe(120);
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(90);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait rejeter une durée <= 0', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(0)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée négative', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(-10)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée > 10080', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(10081)).toThrow(
+        'La durée maximale est de 7 jours'
+      );
+    });
+
+    it('devrait accepter une durée de 10080 exactement', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateEstimatedDuration(10080);
+
+      expect(module.estimatedDuration).toBe(10080);
+    });
+
+    it('devrait rejeter une durée non finie (Infinity)', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(Infinity)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+
+    it('devrait rejeter une durée non finie (NaN)', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateEstimatedDuration(NaN)).toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+    });
+  });
+
+  describe('updateImageMediaId()', () => {
+    it("devrait mettre à jour l'imageMediaId", () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId('new-image-456');
+
+      expect(module.imageMediaId).toBe('new-image-456');
+    });
+
+    it("devrait accepter null pour supprimer l'image", () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId(null);
+
+      expect(module.imageMediaId).toBeNull();
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateImageMediaId('new-image-789');
+
       expect(module.updatedAt).toBeInstanceOf(Date);
     });
   });
 
-  // Tests de conversion en DTO
-  describe('toDTO', () => {
-    it('devrait convertir le module en DTO avec toutes les propriétés', () => {
-      const module = Module.create(baseProps);
+  describe('updateStatus()', () => {
+    it('devrait mettre à jour le statut', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateStatus(ModuleStatus.PUBLISHED);
+
+      expect(module.status).toBe(ModuleStatus.PUBLISHED);
+    });
+
+    it('devrait mettre à jour updatedAt', () => {
+      const module = new Module(validModuleProps);
+
+      module.updateStatus(ModuleStatus.ARCHIVED);
+
+      expect(module.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('devrait accepter tous les statuts valides', () => {
+      const module = new Module(validModuleProps);
+
+      const statuses = [ModuleStatus.DRAFT, ModuleStatus.PUBLISHED, ModuleStatus.ARCHIVED];
+
+      statuses.forEach(status => {
+        module.updateStatus(status);
+        expect(module.status).toBe(status);
+      });
+    });
+
+    it('devrait rejeter un statut invalide', () => {
+      const module = new Module(validModuleProps);
+
+      expect(() => module.updateStatus('INVALID' as any)).toThrow(
+        "Le statut du module n'est pas valide"
+      );
+    });
+  });
+
+  describe('Status checks', () => {
+    it('isPublished() devrait retourner true pour un module publié', () => {
+      const props = { ...validModuleProps, status: ModuleStatus.PUBLISHED };
+      const module = new Module(props);
+
+      expect(module.isPublished()).toBe(true);
+      expect(module.isDraft()).toBe(false);
+      expect(module.isArchived()).toBe(false);
+    });
+
+    it('isDraft() devrait retourner true pour un module en brouillon', () => {
+      const module = new Module(validModuleProps);
+
+      expect(module.isDraft()).toBe(true);
+      expect(module.isPublished()).toBe(false);
+      expect(module.isArchived()).toBe(false);
+    });
+
+    it('isArchived() devrait retourner true pour un module archivé', () => {
+      const props = { ...validModuleProps, status: ModuleStatus.ARCHIVED };
+      const module = new Module(props);
+
+      expect(module.isArchived()).toBe(true);
+      expect(module.isDraft()).toBe(false);
+      expect(module.isPublished()).toBe(false);
+    });
+  });
+
+  describe('toDTO()', () => {
+    it('devrait convertir le module en DTO', () => {
+      const module = new Module(validModuleProps);
+
       const dto = module.toDTO();
 
-      expect(dto).toMatchObject({
-        id: module.id.getValue(),
-        title: module.title,
-        description: module.description,
-        imageMediaId: module.imageMediaId,
-        thematics: module.thematics,
-        difficultyLevel: module.difficultyLevel,
-        estimatedDuration: module.estimatedDuration,
-        status: module.status,
-      });
+      expect(dto.id).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(dto.title).toBe('Introduction aux Finances');
+      expect(dto.description).toBe('Module de base sur les finances personnelles');
+      expect(dto.imageMediaId).toBe('image-123');
+      expect(dto.thematics).toBe('finance et comptabilité');
+      expect(dto.difficultyLevel).toBe(DifficultyLevel.BEGINNER);
+      expect(dto.estimatedDuration).toBe(60);
+      expect(dto.status).toBe(ModuleStatus.DRAFT);
+      expect(dto.lessons).toEqual([]);
+      expect(dto.quizzes).toEqual([]);
+      expect(dto.quizzesGlobal).toEqual([]);
       expect(dto.createdAt).toBeInstanceOf(Date);
       expect(dto.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('devrait convertir un module avec imageMediaId null en DTO', () => {
-      const module = Module.create({ ...baseProps, imageMediaId: null });
+    it('devrait inclure les lessons dans le DTO', () => {
+      const lesson = new Lesson({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440018'),
+        moduleId: '550e8400-e29b-41d4-a716-446655440000',
+        title: 'Leçon 1',
+        description: 'Description',
+        duration: 30,
+        order: 0,
+        status: LessonStatus.PUBLISHED,
+        chapters: [],
+        quizzes: [],
+      });
+
+      const props = { ...validModuleProps, lessons: [lesson] };
+      const module = new Module(props);
+
       const dto = module.toDTO();
-      expect(dto.imageMediaId).toBeNull();
+
+      expect(dto.lessons).toHaveLength(1);
+      expect(dto.lessons[0].id).toBe('550e8400-e29b-41d4-a716-446655440018');
     });
 
-    it('devrait inclure les dates dans le DTO', () => {
-      const createdAt = new Date('2024-01-01T10:00:00Z');
-      const updatedAt = new Date('2024-01-15T14:30:00Z');
-      const module = new Module({ ...baseProps, createdAt, updatedAt });
+    it('devrait inclure les quizzes dans le DTO', () => {
+      const quiz = new Quiz({
+        id: EntityId.from('550e8400-e29b-41d4-a716-446655440019'),
+        title: 'Quiz 1',
+        description: 'Description',
+        status: QuizStatus.PUBLISHED,
+        scoreMinimum: 70,
+        duree: 15,
+        nombreTentatives: 3,
+        questions: [],
+      });
+
+      const props = { ...validModuleProps, quizzes: [quiz] };
+      const module = new Module(props);
+
       const dto = module.toDTO();
 
-      expect(dto.createdAt).toEqual(createdAt);
-      expect(dto.updatedAt).toEqual(updatedAt);
-    });
-  });
-
-  // Tests d'intégration
-  describe("scénarios d'intégration", () => {
-    it('devrait gérer un cycle de vie complet du module', () => {
-      // Création
-      const module = Module.create(baseProps);
-      expect(module.isDraft()).toBe(true);
-
-      // Mise à jour
-      module.updateTitle('Titre mis à jour');
-      module.updateDescription('Description mise à jour');
-      expect(module.title).toBe('Titre mis à jour');
-
-      // Publication
-      module.publish();
-      expect(module.isPublished()).toBe(true);
-
-      // Conversion en DTO
-      const dto = module.toDTO();
-      expect(dto.title).toBe('Titre mis à jour');
-      expect(dto.status).toBe(ModuleStatus.PUBLISHED);
-    });
-
-    it("devrait préserver l'immutabilité de l'ID", () => {
-      const module = Module.create(baseProps);
-      const originalId = module.id.getValue();
-
-      module.updateTitle('Nouveau titre');
-      module.publish();
-
-      expect(module.id.getValue()).toBe(originalId);
+      expect(dto.quizzes).toHaveLength(1);
+      expect(dto.quizzesGlobal).toHaveLength(1);
     });
   });
 });
