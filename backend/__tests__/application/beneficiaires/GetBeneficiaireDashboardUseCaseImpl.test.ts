@@ -55,7 +55,9 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
       save: jest.fn(),
       findById: jest.fn(),
       findByTitle: jest.fn(),
+      findByTitleExceptId: jest.fn(),
       findByThematic: jest.fn(),
+      findByThematicExceptId: jest.fn(),
       update: jest.fn(),
     } as jest.Mocked<ModuleRepository>;
 
@@ -244,7 +246,7 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
       expect(result.moduleStats.notStarted).toBe(2);
     });
 
-    it('should format learning time correctly', async () => {
+    it('should format learning time correctly (1h 1m)', async () => {
       mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
       mockModuleRepo.findAll.mockResolvedValue({
         data: [],
@@ -260,6 +262,60 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
       const result = await useCase.execute({ clerkUserId: 'clerk-1' });
 
       expect(result.stats.learningTime).toBe('1h 1m');
+    });
+
+    it('should format learning time as hours only when no minutes', async () => {
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 500, total: 0, totalPages: 0 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [createMockProgress({ currentPosition: 7200 })] as any, // 2h
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.learningTime).toBe('2h');
+    });
+
+    it('should format learning time as minutes only when under one hour', async () => {
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 500, total: 0, totalPages: 0 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [createMockProgress({ currentPosition: 2700 })] as any, // 45m
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.learningTime).toBe('45m');
+    });
+
+    it('should set learningTimeTrend with positive time when progress this week', async () => {
+      const now = new Date();
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 500, total: 0, totalPages: 0 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({
+            currentPosition: 600,
+            lastWatchedAt: now,
+          }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.learningTimeTrend).toMatch(/\+10m cette semaine/);
     });
 
     it('should call repositories with correct params', async () => {
@@ -317,6 +373,183 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
       expect(result.stats).toHaveProperty('learningTimeTrend');
       expect(result.stats).toHaveProperty('globalProgressTrend');
       expect(result.stats).toHaveProperty('quizzesPassedTrend');
+    });
+
+    it('should set modulesCompletedTrend to +N ce mois when modules completed this month', async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [createMockModule({ lessons: [{ chapters: [{ mediaId: 'm1' }] }] })] as any,
+        pagination: { page: 1, limit: 500, total: 1, totalPages: 1 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({
+            mediaId: 'm1',
+            isCompleted: true,
+            lastWatchedAt: startOfMonth,
+          }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.modulesCompletedTrend).toBe('+1 ce mois');
+    });
+
+    it('should set globalProgressTrend to +X% ce mois when progress increased this month', async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [createMockModule({ lessons: [{ chapters: [{ mediaId: 'm1' }] }] })] as any,
+        pagination: { page: 1, limit: 500, total: 1, totalPages: 1 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({
+            mediaId: 'm1',
+            isCompleted: true,
+            lastWatchedAt: startOfMonth,
+          }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.globalProgress).toBe(100);
+      expect(result.stats.globalProgressTrend).toBe('+100% ce mois');
+    });
+
+    it('should set globalProgressTrend to +0% ce mois when no new completions this month', async () => {
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [createMockModule({ lessons: [{ chapters: [{ mediaId: 'm1' }] }] })] as any,
+        pagination: { page: 1, limit: 500, total: 1, totalPages: 1 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({
+            mediaId: 'm1',
+            isCompleted: true,
+            lastWatchedAt: lastMonth,
+          }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.globalProgress).toBe(100);
+      expect(result.stats.globalProgressTrend).toBe('+0% ce mois');
+    });
+
+    it('should compute globalProgress 50% when one of two modules completed', async () => {
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [
+          createMockModule({ lessons: [{ chapters: [{ mediaId: 'm1' }] }] }),
+          createMockModule({ lessons: [{ chapters: [{ mediaId: 'm2' }] }] }),
+        ] as any,
+        pagination: { page: 1, limit: 500, total: 2, totalPages: 1 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({ mediaId: 'm1', isCompleted: true, lastWatchedAt: new Date() }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.globalProgress).toBe(50);
+      expect(result.moduleStats.completed).toBe(1);
+      expect(result.moduleStats.notStarted).toBe(1);
+    });
+
+    it('should populate monthlyProgress with completed progress in current month', async () => {
+      const now = new Date();
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 500, total: 0, totalPages: 0 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          createMockProgress({
+            isCompleted: true,
+            lastWatchedAt: now,
+          }),
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.monthlyProgress).toHaveLength(6);
+      const currentMonthLabel = [
+        'Jan',
+        'Fév',
+        'Mar',
+        'Avr',
+        'Mai',
+        'Juin',
+        'Juil',
+        'Aoû',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Déc',
+      ][now.getMonth()];
+      const currentMonthEntry = result.monthlyProgress.find(m => m.month === currentMonthLabel);
+      expect(currentMonthEntry).toBeDefined();
+      expect(currentMonthEntry!.progress).toBe(1);
+    });
+
+    it('should not add moduleCompletionDates when completed module has no lastWatchedAt on progress', async () => {
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [createMockModule({ lessons: [{ chapters: [{ mediaId: 'm1' }] }] })] as any,
+        pagination: { page: 1, limit: 500, total: 1, totalPages: 1 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [
+          {
+            ...createMockProgress({ mediaId: 'm1', isCompleted: true }),
+            lastWatchedAt: undefined,
+          },
+        ] as any,
+        pagination: { page: 1, limit: 5000, total: 1, totalPages: 1 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.moduleStats.completed).toBe(1);
+      expect(result.stats.modulesCompletedTrend).toBe('+0 ce mois');
+    });
+
+    it('should return quizzesPassed and quizzesPassedTrend in stats', async () => {
+      mockBeneficiaryRepo.findByClerkUserId.mockResolvedValue(null);
+      mockModuleRepo.findAll.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 500, total: 0, totalPages: 0 },
+      });
+      mockMediaProgressRepo.findByUser.mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 5000, total: 0, totalPages: 0 },
+      });
+
+      const result = await useCase.execute({ clerkUserId: 'clerk-1' });
+
+      expect(result.stats.quizzesPassed).toEqual({ current: 0, total: 0 });
+      expect(result.stats.quizzesPassedTrend).toBe('0% de réussite');
     });
   });
 });
