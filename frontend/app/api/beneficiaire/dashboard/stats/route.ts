@@ -1,16 +1,17 @@
 // frontend/app/api/beneficiaire/dashboard/stats/route.ts
 
-import { auth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 // eslint-disable-next-line no-duplicate-imports
 import { NextResponse } from 'next/server';
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    // Récupérer le userId depuis les query parameters (envoyé par le client)
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorisé - userId manquant' }, { status: 401 });
     }
 
     const url = `${process.env.NEXT_PUBLIC_API_URL}/beneficiaries/dashboard?userId=${encodeURIComponent(userId)}`;
