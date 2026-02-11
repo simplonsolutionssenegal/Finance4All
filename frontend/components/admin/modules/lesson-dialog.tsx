@@ -900,24 +900,24 @@ export default function LessonDialog({
                       <div className=''>
                         <button
                           type='button'
+                          onClick={() =>
+                            setLessonQuizzes(prev => prev.filter((_, idx) => idx !== i))
+                          }
+                          className='h-5 w-5 mb-1 rounded-lg hover:bg-primary-400 bg-primary-100  flex items-center justify-center'
+                          aria-label='Supprimer le quiz'
+                        >
+                          <Trash2 className='h-2 w-2 text-slate-600 text-warning-700' />
+                        </button>
+                        <button
+                          type='button'
                           onClick={() => {
                             setLessonQuizEditIndex(i);
                             setLessonQuizOpen(true);
                           }}
-                          className='h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center'
+                          className='h-5 w-5 rounded-lg hover:bg-primary-400 bg-primary-100 flex items-center justify-center'
                           aria-label='Modifier le quiz'
                         >
-                          <Pencil className='h-4 w-4 text-slate-600' />
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() =>
-                            setLessonQuizzes(prev => prev.filter((_, idx) => idx !== i))
-                          }
-                          className='h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center'
-                          aria-label='Supprimer le quiz'
-                        >
-                          <Trash2 className='h-4 w-4 text-slate-600' />
+                          <Pencil className='h-2 w-2 text-slate-600 tex-warnig-700' />
                         </button>
                       </div>
                     </div>
