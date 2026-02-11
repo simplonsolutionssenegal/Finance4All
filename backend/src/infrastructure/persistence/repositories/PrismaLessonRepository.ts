@@ -73,41 +73,88 @@ export class PrismaLessonRepository implements LessonRepository {
     };
   }
 
-  async update(lesson: Lesson): Promise<Lesson> {
-    const lessonData = this.toPrismaUpdateData(lesson);
-    const quizzes = lesson.quizzes;
+  async delete(id: string): Promise<void> {
+    await this.prisma.lesson.delete({
+      where: { id },
+    });
+  }
 
-    // Récupérer la lesson existante pour comparer les quizzes
+  async update(lesson: Lesson): Promise<Lesson> {
     const existingLesson = await this.prisma.lesson.findUnique({
       where: { id: lesson.id.getValue() },
       include: {
         chapters: {
           include: {
             media: true,
-            quizzes: true, // ⭐ AJOUT
+            quizzes: true,
           },
         },
         quizzes: true,
       },
     });
 
-    const existingQuizIds = new Set(existingLesson?.quizzes.map(q => q.id) || []);
-    const newQuizzes = quizzes.filter(q => !existingQuizIds.has(q.id.getValue()));
+    if (!existingLesson) {
+      throw new Error('Lesson not found');
+    }
 
-    // Mettre à jour la lesson et créer les nouveaux quizzes
+    // Préparer les chapitres
+    const existingChapterIds = new Set(existingLesson.chapters.map(c => c.id));
+    const newChapters = lesson.chapters.filter(c => !existingChapterIds.has(c.id.getValue()));
+    const updatedChapters = lesson.chapters.filter(c => existingChapterIds.has(c.id.getValue()));
+
+    // Identifier les chapitres à supprimer
+    const incomingChapterIds = new Set(lesson.chapters.map(c => c.id.getValue()));
+    const chaptersToDelete = existingLesson.chapters
+      .filter(c => !incomingChapterIds.has(c.id))
+      .map(c => c.id);
+
+    // Préparer les quizzes de la lesson (hors chapitres)
+    const existingQuizIds = new Set(existingLesson.quizzes.map(q => q.id));
+    const newQuizzes = lesson.quizzes.filter(q => !existingQuizIds.has(q.id.getValue()));
+
+    // Transaction pour tout mettre à jour
     const updated = await this.prisma.lesson.update({
       where: { id: lesson.id.getValue() },
       data: {
-        ...lessonData,
-        ...(newQuizzes.length > 0
-          ? { quizzes: { create: newQuizzes.map(q => this.mapQuizToPrisma(q)) } }
-          : {}),
+        title: lesson.title,
+        description: lesson.description,
+        duration: lesson.duration,
+        order: lesson.order,
+        status: lesson.status as any,
+
+        // Gestion des quizzes de la lesson
+        ...(newQuizzes.length > 0 && {
+          quizzes: {
+            create: newQuizzes.map(q => this.mapQuizToPrisma(q)),
+          },
+        }),
+
+        // Gestion des chapitres
+        chapters: {
+          // Supprimer les chapitres retirés
+          ...(chaptersToDelete.length > 0 && {
+            delete: chaptersToDelete.map(id => ({ id })),
+          }),
+
+          // Créer les nouveaux chapitres
+          ...(newChapters.length > 0 && {
+            create: newChapters.map(c => this.mapChapterToPrismaCreate(c)),
+          }),
+
+          // Mettre à jour les chapitres existants
+          ...(updatedChapters.length > 0 && {
+            update: updatedChapters.map(c => ({
+              where: { id: c.id.getValue() },
+              data: this.mapChapterToPrismaUpdate(c),
+            })),
+          }),
+        },
       },
       include: {
         chapters: {
           include: {
             media: true,
-            quizzes: true, // ⭐ AJOUT
+            quizzes: true,
           },
         },
         quizzes: true,
@@ -117,6 +164,96 @@ export class PrismaLessonRepository implements LessonRepository {
     return this.toDomain(updated);
   }
 
+  private mapChapterToPrismaCreate(chapter: Chapter): Prisma.ChapterCreateWithoutLessonInput {
+    const chapterQuizzes = chapter.quizzes.map(q => ({
+      id: q.id.getValue(),
+      ...(q.moduleId && {
+        module: {
+          connect: { id: q.moduleId },
+        },
+      }),
+      title: q.title,
+      description: q.description,
+      status: q.status as any,
+      scoreMinimum: q.scoreMinimum,
+      duree: q.duree ?? null,
+      nombreTentatives: q.nombreTentatives,
+      questions: q.questions.map(qu => qu.toDTO()) as unknown as Prisma.InputJsonValue,
+    }));
+
+    return {
+      id: chapter.id.getValue(),
+      title: chapter.title,
+      description: chapter.description,
+      order: chapter.order,
+      ...(chapter.mediaId && {
+        media: {
+          connect: { id: chapter.mediaId },
+        },
+      }),
+      quizzes: {
+        create: chapterQuizzes,
+      },
+    };
+  }
+
+  // Méthode pour mapper un Chapter vers Prisma (mise à jour)
+  private mapChapterToPrismaUpdate(chapter: Chapter): Prisma.ChapterUpdateInput {
+    return {
+      title: chapter.title,
+      description: chapter.description,
+      order: chapter.order,
+      ...(chapter.mediaId
+        ? { media: { connect: { id: chapter.mediaId } } }
+        : { media: { disconnect: true } }),
+      quizzes: {
+        deleteMany: {},
+        create: chapter.quizzes.map(q => ({
+          id: q.id.getValue(),
+          // ✅ NE PAS inclure chapter car on est déjà dans le contexte du chapitre
+          // ✅ Connecter seulement le module si nécessaire
+          ...(q.moduleId && {
+            module: {
+              connect: { id: q.moduleId },
+            },
+          }),
+          title: q.title,
+          description: q.description,
+          status: q.status as any,
+          scoreMinimum: q.scoreMinimum,
+          duree: q.duree ?? null,
+          nombreTentatives: q.nombreTentatives,
+          questions: q.questions.map(qu => qu.toDTO()) as unknown as Prisma.InputJsonValue,
+        })),
+      },
+    };
+  }
+
+  // Aussi mettre à jour la méthode mapQuizToPrisma existante
+  private mapQuizToPrisma(quiz: Quiz): Prisma.QuizCreateWithoutLessonInput {
+    return {
+      id: quiz.id.getValue(),
+      title: quiz.title,
+      description: quiz.description,
+      status: quiz.status as any,
+      scoreMinimum: quiz.scoreMinimum,
+      duree: quiz.duree ?? null,
+      nombreTentatives: quiz.nombreTentatives,
+      questions: quiz.questions.map(q => q.toDTO()) as unknown as Prisma.InputJsonValue,
+      // ✅ Si le quiz a un moduleId, le connecter
+      ...(quiz.moduleId && {
+        module: {
+          connect: { id: quiz.moduleId },
+        },
+      }),
+      // ✅ Si le quiz a un chapterId, le connecter
+      ...(quiz.chapterId && {
+        chapter: {
+          connect: { id: quiz.chapterId },
+        },
+      }),
+    };
+  }
   private toDomain(prismaLesson: PrismaLesson): Lesson {
     const chapters = (prismaLesson.chapters ?? []).map(c => this.mapChapterToDomain(c));
     const quizzes = (prismaLesson.quizzes ?? []).map(q => this.mapQuizToDomain(q));
@@ -172,22 +309,6 @@ export class PrismaLessonRepository implements LessonRepository {
       nombreTentatives: prismaQuiz.nombreTentatives,
       questions,
     });
-  }
-
-  // -------------------------
-  // Mapping Domain -> Prisma
-  // -------------------------
-  private mapQuizToPrisma(quiz: Quiz): Prisma.QuizCreateWithoutLessonInput {
-    return {
-      id: quiz.id.getValue(),
-      title: quiz.title,
-      description: quiz.description,
-      status: quiz.status as any,
-      scoreMinimum: quiz.scoreMinimum,
-      duree: quiz.duree ?? null,
-      nombreTentatives: quiz.nombreTentatives,
-      questions: quiz.questions.map(q => q.toDTO()) as unknown as Prisma.InputJsonValue,
-    };
   }
 
   private toPrismaUpdateData(lesson: Lesson): Prisma.LessonUpdateInput {

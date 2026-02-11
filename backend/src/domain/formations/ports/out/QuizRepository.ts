@@ -6,6 +6,7 @@ import type { Quiz } from '@/domain/formations/entities/Quiz';
 export interface QuizRepository {
   findById(id: string): Promise<Quiz | null>;
   update(quiz: Quiz): Promise<Quiz>;
+  delete(id: string): Promise<void>;
 
   findAll(params: PaginationParams): Promise<PaginatedResult<Quiz>>;
 }

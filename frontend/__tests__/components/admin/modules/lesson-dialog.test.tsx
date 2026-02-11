@@ -147,6 +147,16 @@ jest.mock('@/hooks/lesson/useCreateLesson', () => ({
   },
 }));
 
+const updateLessonMock = jest.fn();
+let onSuccessUpdateLesson: (() => void) | undefined;
+
+jest.mock('@/hooks/lesson/useUpdateLesson', () => ({
+  useUpdateLesson: (opts: { onSuccess?: () => void }) => {
+    onSuccessUpdateLesson = opts?.onSuccess;
+    return { updateLesson: updateLessonMock, isUpdating: false };
+  },
+}));
+
 const uploadMutateAsyncMock = jest.fn();
 jest.mock('@/hooks/media/useUploadMedia', () => ({
   useUploadMedia: () => ({ mutateAsync: uploadMutateAsyncMock }),
@@ -268,6 +278,8 @@ describe('LessonDialog (updated with RichTextEditor)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     onSuccessCreateLesson = undefined;
+    onSuccessUpdateLesson = undefined;
+    updateLessonMock.mockReset();
     uploadMutateAsyncMock.mockReset();
     deleteMediaAsyncMock.mockReset();
   });
@@ -523,6 +535,40 @@ describe('LessonDialog (updated with RichTextEditor)', () => {
     expect(onCreated).toHaveBeenCalledTimes(1);
   });
 
+  it('submit edit mode calls updateLesson', () => {
+    const onOpenChange = jest.fn();
+
+    render(
+      <LessonDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        moduleId='m1'
+        nextOrder={5}
+        editingLesson={{ id: 'lesson-99', order: 4 } as any}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /premier chapitre/i }));
+    makeChapterValidNoMedia();
+
+    fillBaseLesson();
+
+    fireEvent.click(screen.getByRole('button', { name: /Modifier/i }));
+
+    expect(updateLessonMock).toHaveBeenCalledTimes(1);
+    expect(updateLessonMock).toHaveBeenCalledWith({
+      lessonId: 'lesson-99',
+      payload: expect.objectContaining({
+        title: expect.stringContaining('Titre'),
+        description: expect.stringContaining('Conf'),
+        duration: 20,
+        order: 4,
+      }),
+    });
+
+    onSuccessUpdateLesson?.();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
   it('onPickResourceKind: chapterIndex null => early return', () => {
     render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
     fireEvent.click(screen.getByLabelText('pick-no-target'));

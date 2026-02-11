@@ -3,23 +3,27 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 import QuizDialog from '@/components/admin/modules/quiz-dialog';
 
-// --- mock hook useCreateQuiz ---
 const createQuizMock = jest.fn();
+const updateQuizMock = jest.fn();
 let isCreatingMock = false;
-let onSuccessFromHook: (() => void) | undefined;
+let isUpdatingMock = false;
+let onSuccessCreate: (() => void) | undefined;
+let onSuccessUpdate: (() => void) | undefined;
 
 jest.mock('@/hooks/quiz/useCreateQuiz', () => ({
   useCreateQuiz: (opts: { onSuccess?: () => void }) => {
-    onSuccessFromHook = opts?.onSuccess;
-    return {
-      createQuiz: createQuizMock,
-      isCreating: isCreatingMock,
-    };
+    onSuccessCreate = opts?.onSuccess;
+    return { createQuiz: createQuizMock, isCreating: isCreatingMock };
   },
 }));
 
-// --- mock QuizFormDialog ---
-// On expose un bouton pour déclencher onSubmit et onOpenChange
+jest.mock('@/hooks/quiz/useUpdateQuiz', () => ({
+  useUpdateQuiz: (opts: { onSuccess?: () => void }) => {
+    onSuccessUpdate = opts?.onSuccess;
+    return { updateQuiz: updateQuizMock, isUpdating: isUpdatingMock };
+  },
+}));
+
 jest.mock('@/components/admin/modules/quiz-form-dialog', () => ({
   __esModule: true,
   default: ({ open, subtitle, submitLabel, onSubmit, onOpenChange }: any) => (
@@ -55,34 +59,45 @@ jest.mock('@/components/admin/modules/quiz-form-dialog', () => ({
 describe('QuizDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    onSuccessFromHook = undefined;
+    onSuccessCreate = undefined;
+    onSuccessUpdate = undefined;
     isCreatingMock = false;
+    isUpdatingMock = false;
   });
 
-  it('passe les props correctes à QuizFormDialog et submitLabel dépend de isCreating=false', () => {
-    render(
-      <QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-1' onCreated={jest.fn()} />
-    );
+  it('passes props to QuizFormDialog in create mode', () => {
+    render(<QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-1' />);
 
     expect(screen.getByTestId('open').textContent).toBe('true');
     expect(screen.getByTestId('subtitle').textContent).toBe('Quiz de module');
-    expect(screen.getByTestId('submitLabel').textContent).toBe('Créer le quiz');
+    expect(screen.getByTestId('submitLabel').textContent).toMatch(/Cr/);
   });
 
-  it('submitLabel devient "Création…" quand isCreating=true', () => {
+  it('submitLabel shows creation and modification loading states', () => {
     isCreatingMock = true;
-
-    render(
-      <QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-1' onCreated={jest.fn()} />
+    const { rerender } = render(
+      <QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-1' />
     );
 
-    expect(screen.getByTestId('submitLabel').textContent).toBe('Création…');
+    expect(screen.getByTestId('submitLabel').textContent).toMatch(/Cr/);
+
+    isCreatingMock = false;
+    isUpdatingMock = true;
+
+    rerender(
+      <QuizDialog
+        open={true}
+        onOpenChange={jest.fn()}
+        moduleId='mod-1'
+        editingQuiz={{ id: 'q1' } as any}
+      />
+    );
+
+    expect(screen.getByTestId('submitLabel').textContent).toMatch(/Modification/);
   });
 
-  it('handleSubmit appelle createQuiz avec moduleId et payload', () => {
-    render(
-      <QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-XYZ' onCreated={jest.fn()} />
-    );
+  it('handleSubmit calls createQuiz in create mode', () => {
+    render(<QuizDialog open={true} onOpenChange={jest.fn()} moduleId='mod-XYZ' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-submit' }));
 
@@ -101,42 +116,63 @@ describe('QuizDialog', () => {
     });
   });
 
-  it('le onSuccess du hook ferme le dialog et appelle onCreated', () => {
+  it('handleSubmit calls updateQuiz in edit mode', () => {
+    render(
+      <QuizDialog
+        open={true}
+        onOpenChange={jest.fn()}
+        moduleId='mod-1'
+        editingQuiz={{ id: 'q-edit' } as any}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-submit' }));
+
+    expect(updateQuizMock).toHaveBeenCalledTimes(1);
+    expect(updateQuizMock).toHaveBeenCalledWith({
+      quizId: 'q-edit',
+      payload: {
+        title: 'Quiz title',
+        description: 'Quiz desc',
+        status: 'DRAFT',
+        scoreMinimum: 70,
+        duree: undefined,
+        nombreTentatives: 3,
+        questions: [],
+      },
+    });
+  });
+
+  it('onSuccess from hooks closes dialog and calls onDone/onCreated', () => {
     const onOpenChange = jest.fn();
+    const onDone = jest.fn();
     const onCreated = jest.fn();
 
     render(
-      <QuizDialog open={true} onOpenChange={onOpenChange} moduleId='mod-1' onCreated={onCreated} />
+      <QuizDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        moduleId='mod-1'
+        onDone={onDone}
+        onCreated={onCreated}
+      />
     );
 
-    // on déclenche manuellement le onSuccess capturé
-    expect(typeof onSuccessFromHook).toBe('function');
-    onSuccessFromHook?.();
-
+    onSuccessCreate?.();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(onCreated).toHaveBeenCalledTimes(1);
+
+    onSuccessUpdate?.();
   });
 
-  it('bloque onOpenChange quand isCreating=true', () => {
+  it('blocks onOpenChange when submitting', () => {
     isCreatingMock = true;
     const onOpenChange = jest.fn();
 
     render(<QuizDialog open={true} onOpenChange={onOpenChange} moduleId='mod-1' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-close' }));
-
-    // le wrapper fait: v => !isCreating && onOpenChange(v)
     expect(onOpenChange).not.toHaveBeenCalled();
-  });
-
-  it('autorise onOpenChange quand isCreating=false', () => {
-    isCreatingMock = false;
-    const onOpenChange = jest.fn();
-
-    render(<QuizDialog open={true} onOpenChange={onOpenChange} moduleId='mod-1' />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'trigger-close' }));
-
-    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

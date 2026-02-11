@@ -1,9 +1,13 @@
 'use client';
 
-import { Clock, Layers, ClipboardCheck, Check, Pencil } from 'lucide-react';
+import { Clock, Layers, ClipboardCheck, Check, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 import type { Lesson } from '@/types/modules/Lesson';
+
+import ConfirmDeleteModal from './ConfirmDeleteModal';
+
 function minutesLabel(n: number) {
   const v = Math.round(Number(n) || 0);
   return `${v} min`;
@@ -11,10 +15,10 @@ function minutesLabel(n: number) {
 
 function statusLabelFR(status: string) {
   const map: Record<string, string> = {
-    PUBLISHED: 'Publié',
+    PUBLISHED: 'Publie',
     DRAFT: 'Brouillon',
-    ARCHIVED: 'Archivé',
-    SCHEDULED: 'Programmé',
+    ARCHIVED: 'Archive',
+    SCHEDULED: 'Programme',
   };
   return map[status] ?? status;
 }
@@ -40,8 +44,10 @@ type LessonItemProps = {
   lesson: Lesson;
   resourcesCount?: number;
   quizLabel?: string | null;
+  displayIndex?: number;
   href?: string;
   onEdit?: (lesson: Lesson) => void;
+  onDelete?: (lesson: Lesson) => void;
 };
 
 export default function LessonItem({
@@ -49,18 +55,24 @@ export default function LessonItem({
   resourcesCount = 0,
   quizLabel = null,
   href,
+  displayIndex,
   onEdit,
+  onDelete,
 }: LessonItemProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
   return (
     <div className='rounded-2xl bg-white shadow-sm border border-slate-100 px-6 py-5 flex gap-4'>
       <div className='h-8 w-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0'>
         <Layers className='h-4 w-4 text-sky-500' />
       </div>
 
-      <div className='flex-1 min-w-0'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
+      <div className='flex-1 min-w-0 flex items-start justify-between gap-4'>
+        <div className='min-w-0'>
           <div className='flex flex-wrap items-center gap-2'>
-            <span className='text-xs text-slate-500'>Leçon {lesson.order ?? 0}</span>
+            <span className='text-xs text-slate-500'>
+              Lecon {displayIndex ?? lesson.order ?? 0}
+            </span>
 
             <span className='inline-flex items-center justify-center rounded-full bg-slate-100 border border-slate-200 px-2.5 text-xs text-slate-700'>
               {resourcesCount} ressource
@@ -72,47 +84,77 @@ export default function LessonItem({
             </span>
           </div>
 
+          <div className='mt-1 text-sm text-slate-900 truncate'>
+            {href ? (
+              <Link
+                href={href}
+                className='no-underline hover:no-underline hover:text-sm hover:font-semibold hover:text-primary-400'
+              >
+                {lesson.title}
+              </Link>
+            ) : (
+              lesson.title
+            )}
+          </div>
+
+          <div className='mt-1 text-xs text-slate-500 line-clamp-1'>{lesson.description}</div>
+
+          <div className='mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500'>
+            <span className='inline-flex text-xs items-center gap-1.5'>
+              <Clock className='h-3 w-3' />
+              {minutesLabel(lesson.duration)}
+            </span>
+
+            {quizLabel ? (
+              <span className='inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs text-orange-700'>
+                <ClipboardCheck className='h-3 w-3' />
+                {quizLabel}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className='shrink-0 flex flex-col gap-2'>
           {onEdit && (
             <button
               type='button'
               onClick={() => onEdit(lesson)}
-              className='h-8 w-8 rounded-2xl bg-primary-50 hover:bg-primary-400 flex items-center justify-center shrink-0'
-              aria-label='Modifier la leçon'
+              className='h-7 w-7 rounded-2xl bg-primary-50 hover:bg-primary-400 flex items-center justify-center'
+              aria-label='Modifier la lecon'
             >
               <Pencil className='h-3 w-3 text-slate-600' />
             </button>
           )}
-        </div>
 
-        <div className='mt-1 text-sm text-slate-900 truncate'>
-          {href ? (
-            <Link
-              href={href}
-              className='no-underline hover:no-underline hover:text-sm hover:font-semibold hover:text-primary-400'
+          {onDelete && (
+            <button
+              type='button'
+              onClick={() => setIsDeleteOpen(true)}
+              className='h-7 w-7 rounded-2xl bg-red-50 hover:bg-red-100 flex items-center justify-center'
+              aria-label='Supprimer la lecon'
             >
-              {lesson.title}
-            </Link>
-          ) : (
-            lesson.title
+              <Trash2 className='h-3 w-3 text-red-600' />
+            </button>
           )}
         </div>
-
-        <div className='mt-1 text-xs text-slate-500 line-clamp-1'>{lesson.description}</div>
-
-        <div className='mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500'>
-          <span className='inline-flex text-xs items-center gap-1.5'>
-            <Clock className='h-3 w-3' />
-            {minutesLabel(lesson.duration)}
-          </span>
-
-          {quizLabel ? (
-            <span className='inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs text-orange-700'>
-              <ClipboardCheck className='h-3 w-3' />
-              {quizLabel}
-            </span>
-          ) : null}
-        </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={() => {
+          onDelete?.(lesson);
+          setIsDeleteOpen(false);
+        }}
+        description={
+          <>
+            Vous allez supprimer la lecon{' '}
+            <span className='font-medium text-tertiary-400'>{lesson.title}</span>
+          </>
+        }
+        confirmLabel='Supprimer'
+        confirmClassName='bg-red-500 hover:bg-red-600'
+      />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { LessonController } from '@/infrastructure/web/controllers/LessonController';
 import type { GetLessonByIdUseCase } from '@/domain/formations/ports/in/GetLessonByIdUseCase';
 import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
+import type { UpdateLessonUseCase } from '@/domain/formations/ports/in/UpdateLessonUseCase';
+import type { DeleteLessonUseCase } from '@/domain/formations/ports/in/DeleteLessonUseCase';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { LessonStatus } from '@/domain/formations/entities/Lesson';
 import { QuizStatus } from '@/domain/formations/entities/Quiz';
@@ -17,6 +19,8 @@ describe('LessonController', () => {
 
   let getLessonByIdUseCase: jest.Mocked<GetLessonByIdUseCase>;
   let addQuizLessonUseCase: jest.Mocked<AddQuizLessonUseCase>;
+  let updateLessonUseCase: jest.Mocked<UpdateLessonUseCase>;
+  let deleteLessonUseCase: jest.Mocked<DeleteLessonUseCase>;
   let controller: LessonController;
 
   beforeEach(() => {
@@ -28,9 +32,135 @@ describe('LessonController', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<AddQuizLessonUseCase>;
 
-    controller = new LessonController(getLessonByIdUseCase, addQuizLessonUseCase);
+    updateLessonUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<UpdateLessonUseCase>;
+
+    deleteLessonUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<DeleteLessonUseCase>;
+
+    controller = new LessonController(
+      getLessonByIdUseCase,
+      addQuizLessonUseCase,
+      updateLessonUseCase,
+      deleteLessonUseCase
+    );
 
     jest.clearAllMocks();
+  });
+
+  // ---------------------------------------------------------------------------
+  // update
+  // ---------------------------------------------------------------------------
+
+  describe('update', () => {
+    it('should update lesson successfully', async () => {
+      const req = {
+        params: { id: 'lesson-123' },
+        body: {
+          title: 'Leçon modifiée',
+          description: 'Nouvelle description',
+          duration: 90,
+        },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      const mockUpdatedLesson = {
+        id: 'lesson-123',
+        moduleId: 'module-456',
+        title: 'Leçon modifiée',
+        description: 'Nouvelle description',
+        duration: 90,
+        order: 1,
+        status: LessonStatus.DRAFT,
+        chapters: [],
+        quizzes: [],
+        chaptersCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      updateLessonUseCase.execute.mockResolvedValueOnce(mockUpdatedLesson as any);
+
+      await controller.update(req, res);
+
+      expect(updateLessonUseCase.execute).toHaveBeenCalledWith({
+        id: 'lesson-123',
+        title: 'Leçon modifiée',
+        description: 'Nouvelle description',
+        duration: 90,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        data: mockUpdatedLesson,
+      });
+    });
+
+    it('should return error when update fails', async () => {
+      const req = {
+        params: { id: 'lesson-123' },
+        body: { title: 'Leçon modifiée' },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      const error = new Error('Update failed') as any;
+      updateLessonUseCase.execute.mockRejectedValueOnce(error);
+
+      await controller.update(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Update failed',
+        details: error.stack,
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // delete
+  // ---------------------------------------------------------------------------
+
+  describe('delete', () => {
+    it('should delete lesson successfully', async () => {
+      const req = {
+        params: { id: 'lesson-123' },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      deleteLessonUseCase.execute.mockResolvedValueOnce(undefined);
+
+      await controller.delete(req, res);
+
+      expect(deleteLessonUseCase.execute).toHaveBeenCalledWith('lesson-123');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Lesson deleted successfully',
+      });
+    });
+
+    it('should return error when delete fails', async () => {
+      const req = {
+        params: { id: 'lesson-123' },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      const error = new Error('Delete failed') as any;
+      deleteLessonUseCase.execute.mockRejectedValueOnce(error);
+
+      await controller.delete(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Delete failed',
+        details: error.stack,
+      });
+    });
   });
 
   // ---------------------------------------------------------------------------

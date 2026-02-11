@@ -3,6 +3,10 @@ import { QuizController } from '@/infrastructure/web/controllers/QuizController'
 import type { GetQuizByIdUseCase } from '@/domain/formations/ports/in/GetQuizByIdUseCase';
 import type { SubmitQuizAttemptUseCase } from '@/domain/formations/ports/in/SubmitQuizAttemptUseCase';
 import type { GetQuizProgressUseCase } from '@/domain/formations/ports/in/GetQuizProgressUseCase';
+import type { UpdateQuizUseCase } from '@/domain/formations/ports/in/UpdateQuizUseCase';
+import type { UpdateQuizStatusUseCase } from '@/domain/formations/ports/in/UpdateStatusQuizUseCase';
+import type { DeleteQuizUseCase } from '@/domain/formations/ports/in/DeleteQuizUseCase';
+import { QuizStatus } from '@/domain/formations/entities/Quiz';
 import { getAuth } from '@clerk/express';
 
 jest.mock('@clerk/express', () => ({
@@ -12,6 +16,9 @@ jest.mock('@clerk/express', () => ({
 describe('QuizController (unit)', () => {
   let controller: QuizController;
   let mockGetQuizByIdUseCase: jest.Mocked<GetQuizByIdUseCase>;
+  let mockUpdateQuizUseCase: jest.Mocked<UpdateQuizUseCase>;
+  let mockUpdateQuizStatusUseCase: jest.Mocked<UpdateQuizStatusUseCase>;
+  let mockDeleteQuizUseCase: jest.Mocked<DeleteQuizUseCase>;
   let mockSubmitQuizAttemptUseCase: jest.Mocked<SubmitQuizAttemptUseCase>;
   let mockGetQuizProgressUseCase: jest.Mocked<GetQuizProgressUseCase>;
   let req: Partial<Request>;
@@ -25,6 +32,18 @@ describe('QuizController (unit)', () => {
       execute: jest.fn(),
     } as any;
 
+    mockUpdateQuizUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    mockUpdateQuizStatusUseCase = {
+      execute: jest.fn(),
+    } as any;
+
+    mockDeleteQuizUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     mockSubmitQuizAttemptUseCase = {
       execute: jest.fn(),
     } as any;
@@ -35,6 +54,9 @@ describe('QuizController (unit)', () => {
 
     controller = new QuizController(
       mockGetQuizByIdUseCase,
+      mockUpdateQuizUseCase,
+      mockUpdateQuizStatusUseCase,
+      mockDeleteQuizUseCase,
       mockSubmitQuizAttemptUseCase,
       mockGetQuizProgressUseCase
     );
@@ -80,6 +102,160 @@ describe('QuizController (unit)', () => {
 
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
+  });
+
+  describe('update', () => {
+    it('should update quiz successfully', async () => {
+      const req = {
+        params: { id: 'quiz-123' },
+        body: {
+          title: 'Quiz modifié',
+          scoreMinimum: 80,
+        },
+      } as any;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+      } as any;
+
+      const updatedQuiz = { id: 'quiz-123', title: 'Quiz modifié' } as any;
+      mockUpdateQuizUseCase.execute.mockResolvedValue(updatedQuiz);
+
+      await controller.update(req as Request, res as Response);
+
+      expect(mockUpdateQuizUseCase.execute).toHaveBeenCalledWith({
+        id: 'quiz-123',
+        title: 'Quiz modifié',
+        scoreMinimum: 80,
+      });
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        data: updatedQuiz,
+      });
+    });
+
+    it('should return error when update fails', async () => {
+      const req = {
+        params: { id: 'quiz-123' },
+        body: { title: 'Quiz modifié' },
+      } as any;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+      } as any;
+
+      const error = new Error('Update failed') as any;
+      mockUpdateQuizUseCase.execute.mockRejectedValue(error);
+
+      await controller.update(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Update failed',
+        details: error.stack,
+      });
+    });
+  });
+
+  describe('status updates', () => {
+    it('should publish quiz', async () => {
+      const updatedQuiz = { id: 'quiz-123', status: QuizStatus.PUBLISHED } as any;
+      mockUpdateQuizStatusUseCase.execute.mockResolvedValue(updatedQuiz);
+
+      await controller.publie(req as Request, res as Response, next);
+
+      expect(mockUpdateQuizStatusUseCase.execute).toHaveBeenCalledWith({
+        id: 'quiz-123',
+        status: QuizStatus.PUBLISHED,
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: updatedQuiz,
+      });
+    });
+
+    it('should archive quiz', async () => {
+      const updatedQuiz = { id: 'quiz-123', status: QuizStatus.ARCHIVED } as any;
+      mockUpdateQuizStatusUseCase.execute.mockResolvedValue(updatedQuiz);
+
+      await controller.archive(req as Request, res as Response, next);
+
+      expect(mockUpdateQuizStatusUseCase.execute).toHaveBeenCalledWith({
+        id: 'quiz-123',
+        status: QuizStatus.ARCHIVED,
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: updatedQuiz,
+      });
+    });
+
+    it('should set quiz to draft', async () => {
+      const updatedQuiz = { id: 'quiz-123', status: QuizStatus.DRAFT } as any;
+      mockUpdateQuizStatusUseCase.execute.mockResolvedValue(updatedQuiz);
+
+      await controller.draft(req as Request, res as Response, next);
+
+      expect(mockUpdateQuizStatusUseCase.execute).toHaveBeenCalledWith({
+        id: 'quiz-123',
+        status: QuizStatus.DRAFT,
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: updatedQuiz,
+      });
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete quiz successfully', async () => {
+      const req = {
+        params: { id: 'quiz-123' },
+      } as any;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+      } as any;
+
+      mockDeleteQuizUseCase.execute.mockResolvedValueOnce(undefined);
+
+      await controller.delete(req as Request, res as Response);
+
+      expect(mockDeleteQuizUseCase.execute).toHaveBeenCalledWith('quiz-123');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Quiz deleted successfully',
+      });
+    });
+
+    it('should return error when delete fails', async () => {
+      const req = {
+        params: { id: 'quiz-123' },
+      } as any;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+      } as any;
+
+      const error = new Error('Delete failed') as any;
+      mockDeleteQuizUseCase.execute.mockRejectedValueOnce(error);
+
+      await controller.delete(req as Request, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Delete failed',
+        details: error.stack,
+      });
+    });
   });
 
   describe('submitAttempt', () => {

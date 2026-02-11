@@ -45,6 +45,12 @@ export class PrismaQuizRepository implements QuizRepository {
     };
   }
 
+  async delete(id: string): Promise<void> {
+    await this.prisma.quiz.delete({
+      where: { id },
+    });
+  }
+
   async update(quiz: Quiz): Promise<Quiz> {
     const data = this.toPrismaUpdateData(quiz);
 

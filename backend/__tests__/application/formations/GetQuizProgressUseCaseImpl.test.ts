@@ -16,6 +16,7 @@ describe('GetQuizProgressUseCaseImpl', () => {
     mockQuizRepository = {
       findById: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
       findAll: jest.fn(),
     } as any;
 

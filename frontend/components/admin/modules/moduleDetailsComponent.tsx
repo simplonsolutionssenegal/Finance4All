@@ -3,14 +3,17 @@
 import { ArrowLeft, Clock, Users, Plus, Pencil, FileText, SquareCheckBig } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLoader } from '@/contexts/LoaderContext';
+import { useDeleteLesson } from '@/hooks/lesson/useDeleteLesson';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
+import { useDeleteQuiz } from '@/hooks/quiz/useDeleteQuiz';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants/module-constants';
 import type { Lesson } from '@/types/modules/Lesson';
+import type { Quiz } from '@/types/modules/Quiz';
 
 import LessonDialog from './lesson-dialog';
 import LessonList from './lesson-list';
@@ -50,7 +53,7 @@ function StatCard({
   label,
   iconBgClass = 'bg-slate-50',
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   value: string | number;
   label: string;
   iconBgClass?: string;
@@ -70,11 +73,18 @@ function StatCard({
 export default function ModuleDetailsComponent({ moduleId }: { moduleId: string }) {
   const { showLoader, hideLoader } = useLoader();
   const { module, isLoading, isError, refetch } = useGetModuleById(moduleId);
+
   const [activeTab, setActiveTab] = useState<'lessons' | 'quiz'>('lessons');
+
   const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
+
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
 
   const { url: imageUrl } = useMediaUrl(module?.imageMediaId ?? null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const { deleteLesson } = useDeleteLesson({ onSuccess: () => refetch() });
+  const { deleteQuiz } = useDeleteQuiz({ onSuccess: () => refetch() });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -82,6 +92,16 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
     if (isLoading) showLoader();
     else hideLoader();
   }, [isLoading, showLoader, hideLoader]);
+
+  const handleCreateLesson = () => {
+    setEditingLesson(null);
+    setIsLessonDialogOpen(true);
+  };
+
+  const handleEditLesson = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setIsLessonDialogOpen(true);
+  };
 
   const lessonsSorted = useMemo(() => {
     const list = module?.lessons ?? [];
@@ -92,6 +112,31 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
   const totalLessons = lessonsSorted.length;
   const totalDuration =
     totalLessons > 0 ? sumLessonDuration(lessonsSorted) : (module?.estimatedDuration ?? 0);
+
+  // ✅ Déduplique les quizzes pour éviter l’erreur "same key"
+  const quizzesGlobal = useMemo(() => {
+    const list = module?.quizzesGlobal ?? [];
+    const seen = new Set<string>();
+
+    return list.filter(q => {
+      if (!q?.id) return false;
+      if (seen.has(q.id)) return false;
+      seen.add(q.id);
+      return true;
+    });
+  }, [module?.quizzesGlobal]);
+
+  const quizCount = quizzesGlobal.length;
+
+  const handleEditQuiz = (q: Quiz) => {
+    setEditingQuiz(q);
+    setIsQuizDialogOpen(true);
+  };
+
+  const handleCreateQuiz = () => {
+    setEditingQuiz(null);
+    setIsQuizDialogOpen(true);
+  };
 
   if (isError) {
     return (
@@ -133,9 +178,6 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
     );
   }
 
-  const quizzesGlobal = module.quizzesGlobal ?? [];
-  const quizCount = quizzesGlobal.length;
-
   return (
     <div className='min-h-screen text-white p-4'>
       <div className='max-w-6xl mx-auto space-y-6'>
@@ -166,11 +208,13 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                 <span className='inline-flex  items-center rounded-full border border-slate-500/50 px-3 text-xs  text-slate-900'>
                   {module.thematics}
                 </span>
+
                 <span
                   className={`inline-flex items-center rounded-full px-3 text-xs font-medium ${DIFFICULTY_COLORS[module.difficultyLevel]}`}
                 >
                   {DIFFICULTY_LABELS[module.difficultyLevel]}
                 </span>
+
                 <span className={statusBadge(module.status)}>{module.status}</span>
               </div>
             </div>
@@ -226,8 +270,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
               <TabsTrigger
                 value='lessons'
                 className='group inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-normal
-          text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
-          data-[state=active]:text-gray-900 transition'
+                text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
+                data-[state=active]:text-gray-900 transition'
               >
                 <FileText className='h-4 w-4 text-gray-600 group-data-[state=active]:text-gray-900' />
                 Leçons ({totalLessons})
@@ -236,8 +280,8 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
               <TabsTrigger
                 value='quiz'
                 className='group inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-normal
-          text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
-          data-[state=active]:text-gray-900 transition'
+                text-gray-700 hover:text-gray-900 data-[state=active]:bg-white
+                data-[state=active]:text-gray-900 transition'
               >
                 <SquareCheckBig className='h-4 w-4 text-gray-600 group-data-[state=active]:text-gray-900' />
                 Quiz ({quizCount})
@@ -249,18 +293,20 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                 <div className='flex items-center justify-between'>
                   <p className='text-slate-700'>Gérez les leçons de ce module</p>
                   <button
-                    onClick={() => setIsLessonDialogOpen(true)}
+                    onClick={handleCreateLesson}
                     className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium'
                   >
                     <Plus className='h-4 w-4' />
                     Nouvelle leçon
                   </button>
                 </div>
+
                 <LessonList
                   lessons={lessonsSorted}
                   moduleId={moduleId}
-                  onCreate={() => setIsLessonDialogOpen(true)}
-                  onEdit={() => {}}
+                  onCreate={handleCreateLesson}
+                  onEdit={handleEditLesson}
+                  onDelete={lesson => deleteLesson({ lessonId: lesson.id, moduleId })}
                 />
               </div>
             </TabsContent>
@@ -271,7 +317,7 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                   <p className='text-slate-700'>Gérez les quiz de ce module</p>
 
                   <button
-                    onClick={() => setIsQuizDialogOpen(true)}
+                    onClick={handleCreateQuiz}
                     className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium'
                   >
                     <Plus className='h-4 w-4' />
@@ -279,7 +325,11 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
                   </button>
                 </div>
 
-                <QuizList quizzes={quizzesGlobal} />
+                <QuizList
+                  quizzes={quizzesGlobal}
+                  onEdit={handleEditQuiz}
+                  onDelete={quiz => deleteQuiz({ quizId: quiz.id, moduleId })}
+                />
               </div>
             </TabsContent>
           </Tabs>
@@ -287,16 +337,25 @@ export default function ModuleDetailsComponent({ moduleId }: { moduleId: string 
 
         <LessonDialog
           open={isLessonDialogOpen}
-          onOpenChange={setIsLessonDialogOpen}
+          onOpenChange={v => {
+            setIsLessonDialogOpen(v);
+            if (!v) setEditingLesson(null);
+          }}
           moduleId={moduleId}
           nextOrder={nextOrder}
-          onCreated={() => refetch()}
+          editingLesson={editingLesson}
+          onDone={() => refetch()}
         />
+
         <QuizDialog
           open={isQuizDialogOpen}
-          onOpenChange={setIsQuizDialogOpen}
+          onOpenChange={v => {
+            setIsQuizDialogOpen(v);
+            if (!v) setEditingQuiz(null);
+          }}
           moduleId={moduleId}
-          onCreated={() => refetch()}
+          editingQuiz={editingQuiz}
+          onDone={() => refetch()}
         />
         <ModuleEditDialog
           open={isEditOpen}

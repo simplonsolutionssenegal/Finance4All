@@ -24,6 +24,7 @@ describe('GetModuleByIdUseCaseImpl — tests avec couverture 100%', () => {
       findAll: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     } as any;
 
     useCase = new GetModuleByIdUseCaseImpl(mockRepository);

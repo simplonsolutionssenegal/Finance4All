@@ -10,6 +10,7 @@ import {
   Award,
   Save,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -40,7 +41,7 @@ type Props = {
 
   subtitle?: string;
   submitLabel?: string;
-
+  dialogTitle?: string;
   initial?: Partial<QuizDraft>;
   onSubmit: (quiz: QuizDraft) => void;
 };
@@ -49,6 +50,7 @@ export default function QuizFormDialog({
   open,
   onOpenChange,
   subtitle = 'Quiz',
+  dialogTitle,
   submitLabel = 'Ajouter le quiz',
   initial,
   onSubmit,
@@ -63,6 +65,8 @@ export default function QuizFormDialog({
 
   const [questions, setQuestions] = useState<QuestionDTO[]>([]);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
+
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
 
   const questionsCount = questions.length;
   const totalPoints = useMemo(
@@ -127,7 +131,7 @@ export default function QuizFormDialog({
             <div className='flex items-start justify-between'>
               <div>
                 <DialogTitle className='text-lg font-semibold text-slate-900'>
-                  Nouveau quiz
+                  {dialogTitle ?? 'Nouveau quiz'}
                 </DialogTitle>
                 <p className='mt-0.5 text-sm text-slate-600'>{subtitle}</p>
               </div>
@@ -260,7 +264,10 @@ export default function QuizFormDialog({
               </div>
 
               <button
-                onClick={() => setIsQuestionDialogOpen(true)}
+                onClick={() => {
+                  setEditingQuestionIndex(null);
+                  setIsQuestionDialogOpen(true);
+                }}
                 className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium'
                 type='button'
               >
@@ -285,15 +292,27 @@ export default function QuizFormDialog({
                           {q.points} pts • {q.options.length} options
                         </p>
                       </div>
-
-                      <button
-                        type='button'
-                        onClick={() => setQuestions(prev => prev.filter((_, i) => i !== idx))}
-                        className='h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center'
-                        aria-label='Supprimer la question'
-                      >
-                        <Trash2 className='h-4 w-4 text-slate-600' />
-                      </button>
+                      <div className=''>
+                        <button
+                          type='button'
+                          onClick={() => setQuestions(prev => prev.filter((_, i) => i !== idx))}
+                          className='h-5 w-5 mb-1 rounded-lg hover:bg-primary-400 bg-primary-100  flex items-center justify-center'
+                          aria-label='Supprimer la question'
+                        >
+                          <Trash2 className='h-2 w-2 text-slate-600 text-warning-700' />
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setEditingQuestionIndex(idx);
+                            setIsQuestionDialogOpen(true);
+                          }}
+                          className='h-5 w-5 rounded-lg hover:bg-primary-400 bg-primary-100 flex items-center justify-center'
+                          aria-label='Modifier la question'
+                        >
+                          <Pencil className='h-2 w-2 text-slate-600 tex-warnig-700' />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -326,8 +345,17 @@ export default function QuizFormDialog({
 
       <QuestionDialog
         open={isQuestionDialogOpen}
-        onOpenChange={setIsQuestionDialogOpen}
-        onAdd={q => setQuestions(prev => [...prev, q])}
+        onOpenChange={v => {
+          setIsQuestionDialogOpen(v);
+          if (!v) setEditingQuestionIndex(null);
+        }}
+        initial={editingQuestionIndex !== null ? questions[editingQuestionIndex] : null}
+        onSave={q => {
+          setQuestions(prev => {
+            if (editingQuestionIndex === null) return [...prev, q]; // create
+            return prev.map((item, i) => (i === editingQuestionIndex ? q : item)); // edit
+          });
+        }}
       />
     </>
   );
