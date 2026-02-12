@@ -146,9 +146,9 @@ export class QuizController {
     }
   }
 
-  async update(req: Request, res: Response): Promise<void> {
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const updateData = req.body;
 
       const command = {
@@ -162,30 +162,22 @@ export class QuizController {
         status: 'success',
         data: updatedQuiz,
       });
-    } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        status: 'error',
-        message: error.message,
-        details: error.stack,
-      });
+    } catch (error) {
+      next(error);
     }
   }
 
-  async delete(req: Request, res: Response): Promise<void> {
+  async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       await this.deleteQuizUseCase.execute(id);
 
       res.status(200).json({
         success: true,
         message: 'Quiz deleted successfully',
       });
-    } catch (error: any) {
-      res.status(error.statusCode || 500).json({
-        status: 'error',
-        message: error.message,
-        details: error.stack,
-      });
+    } catch (error) {
+      next(error);
     }
   }
 }
