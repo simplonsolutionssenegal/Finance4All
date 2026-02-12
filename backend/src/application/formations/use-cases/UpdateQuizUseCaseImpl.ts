@@ -1,5 +1,3 @@
-// application/formations/use-cases/UpdateQuizUseCaseImpl.ts
-
 import type {
   UpdateQuizCommand,
   UpdateQuizUseCase,

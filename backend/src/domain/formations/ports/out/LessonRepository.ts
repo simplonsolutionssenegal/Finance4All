@@ -1,5 +1,3 @@
-//domain/formations/ports/out/LessonRepository.ts
-
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
 import type { Lesson } from '@/domain/formations/entities/Lesson';
 

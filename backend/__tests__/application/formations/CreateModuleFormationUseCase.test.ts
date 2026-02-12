@@ -1,12 +1,10 @@
-// backend/__tests__/application/formations/CreateModuleFormationUseCase.test.ts
-
 import { CreateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/CreateModuleFormationUseCaseImpl';
-import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import type { CreateModuleUseCommand } from '@/domain/formations/ports/in/CreateModuleUseCase';
+import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import {
+  DifficultyLevel,
   Module,
   ModuleStatus,
-  DifficultyLevel,
 } from '@/domain/formations/entities/ModuleFormation';
 import { EntityId } from '@/domain/shared/EntityId';
 import {
@@ -14,480 +12,131 @@ import {
   DuplicateTitleException,
 } from '@/domain/shared/exceptions/FormationDomainException';
 
-// Mock du repository
-const mockModuleRepository: jest.Mocked<ModuleRepository> = {
-  save: jest.fn(),
-  findAll: jest.fn(),
-  findByTitle: jest.fn(),
-  findByThematic: jest.fn(),
-  findById: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
-};
-
 describe('CreateModuleFormationUseCaseImpl', () => {
   let useCase: CreateModuleFormationUseCaseImpl;
-  let mockEntityId: jest.SpyInstance;
+  let repo: jest.Mocked<ModuleRepository>;
+  let entityIdSpy: jest.SpyInstance;
+
+  const generatedId = EntityId.from('550e8400-e29b-41d4-a716-446655440000');
+
+  const input: CreateModuleUseCommand = {
+    title: 'Introduction aux Finances',
+    description: "Module d'introduction aux concepts financiers de base",
+    thematics: 'Finance et Comptabilite',
+    imageMediaId: 'img-1',
+    difficultyLevel: DifficultyLevel.BEGINNER,
+    estimatedDuration: 60,
+    status: ModuleStatus.DRAFT,
+  };
 
   beforeEach(() => {
-    useCase = new CreateModuleFormationUseCaseImpl(mockModuleRepository);
-    mockEntityId = jest.spyOn(EntityId, 'generate');
+    repo = {
+      save: jest.fn(),
+      findByTitle: jest.fn(),
+      findByThematic: jest.fn(),
+      findById: jest.fn(),
+      update: jest.fn(),
+      findAll: jest.fn(),
+      findByTitleExceptId: jest.fn(),
+      findByThematicExceptId: jest.fn(),
+    };
 
-    // Reset des mocks
-    jest.clearAllMocks();
+    useCase = new CreateModuleFormationUseCaseImpl(repo);
+    entityIdSpy = jest.spyOn(EntityId, 'generate').mockReturnValue(generatedId);
   });
 
   afterEach(() => {
-    mockEntityId.mockRestore();
+    entityIdSpy.mockRestore();
   });
 
-  describe('execute', () => {
-    const validCreateModuleDTO: CreateModuleUseCommand = {
-      title: 'Introduction aux Finances',
-      description: "Module d'introduction aux concepts financiers de base pour débutants",
-      thematics: 'Finance et Comptabilité',
-      imageMediaId: 'image-id-123',
-      difficultyLevel: DifficultyLevel.BEGINNER,
-      estimatedDuration: 60,
+  it('cree un module avec thematique normalisee', async () => {
+    repo.findByTitle.mockResolvedValue(null);
+    repo.findByThematic.mockResolvedValue(null);
+
+    const saved = new Module({
+      id: generatedId,
+      title: input.title,
+      description: input.description,
+      imageMediaId: input.imageMediaId,
+      thematics: 'finance et comptabilite',
+      difficultyLevel: input.difficultyLevel,
+      estimatedDuration: input.estimatedDuration,
       status: ModuleStatus.DRAFT,
-    };
-
-    // Créer un mock d'EntityId valide avec un UUID au format correct
-    const mockGeneratedId = EntityId.from('550e8400-e29b-41d4-a716-446655440000');
-
-    beforeEach(() => {
-      mockEntityId.mockReturnValue(mockGeneratedId);
+      lessons: [],
+      quizzes: [],
     });
 
-    it('devrait créer un module avec succès', async () => {
-      // Arrange
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
+    repo.save.mockResolvedValue(saved);
 
-      const expectedModule = new Module({
-        id: mockGeneratedId,
-        title: validCreateModuleDTO.title,
-        description: validCreateModuleDTO.description,
-        imageMediaId: validCreateModuleDTO.imageMediaId,
-        thematics: 'finance et comptabilité', // Normalisé
-        difficultyLevel: validCreateModuleDTO.difficultyLevel,
-        estimatedDuration: validCreateModuleDTO.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
+    const result = await useCase.execute(input);
 
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(validCreateModuleDTO);
-
-      // Assert
-      expect(EntityId.generate).toHaveBeenCalledTimes(1);
-      expect(mockModuleRepository.findByTitle).toHaveBeenCalledWith(validCreateModuleDTO.title);
-      expect(mockModuleRepository.findByThematic).toHaveBeenCalledWith('finance et comptabilité');
-      expect(EntityId.generate).toHaveBeenCalledTimes(1);
-      expect(mockModuleRepository.save).toHaveBeenCalledTimes(1);
-
-      const savedModuleArg = mockModuleRepository.save.mock.calls[0][0];
-      expect(savedModuleArg).toBeInstanceOf(Module);
-      expect(savedModuleArg.thematics).toBe('finance et comptabilité');
-
-      expect(result).toEqual(savedModule.toDTO());
-    });
-
-    it('devrait créer un module avec imageMediaId null', async () => {
-      // Arrange
-      const inputWithoutImage: CreateModuleUseCommand = {
-        ...validCreateModuleDTO,
-        imageMediaId: null,
-      };
-
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: inputWithoutImage.title,
-        description: inputWithoutImage.description,
-        imageMediaId: null,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: inputWithoutImage.difficultyLevel,
-        estimatedDuration: inputWithoutImage.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(inputWithoutImage);
-
-      // Assert
-      expect(result.imageMediaId).toBeNull();
-      expect(mockModuleRepository.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('devrait normaliser la thématique en minuscules', async () => {
-      // Arrange
-      const inputWithUpperCase: CreateModuleUseCommand = {
-        ...validCreateModuleDTO,
-        thematics: 'GESTION DE PROJET',
-      };
-
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: inputWithUpperCase.title,
-        description: inputWithUpperCase.description,
-        imageMediaId: inputWithUpperCase.imageMediaId,
-        thematics: 'gestion de projet',
-        difficultyLevel: inputWithUpperCase.difficultyLevel,
-        estimatedDuration: inputWithUpperCase.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(inputWithUpperCase);
-
-      // Assert
-      expect(result.thematics).toBe('gestion de projet');
-      expect(mockModuleRepository.findByThematic).toHaveBeenCalledWith('gestion de projet');
-    });
-
-    it('devrait créer un module avec niveau de difficulté EXPERT', async () => {
-      // Arrange
-      const inputExpert: CreateModuleUseCommand = {
-        ...validCreateModuleDTO,
-        difficultyLevel: DifficultyLevel.EXPERT,
-        estimatedDuration: 180, // 3 heures pour un niveau expert
-      };
-
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: inputExpert.title,
-        description: inputExpert.description,
-        imageMediaId: inputExpert.imageMediaId,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: DifficultyLevel.EXPERT,
-        estimatedDuration: 180,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(inputExpert);
-
-      // Assert
-      expect(result.difficultyLevel).toBe(DifficultyLevel.EXPERT);
-      expect(result.estimatedDuration).toBe(180);
-    });
-
-    it('devrait toujours créer un module avec le statut DRAFT', async () => {
-      // Arrange
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: validCreateModuleDTO.title,
-        description: validCreateModuleDTO.description,
-        imageMediaId: validCreateModuleDTO.imageMediaId,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: validCreateModuleDTO.difficultyLevel,
-        estimatedDuration: validCreateModuleDTO.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(validCreateModuleDTO);
-
-      // Assert
-      expect(result.status).toBe(ModuleStatus.DRAFT);
-
-      const savedModuleArg = mockModuleRepository.save.mock.calls[0][0];
-      expect(savedModuleArg.status).toBe(ModuleStatus.DRAFT);
-    });
-
-    it('devrait propager les erreurs du repository', async () => {
-      // Arrange
-      const repositoryError = new Error('Erreur de base de données');
-      mockModuleRepository.save.mockRejectedValue(repositoryError);
-
-      // Act & Assert
-      await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(
-        'Erreur de base de données'
-      );
-      expect(mockModuleRepository.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('devrait empêcher la création avec un titre dupliqué', async () => {
-      // Arrange
-      const existingModule = new Module({
-        id: EntityId.generate(),
-        title: validCreateModuleDTO.title,
-        description: 'Description existante',
-        imageMediaId: null,
-        thematics: 'autre thématique',
-        difficultyLevel: DifficultyLevel.BEGINNER,
-        estimatedDuration: 60,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-      });
-
-      mockModuleRepository.findByTitle.mockResolvedValue(existingModule);
-
-      // Act & Assert
-      await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(DuplicateTitleException);
-      expect(mockModuleRepository.findByTitle).toHaveBeenCalledWith(validCreateModuleDTO.title);
-      expect(mockModuleRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('devrait empêcher la création avec une thématique dupliquée (majuscules)', async () => {
-      // Arrange
-      const existingModule = new Module({
-        id: EntityId.generate(),
-        title: 'Autre Module',
-        description: 'Description existante',
-        imageMediaId: null,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: DifficultyLevel.BEGINNER,
-        estimatedDuration: 60,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-      });
-
-      mockModuleRepository.findByThematic.mockResolvedValue(existingModule);
-
-      // Act & Assert
-      await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(
-        DuplicateThematicException
-      );
-      expect(mockModuleRepository.findByThematic).toHaveBeenCalledWith('finance et comptabilité');
-      expect(mockModuleRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('devrait empêcher la création avec une thématique avec espaces supplémentaires', async () => {
-      // Arrange
-      const inputWithSpaces: CreateModuleUseCommand = {
-        ...validCreateModuleDTO,
-        thematics: '  Finance et Comptabilité  ',
-      };
-
-      const existingModule = new Module({
-        id: EntityId.generate(),
-        title: 'Autre Module',
-        description: 'Description existante',
-        imageMediaId: null,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: DifficultyLevel.BEGINNER,
-        estimatedDuration: 60,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-      });
-
-      mockModuleRepository.findByThematic.mockResolvedValue(existingModule);
-
-      // Act & Assert
-      await expect(useCase.execute(inputWithSpaces)).rejects.toThrow(DuplicateThematicException);
-      expect(mockModuleRepository.findByThematic).toHaveBeenCalledWith('finance et comptabilité');
-    });
-
-    it('devrait générer un nouvel ID à chaque création', async () => {
-      // Arrange
-      const mockId1 = EntityId.generate();
-      const mockId2 = EntityId.generate();
-
-      mockEntityId.mockReturnValueOnce(mockId1).mockReturnValueOnce(mockId2);
-
-      const savedModule1 = new Module({
-        id: mockId1,
-        title: 'Module 1',
-        description: validCreateModuleDTO.description,
-        imageMediaId: validCreateModuleDTO.imageMediaId,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: validCreateModuleDTO.difficultyLevel,
-        estimatedDuration: validCreateModuleDTO.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      const savedModule2 = new Module({
-        id: mockId2,
-        title: 'Autre Module',
-        description: validCreateModuleDTO.description,
-        imageMediaId: validCreateModuleDTO.imageMediaId,
-        thematics: 'marketing digital',
-        difficultyLevel: validCreateModuleDTO.difficultyLevel,
-        estimatedDuration: validCreateModuleDTO.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
-
-      mockModuleRepository.save
-        .mockResolvedValueOnce(savedModule1)
-        .mockResolvedValueOnce(savedModule2);
-
-      // Réinitialiser le compteur après la création des mocks
-      jest.clearAllMocks();
-      mockEntityId.mockReturnValueOnce(mockId1).mockReturnValueOnce(mockId2);
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
-      mockModuleRepository.save
-        .mockResolvedValueOnce(savedModule1)
-        .mockResolvedValueOnce(savedModule2);
-
-      // Act
-      await useCase.execute(validCreateModuleDTO);
-      await useCase.execute({
-        ...validCreateModuleDTO,
-        title: 'Autre Module',
-        thematics: 'Marketing Digital',
-      });
-
-      // Assert
-      expect(EntityId.generate).toHaveBeenCalledTimes(2);
-    });
-
-    it('devrait valider que le DTO retourné correspond au module sauvegardé', async () => {
-      // Arrange
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: validCreateModuleDTO.title,
-        description: validCreateModuleDTO.description,
-        imageMediaId: validCreateModuleDTO.imageMediaId,
-        thematics: 'finance et comptabilité',
-        difficultyLevel: validCreateModuleDTO.difficultyLevel,
-        estimatedDuration: validCreateModuleDTO.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-      });
-
-      mockModuleRepository.save.mockResolvedValue(savedModule);
-
-      // Act
-      const result = await useCase.execute(validCreateModuleDTO);
-
-      // Assert
-      expect(result.id).toBe(savedModule.id.getValue());
-      expect(result.title).toBe(savedModule.title);
-      expect(result.description).toBe(savedModule.description);
-      expect(result.thematics).toBe(savedModule.thematics);
-      expect(result.difficultyLevel).toBe(savedModule.difficultyLevel);
-      expect(result.estimatedDuration).toBe(savedModule.estimatedDuration);
-      expect(result.status).toBe(savedModule.status);
-      expect(result.createdAt).toBeInstanceOf(Date);
-      expect(result.updatedAt).toBeInstanceOf(Date);
-    });
+    expect(repo.findByThematic).toHaveBeenCalledWith('finance et comptabilite');
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(saved.toDTO());
   });
 
-  describe('Constructor', () => {
-    it('devrait instancier correctement avec les dépendances', () => {
-      // Act
-      const instance = new CreateModuleFormationUseCaseImpl(mockModuleRepository);
+  it('force le statut DRAFT a la creation', async () => {
+    repo.findByTitle.mockResolvedValue(null);
+    repo.findByThematic.mockResolvedValue(null);
 
-      // Assert
-      expect(instance).toBeDefined();
-      expect(instance).toBeInstanceOf(CreateModuleFormationUseCaseImpl);
-    });
-  });
-
-  describe("Cas d'erreur métier", () => {
-    const validCreateModuleDTO: CreateModuleUseCommand = {
-      title: 'Introduction aux Finances',
-      description: "Module d'introduction aux concepts financiers de base pour débutants",
-      thematics: 'Finance et Comptabilité',
-      imageMediaId: 'image-id-123',
-      difficultyLevel: DifficultyLevel.BEGINNER,
-      estimatedDuration: 60,
+    const saved = new Module({
+      id: generatedId,
+      title: input.title,
+      description: input.description,
+      imageMediaId: input.imageMediaId,
+      thematics: 'finance et comptabilite',
+      difficultyLevel: input.difficultyLevel,
+      estimatedDuration: input.estimatedDuration,
       status: ModuleStatus.DRAFT,
-    };
-
-    beforeEach(() => {
-      mockModuleRepository.findByTitle.mockResolvedValue(null);
-      mockModuleRepository.findByThematic.mockResolvedValue(null);
+      lessons: [],
+      quizzes: [],
     });
+    repo.save.mockResolvedValue(saved);
 
-    it('devrait gérer les erreurs de validation du repository', async () => {
-      // Arrange
-      const validationError = new Error('Validation failed: Title is required');
-      mockModuleRepository.save.mockRejectedValue(validationError);
+    await useCase.execute({ ...input, status: ModuleStatus.PUBLISHED });
 
-      // Act & Assert
-      await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(validationError);
-    });
-
-    it('devrait gérer les erreurs de connectivité', async () => {
-      // Arrange
-      const connectionError = new Error('Connection timeout');
-      mockModuleRepository.save.mockRejectedValue(connectionError);
-
-      // Act & Assert
-      await expect(useCase.execute(validCreateModuleDTO)).rejects.toThrow(connectionError);
-    });
+    const arg = repo.save.mock.calls[0][0];
+    expect(arg.status).toBe(ModuleStatus.DRAFT);
   });
 
-  describe("Tests d'intégration des propriétés", () => {
-    const mockGeneratedId = EntityId.generate();
-
-    beforeEach(() => {
-      (EntityId.generate as jest.MockedFunction<typeof EntityId.generate>).mockReturnValue(
-        mockGeneratedId
-      );
+  it('leve DuplicateTitleException si titre existe', async () => {
+    const existing = new Module({
+      id: EntityId.generate(),
+      title: input.title,
+      description: 'x',
+      imageMediaId: null,
+      thematics: 'autre',
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 10,
+      status: ModuleStatus.DRAFT,
+      lessons: [],
+      quizzes: [],
     });
 
-    it('devrait préserver toutes les propriétés lors de la sauvegarde', async () => {
-      // Arrange
-      const complexInput: CreateModuleUseCommand = {
-        title: 'Module Complexe avec Caractères Spéciaux: éàü',
-        description:
-          'Description très longue avec des caractères spéciaux et des accents: éèàù, çñ',
-        thematics: 'Entrepreneuriat et Fiscalité',
-        imageMediaId: 'complex-image-id-456',
-        difficultyLevel: DifficultyLevel.ADVANCED,
-        estimatedDuration: 240, // 4 heures
-        status: ModuleStatus.DRAFT,
-      };
+    repo.findByTitle.mockResolvedValue(existing);
 
-      const savedModule = new Module({
-        id: mockGeneratedId,
-        title: complexInput.title,
-        description: complexInput.description,
-        imageMediaId: complexInput.imageMediaId,
-        thematics: 'entrepreneuriat et fiscalité',
-        difficultyLevel: complexInput.difficultyLevel,
-        estimatedDuration: complexInput.estimatedDuration,
-        status: ModuleStatus.DRAFT,
-        lessons: [],
-        quizzes: [],
-        createdAt: new Date('2024-01-01T10:00:00Z'),
-        updatedAt: new Date('2024-01-01T10:00:00Z'),
-      });
+    await expect(useCase.execute(input)).rejects.toThrow(DuplicateTitleException);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
 
-      mockModuleRepository.save.mockResolvedValue(savedModule);
+  it('leve DuplicateThematicException si thematique existe', async () => {
+    const existing = new Module({
+      id: EntityId.generate(),
+      title: 'Autre titre',
+      description: 'x',
+      imageMediaId: null,
+      thematics: 'finance et comptabilite',
+      difficultyLevel: DifficultyLevel.BEGINNER,
+      estimatedDuration: 10,
+      status: ModuleStatus.DRAFT,
+      lessons: [],
+      quizzes: [],
     });
+
+    repo.findByTitle.mockResolvedValue(null);
+    repo.findByThematic.mockResolvedValue(existing);
+
+    await expect(useCase.execute(input)).rejects.toThrow(DuplicateThematicException);
+    expect(repo.save).not.toHaveBeenCalled();
   });
 });

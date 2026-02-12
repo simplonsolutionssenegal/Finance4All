@@ -1,4 +1,3 @@
-// application/formations/use-cases/AddLessonUseCaseImpl.ts
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import type {
   AddLessonCommand,

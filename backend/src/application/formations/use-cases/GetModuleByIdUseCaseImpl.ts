@@ -1,5 +1,3 @@
-// application/formations/use-cases/GetModuleByIdUseCaseImpl.ts
-
 import type {
   GetModuleByIdUseCaseQuery,
   GetModuleByIdUseCase,

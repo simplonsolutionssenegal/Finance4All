@@ -74,24 +74,6 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
         },
         quizzes: true,
       },
-      include: { lessons: true, quizzes: true },
-    });
-
-    return module ? this.toDomain(module) : null;
-  }
-
-  async findById(id: string): Promise<Module | null> {
-    const module = await this.prisma.module.findUnique({
-      where: { id },
-      include: {
-        lessons: {
-          include: {
-            chapters: { include: { quizzes: true } },
-            quizzes: true,
-          },
-        },
-        quizzes: true,
-      },
     });
 
     return module ? this.toDomain(module) : null;

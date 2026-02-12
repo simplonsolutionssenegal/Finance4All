@@ -1,4 +1,3 @@
-// application/formations/use-cases/UpdateModule.usecase.ts
 import type {
   UpdateModuleUseCase,
   UpdateModuleUseCommand,

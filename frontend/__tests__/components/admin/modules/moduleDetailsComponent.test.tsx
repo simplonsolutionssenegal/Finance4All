@@ -7,7 +7,6 @@ import { useGetModuleById } from '@/hooks/module/useGetModuleById';
 import { useMediaUrl } from '@/hooks/module/media/useMedia';
 import { useDeleteLesson } from '@/hooks/lesson/useDeleteLesson';
 import { useDeleteQuiz } from '@/hooks/quiz/useDeleteQuiz';
-import ModuleDetailsComponent from '@/components/admin/modules/moduleDetailsComponent';
 
 jest.mock('next/image', () => ({
   __esModule: true,

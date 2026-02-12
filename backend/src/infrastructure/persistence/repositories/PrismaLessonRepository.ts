@@ -1,5 +1,3 @@
-// infrastructure/persistence/repositories/PrismaLessonRepository.ts
-
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { EntityId } from '@/domain/shared/EntityId';
 import type { PaginatedResult, PaginationParams } from '@/domain/shared/Pagination';
@@ -318,7 +316,6 @@ export class PrismaLessonRepository implements LessonRepository {
       duration: lesson.duration,
       order: lesson.order,
       status: lesson.status as any,
-      chapters: lesson.chapters.map(c => c.toDTO()) as unknown as Prisma.InputJsonValue,
     };
   }
 }

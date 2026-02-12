@@ -1,5 +1,3 @@
-// infrastructure/persistence/repositories/PrismaQuizRepository.ts
-
 import { Quiz, type QuizStatus } from '@/domain/formations/entities/Quiz';
 import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
 import type { Prisma, PrismaClient } from '@prisma/client';

@@ -105,6 +105,8 @@ import { GetModuleByIdUseCaseImpl } from '@/application/formations/use-cases/Get
 import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
 import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLessonUseCaseImpl';
 import { AddQuizUseCaseImpl } from '@/application/formations/use-cases/AddQuizUseCaseImpl';
+import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
+import { UpdateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/UpdateModule.usecase';
 import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
 import { GetQuizByIdUseCaseImpl } from '@/application/formations/use-cases/GetQuizByIdUseCaseImpl';
 import { QuizController } from '@/infrastructure/web/controllers/QuizController';
@@ -166,6 +168,7 @@ export const TYPES = {
   GetModuleByIdUseCase: Symbol.for('GetModuleByIdUseCase'),
   AddLessonUseCase: Symbol.for('AddLessonUseCase'),
   AddQuizUseCase: Symbol.for('AddQuizUseCase'),
+  UpdateModuleUseCase: Symbol.for('UpdateModuleUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
   ModuleController: Symbol.for('ModuleController'),
 
@@ -563,8 +566,19 @@ container
   .toDynamicValue(context => {
     const createModuleUseCase = context.get<CreateModuleUseCase>(TYPES.CreateModuleUseCase);
     const getModulesUseCase = context.get<GetModulesUseCase>(TYPES.GetModulesUseCase);
+    const getModuleByIdUseCase = context.get<GetModuleByIdUseCase>(TYPES.GetModuleByIdUseCase);
+    const addLessonUseCase = context.get<AddLessonUseCase>(TYPES.AddLessonUseCase);
+    const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
+    const updateModuleUseCase = context.get<UpdateModuleUseCase>(TYPES.UpdateModuleUseCase);
 
-    return new ModuleController(createModuleUseCase, getModulesUseCase);
+    return new ModuleController(
+      createModuleUseCase,
+      getModulesUseCase,
+      getModuleByIdUseCase,
+      addLessonUseCase,
+      addQuizUseCase,
+      updateModuleUseCase
+    );
   })
   .inSingletonScope();
 

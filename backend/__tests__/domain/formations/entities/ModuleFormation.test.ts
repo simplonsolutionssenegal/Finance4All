@@ -1,5 +1,3 @@
-// __tests__/domain/formations/entities/Module.test.ts
-
 import {
   Module,
   ModuleStatus,
@@ -8,7 +6,6 @@ import {
 import { EntityId } from '@/domain/shared/EntityId';
 import { Lesson, LessonStatus } from '@/domain/formations/entities/Lesson';
 import { Quiz, QuizStatus } from '@/domain/formations/entities/Quiz';
-import { Chapter } from '@/domain/formations/entities/Chapter';
 
 describe('Module Entity', () => {
   const validModuleProps = {
@@ -23,6 +20,7 @@ describe('Module Entity', () => {
     lessons: [],
     quizzes: [],
   };
+  const baseProps = validModuleProps;
 
   describe('Constructor', () => {
     it('devrait créer un module avec toutes les propriétés', () => {
