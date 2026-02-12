@@ -1,8 +1,9 @@
 'use client';
-import { usePathname } from 'next/navigation';
+
 import type React from 'react';
 
 import Sidebar from '@/components/dashboard/Sidebar';
+import { usePathname } from 'next/navigation';
 
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
