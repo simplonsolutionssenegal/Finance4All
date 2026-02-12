@@ -1,10 +1,12 @@
 'use client';
 
 import { Clock, Play, Lock } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useEnrollModule } from '@/hooks/module/useEnrollModule';
 import type { Lesson, LessonProgressStatus } from '@/types/learning/lesson';
 
 interface LessonListProps {
@@ -14,6 +16,27 @@ interface LessonListProps {
 }
 
 export default function LessonList({ moduleId, lessons, lessonStatuses }: LessonListProps) {
+  const router = useRouter();
+  const { enrollModuleAsync, isEnrolling } = useEnrollModule();
+  const [pendingLessonId, setPendingLessonId] = useState<string | null>(null);
+
+  const handleStartLesson = async (lesson: Lesson) => {
+    if (isEnrolling) return;
+
+    setPendingLessonId(lesson.id);
+    try {
+      const result = await enrollModuleAsync({ moduleId });
+      const ok = result?.success === true || result?.status === 'success' || result == null;
+      if (!ok) return;
+
+      router.push(`/learning/${moduleId}/lesson/${lesson.order}`);
+    } catch (_error) {
+      // Errors are already surfaced by the hook's toast handler.
+    } finally {
+      setPendingLessonId(null);
+    }
+  };
+
   return (
     <div className='space-y-3'>
       {lessons.map(lesson => {
@@ -21,6 +44,7 @@ export default function LessonList({ moduleId, lessons, lessonStatuses }: Lesson
         const isLocked = status === 'LOCKED';
         const isDone = status === 'DONE';
         const buttonLabel = isDone ? 'Revoir' : 'Continuer';
+        const isPending = pendingLessonId === lesson.id && isEnrolling;
 
         return (
           <Card
@@ -31,7 +55,7 @@ export default function LessonList({ moduleId, lessons, lessonStatuses }: Lesson
           >
             <CardContent className='flex w-full items-center gap-4 p-4'>
               <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-grey-100 text-sm font-semibold text-grey-700'>
-                {lesson.order}
+                {isLocked ? <Lock className='h-4 w-4 text-grey-500' /> : lesson.order}
               </div>
 
               <div className='min-w-0 flex-1 space-y-1'>
@@ -45,29 +69,18 @@ export default function LessonList({ moduleId, lessons, lessonStatuses }: Lesson
                   {lesson.duration} min
                 </span>
 
-                {isLocked ? (
+                {!isLocked && (
                   <Button
                     size='sm'
-                    disabled
-                    className='rounded-full bg-grey-200 px-4 text-xs font-medium text-grey-500'
+                    disabled={isPending}
+                    onClick={() => handleStartLesson(lesson)}
+                    className='rounded-full bg-primary-400 px-4 text-xs font-medium text-white shadow-primary-lg hover:bg-primary-300'
                   >
                     <span className='inline-flex items-center gap-1'>
-                      <Lock className='h-3 w-3' />
-                      Verrouillé
+                      <Play className='h-3 w-3' />
+                      {buttonLabel}
                     </span>
                   </Button>
-                ) : (
-                  <Link href={`/learning/${moduleId}/lesson/${lesson.order}`}>
-                    <Button
-                      size='sm'
-                      className='rounded-full bg-primary-400 px-4 text-xs font-medium text-white shadow-primary-lg hover:bg-primary-300'
-                    >
-                      <span className='inline-flex items-center gap-1'>
-                        <Play className='h-3 w-3' />
-                        {buttonLabel}
-                      </span>
-                    </Button>
-                  </Link>
                 )}
               </div>
             </CardContent>

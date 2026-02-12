@@ -10,6 +10,14 @@ import type { GetModuleByIdUseCase } from '@/domain/formations/ports/in/GetModul
 import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
 import type { AddQuizUseCase } from '@/domain/formations/ports/in/AddQuizUseCase';
 import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
+import type { EnrollModuleUseCase } from '@/domain/formations/ports/in/EnrollModuleUseCase';
+import type { GetMyEnrollmentsUseCase } from '@/domain/formations/ports/in/GetMyEnrollmentsUseCase';
+
+interface AuthenticatedRequest extends Request {
+  auth?: {
+    userId?: string;
+  };
+}
 
 export class ModuleController {
   constructor(
@@ -18,7 +26,9 @@ export class ModuleController {
     private readonly getModuleByIdUseCase: GetModuleByIdUseCase,
     private readonly addLessonUseCase: AddLessonUseCase,
     private readonly addQuizUseCase: AddQuizUseCase,
-    private readonly updateModuleUseCase: UpdateModuleUseCase
+    private readonly updateModuleUseCase: UpdateModuleUseCase,
+    private readonly enrollModuleUseCase: EnrollModuleUseCase,
+    private readonly getMyEnrollmentsUseCase: GetMyEnrollmentsUseCase
   ) {}
 
   async create(req: Request, res: Response): Promise<Response> {
@@ -155,6 +165,54 @@ export class ModuleController {
       });
     } catch (e) {
       next(e);
+    }
+  }
+
+  async enroll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const moduleId = req.params.id as string;
+      const userId = req.auth?.userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const enrollment = await this.enrollModuleUseCase.execute({
+        moduleId,
+        userId,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: enrollment,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMyEnrollments(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const userId = req.auth?.userId;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const enrollments = await this.getMyEnrollmentsUseCase.execute({ userId });
+
+      res.status(200).json({
+        success: true,
+        data: enrollments,
+      });
+    } catch (error) {
+      next(error);
     }
   }
 }

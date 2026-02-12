@@ -37,6 +37,14 @@ type UpdateModuleUseCaseType = {
   execute: (input: any) => Promise<ModuleResponseDTO>;
 };
 
+type EnrollModuleUseCaseType = {
+  execute: (input: { moduleId: string; userId: string }) => Promise<any>;
+};
+
+type GetMyEnrollmentsUseCaseType = {
+  execute: (input: { userId: string }) => Promise<any>;
+};
+
 describe('ModuleController (unit) — Couverture 100%', () => {
   let controller: ModuleController;
   let mockCreateModuleUseCase: jest.Mocked<CreateModuleUseCaseType>;
@@ -45,6 +53,8 @@ describe('ModuleController (unit) — Couverture 100%', () => {
   let mockAddLessonUseCase: jest.Mocked<AddLessonUseCaseType>;
   let mockAddQuizUseCase: jest.Mocked<AddQuizUseCaseType>;
   let mockUpdateModuleUseCase: jest.Mocked<UpdateModuleUseCaseType>;
+  let mockEnrollModuleUseCase: jest.Mocked<EnrollModuleUseCaseType>;
+  let mockGetMyEnrollmentsUseCase: jest.Mocked<GetMyEnrollmentsUseCaseType>;
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.MockedFunction<NextFunction>;
@@ -74,13 +84,23 @@ describe('ModuleController (unit) — Couverture 100%', () => {
       execute: jest.fn(),
     } as jest.Mocked<UpdateModuleUseCaseType>;
 
+    mockEnrollModuleUseCase = {
+      execute: jest.fn(),
+    } as jest.Mocked<EnrollModuleUseCaseType>;
+
+    mockGetMyEnrollmentsUseCase = {
+      execute: jest.fn(),
+    } as jest.Mocked<GetMyEnrollmentsUseCaseType>;
+
     controller = new ModuleController(
       mockCreateModuleUseCase,
       mockGetModulesUseCase,
       mockGetModuleByIdUseCase,
       mockAddLessonUseCase,
       mockAddQuizUseCase,
-      mockUpdateModuleUseCase
+      mockUpdateModuleUseCase,
+      mockEnrollModuleUseCase,
+      mockGetMyEnrollmentsUseCase
     );
 
     req = { body: {}, query: {}, params: {} };
@@ -771,6 +791,77 @@ describe('ModuleController (unit) — Couverture 100%', () => {
           imageMediaId: null,
         })
       );
+    });
+  });
+
+  describe('enroll', () => {
+    it('should return 401 when user is not authenticated', async () => {
+      req = { params: { id: 'module-1' } } as any;
+
+      await controller.enroll(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Unauthorized' });
+      expect(mockEnrollModuleUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 200 with enrollment data when authenticated', async () => {
+      const enrollment = { id: 'enroll-1', moduleId: 'module-1', userId: 'user-1' };
+      req = { params: { id: 'module-1' }, auth: { userId: 'user-1' } } as any;
+      mockEnrollModuleUseCase.execute.mockResolvedValue(enrollment as any);
+
+      await controller.enroll(req as Request, res as Response, next);
+
+      expect(mockEnrollModuleUseCase.execute).toHaveBeenCalledWith({
+        moduleId: 'module-1',
+        userId: 'user-1',
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: enrollment });
+    });
+
+    it('should call next(error) when enroll fails', async () => {
+      const error = new Error('boom');
+      req = { params: { id: 'module-1' }, auth: { userId: 'user-1' } } as any;
+      mockEnrollModuleUseCase.execute.mockRejectedValue(error);
+
+      await controller.enroll(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('getMyEnrollments', () => {
+    it('should return 401 when user is not authenticated', async () => {
+      req = { auth: {} } as any;
+
+      await controller.getMyEnrollments(req as Request, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Unauthorized' });
+      expect(mockGetMyEnrollmentsUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 200 with enrollments when authenticated', async () => {
+      const enrollments = [{ id: 'enroll-1', moduleId: 'module-1', userId: 'user-1' }];
+      req = { auth: { userId: 'user-1' } } as any;
+      mockGetMyEnrollmentsUseCase.execute.mockResolvedValue(enrollments as any);
+
+      await controller.getMyEnrollments(req as Request, res as Response, next);
+
+      expect(mockGetMyEnrollmentsUseCase.execute).toHaveBeenCalledWith({ userId: 'user-1' });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: enrollments });
+    });
+
+    it('should call next(error) when getMyEnrollments fails', async () => {
+      const error = new Error('boom');
+      req = { auth: { userId: 'user-1' } } as any;
+      mockGetMyEnrollmentsUseCase.execute.mockRejectedValue(error);
+
+      await controller.getMyEnrollments(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 });

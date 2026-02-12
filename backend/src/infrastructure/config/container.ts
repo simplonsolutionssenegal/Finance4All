@@ -107,6 +107,12 @@ import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLess
 import { AddQuizUseCaseImpl } from '@/application/formations/use-cases/AddQuizUseCaseImpl';
 import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
 import { UpdateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/UpdateModule.usecase';
+import type { EnrollModuleUseCase } from '@/domain/formations/ports/in/EnrollModuleUseCase';
+import type { GetMyEnrollmentsUseCase } from '@/domain/formations/ports/in/GetMyEnrollmentsUseCase';
+import type { ModuleEnrollmentRepository } from '@/domain/formations/ports/out/ModuleEnrollmentRepository';
+import { EnrollModuleUseCaseImpl } from '@/application/formations/use-cases/EnrollModuleUseCaseImpl';
+import { GetMyEnrollmentsUseCaseImpl } from '@/application/formations/use-cases/GetMyEnrollmentsUseCaseImpl';
+import { PrismaModuleEnrollmentRepository } from '@/infrastructure/persistence/repositories/PrismaModuleEnrollmentRepository';
 import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
 import { GetQuizByIdUseCaseImpl } from '@/application/formations/use-cases/GetQuizByIdUseCaseImpl';
 import { QuizController } from '@/infrastructure/web/controllers/QuizController';
@@ -170,7 +176,10 @@ export const TYPES = {
   AddQuizUseCase: Symbol.for('AddQuizUseCase'),
   UpdateModuleUseCase: Symbol.for('UpdateModuleUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
+  ModuleEnrollmentRepository: Symbol.for('ModuleEnrollmentRepository'),
   ModuleController: Symbol.for('ModuleController'),
+  EnrollModuleUseCase: Symbol.for('EnrollModuleUseCase'),
+  GetMyEnrollmentsUseCase: Symbol.for('GetMyEnrollmentsUseCase'),
 
   // ========== Quiz ==========
   GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
@@ -278,6 +287,14 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaModuleFormationRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<ModuleEnrollmentRepository>(TYPES.ModuleEnrollmentRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaModuleEnrollmentRepository(prismaClient);
   })
   .inSingletonScope();
 
@@ -408,6 +425,27 @@ container
   .toDynamicValue(context => {
     const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
     return new AddQuizUseCaseImpl(moduleRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<EnrollModuleUseCase>(TYPES.EnrollModuleUseCase)
+  .toDynamicValue(context => {
+    const moduleRepository = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    const enrollmentRepository = context.get<ModuleEnrollmentRepository>(
+      TYPES.ModuleEnrollmentRepository
+    );
+    return new EnrollModuleUseCaseImpl(moduleRepository, enrollmentRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetMyEnrollmentsUseCase>(TYPES.GetMyEnrollmentsUseCase)
+  .toDynamicValue(context => {
+    const enrollmentRepository = context.get<ModuleEnrollmentRepository>(
+      TYPES.ModuleEnrollmentRepository
+    );
+    return new GetMyEnrollmentsUseCaseImpl(enrollmentRepository);
   })
   .inSingletonScope();
 
@@ -570,6 +608,10 @@ container
     const addLessonUseCase = context.get<AddLessonUseCase>(TYPES.AddLessonUseCase);
     const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
     const updateModuleUseCase = context.get<UpdateModuleUseCase>(TYPES.UpdateModuleUseCase);
+    const enrollModuleUseCase = context.get<EnrollModuleUseCase>(TYPES.EnrollModuleUseCase);
+    const getMyEnrollmentsUseCase = context.get<GetMyEnrollmentsUseCase>(
+      TYPES.GetMyEnrollmentsUseCase
+    );
 
     return new ModuleController(
       createModuleUseCase,
@@ -577,7 +619,9 @@ container
       getModuleByIdUseCase,
       addLessonUseCase,
       addQuizUseCase,
-      updateModuleUseCase
+      updateModuleUseCase,
+      enrollModuleUseCase,
+      getMyEnrollmentsUseCase
     );
   })
   .inSingletonScope();

@@ -6,9 +6,11 @@ import Sidebar from '@/components/dashboard/Sidebar';
 
 export default function AuthLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
-  const isLearningScreen = pathname.startsWith('/learning');
+  const isLearningLessonDetail = /^\/learning\/[^/]+\/lesson\/[^/]+$/.test(pathname);
+  const isLearningQuizDetail = /^\/learning\/[^/]+\/quiz\/[^/]+$/.test(pathname);
+  const isLearningDetailScreen = isLearningLessonDetail || isLearningQuizDetail;
 
-  if (isLearningScreen) {
+  if (isLearningDetailScreen) {
     return <div className='min-h-screen bg-grey-50'>{children}</div>;
   }
 

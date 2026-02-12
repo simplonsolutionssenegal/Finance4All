@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, CheckCircle2 } from 'lucide-react';
+import { FileText, Award } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Lesson, Quiz, LessonProgressStatus } from '@/types/learning/lesson';
@@ -58,7 +58,7 @@ export default function ModuleTabs({
               : 'text-secondary-300'
           }`}
         >
-          <CheckCircle2
+          <Award
             className={`h-4 w-4 ${activeTab === 'quizzes' ? 'text-secondary-400' : 'text-secondary-300'}`}
           />
           Quiz ({totalQuizzes})

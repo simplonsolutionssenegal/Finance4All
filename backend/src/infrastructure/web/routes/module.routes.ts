@@ -21,6 +21,8 @@ export const ModuleFormationRoutes = (): Router => {
     addLesson: controller.addLesson.bind(controller),
     addQuiz: controller.addQuiz.bind(controller),
     update: controller.update.bind(controller),
+    enroll: controller.enroll.bind(controller),
+    getMyEnrollments: controller.getMyEnrollments.bind(controller),
   };
 
   router.get(
@@ -30,6 +32,7 @@ export const ModuleFormationRoutes = (): Router => {
     handleValidationErrors,
     boundController.getAll
   );
+  router.get('/enrollments/me', handleValidationErrors, boundController.getMyEnrollments);
   router.put(
     '/:id',
     validateModuleId,
@@ -39,6 +42,7 @@ export const ModuleFormationRoutes = (): Router => {
   );
   router.post('/', validateCreateModule, handleValidationErrors, boundController.create);
   router.get('/:id', validateModuleId, handleValidationErrors, boundController.getById);
+  router.post('/:id/enroll', validateModuleId, handleValidationErrors, boundController.enroll);
   router.put('/:id/lessons', validateModuleId, handleValidationErrors, boundController.addLesson);
   router.put('/:id/quizzes', validateModuleId, handleValidationErrors, boundController.addQuiz);
 

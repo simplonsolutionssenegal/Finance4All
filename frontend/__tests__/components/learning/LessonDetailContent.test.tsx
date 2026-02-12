@@ -6,9 +6,13 @@ import { QuizStatus, type Chapter, type Quiz } from '@/types/learning/lesson';
 import type { QuizProgressDTO } from '@/types/learning/quiz-progress';
 
 const mockUseSearchParams = jest.fn();
+const mockReplace = jest.fn();
+const mockUsePathname = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useSearchParams: () => mockUseSearchParams(),
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => mockUsePathname(),
 }));
 
 jest.mock('next/link', () => ({
@@ -55,6 +59,9 @@ const createQuiz = (overrides: Partial<Quiz>): Quiz => ({
 describe('LessonDetailContent', () => {
   beforeEach(() => {
     mockUseQuizProgressMap.mockReset();
+    mockReplace.mockReset();
+    mockUsePathname.mockReturnValue('/learning/module-1/lesson/1');
+    localStorage.clear();
     mockUseSearchParams.mockReturnValue(new URLSearchParams());
   });
 
@@ -139,6 +146,7 @@ describe('LessonDetailContent', () => {
 
   it('allows navigating between unlocked chapters', async () => {
     const user = userEvent.setup();
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('chapter=chapter-1'));
     const chapters: Chapter[] = [
       createChapter({ id: 'chapter-1', order: 1 }),
       createChapter({ id: 'chapter-2', order: 2, title: 'Chapitre 2' }),
