@@ -10,6 +10,8 @@ const mockModuleController = {
   addLesson: jest.fn(),
   addQuiz: jest.fn(),
   update: jest.fn(),
+  enroll: jest.fn(),
+  getMyEnrollments: jest.fn(),
 };
 
 // ✅ Mock container DI
@@ -418,6 +420,32 @@ describe('ModuleFormationRoutes', () => {
       await request(app).get('/modules').expect(200);
 
       expect(mockModuleController.getAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /modules/:id/enroll', () => {
+    it('devrait inscrire un utilisateur Ã  un module', async () => {
+      mockModuleController.enroll.mockImplementation(async (req, res) => {
+        res.status(200).json({ success: true, data: { id: 'enroll-1' } });
+      });
+
+      const response = await request(app).post('/modules/module-1/enroll').expect(200);
+
+      expect(response.body).toEqual({ success: true, data: { id: 'enroll-1' } });
+      expect(mockModuleController.enroll).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('GET /modules/enrollments/me', () => {
+    it('devrait retourner les inscriptions du bÃ©nÃ©ficiaire', async () => {
+      mockModuleController.getMyEnrollments.mockImplementation(async (req, res) => {
+        res.status(200).json({ success: true, data: [{ id: 'enroll-1' }] });
+      });
+
+      const response = await request(app).get('/modules/enrollments/me').expect(200);
+
+      expect(response.body).toEqual({ success: true, data: [{ id: 'enroll-1' }] });
+      expect(mockModuleController.getMyEnrollments).toHaveBeenCalledTimes(1);
     });
   });
 });

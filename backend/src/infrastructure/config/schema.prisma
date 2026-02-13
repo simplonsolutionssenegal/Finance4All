@@ -127,6 +127,7 @@ model Module {
   estimatedDuration      Float   
   lessons                Lesson[]        // Relation ajoutée
   quizzes               Quiz[]
+  enrollments           ModuleEnrollment[]
   status                 ModuleStatus @default(DRAFT)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
@@ -134,6 +135,20 @@ model Module {
   @@index([status])
   @@index([difficultyLevel])
   @@index([createdAt])
+}
+
+model ModuleEnrollment {
+  id        String   @id @default(uuid())
+  moduleId  String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, userId])
+  @@index([moduleId])
+  @@index([userId])
 }
 
 

@@ -54,7 +54,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang='fr' suppressHydrationWarning>
-      <body className={`${barlow.variable} antialiased`}>
+      <body className={`${barlow.variable} antialiased`} suppressHydrationWarning>
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

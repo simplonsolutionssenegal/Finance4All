@@ -1,0 +1,44 @@
+[
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\LABOE-OutilSMART (1).pdf",
+    "id": "3014701e-d598-405e-8cd5-fbac1268dd70",
+    "type": "PDF",
+    "url": "http://localhost:9000/finance4all-media/pdf/865aba8d-12d0-404e-8a64-14c3061661ce.pdf"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\budget.png",
+    "id": "81bdec3c-3e41-4348-b9a6-d0b6d8f4628a",
+    "type": "IMAGE",
+    "url": "http://localhost:9000/finance4all-media/image/0ee1de68-4a23-451a-8026-11658912882c.png"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\323513_small.mp4",
+    "id": "d2ffc15f-c88a-49ab-b144-87630dc238ff",
+    "type": "VIDEO",
+    "url": "http://localhost:9000/finance4all-media/video/48681f98-8f66-4b49-b10c-565fe6ca1b38.mp4"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\181376-866506956_small.mp4",
+    "id": "57be3dd4-3f16-40e3-846c-3148378ba208",
+    "type": "VIDEO",
+    "url": "http://localhost:9000/finance4all-media/video/42b570ec-8488-4fcb-ac00-942c7884c553.mp4"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\7432-200159483_medium.mp4",
+    "id": "7442a7eb-93a9-45f3-aa6c-31985db764c1",
+    "type": "VIDEO",
+    "url": "http://localhost:9000/finance4all-media/video/399bf261-e775-4688-8f16-5edd9f92bb5e.mp4"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\10865-226635327_small.mp4",
+    "id": "d0a6bce8-424d-4d12-9e80-9566458f5ce6",
+    "type": "VIDEO",
+    "url": "http://localhost:9000/finance4all-media/video/b190f828-11b7-4a45-968d-870f297f67ed.mp4"
+  },
+  {
+    "file": "C:\\Users\\DELL 7450\\Downloads\\Andersen_-_Deux_Contes\\Hans_Christian_Andersen_-_Le_Coffre_Volant.mp3",
+    "id": "343824ba-6264-4d2e-bb9f-36b0adc18479",
+    "type": "AUDIO",
+    "url": "http://localhost:9000/finance4all-media/audio/49bba0c7-d6b5-4fb9-8dd8-73ad6a4d643a.mp3"
+  }
+]

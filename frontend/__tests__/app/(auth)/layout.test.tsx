@@ -2,6 +2,12 @@ import { render, screen } from '@testing-library/react';
 
 import AuthLayout from '@/app/(auth)/layout';
 
+const mockUsePathname = jest.fn();
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => mockUsePathname(),
+}));
+
 // Mock Sidebar
 jest.mock('@/components/dashboard/Sidebar', () => {
   return function MockSidebar() {
@@ -11,6 +17,10 @@ jest.mock('@/components/dashboard/Sidebar', () => {
 
 describe('AuthLayout', () => {
   const mockChildren = <div data-testid='test-children'>Test Content</div>;
+
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue('/dashboard');
+  });
 
   it('renders without crashing', () => {
     render(<AuthLayout>{mockChildren}</AuthLayout>);
@@ -62,5 +72,33 @@ describe('AuthLayout', () => {
     const main = screen.getByRole('main');
     expect(main).toBeInTheDocument();
     expect(main).toHaveClass('flex-1');
+  });
+
+  it('shows dashboard layout on learning list', () => {
+    mockUsePathname.mockReturnValue('/learning');
+    render(<AuthLayout>{mockChildren}</AuthLayout>);
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByText('Sidebar')).toBeInTheDocument();
+  });
+
+  it('shows dashboard layout on learning module detail', () => {
+    mockUsePathname.mockReturnValue('/learning/123');
+    render(<AuthLayout>{mockChildren}</AuthLayout>);
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByText('Sidebar')).toBeInTheDocument();
+  });
+
+  it('hides dashboard layout on learning lesson detail', () => {
+    mockUsePathname.mockReturnValue('/learning/123/lesson/1');
+    render(<AuthLayout>{mockChildren}</AuthLayout>);
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sidebar')).not.toBeInTheDocument();
+  });
+
+  it('hides dashboard layout on learning quiz detail', () => {
+    mockUsePathname.mockReturnValue('/learning/123/quiz/456');
+    render(<AuthLayout>{mockChildren}</AuthLayout>);
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sidebar')).not.toBeInTheDocument();
   });
 });
