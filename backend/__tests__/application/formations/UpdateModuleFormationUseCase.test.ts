@@ -354,7 +354,7 @@ describe('UpdateModuleFormationUseCaseImpl', () => {
   });
 
   describe('execute - cas limites', () => {
-    it('devrait accepter une durée estimée de 0', async () => {
+    it('devrait rejeter une durée estimée de 0', async () => {
       // Arrange
       const command: UpdateModuleUseCommand = {
         id: moduleId.getValue(),
@@ -362,14 +362,12 @@ describe('UpdateModuleFormationUseCaseImpl', () => {
       };
 
       mockModuleRepository.findById.mockResolvedValue(existingModule);
-      mockModuleRepository.update.mockResolvedValue(existingModule);
 
-      // Act
-      const result = await useCase.execute(command);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(mockModuleRepository.update).toHaveBeenCalled();
+      // Act & Assert
+      await expect(useCase.execute(command)).rejects.toThrow(
+        'La durée estimée doit être supérieure à 0'
+      );
+      expect(mockModuleRepository.update).not.toHaveBeenCalled();
     });
 
     it('devrait normaliser les thématiques avec espaces multiples', async () => {

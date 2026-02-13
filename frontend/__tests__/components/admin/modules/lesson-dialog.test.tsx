@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import LessonDialog from '@/components/admin/modules/lesson-dialog';
 import { LessonStatus } from '@/types/modules/Lesson';
@@ -15,6 +15,21 @@ jest.mock('lucide-react', () => {
   const handler: any = { get: () => (props: any) => <svg {...props} /> };
   return new Proxy({}, handler);
 });
+
+// --------------------
+// Mocks: RichTextEditor (évite TipTap en test)
+// --------------------
+jest.mock('@/components/ui/rich-text-editor', () => ({
+  __esModule: true,
+  default: ({ value, onChange, placeholder, disabled }: any) => (
+    <textarea
+      value={value}
+      placeholder={placeholder}
+      disabled={disabled}
+      onChange={e => onChange(e.target.value)}
+    />
+  ),
+}));
 
 // --------------------
 // Mocks: UI primitives
@@ -132,6 +147,16 @@ jest.mock('@/hooks/lesson/useCreateLesson', () => ({
   },
 }));
 
+const updateLessonMock = jest.fn();
+let onSuccessUpdateLesson: (() => void) | undefined;
+
+jest.mock('@/hooks/lesson/useUpdateLesson', () => ({
+  useUpdateLesson: (opts: { onSuccess?: () => void }) => {
+    onSuccessUpdateLesson = opts?.onSuccess;
+    return { updateLesson: updateLessonMock, isUpdating: false };
+  },
+}));
+
 const uploadMutateAsyncMock = jest.fn();
 jest.mock('@/hooks/media/useUploadMedia', () => ({
   useUploadMedia: () => ({ mutateAsync: uploadMutateAsyncMock }),
@@ -143,7 +168,7 @@ jest.mock('@/hooks/media/useDeleteMedia', () => ({
 }));
 
 // --------------------
-// Mocks: child dialogs (exact module ids via alias)
+// Mocks: child dialogs
 // --------------------
 jest.mock('@/components/admin/modules/ResourcePickerDialog', () => ({
   __esModule: true,
@@ -168,9 +193,6 @@ jest.mock('@/components/admin/modules/ResourcePickerDialog', () => ({
   ),
 }));
 
-// QuizFormDialog mock :
-// - bouton "force-open" (même quand open=false) pour couvrir targetChapterIdx===null
-// - quand open=true, bouton "submit-quiz"
 jest.mock('@/components/admin/modules/quiz-form-dialog', () => ({
   __esModule: true,
   default: ({ open, subtitle, onOpenChange, onSubmit }: any) => (
@@ -245,7 +267,6 @@ function makeChapterValidNoMedia() {
     target: { value: 'Desc 1' },
   });
 
-  // checkbox "Aucun média..." (dans la partie chapitre)
   const cb = screen.getAllByRole('checkbox')[0];
   fireEvent.click(cb);
 }
@@ -253,10 +274,12 @@ function makeChapterValidNoMedia() {
 // --------------------
 // Tests
 // --------------------
-describe('LessonDialog (high coverage)', () => {
+describe('LessonDialog (updated with RichTextEditor)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     onSuccessCreateLesson = undefined;
+    onSuccessUpdateLesson = undefined;
+    updateLessonMock.mockReset();
     uploadMutateAsyncMock.mockReset();
     deleteMediaAsyncMock.mockReset();
   });
@@ -266,7 +289,6 @@ describe('LessonDialog (high coverage)', () => {
       <LessonDialog open={false} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
     );
 
-    // open=false => useEffect return
     expect(screen.getByText('Nouvelle leçon')).toBeInTheDocument();
 
     rerender(
@@ -279,51 +301,39 @@ describe('LessonDialog (high coverage)', () => {
       />
     );
 
-    // statusLabel est appelé via la liste des SelectItem
     expect(screen.getByText('Brouillon')).toBeInTheDocument();
     expect(screen.getByText('Publié')).toBeInTheDocument();
     expect(screen.getByText('Programmé')).toBeInTheDocument();
     expect(screen.getByText('Archivé')).toBeInTheDocument();
 
-    // chapitre init -> resourcesCount = 1 (noMedia=false, mediaId présent)
     expect(screen.getByText(/1 chapitre • 1 ressource/)).toBeInTheDocument();
 
-    // warning publié sans chapitre => render avec 0 chapitre
     rerender(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
     fireEvent.click(screen.getByTestId(`select-item-${LessonStatus.PUBLISHED}`));
     expect(screen.getByText('Pour publier, ajoute au moins 1 chapitre.')).toBeInTheDocument();
   });
 
-  it('handleAddChapter: empty state + branche erreur (forcer click) + ajout normal', async () => {
+  it('handleAddChapter: empty state + invalide => pas d’ajout + valide => ajout', () => {
     render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
 
-    // 1) créer le 1er chapitre (chapitre invalide car vide)
+    // 1) créer le 1er chapitre
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
-    expect(screen.getByPlaceholderText('Titre de chapitre')).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText('Titre de chapitre')).toHaveLength(1);
 
-    // 2) forcer le click sur "Ajouter un chapitre" même si disabled (branche chapterError)
+    // 2) tenter d'ajouter un chapitre alors que le chapitre est invalide
     const addBtn = screen.getByRole('button', { name: 'Ajouter un chapitre' }) as HTMLButtonElement;
 
-    // le composant met disabled via prop => property DOM peut rester true
+    // même si le bouton est "disabled" en vrai, on force le click pour couvrir le comportement
     addBtn.removeAttribute('disabled');
     addBtn.disabled = false;
 
     fireEvent.click(addBtn);
 
-    expect(
-      await screen.findByText(t =>
-        t.includes("Veuillez compléter les chapitres avant d'en ajouter un nouveau.")
-      )
-    ).toBeInTheDocument();
+    // ✅ attendu: pas d’ajout (toujours 1 chapitre)
+    expect(screen.getAllByPlaceholderText('Titre de chapitre')).toHaveLength(1);
 
-    // 3) rendre le chapitre valide : titre + desc + cocher "Aucun média"
-    fireEvent.change(screen.getByPlaceholderText('Titre de chapitre'), {
-      target: { value: 'Chap 1' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Description de chapitre ...'), {
-      target: { value: 'Desc 1' },
-    });
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    // 3) rendre le chapitre valide
+    makeChapterValidNoMedia();
 
     // 4) maintenant l'ajout doit marcher => 2 chapitres
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
@@ -337,33 +347,25 @@ describe('LessonDialog (high coverage)', () => {
       <LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
     );
 
-    // créer un chapitre
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
 
-    // ouvrir picker via "Ajouter une ressource"
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une ressource' }));
     expect(screen.getByTestId('resource-picker')).toBeInTheDocument();
 
-    // PAGE
     fireEvent.click(screen.getByLabelText('pick-page'));
     expect(screen.getByText('Ce chapitre sera créé sans média.')).toBeInTheDocument();
 
-    // PDF (remplacer)
     fireEvent.click(screen.getByRole('button', { name: 'Remplacer' }));
     fireEvent.click(screen.getByLabelText('pick-pdf'));
 
-    // accept doit être application/pdf
     const fileEl = getFileInput(container);
     await waitFor(() => expect(fileEl.getAttribute('accept')).toBe('application/pdf'));
 
-    // simuler file selection
     fireEvent.change(fileEl, {
       target: { files: [new File(['x'], 'file.pdf', { type: 'application/pdf' })] },
     });
 
     await waitFor(() => expect(screen.getByText('media-1')).toBeInTheDocument());
-
-    // resourcesCount = 1 (noMedia false + mediaId présent)
     expect(screen.getByText(/1 chapitre • 1 ressource/)).toBeInTheDocument();
   });
 
@@ -374,7 +376,6 @@ describe('LessonDialog (high coverage)', () => {
       <LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />
     );
 
-    // créer chapitre + upload PDF
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une ressource' }));
     fireEvent.click(screen.getByLabelText('pick-pdf'));
@@ -384,25 +385,21 @@ describe('LessonDialog (high coverage)', () => {
 
     await waitFor(() => expect(screen.getByText('media-2')).toBeInTheDocument());
 
-    // success=false
     deleteMediaAsyncMock.mockResolvedValueOnce({ success: false, message: 'nope' });
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
     await waitFor(() => expect(screen.getByText('nope')).toBeInTheDocument());
     expect(screen.getByText('media-2')).toBeInTheDocument();
 
-    // throw
     deleteMediaAsyncMock.mockRejectedValueOnce(new Error('boom'));
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
     await waitFor(() => expect(screen.getByText('boom')).toBeInTheDocument());
     expect(screen.getByText('media-2')).toBeInTheDocument();
 
-    // success=true => media disparaît et noMedia devient true
     deleteMediaAsyncMock.mockResolvedValueOnce({ success: true });
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la ressource' }));
     await waitFor(() => expect(screen.queryByText('media-2')).not.toBeInTheDocument());
     expect(screen.getByText('Ce chapitre sera créé sans média.')).toBeInTheDocument();
 
-    // replace avec media existant: re-upload puis click "Remplacer" doit delete puis ouvrir picker
     uploadMutateAsyncMock.mockResolvedValueOnce({ id: 'media-3', originalName: 'file3.pdf' });
     fireEvent.click(screen.getByRole('button', { name: 'Remplacer' }));
     fireEvent.click(screen.getByLabelText('pick-pdf'));
@@ -436,7 +433,6 @@ describe('LessonDialog (high coverage)', () => {
 
     await waitFor(() => expect(screen.getByText('media-4')).toBeInTheDocument());
 
-    // cocher "Aucun média..." => doit supprimer media côté API
     const cb = screen.getAllByRole('checkbox')[0];
     fireEvent.click(cb);
 
@@ -447,30 +443,22 @@ describe('LessonDialog (high coverage)', () => {
   it('quiz flows: couvre targetChapterIdx===null, puis ajout/suppression quiz chapitre + quiz leçon', async () => {
     render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
 
-    // créer chapitre + valide
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
     makeChapterValidNoMedia();
 
-    // ✅ couvrir la branche targetChapterIdx === null :
-    // on force l'ouverture du QuizFormDialog "Quiz de chapitre" via son onOpenChange(true)
     fireEvent.click(screen.getByLabelText('force-open-Quiz de chapitre'));
-    expect(screen.getByTestId('quiz-form-Quiz de chapitre')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('submit-quiz')); // onSubmit appelé mais targetChapterIdx null => return
-
-    // ✅ ajout quiz chapitre normal (via bouton dans la section "Quiz du chapitre")
-    const chapterQuizHeader = screen.getByText('Quiz du chapitre').closest('div')!;
-    fireEvent.click(within(chapterQuizHeader).getByRole('button', { name: 'Ajouter un quiz' }));
-
     expect(screen.getByTestId('quiz-form-Quiz de chapitre')).toBeInTheDocument();
     fireEvent.click(screen.getByText('submit-quiz'));
 
-    // le quiz est listé -> supprimer
+    const chapterQuizHeader = screen.getByText('Quiz du chapitre').closest('div')!;
+    fireEvent.click(within(chapterQuizHeader).getByRole('button', { name: 'Ajouter un quiz' }));
+    expect(screen.getByTestId('quiz-form-Quiz de chapitre')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('submit-quiz'));
+
     fireEvent.click(screen.getByLabelText('Supprimer le quiz du chapitre'));
 
-    // ✅ quiz de fin de leçon
     const lessonQuizSection = screen.getByText('Quiz de fin de leçon').parentElement!;
     fireEvent.click(within(lessonQuizSection).getByRole('button', { name: 'Ajouter un quiz' }));
-
     expect(screen.getByTestId('quiz-form-Quiz de fin de leçon')).toBeInTheDocument();
     fireEvent.click(screen.getByText('submit-quiz'));
 
@@ -480,24 +468,20 @@ describe('LessonDialog (high coverage)', () => {
   it('removeChapter branches: openChapterIndex===index et openChapterIndex>index', () => {
     render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
 
-    // 2 chapitres
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
 
     const triggers = screen.getAllByRole('button', { name: /Chapitre/i });
 
-    // ouvrir chapitre 1 puis supprimer => openChapterIndex === index
     fireEvent.click(triggers[0]);
     fireEvent.click(screen.getAllByLabelText('Supprimer le chapitre')[0]);
 
-    // ouvrir chapitre restant (qui était 2) et supprimer le premier => openChapterIndex > index
-    // (on recrée 2 chapitres pour couvrir)
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
 
     const triggers2 = screen.getAllByRole('button', { name: /Chapitre/i });
-    fireEvent.click(triggers2[1]); // ouvre chapitre 2 (index=1)
-    fireEvent.click(screen.getAllByLabelText('Supprimer le chapitre')[0]); // supprime index 0 => openChapterIndex > index
+    fireEvent.click(triggers2[1]);
+    fireEvent.click(screen.getAllByLabelText('Supprimer le chapitre')[0]);
   });
 
   it('submit: invalide => pas d’appel, valide => createLesson + onSuccess ferme', () => {
@@ -514,20 +498,16 @@ describe('LessonDialog (high coverage)', () => {
       />
     );
 
-    // invalide => rien
     fireEvent.click(screen.getByRole('button', { name: 'Créer la leçon' }));
     expect(createLessonMock).not.toHaveBeenCalled();
 
-    // valide avec 1 chapitre + quiz chapitre + quiz lesson
     fireEvent.click(screen.getByRole('button', { name: 'Créer le premier chapitre' }));
     makeChapterValidNoMedia();
 
-    // quiz chapitre
     const chapterQuizHeader = screen.getByText('Quiz du chapitre').closest('div')!;
     fireEvent.click(within(chapterQuizHeader).getByRole('button', { name: 'Ajouter un quiz' }));
     fireEvent.click(screen.getByText('submit-quiz'));
 
-    // quiz leçon
     const lessonQuizSection = screen.getByText('Quiz de fin de leçon').parentElement!;
     fireEvent.click(within(lessonQuizSection).getByRole('button', { name: 'Ajouter un quiz' }));
     fireEvent.click(screen.getByText('submit-quiz'));
@@ -550,12 +530,45 @@ describe('LessonDialog (high coverage)', () => {
       }),
     });
 
-    // onSuccess du hook
     onSuccessCreateLesson?.();
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onCreated).toHaveBeenCalledTimes(1);
   });
 
+  it('submit edit mode calls updateLesson', () => {
+    const onOpenChange = jest.fn();
+
+    render(
+      <LessonDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        moduleId='m1'
+        nextOrder={5}
+        editingLesson={{ id: 'lesson-99', order: 4 } as any}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /premier chapitre/i }));
+    makeChapterValidNoMedia();
+
+    fillBaseLesson();
+
+    fireEvent.click(screen.getByRole('button', { name: /Modifier/i }));
+
+    expect(updateLessonMock).toHaveBeenCalledTimes(1);
+    expect(updateLessonMock).toHaveBeenCalledWith({
+      lessonId: 'lesson-99',
+      payload: expect.objectContaining({
+        title: expect.stringContaining('Titre'),
+        description: expect.stringContaining('Conf'),
+        duration: 20,
+        order: 4,
+      }),
+    });
+
+    onSuccessUpdateLesson?.();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
   it('onPickResourceKind: chapterIndex null => early return', () => {
     render(<LessonDialog open={true} onOpenChange={jest.fn()} moduleId='m1' nextOrder={1} />);
     fireEvent.click(screen.getByLabelText('pick-no-target'));

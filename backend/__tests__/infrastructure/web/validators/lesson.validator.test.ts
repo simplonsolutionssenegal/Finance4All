@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import {
   handleValidationErrors,
   validateLessonId,
+  validateUpdateLesson,
 } from '@/infrastructure/web/validators/lesson.validator';
 import { validationResult } from 'express-validator';
 
@@ -18,6 +19,7 @@ describe('lesson.validator', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: jest.MockedFunction<NextFunction>;
+  const { validationResult: realValidationResult } = jest.requireActual('express-validator');
 
   beforeEach(() => {
     req = { params: { id: 'x' } };
@@ -68,6 +70,51 @@ describe('lesson.validator', () => {
       const chain = validateLessonId[0] as any;
       // express-validator ValidationChain expose run(req)
       expect(typeof chain.run).toBe('function');
+    });
+  });
+
+  describe('validateUpdateLesson', () => {
+    const runValidators = async (body: any) => {
+      const req = { body } as Request;
+      for (const chain of validateUpdateLesson as any[]) {
+        await chain.run(req);
+      }
+      return realValidationResult(req);
+    };
+
+    it('should fail when no updatable fields are provided', async () => {
+      const result = await runValidators({});
+      expect(result.isEmpty()).toBe(false);
+      const messages = result.array().map((e: any) => e.msg);
+      expect(messages).toContain('Au moins un champ doit être fourni pour la mise à jour');
+    });
+
+    it('should pass with a valid title only', async () => {
+      const result = await runValidators({ title: 'Ma leçon' });
+      expect(result.isEmpty()).toBe(true);
+    });
+
+    it('should fail with invalid status', async () => {
+      const result = await runValidators({ status: 'INVALID' });
+      expect(result.isEmpty()).toBe(false);
+      const messages = result.array().map((e: any) => e.msg);
+      expect(messages).toContain('Statut invalide');
+    });
+
+    it('should fail when quizzes provided without questions', async () => {
+      const result = await runValidators({
+        quizzes: [
+          {
+            title: 'Quiz',
+            scoreMinimum: 50,
+            nombreTentatives: 2,
+            questions: [],
+          },
+        ],
+      });
+      expect(result.isEmpty()).toBe(false);
+      const messages = result.array().map((e: any) => e.msg);
+      expect(messages).toContain('Le quiz doit avoir au moins une question');
     });
   });
 });

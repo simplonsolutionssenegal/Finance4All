@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Clock,
   Check,
@@ -10,6 +9,7 @@ import {
   X,
   SquareCheckBig,
   LayoutList,
+  Pencil,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import RichTextEditor from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -32,9 +33,10 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateLesson } from '@/hooks/lesson/useCreateLesson';
+import { useUpdateLesson } from '@/hooks/lesson/useUpdateLesson';
 import { useDeleteMedia } from '@/hooks/media/useDeleteMedia';
 import { useUploadMedia } from '@/hooks/media/useUploadMedia';
-import { LessonStatus, type ChapterDto } from '@/types/modules/Lesson';
+import { LessonStatus, type Lesson, type ChapterDto } from '@/types/modules/Lesson';
 
 import QuizFormDialog, { type QuizDraft } from './quiz-form-dialog';
 import ResourcePickerDialog, { type ResourceKind } from './ResourcePickerDialog';
@@ -44,6 +46,8 @@ type LessonDialogProps = {
   onOpenChange: (v: boolean) => void;
   moduleId: string;
   nextOrder: number;
+  editingLesson?: Lesson | null;
+  onDone?: () => void;
   onCreated?: () => void;
   chapters?: ChapterDto[];
 };
@@ -73,12 +77,30 @@ function statusLabel(v: LessonStatus) {
           : v;
 }
 
+const htmlToText = (html: string) => {
+  if (!html) return '';
+  if (!html.includes('<') && !html.includes('&')) {
+    return html.replace(/\s+/g, ' ').trim();
+  }
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const text = doc.body.textContent ?? '';
+  return text
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const isRichTextEmpty = (html: string) => htmlToText(html).length === 0;
+
 export default function LessonDialog({
   open,
   onOpenChange,
   moduleId,
   nextOrder,
   onCreated,
+  onDone,
+  editingLesson = null,
   chapters: initialChapters,
 }: LessonDialogProps) {
   const [title, setTitle] = useState('');
@@ -90,37 +112,91 @@ export default function LessonDialog({
   const [chapters, setChapters] = useState<ChapterForm[]>([]);
   const [chapterError, setChapterError] = useState<string | null>(null);
 
-  // ✅ Quiz fin de leçon (payload.quizzes)
   const [lessonQuizzes, setLessonQuizzes] = useState<QuizDraft[]>([]);
   const [lessonQuizOpen, setLessonQuizOpen] = useState(false);
 
-  // ✅ Quiz chapitre
   const [chapterQuizOpen, setChapterQuizOpen] = useState(false);
   const [targetChapterIdx, setTargetChapterIdx] = useState<number | null>(null);
 
-  // popup resource picker
   const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
   const [resourceTargetChapterIndex, setResourceTargetChapterIndex] = useState<number | null>(null);
+  const [lessonQuizEditIndex, setLessonQuizEditIndex] = useState<number | null>(null);
+  const [chapterQuizEditIndex, setChapterQuizEditIndex] = useState<number | null>(null);
 
-  // file picker
   const [accept, setAccept] = useState<string>('*/*');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // pour savoir sur quel chapitre appliquer l'upload après choix du fichier
   const [pendingUploadChapterIndex, setPendingUploadChapterIndex] = useState<number | null>(null);
 
   const durationLabel = useMemo(() => `${Math.max(0, Number(duration) || 0)} min`, [duration]);
+
+  const { createLesson, isCreating } = useCreateLesson({
+    onSuccess: () => {
+      onOpenChange(false);
+      onDone?.();
+      onCreated?.();
+    },
+  });
+
+  const { updateLesson, isUpdating } = useUpdateLesson({
+    onSuccess: () => {
+      onOpenChange(false);
+      onDone?.();
+      onCreated?.();
+    },
+  });
 
   const resourcesCount = useMemo(() => {
     return chapters.filter(c => !c.noMedia && !!c.mediaId).length;
   }, [chapters]);
 
-  const { createLesson, isCreating } = useCreateLesson({
-    onSuccess: () => {
-      onOpenChange(false);
-      onCreated?.();
-    },
-  });
+  const isSubmitting = isCreating || isUpdating;
+
+  useEffect(() => {
+    if (!open) return;
+
+    setChapterError(null);
+    setOpenChapterIndex(-1);
+
+    const baseTitle = editingLesson?.title ?? '';
+    const baseDesc = editingLesson?.description ?? '';
+    const baseStatus = editingLesson?.status ?? LessonStatus.DRAFT;
+    const baseDuration = editingLesson?.duration ?? '';
+
+    setTitle(baseTitle);
+    setDescription(baseDesc);
+    setStatus(baseStatus as LessonStatus);
+    setDuration(baseDuration === '' ? '' : Number(baseDuration));
+
+    setLessonQuizzes((editingLesson as any)?.quizzes ?? []);
+    setLessonQuizOpen(false);
+    setLessonQuizEditIndex(null);
+
+    setChapterQuizOpen(false);
+    setTargetChapterIdx(null);
+    setChapterQuizEditIndex(null);
+
+    const sourceChapters = (editingLesson as any)?.chapters ?? initialChapters ?? [];
+
+    const init = sourceChapters.map((c: any) => ({
+      title: c?.title ?? '',
+      description: c?.description ?? '',
+      mediaId: c?.mediaId ?? '',
+      uploadedName: c?.uploadedName ?? null,
+      uploading: false,
+      uploadError: null,
+      deleting: false,
+      deleteError: null,
+      noMedia: !c?.mediaId,
+      quizzes: c?.quizzes ?? [],
+    }));
+
+    setChapters(init);
+
+    setAccept('*/*');
+    setResourceTargetChapterIndex(null);
+    setPendingUploadChapterIndex(null);
+  }, [open, initialChapters, editingLesson]);
 
   const uploadMedia = useUploadMedia();
   const { deleteMediaAsync } = useDeleteMedia();
@@ -154,9 +230,8 @@ export default function LessonDialog({
     else if (openChapterIndex > index) setOpenChapterIndex(openChapterIndex - 1);
   };
 
-  // validation chapitre: titre+desc + (noMedia OU mediaId) + pas d'upload/suppression en cours
   const isChapterValid = (c: ChapterForm) => {
-    const okText = c.title.trim().length > 0 && c.description.trim().length > 0;
+    const okText = c.title.trim().length > 0 && !isRichTextEmpty(c.description);
     const okBusy = !c.uploading && !c.deleting;
     const okMedia = !!c.noMedia || (!!c.mediaId && c.mediaId.trim().length > 0);
     return okText && okBusy && okMedia;
@@ -178,41 +253,6 @@ export default function LessonDialog({
     chaptersOkForPublished &&
     !anyBusy;
 
-  useEffect(() => {
-    if (!open) return;
-
-    setTitle('');
-    setDescription('');
-    setStatus(LessonStatus.DRAFT);
-    setDuration('');
-    setOpenChapterIndex(-1);
-    setChapterError(null);
-
-    // reset quizzes
-    setLessonQuizzes([]);
-    setLessonQuizOpen(false);
-    setChapterQuizOpen(false);
-    setTargetChapterIdx(null);
-
-    const init = (initialChapters ?? []).map((c: any) => ({
-      title: c?.title ?? '',
-      description: c?.description ?? '',
-      mediaId: c?.mediaId ?? '',
-      uploadedName: null,
-      uploading: false,
-      uploadError: null,
-      deleting: false,
-      deleteError: null,
-      noMedia: !c?.mediaId,
-      quizzes: [],
-    }));
-
-    setChapters(init);
-    setAccept('*/*');
-    setResourceTargetChapterIndex(null);
-    setPendingUploadChapterIndex(null);
-  }, [open, initialChapters]);
-
   const handleAddChapter = () => {
     if (!canAddNewChapter) {
       setChapterError("Veuillez compléter les chapitres avant d'en ajouter un nouveau.");
@@ -225,9 +265,6 @@ export default function LessonDialog({
     addChapter();
   };
 
-  // -------------------------
-  // MEDIA: delete / replace
-  // -------------------------
   const deleteMediaForChapter = async (chapterIndex: number): Promise<boolean> => {
     const mediaId = chapters[chapterIndex]?.mediaId;
     if (!mediaId) return true;
@@ -237,7 +274,6 @@ export default function LessonDialog({
     try {
       const res = await deleteMediaAsync({ mediaId });
 
-      // si ton backend renvoie success=false (sans throw)
       if (res?.success !== true) {
         updateChapter(chapterIndex, {
           deleting: false,
@@ -261,7 +297,6 @@ export default function LessonDialog({
     }
   };
 
-  // ✅ Retirer ressource => delete API + reset state chapitre
   const handleRemoveResource = async (chapterIndex: number) => {
     const mediaId = chapters[chapterIndex]?.mediaId;
     if (!mediaId) return;
@@ -273,21 +308,17 @@ export default function LessonDialog({
       mediaId: '',
       uploadedName: null,
       uploadError: null,
-      noMedia: true, // chapitre reste "valide" sans média
+      noMedia: true,
     });
   };
 
-  // ✅ Remplacer => si mediaId existant => delete API avant d'ouvrir le picker
   const handleReplaceResource = async (chapterIndex: number) => {
     const c = chapters[chapterIndex];
     if (!c) return;
-
-    // delete avant remplacer si on avait un vrai fichier
     if (c.mediaId && !c.noMedia) {
       const ok = await deleteMediaForChapter(chapterIndex);
       if (!ok) return;
 
-      // on vide l'ancien id localement
       updateChapter(chapterIndex, {
         mediaId: '',
         uploadedName: null,
@@ -296,14 +327,10 @@ export default function LessonDialog({
       });
     }
 
-    // ouvrir picker
     setResourceTargetChapterIndex(chapterIndex);
     setResourcePickerOpen(true);
   };
 
-  // -------------------------
-  // UPLOAD flow
-  // -------------------------
   const onPickResourceKind = (kind: ResourceKind) => {
     setResourcePickerOpen(false);
 
@@ -369,7 +396,6 @@ export default function LessonDialog({
     const c = chapters[chapterIndex];
     if (!c) return;
 
-    // si on coche "aucun média" et qu'il y a un mediaId => on supprime côté API pour éviter orphelin
     if (checked && c.mediaId) {
       const ok = await deleteMediaForChapter(chapterIndex);
       if (!ok) return;
@@ -395,31 +421,34 @@ export default function LessonDialog({
   const handleSubmit = () => {
     if (!canSubmit) return;
 
-    createLesson({
-      moduleId,
-      payload: {
-        title: title.trim(),
-        description: description.trim(),
-        duration: Number(duration),
-        order: nextOrder,
-        status,
+    const payload = {
+      title: title.trim(),
+      description: description.trim(),
+      duration: Number(duration),
+      status,
+      order: editingLesson?.order ?? nextOrder,
 
-        chapters: chapters.map((c, idx) => ({
-          title: c.title.trim(),
-          description: c.description.trim(),
-          order: idx,
-          ...(c.noMedia ? {} : { mediaId: c.mediaId }),
-          quizzes: c.quizzes,
-        })),
+      chapters: chapters.map((c, idx) => ({
+        title: c.title.trim(),
+        description: c.description,
+        order: idx,
+        ...(c.noMedia ? {} : { mediaId: c.mediaId }),
+        quizzes: c.quizzes,
+      })),
 
-        quizzes: lessonQuizzes,
-      } as any,
-    });
+      quizzes: lessonQuizzes,
+    } as any;
+
+    if (editingLesson?.id) {
+      updateLesson({ lessonId: editingLesson.id, payload });
+      return;
+    }
+
+    createLesson({ moduleId, payload });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* hidden file input */}
       <Input
         ref={fileInputRef}
         type='file'
@@ -440,43 +469,66 @@ export default function LessonDialog({
         }}
       />
 
-      {/* popup picker */}
       <ResourcePickerDialog
         open={resourcePickerOpen}
         onOpenChange={setResourcePickerOpen}
         onPick={onPickResourceKind}
       />
 
-      {/* Quiz dialogs */}
       <QuizFormDialog
         open={lessonQuizOpen}
-        onOpenChange={setLessonQuizOpen}
+        onOpenChange={v => {
+          setLessonQuizOpen(v);
+          if (!v) setLessonQuizEditIndex(null);
+        }}
         subtitle='Quiz de fin de leçon'
-        submitLabel='Ajouter le quiz'
-        onSubmit={quiz => setLessonQuizzes(prev => [...prev, quiz])}
+        dialogTitle={lessonQuizEditIndex !== null ? 'Modifier le quiz' : 'Nouveau quiz'}
+        submitLabel={lessonQuizEditIndex !== null ? 'Modifier le quiz' : 'Ajouter le quiz'}
+        initial={lessonQuizEditIndex !== null ? lessonQuizzes[lessonQuizEditIndex] : undefined}
+        onSubmit={quiz =>
+          setLessonQuizzes(prev => {
+            if (lessonQuizEditIndex === null) return [...prev, quiz];
+            return prev.map((q, i) => (i === lessonQuizEditIndex ? quiz : q));
+          })
+        }
       />
-
       <QuizFormDialog
         open={chapterQuizOpen}
         onOpenChange={v => {
           setChapterQuizOpen(v);
-          if (!v) setTargetChapterIdx(null);
+          if (!v) {
+            setTargetChapterIdx(null);
+            setChapterQuizEditIndex(null);
+          }
         }}
         subtitle='Quiz de chapitre'
-        submitLabel='Ajouter le quiz'
+        dialogTitle={chapterQuizEditIndex !== null ? 'Modifier le quiz' : 'Nouveau quiz'}
+        submitLabel={chapterQuizEditIndex !== null ? 'Modifier le quiz' : 'Ajouter le quiz'}
+        initial={
+          targetChapterIdx !== null && chapterQuizEditIndex !== null
+            ? chapters[targetChapterIdx]?.quizzes?.[chapterQuizEditIndex]
+            : undefined
+        }
         onSubmit={quiz => {
           if (targetChapterIdx === null) return;
           const current = chapters[targetChapterIdx]?.quizzes ?? [];
-          updateChapter(targetChapterIdx, { quizzes: [...current, quiz] });
+          if (chapterQuizEditIndex === null) {
+            updateChapter(targetChapterIdx, { quizzes: [...current, quiz] });
+            return;
+          }
+          updateChapter(targetChapterIdx, {
+            quizzes: current.map((q, i) => (i === chapterQuizEditIndex ? quiz : q)),
+          });
         }}
       />
 
       <DialogContent className='rounded-none p-0 overflow-hidden h-[calc(105vh-2rem)] flex flex-col w-[calc(90vw-2rem)] sm:w-[720px] sm:max-w-none md:left-auto md:right-6 md:translate-x-0'>
-        {/* Header */}
         <div className='px-6 pt-4 pb-2 border-b border-slate-200 bg-slate-50'>
           <div className='flex items-start justify-between'>
             <div>
-              <DialogTitle className='text-lg text-slate-800'>Nouvelle leçon</DialogTitle>
+              <DialogTitle className='text-lg text-slate-800'>
+                {editingLesson ? 'Modifier la leçon' : 'Nouvelle leçon'}
+              </DialogTitle>
               <p className='mt-0.5 text-sm text-slate-500'>
                 {chapters.length} chapitre • {resourcesCount} ressource • {durationLabel}
               </p>
@@ -484,9 +536,7 @@ export default function LessonDialog({
           </div>
         </div>
 
-        {/* Body */}
         <div className='flex-1 overflow-y-auto px-6 pt-4 pb-4 space-y-6'>
-          {/* Informations générales */}
           <div className='space-y-4'>
             <p className='text-sm font-semibold text-slate-900'>Informations générales</p>
 
@@ -611,19 +661,24 @@ export default function LessonDialog({
                     </div>
 
                     <AccordionContent className='pb-4'>
-                      <div className='space-y-4 p-2'>
+                      <div className='space-y-2 p-2'>
+                        <Label className='text-xs text-slate-600'>
+                          Titre du chapitre <span className='text-red-500'>*</span>
+                        </Label>
                         <Input
                           value={c.title}
                           onChange={e => updateChapter(idx, { title: e.target.value })}
                           placeholder='Titre de chapitre'
                           className='bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
                         />
-
-                        <Textarea
+                        <Label className='text-xs text-slate-600'>
+                          Description (contenue éditeur) <span className='text-red-500'>*</span>
+                        </Label>
+                        <RichTextEditor
                           value={c.description}
-                          onChange={e => updateChapter(idx, { description: e.target.value })}
+                          onChange={value => updateChapter(idx, { description: value })}
                           placeholder='Description de chapitre ...'
-                          className='min-h-[70px] bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                          minHeightClassName='min-h-[90px]'
                         />
 
                         {/* Ressource */}
@@ -714,6 +769,7 @@ export default function LessonDialog({
                               type='button'
                               onClick={() => {
                                 setTargetChapterIdx(idx);
+                                setChapterQuizEditIndex(null);
                                 setChapterQuizOpen(true);
                               }}
                               className='inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'
@@ -743,18 +799,32 @@ export default function LessonDialog({
                                       </p>
                                     </div>
 
-                                    <button
-                                      type='button'
-                                      onClick={() =>
-                                        updateChapter(idx, {
-                                          quizzes: c.quizzes.filter((_, x) => x !== qi),
-                                        })
-                                      }
-                                      className='h-8 w-8 rounded-lg hover:bg-slate-200 flex items-center justify-center'
-                                      aria-label='Supprimer le quiz du chapitre'
-                                    >
-                                      <Trash2 className='h-4 w-4 text-slate-600' />
-                                    </button>
+                                    <div className='flex items-center gap-1'>
+                                      <button
+                                        type='button'
+                                        onClick={() => {
+                                          setTargetChapterIdx(idx);
+                                          setChapterQuizEditIndex(qi);
+                                          setChapterQuizOpen(true);
+                                        }}
+                                        className='h-8 w-8 rounded-lg hover:bg-slate-200 flex items-center justify-center'
+                                        aria-label='Modifier le quiz du chapitre'
+                                      >
+                                        <Pencil className='h-4 w-4 text-slate-600' />
+                                      </button>
+                                      <button
+                                        type='button'
+                                        onClick={() =>
+                                          updateChapter(idx, {
+                                            quizzes: c.quizzes.filter((_, x) => x !== qi),
+                                          })
+                                        }
+                                        className='h-8 w-8 rounded-lg hover:bg-slate-200 flex items-center justify-center'
+                                        aria-label='Supprimer le quiz du chapitre'
+                                      >
+                                        <Trash2 className='h-4 w-4 text-slate-600' />
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
@@ -791,7 +861,10 @@ export default function LessonDialog({
 
                 <button
                   type='button'
-                  onClick={() => setLessonQuizOpen(true)}
+                  onClick={() => {
+                    setLessonQuizEditIndex(null);
+                    setLessonQuizOpen(true);
+                  }}
                   className='mt-5 inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium'
                 >
                   <Plus className='h-4 w-4' />
@@ -803,7 +876,10 @@ export default function LessonDialog({
                 <div className='flex justify-end'>
                   <button
                     type='button'
-                    onClick={() => setLessonQuizOpen(true)}
+                    onClick={() => {
+                      setLessonQuizEditIndex(null);
+                      setLessonQuizOpen(true);
+                    }}
                     className='inline-flex items-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white px-4 py-2 text-sm font-medium'
                   >
                     <Plus className='h-4 w-4' />
@@ -821,15 +897,29 @@ export default function LessonDialog({
                           tentatives {q.nombreTentatives}
                         </p>
                       </div>
-
-                      <button
-                        type='button'
-                        onClick={() => setLessonQuizzes(prev => prev.filter((_, idx) => idx !== i))}
-                        className='h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center'
-                        aria-label='Supprimer le quiz'
-                      >
-                        <Trash2 className='h-4 w-4 text-slate-600' />
-                      </button>
+                      <div className=''>
+                        <button
+                          type='button'
+                          onClick={() =>
+                            setLessonQuizzes(prev => prev.filter((_, idx) => idx !== i))
+                          }
+                          className='h-5 w-5 mb-1 rounded-lg hover:bg-primary-400 bg-primary-100  flex items-center justify-center'
+                          aria-label='Supprimer le quiz'
+                        >
+                          <Trash2 className='h-2 w-2 text-slate-600 text-warning-700' />
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setLessonQuizEditIndex(i);
+                            setLessonQuizOpen(true);
+                          }}
+                          className='h-5 w-5 rounded-lg hover:bg-primary-400 bg-primary-100 flex items-center justify-center'
+                          aria-label='Modifier le quiz'
+                        >
+                          <Pencil className='h-2 w-2 text-slate-600 tex-warnig-700' />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -837,7 +927,6 @@ export default function LessonDialog({
             )}
           </div>
 
-          {/* Durée */}
           <div className='space-y-2'>
             <Label className='text-slate-700'>
               Durée (minutes) <span className='text-red-500'>*</span>
@@ -856,7 +945,6 @@ export default function LessonDialog({
           </div>
         </div>
 
-        {/* Footer */}
         <div className='px-6 py-4 border-t border-slate-200 flex items-center justify-between'>
           <p className='text-sm text-slate-500 inline-flex items-center gap-2'>
             <Clock className='h-4 w-4' />
@@ -877,11 +965,17 @@ export default function LessonDialog({
             <Button
               type='button'
               onClick={handleSubmit}
-              disabled={!canSubmit || isCreating}
+              disabled={!canSubmit || isSubmitting}
               className='rounded-xl bg-sky-500 hover:bg-sky-400'
             >
               <Save className='h-4 w-4 mr-2' />
-              Créer la leçon
+              {editingLesson
+                ? isSubmitting
+                  ? 'Modification…'
+                  : 'Modifier la leçon'
+                : isSubmitting
+                  ? 'Création…'
+                  : 'Créer la leçon'}
             </Button>
           </div>
         </div>

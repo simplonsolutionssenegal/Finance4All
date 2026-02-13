@@ -105,6 +105,8 @@ import { GetModuleByIdUseCaseImpl } from '@/application/formations/use-cases/Get
 import type { AddLessonUseCase } from '@/domain/formations/ports/in/AddLessonUseCase';
 import { AddLessonUseCaseImpl } from '@/application/formations/use-cases/AddLessonUseCaseImpl';
 import { AddQuizUseCaseImpl } from '@/application/formations/use-cases/AddQuizUseCaseImpl';
+import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
+import { UpdateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/UpdateModule.usecase';
 import type { QuizRepository } from '@/domain/formations/ports/out/QuizRepository';
 import { GetQuizByIdUseCaseImpl } from '@/application/formations/use-cases/GetQuizByIdUseCaseImpl';
 import { QuizController } from '@/infrastructure/web/controllers/QuizController';
@@ -116,8 +118,22 @@ import { GetLessonByIdUseCaseImpl } from '@/application/formations/use-cases/Get
 import { LessonController } from '../web/controllers/LessonController';
 import type { AddQuizLessonUseCase } from '@/domain/formations/ports/in/AddQuizLessonUseCase';
 import { AddQuizLessonUseCaseImpl } from '@/application/formations/use-cases/AddQuizLessonUseCaseImpl';
-import type { UpdateModuleUseCase } from '@/domain/formations/ports/in/UpdateModuleUseCase';
-import { UpdateModuleFormationUseCaseImpl } from '@/application/formations/use-cases/UpdateModule.usecase';
+import type { IQuizProgressRepository } from '@/domain/formations/ports/out/IQuizProgressRepository';
+import { PrismaQuizProgressRepository } from '@/infrastructure/persistence/repositories/PrismaQuizProgressRepository';
+import type { SubmitQuizAttemptUseCase } from '@/domain/formations/ports/in/SubmitQuizAttemptUseCase';
+import { SubmitQuizAttemptUseCaseImpl } from '@/application/formations/use-cases/SubmitQuizAttemptUseCaseImpl';
+import type { GetQuizProgressUseCase } from '@/domain/formations/ports/in/GetQuizProgressUseCase';
+import { GetQuizProgressUseCaseImpl } from '@/application/formations/use-cases/GetQuizProgressUseCaseImpl';
+import type { UpdateLessonUseCase } from '@/domain/formations/ports/in/UpdateLessonUseCase';
+import { UpdateLessonUseCaseImpl } from '@/application/formations/use-cases/UpdateLessonUseCaseImpl';
+import type { UpdateQuizUseCase } from '@/domain/formations/ports/in/UpdateQuizUseCase';
+import { UpdateQuizUseCaseImpl } from '@/application/formations/use-cases/UpdateQuizUseCaseImpl';
+import type { UpdateQuizStatusUseCase } from '@/domain/formations/ports/in/UpdateStatusQuizUseCase';
+import { UpdateQuizStatusUseCaseImpl } from '@/application/formations/use-cases/UpdateQuizStatusUseCaseImpl';
+import type { DeleteLessonUseCase } from '@/domain/formations/ports/in/DeleteLessonUseCase';
+import { DeleteLessonUseCaseImpl } from '@/application/formations/use-cases/DeleteLessonUseCaseImpl';
+import type { DeleteQuizUseCase } from '@/domain/formations/ports/in/DeleteQuizUseCase';
+import { DeleteQuizUseCaseImpl } from '@/application/formations/use-cases/DeleteQuizUseCaseImpl';
 
 export const TYPES = {
   CreateInstitutionUseCase: Symbol.for('CreateInstitutionUseCase'),
@@ -133,6 +149,7 @@ export const TYPES = {
   InstitutionRepository: Symbol.for('InstitutionRepository'),
   ServiceRepository: Symbol.for('ServiceRepository'),
   QuizRepository: Symbol.for('QuizRepository'),
+  QuizProgressRepository: Symbol.for('QuizProgressRepository'),
   LessonRepository: Symbol.for('LessonRepository'),
   CompareServicesUseCase: Symbol.for('CompareServicesUseCase'),
 
@@ -151,15 +168,22 @@ export const TYPES = {
   GetModuleByIdUseCase: Symbol.for('GetModuleByIdUseCase'),
   AddLessonUseCase: Symbol.for('AddLessonUseCase'),
   AddQuizUseCase: Symbol.for('AddQuizUseCase'),
+  UpdateModuleUseCase: Symbol.for('UpdateModuleUseCase'),
   ModuleRepository: Symbol.for('ModuleRepository'),
   ModuleController: Symbol.for('ModuleController'),
-  UpdateModuleUseCase: Symbol.for('UpdateModuleUseCase'),
 
   // ========== Quiz ==========
   GetQuizByIdUseCase: Symbol.for('GetQuizByIdUseCase'),
+  SubmitQuizAttemptUseCase: Symbol.for('SubmitQuizAttemptUseCase'),
+  GetQuizProgressUseCase: Symbol.for('GetQuizProgressUseCase'),
   AddQuizLessonUseCase: Symbol.for('AddQuizLessonUseCase'),
+  UpdateQuizUseCase: Symbol.for('UpdateQuizUseCase'),
+  UpdateQuizStatusUseCase: Symbol.for('UpdateQuizStatusUseCase'),
+  DeleteQuizUseCase: Symbol.for('DeleteQuizUseCase'),
   // ========== Lesson ==========
   GetLessonByIdUseCase: Symbol.for('GetLessonByIdUseCase'),
+  UpdateLessonUseCase: Symbol.for('UpdateLessonUseCase'),
+  DeleteLessonUseCase: Symbol.for('DeleteLessonUseCase'),
 
   // ========== Beneficiaires ==========
   CreateBeneficiaryUseCase: Symbol.for('CreateBeneficiaryUseCase'),
@@ -228,6 +252,14 @@ container
   .toDynamicValue(context => {
     const prismaClient = context.get<PrismaClient>('PrismaClient');
     return new PrismaQuizRepository(prismaClient);
+  })
+  .inSingletonScope();
+
+container
+  .bind<IQuizProgressRepository>(TYPES.QuizProgressRepository)
+  .toDynamicValue(context => {
+    const prismaClient = context.get<PrismaClient>('PrismaClient');
+    return new PrismaQuizProgressRepository(prismaClient);
   })
   .inSingletonScope();
 
@@ -414,12 +446,73 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<UpdateQuizUseCase>(TYPES.UpdateQuizUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    return new UpdateQuizUseCaseImpl(quizRepository);
+  })
+  .inSingletonScope();
+container
+  .bind<UpdateQuizStatusUseCase>(TYPES.UpdateQuizStatusUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    return new UpdateQuizStatusUseCaseImpl(quizRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<DeleteQuizUseCase>(TYPES.DeleteQuizUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    return new DeleteQuizUseCaseImpl(quizRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<SubmitQuizAttemptUseCase>(TYPES.SubmitQuizAttemptUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    const quizProgressRepository = context.get<IQuizProgressRepository>(
+      TYPES.QuizProgressRepository
+    );
+    return new SubmitQuizAttemptUseCaseImpl(quizRepository, quizProgressRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<GetQuizProgressUseCase>(TYPES.GetQuizProgressUseCase)
+  .toDynamicValue(context => {
+    const quizRepository = context.get<QuizRepository>(TYPES.QuizRepository);
+    const quizProgressRepository = context.get<IQuizProgressRepository>(
+      TYPES.QuizProgressRepository
+    );
+    return new GetQuizProgressUseCaseImpl(quizRepository, quizProgressRepository);
+  })
+  .inSingletonScope();
+
 // ====== Lesson Use Cases ======
 container
   .bind<GetLessonByIdUseCase>(TYPES.GetLessonByIdUseCase)
   .toDynamicValue(context => {
     const repository = context.get<LessonRepository>(TYPES.LessonRepository);
     return new GetLessonByIdUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<UpdateLessonUseCase>(TYPES.UpdateLessonUseCase)
+  .toDynamicValue(context => {
+    const lessonRepository = context.get<LessonRepository>(TYPES.LessonRepository);
+    return new UpdateLessonUseCaseImpl(lessonRepository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<DeleteLessonUseCase>(TYPES.DeleteLessonUseCase)
+  .toDynamicValue(context => {
+    const lessonRepository = context.get<LessonRepository>(TYPES.LessonRepository);
+    return new DeleteLessonUseCaseImpl(lessonRepository);
   })
   .inSingletonScope();
 
@@ -810,9 +903,26 @@ container
   .bind<QuizController>(TYPES.QuizController)
   .toDynamicValue(context => {
     const getQuizByIdUseCase = context.get<GetQuizByIdUseCaseImpl>(TYPES.GetQuizByIdUseCase);
-    // const addQuizUseCase = context.get<AddQuizUseCase>(TYPES.AddQuizUseCase);
+    const updateQuizUseCase = context.get<UpdateQuizUseCaseImpl>(TYPES.UpdateQuizUseCase);
+    const updateQuizStatusUseCase = context.get<UpdateQuizStatusUseCase>(
+      TYPES.UpdateQuizStatusUseCase
+    );
+    const deleteQuizUseCase = context.get<DeleteQuizUseCase>(TYPES.DeleteQuizUseCase);
+    const submitQuizAttemptUseCase = context.get<SubmitQuizAttemptUseCase>(
+      TYPES.SubmitQuizAttemptUseCase
+    );
+    const getQuizProgressUseCase = context.get<GetQuizProgressUseCase>(
+      TYPES.GetQuizProgressUseCase
+    );
 
-    return new QuizController(getQuizByIdUseCase);
+    return new QuizController(
+      getQuizByIdUseCase,
+      updateQuizUseCase,
+      updateQuizStatusUseCase,
+      deleteQuizUseCase,
+      submitQuizAttemptUseCase,
+      getQuizProgressUseCase
+    );
   })
   .inSingletonScope();
 
@@ -822,8 +932,15 @@ container
   .toDynamicValue(context => {
     const getLessonByIdUseCase = context.get<GetLessonByIdUseCase>(TYPES.GetLessonByIdUseCase);
     const addQuizLessonUseCase = context.get<AddQuizLessonUseCase>(TYPES.AddQuizLessonUseCase);
+    const updateLessonUseCase = context.get<UpdateLessonUseCase>(TYPES.UpdateLessonUseCase);
+    const deleteLessonUseCase = context.get<DeleteLessonUseCase>(TYPES.DeleteLessonUseCase);
 
-    return new LessonController(getLessonByIdUseCase, addQuizLessonUseCase);
+    return new LessonController(
+      getLessonByIdUseCase,
+      addQuizLessonUseCase,
+      updateLessonUseCase,
+      deleteLessonUseCase
+    );
   })
   .inSingletonScope();
 

@@ -97,6 +97,7 @@ function makePrismaMock() {
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
   } as unknown as PrismaClient;
 }
@@ -204,6 +205,16 @@ describe('PrismaLessonRepository', () => {
       duration: 10,
       order: 1,
       status: 'DRAFT',
+      chapters: [
+        {
+          id: { getValue: () => UUID.chapter1 },
+          title: 'Chapter 1',
+          description: 'Chapter desc',
+          order: 0,
+          mediaId: UUID.media1,
+          quizzes: [],
+        },
+      ],
       quizzes: [
         { id: { getValue: () => 'q1' } }, // déjà existant
         {
@@ -263,6 +274,16 @@ describe('PrismaLessonRepository', () => {
       duration: 10,
       order: 1,
       status: 'DRAFT',
+      chapters: [
+        {
+          id: { getValue: () => UUID.chapter1 },
+          title: 'Chapter 1',
+          description: 'Chapter desc',
+          order: 0,
+          mediaId: UUID.media1,
+          quizzes: [],
+        },
+      ],
       quizzes: [{ id: { getValue: () => 'q1' } }], // aucun nouveau
     };
 
@@ -270,5 +291,18 @@ describe('PrismaLessonRepository', () => {
 
     const updateArgs = (prisma as any).lesson.update.mock.calls[0][0];
     expect(updateArgs.data).not.toHaveProperty('quizzes'); // ✅ branche vide
+  });
+
+  it('delete: should call prisma.lesson.delete with id', async () => {
+    const prisma = makePrismaMock();
+    (prisma as any).lesson.delete.mockResolvedValueOnce(makePrismaLesson());
+
+    const repo = new PrismaLessonRepository(prisma);
+
+    await repo.delete(UUID.lesson1);
+
+    expect((prisma as any).lesson.delete).toHaveBeenCalledWith({
+      where: { id: UUID.lesson1 },
+    });
   });
 });

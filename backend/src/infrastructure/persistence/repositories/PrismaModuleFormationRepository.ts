@@ -106,6 +106,8 @@ export class PrismaModuleFormationRepository implements ModuleRepository {
           mode: 'insensitive',
         },
       },
+
+      // ✅ Ajoutez l'include comme dans les autres méthodes
       include: {
         lessons: {
           include: {

@@ -1,4 +1,3 @@
-//application/formations/use-cases/CreateModule.usecase.ts
 import type {
   CreateModuleUseCase,
   CreateModuleUseCommand,

@@ -1,5 +1,3 @@
-//application/formations/use-cases/GetModules.usecase.ts
-
 import type { Module } from '@/domain/formations/entities/ModuleFormation';
 import type {
   GetModulesUseCase,

@@ -22,7 +22,15 @@ import { TypeQuestion, type QuestionDTO, type QuestionOption } from '@/types/mod
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onAdd: (q: QuestionDTO) => void;
+
+  // ✅ si présent => mode édition
+  initial?: QuestionDTO | null;
+
+  // ✅ un seul callback pour create/edit
+  onSave: (q: QuestionDTO) => void;
+
+  dialogTitle?: string;
+  submitLabel?: string;
 };
 
 const TYPE_LABEL: Record<TypeQuestion, string> = {
@@ -33,16 +41,30 @@ const TYPE_LABEL: Record<TypeQuestion, string> = {
 type OptionForm = QuestionOption & { id: string };
 
 function makeInitialOptions(count = 4): OptionForm[] {
-  let counter = 0;
-  const nextId = () => `opt_${++counter}`;
-  return Array.from({ length: count }, () => ({
-    id: nextId(),
+  return Array.from({ length: count }, (_, i) => ({
+    id: `opt_${Date.now()}_${i}`,
     text: '',
     isCorrect: false,
   }));
 }
 
-export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
+function toOptionForms(opts?: QuestionOption[], fallbackCount = 4): OptionForm[] {
+  if (!opts || opts.length === 0) return makeInitialOptions(fallbackCount);
+  return opts.map((o, i) => ({
+    id: `opt_${Date.now()}_${i}`,
+    text: o.text ?? '',
+    isCorrect: Boolean(o.isCorrect),
+  }));
+}
+
+export default function QuestionDialog({
+  open,
+  onOpenChange,
+  initial = null,
+  onSave,
+  dialogTitle,
+  submitLabel,
+}: Props) {
   const [question, setQuestion] = useState('');
   const [type, setType] = useState<TypeQuestion>(TypeQuestion.CHOIX_UNIQUE);
   const [points, setPoints] = useState<number | ''>(1);
@@ -52,12 +74,12 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
   useEffect(() => {
     if (!open) return;
 
-    setQuestion('');
-    setType(TypeQuestion.CHOIX_UNIQUE);
-    setPoints(1);
-    setExplication('');
-    setOptions(makeInitialOptions(4));
-  }, [open]);
+    setQuestion(initial?.question ?? '');
+    setType((initial?.type as TypeQuestion) ?? TypeQuestion.CHOIX_UNIQUE);
+    setPoints(initial?.points ?? 1);
+    setExplication(initial?.explication ?? '');
+    setOptions(toOptionForms(initial?.options, 4));
+  }, [open, initial]);
 
   const correctCount = useMemo(() => options.filter(o => o.isCorrect).length, [options]);
 
@@ -88,20 +110,20 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
   };
 
   const addOption = () => {
-    setOptions(prev => {
-      const nextIndex = prev.length + 1;
-      return [...prev, { id: `opt_${nextIndex}`, text: '', isCorrect: false }];
-    });
+    setOptions(prev => [
+      ...prev,
+      { id: `opt_${Date.now()}_${prev.length}`, text: '', isCorrect: false },
+    ]);
   };
 
   const removeOption = (id: string) => {
     setOptions(prev => prev.filter(o => o.id !== id));
   };
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!canSubmit) return;
 
-    onAdd({
+    onSave({
       question: question.trim(),
       type,
       points: Number(points),
@@ -112,6 +134,8 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
     onOpenChange(false);
   };
 
+  const isEditing = Boolean(initial);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-2xl p-0 overflow-hidden max-h-[95vh] flex flex-col'>
@@ -119,16 +143,20 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
           <div className='flex items-start justify-between'>
             <div>
               <DialogTitle className='text-lg font-semibold text-slate-900'>
-                Nouvelle question
+                {dialogTitle ?? (isEditing ? 'Modifier la question' : 'Nouvelle question')}
               </DialogTitle>
               <p className='mt-0.5 text-sm text-slate-500'>
-                Créez une nouvelle question pour votre quiz.
+                {isEditing
+                  ? 'Modifiez la question du quiz.'
+                  : 'Créez une nouvelle question pour votre quiz.'}
               </p>
             </div>
           </div>
         </DialogHeader>
 
         <div className='flex-1 overflow-y-auto px-6 py-2 space-y-3'>
+          {/* ... ton contenu inchangé (inputs, select, options, explication) ... */}
+          {/* Je laisse le reste identique à ton code original, seul handleSave change */}
           <div className='space-y-2'>
             <Label className='text-slate-700'>
               Question <span className='text-red-500'>*</span>
@@ -207,23 +235,14 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
                     <RadioGroupItem
                       value={opt.id}
                       aria-label='Réponse correcte'
-                      className='
-                        h-3 w-3 rounded-full border border-slate-300 bg-white
-                        data-[state=checked]:bg-primary-300 data-[state=checked]:border
-                        text-primary-300
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2
-                        data-[state=checked]:[&>span]:bg-primary-300
-                        [&_[data-slot=radio-group-indicator]>svg]:fill-transparent
-                      '
+                      className=' h-3 w-3 rounded-full  text-primary-300 data-[state=checked]:bg-primary-300 data-[state=checked]:border-primary-300 data-[state=checked]:text-primary-300 data-[state=checked]:[&>span]:bg-primary-300  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2'
                     />
-
                     <Input
                       value={opt.text}
                       onChange={e => setOptionText(opt.id, e.target.value)}
                       placeholder={`Option ${idx + 1}`}
                       className='bg-slate-50 border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary-400'
                     />
-
                     <button
                       type='button'
                       onClick={() => removeOption(opt.id)}
@@ -239,19 +258,17 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
               options.map((opt, idx) => (
                 <div key={opt.id} className='flex items-center gap-3'>
                   <Checkbox
+                    className='border-primary-300 text-primary-300 data-[state=checked]:bg-primary-300 data-[state=checked]:border-primary-300 data-[state=checked]:text-white focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2'
                     checked={opt.isCorrect}
-                    className='data-[state=checked]:bg-primary-200 data-[state=checked]:border-primary-200 data-[state=checked]:text-primary-900'
                     onCheckedChange={checked => setOptionCorrect(opt.id, Boolean(checked))}
                     aria-label='Réponse correcte'
                   />
-
                   <Input
                     value={opt.text}
                     onChange={e => setOptionText(opt.id, e.target.value)}
                     placeholder={`Option ${idx + 1}`}
                     className='bg-slate-50 border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary-400'
                   />
-
                   <button
                     type='button'
                     onClick={() => removeOption(opt.id)}
@@ -263,12 +280,6 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
                 </div>
               ))
             )}
-
-            <p className='text-xs text-slate-500'>
-              {type === TypeQuestion.CHOIX_UNIQUE
-                ? 'Sélectionnez la bonne réponse avec le bouton radio'
-                : 'Sélectionnez au moins deux bonnes réponses'}
-            </p>
           </div>
 
           <div className='space-y-2'>
@@ -279,9 +290,6 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
               placeholder='Expliquez pourquoi cette réponse est correcte...'
               className='min-h-[90px] bg-slate-50 border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary-400'
             />
-            <p className='text-xs text-slate-500'>
-              Cette explication sera affichée après que l’apprenant réponde.
-            </p>
           </div>
         </div>
 
@@ -292,9 +300,9 @@ export default function QuestionDialog({ open, onOpenChange, onAdd }: Props) {
           <Button
             className='rounded-xl bg-sky-500 hover:bg-sky-400'
             disabled={!canSubmit}
-            onClick={handleAdd}
+            onClick={handleSave}
           >
-            Ajouter la question
+            {submitLabel ?? (isEditing ? 'Enregistrer' : 'Ajouter la question')}
           </Button>
         </div>
       </DialogContent>

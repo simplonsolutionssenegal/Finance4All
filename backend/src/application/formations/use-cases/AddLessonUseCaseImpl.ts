@@ -1,4 +1,3 @@
-// application/formations/use-cases/AddLessonUseCaseImpl.ts
 import type { ModuleRepository } from '@/domain/formations/ports/out/ModuleRepository';
 import type {
   AddLessonCommand,
@@ -61,11 +60,14 @@ export class AddLessonUseCaseImpl implements AddLessonUseCase {
         });
       });
 
+      // ✅ Nettoyer mediaId si vide
+      const cleanMediaId = chapterDto.mediaId?.trim() || undefined;
+
       return new Chapter(
         chapterId,
         chapterDto.title,
         chapterDto.description,
-        chapterDto.mediaId ?? undefined,
+        cleanMediaId, // ✅ Utiliser la version nettoyée
         chapterDto.order,
         undefined,
         chapterQuizzes

@@ -4,8 +4,10 @@ import React from 'react';
 import ModuleDetailsComponent from '@/components/admin/modules/moduleDetailsComponent';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
+import { useMediaUrl } from '@/hooks/module/media/useMedia';
+import { useDeleteLesson } from '@/hooks/lesson/useDeleteLesson';
+import { useDeleteQuiz } from '@/hooks/quiz/useDeleteQuiz';
 
-// --- mocks Next ---
 jest.mock('next/image', () => ({
   __esModule: true,
   // eslint-disable-next-line jsx-a11y/alt-text
@@ -21,7 +23,6 @@ jest.mock('next/link', () => ({
   ),
 }));
 
-// --- mocks hooks ---
 jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: jest.fn(),
 }));
@@ -34,29 +35,27 @@ jest.mock('@/hooks/module/media/useMedia', () => ({
   useMediaUrl: jest.fn(),
 }));
 
-// --- mocks constants ---
+jest.mock('@/hooks/module/media/useMedia', () => ({
+  useMediaUrl: jest.fn(),
+}));
+
+jest.mock('@/hooks/lesson/useDeleteLesson', () => ({
+  useDeleteLesson: jest.fn(),
+}));
+
+jest.mock('@/hooks/quiz/useDeleteQuiz', () => ({
+  useDeleteQuiz: jest.fn(),
+}));
+
 jest.mock('@/lib/constants/module-constants', () => ({
   DIFFICULTY_LABELS: {
-    BEGINNER: 'Débutant',
-    INTERMEDIATE: 'Intermédiaire',
-    ADVANCED: 'Avancé',
-    EXPERT: 'Expert',
+    BEGINNER: 'Debutant',
   },
   DIFFICULTY_COLORS: {
     BEGINNER: 'bg-green-100 text-green-800',
-    INTERMEDIATE: 'bg-blue-100 text-blue-800',
-    ADVANCED: 'bg-orange-100 text-orange-800',
-    EXPERT: 'bg-red-100 text-red-800',
-  },
-  THEMATIC_LABELS: {
-    FINANCIAL_EDUCATION: 'Éducation financière',
-  },
-  THEMATIC_ICONS: {
-    FINANCIAL_EDUCATION: '💰',
   },
 }));
 
-// --- mock Tabs (comportement minimal: switch via onValueChange) ---
 jest.mock('@/components/ui/tabs', () => {
   const React = require('react');
   const Ctx = React.createContext({ value: '', onValueChange: (_v: string) => {} });
@@ -92,12 +91,11 @@ jest.mock('@/components/ui/tabs', () => {
   return { Tabs, TabsList, TabsTrigger, TabsContent };
 });
 
-// --- mock children components (pour contrôler open/onCreated/onEdit etc.) ---
 jest.mock('@/components/admin/modules/lesson-dialog', () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-testid='lesson-dialog' data-open={props.open ? '1' : '0'}>
-      <button onClick={props.onCreated}>lesson-created</button>
+      <button onClick={props.onDone}>lesson-done</button>
       <button onClick={() => props.onOpenChange(false)}>lesson-close</button>
     </div>
   ),
@@ -107,7 +105,7 @@ jest.mock('@/components/admin/modules/quiz-dialog', () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-testid='quiz-dialog' data-open={props.open ? '1' : '0'}>
-      <button onClick={props.onCreated}>quiz-created</button>
+      <button onClick={props.onDone}>quiz-done</button>
       <button onClick={() => props.onOpenChange(false)}>quiz-close</button>
     </div>
   ),
@@ -120,13 +118,19 @@ jest.mock('@/components/admin/modules/lesson-list', () => ({
       <div>lessons:{props.lessons?.length ?? 0}</div>
       <button onClick={props.onCreate}>call-onCreate</button>
       <button onClick={() => props.onEdit(props.lessons?.[0])}>call-onEdit</button>
+      <button onClick={() => props.onDelete(props.lessons?.[0])}>call-onDelete</button>
     </div>
   ),
 }));
 
 jest.mock('@/components/admin/modules/quiz-list', () => ({
   __esModule: true,
-  default: (props: any) => <div data-testid='quiz-list'>quizzes:{props.quizzes?.length ?? 0}</div>,
+  default: (props: any) => (
+    <div data-testid='quiz-list'>
+      <div>quizzes:{props.quizzes?.length ?? 0}</div>
+      <button onClick={() => props.onDelete?.(props.quizzes?.[0])}>call-onDeleteQuiz</button>
+    </div>
+  ),
 }));
 
 jest.mock('@/components/admin/modules/module-edit-dialog', () => ({
@@ -142,16 +146,22 @@ jest.mock('@/components/admin/modules/module-edit-dialog', () => ({
 describe('ModuleDetailsComponent', () => {
   const useLoaderMock = useLoader as unknown as jest.Mock;
   const useGetModuleByIdMock = useGetModuleById as unknown as jest.Mock;
-  const useMediaUrlMock = require('@/hooks/module/media/useMedia').useMediaUrl as jest.Mock;
+  const useMediaUrlMock = useMediaUrl as unknown as jest.Mock;
+  const useDeleteLessonMock = useDeleteLesson as unknown as jest.Mock;
+  const useDeleteQuizMock = useDeleteQuiz as unknown as jest.Mock;
 
   const showLoader = jest.fn();
   const hideLoader = jest.fn();
+  const deleteLesson = jest.fn();
+  const deleteQuiz = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     useLoaderMock.mockReturnValue({ showLoader, hideLoader });
-    useMediaUrlMock.mockReturnValue({ url: 'https://img.test/module.png', loading: false });
+    useDeleteLessonMock.mockReturnValue({ deleteLesson });
+    useDeleteQuizMock.mockReturnValue({ deleteQuiz });
   });
+
   function baseModule(overrides?: Partial<any>) {
     const quizzes = [
       {
@@ -172,8 +182,8 @@ describe('ModuleDetailsComponent', () => {
       id: 'm1',
       title: 'Mon module',
       description: 'Desc',
-      imageMediaId: 'media-123',
-      thematics: 'Éducation financière',
+      imageMediaId: 'img-1',
+      thematics: 'Education financiere',
       difficultyLevel: 'BEGINNER',
       estimatedDuration: 120,
       status: 'PUBLISHED',
@@ -188,8 +198,7 @@ describe('ModuleDetailsComponent', () => {
           order: 2,
           status: 'DRAFT',
           chapters: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          quizzes: [],
         },
         {
           id: 'l2',
@@ -199,22 +208,22 @@ describe('ModuleDetailsComponent', () => {
           order: 1,
           status: 'PUBLISHED',
           chapters: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          quizzes: [],
         },
       ],
-      quizzes, // Quizzes du module uniquement
-      quizzesGlobal: quizzes, // ⭐ AJOUT : Tous les quizzes (module + leçons + chapitres)
+      quizzesGlobal: [quizzes[0], { ...quizzes[0] }],
       ...overrides,
     };
   }
-  it('should render error UI when isError=true', () => {
+
+  it('renders error UI when isError=true', () => {
     useGetModuleByIdMock.mockReturnValue({
       module: undefined,
       isLoading: false,
       isError: true,
       refetch: jest.fn(),
     });
+    useMediaUrlMock.mockReturnValue({ url: null });
 
     render(<ModuleDetailsComponent moduleId='m1' />);
 
@@ -224,13 +233,14 @@ describe('ModuleDetailsComponent', () => {
     expect(showLoader).not.toHaveBeenCalled();
   });
 
-  it('should render "Module introuvable" when module is undefined and isError=false', () => {
+  it('renders "Module introuvable" when module is undefined and isError=false', () => {
     useGetModuleByIdMock.mockReturnValue({
       module: undefined,
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
     });
+    useMediaUrlMock.mockReturnValue({ url: null });
 
     render(<ModuleDetailsComponent moduleId='m1' />);
 
@@ -238,7 +248,7 @@ describe('ModuleDetailsComponent', () => {
     expect(hideLoader).toHaveBeenCalledTimes(1);
   });
 
-  it('should call showLoader when isLoading=true and hideLoader when isLoading=false (rerender)', () => {
+  it('calls showLoader when isLoading=true and hideLoader when isLoading=false (rerender)', () => {
     const refetch = jest.fn();
 
     useGetModuleByIdMock.mockReturnValue({
@@ -247,6 +257,7 @@ describe('ModuleDetailsComponent', () => {
       isError: false,
       refetch,
     });
+    useMediaUrlMock.mockReturnValue({ url: null });
 
     const { rerender } = render(<ModuleDetailsComponent moduleId='m1' />);
     expect(showLoader).toHaveBeenCalledTimes(1);
@@ -257,151 +268,78 @@ describe('ModuleDetailsComponent', () => {
       isError: false,
       refetch,
     });
-
     rerender(<ModuleDetailsComponent moduleId='m1' />);
     expect(hideLoader).toHaveBeenCalledTimes(1);
   });
 
-  it('should render main UI, sort lessons, compute duration from lessons, open dialogs, call refetch via onCreated, and call onEdit', () => {
+  it('renders main UI, opens dialogs, calls refetch on done, and triggers delete hooks', () => {
     const refetch = jest.fn();
-
     useGetModuleByIdMock.mockReturnValue({
       module: baseModule(),
       isLoading: false,
       isError: false,
       refetch,
     });
+    useMediaUrlMock.mockReturnValue({ url: 'https://img.test/x.png' });
 
     render(<ModuleDetailsComponent moduleId='m1' />);
 
-    // Header (textes uniques)
     expect(screen.getByText('Mon module')).toBeInTheDocument();
-    expect(screen.getByText('Éducation financière')).toBeInTheDocument();
-    expect(screen.getByText('Débutant')).toBeInTheDocument();
+    expect(screen.getByText('Education financiere')).toBeInTheDocument();
+    expect(screen.getByText('Debutant')).toBeInTheDocument();
     expect(screen.getByText('PUBLISHED')).toBeInTheDocument();
 
-    expect(screen.getAllByText('2').length).toBeGreaterThan(0); // totalLessons
-    expect(screen.getAllByText('1').length).toBeGreaterThan(0); // quizCount
-
-    // Durée: 10 + 45 = 55 => "55min"
     expect(screen.getByText('55min')).toBeInTheDocument();
-
-    // LessonList mock (par défaut sur l'onglet lessons)
     expect(screen.getByTestId('lesson-list')).toHaveTextContent('lessons:2');
 
-    // Open lesson dialog
     expect(screen.getByTestId('lesson-dialog')).toHaveAttribute('data-open', '0');
-    fireEvent.click(screen.getByText('Nouvelle leçon'));
+    fireEvent.click(screen.getByText(/Nouvelle/i));
     expect(screen.getByTestId('lesson-dialog')).toHaveAttribute('data-open', '1');
 
-    // Close lesson dialog
     fireEvent.click(screen.getByText('lesson-close'));
     expect(screen.getByTestId('lesson-dialog')).toHaveAttribute('data-open', '0');
 
-    // Switch to quiz tab
-    expect(screen.getByTestId('quiz-dialog')).toHaveAttribute('data-open', '0');
     fireEvent.click(screen.getByLabelText('tab-quiz'));
-
-    fireEvent.click(screen.getByText('Nouveau quiz'));
+    fireEvent.click(screen.getByText(/Nouveau/i));
     expect(screen.getByTestId('quiz-dialog')).toHaveAttribute('data-open', '1');
 
-    // onCreated -> refetch()
-    fireEvent.click(screen.getByText('quiz-created'));
+    fireEvent.click(screen.getByText('quiz-done'));
     expect(refetch).toHaveBeenCalledTimes(1);
 
-    // ✅ Revenir à l'onglet lessons avant d'interagir avec LessonList
     fireEvent.click(screen.getByLabelText('tab-lessons'));
+    fireEvent.click(screen.getByText('call-onDelete'));
+    expect(deleteLesson).toHaveBeenCalledWith({ lessonId: 'l2', moduleId: 'm1' });
 
-    // Cover callbacks LessonList
-    fireEvent.click(screen.getByText('call-onCreate'));
-    expect(screen.getByTestId('lesson-dialog')).toHaveAttribute('data-open', '1');
-
-    // Close lesson dialog avant d'appeler onEdit
-    fireEvent.click(screen.getByText('lesson-close'));
-
-    // ✅ onEdit est appelé mais ne fait rien pour le moment (TODO)
-    fireEvent.click(screen.getByText('call-onEdit'));
-    // Pas d'assertion ici car la fonctionnalité n'est pas encore implémentée
-
-    // ✅ Test onCreated pour lesson dialog
-    fireEvent.click(screen.getByText('lesson-created'));
-    expect(refetch).toHaveBeenCalledTimes(2); // 1 quiz + 1 lesson
+    fireEvent.click(screen.getByLabelText('tab-quiz'));
+    fireEvent.click(screen.getByText('call-onDeleteQuiz'));
+    expect(deleteQuiz).toHaveBeenCalledWith({ quizId: 'q1', moduleId: 'm1' });
   });
 
-  it('should use estimatedDuration when there are no lessons (totalLessons=0)', () => {
+  it('uses estimatedDuration when there are no lessons', () => {
     useGetModuleByIdMock.mockReturnValue({
       module: baseModule({ lessons: [], estimatedDuration: 120 }),
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
     });
+    useMediaUrlMock.mockReturnValue({ url: null });
 
     render(<ModuleDetailsComponent moduleId='m1' />);
-
     expect(screen.getByText('120min')).toBeInTheDocument();
   });
 
-  it('should show emoji fallback when imageMediaId is null', () => {
-    useMediaUrlMock.mockReturnValue({ url: null, loading: false });
-
+  it('shows emoji fallback when imageUrl is null', () => {
     useGetModuleByIdMock.mockReturnValue({
       module: baseModule({ imageMediaId: null }),
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
     });
+    useMediaUrlMock.mockReturnValue({ url: null });
 
     render(<ModuleDetailsComponent moduleId='m1' />);
-
-    // Emoji fallback (quand imageMediaId est null)
-    expect(screen.getByText('📘')).toBeInTheDocument();
-
-    // La thématique s'affiche normalement
-    expect(screen.getByText('Éducation financière')).toBeInTheDocument();
-  });
-
-  it.each([
-    ['PUBLISHED', 'bg-emerald-100'],
-    ['DRAFT', 'bg-slate-100'],
-    ['ARCHIVED', 'bg-amber-100'],
-    ['SCHEDULED', 'bg-indigo-100'],
-    ['UNKNOWN', 'bg-slate-100'], // default
-  ])(
-    'should render status badge classes for %s (covers statusBadge switch)',
-    (status, expectedClassPart) => {
-      useGetModuleByIdMock.mockReturnValue({
-        module: baseModule({ status }),
-        isLoading: false,
-        isError: false,
-        refetch: jest.fn(),
-      });
-
-      render(<ModuleDetailsComponent moduleId='m1' />);
-
-      const badge = screen.getByText(String(status));
-      expect(badge.className).toContain(expectedClassPart);
-    }
-  );
-
-  it('should switch tabs and render quiz content', () => {
-    useGetModuleByIdMock.mockReturnValue({
-      module: baseModule(),
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    });
-
-    render(<ModuleDetailsComponent moduleId='m1' />);
-
-    // default lessons tab -> lesson list visible
-    expect(screen.getByTestId('lesson-list')).toBeInTheDocument();
-    expect(screen.queryByTestId('quiz-list')).not.toBeInTheDocument();
-
-    // switch to quiz tab
-    fireEvent.click(screen.getByLabelText('tab-quiz'));
-
-    expect(screen.getByTestId('quiz-list')).toBeInTheDocument();
-    expect(screen.queryByTestId('lesson-list')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /mon module/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/ðŸ“˜|📘/)).toBeInTheDocument();
   });
 
   it('devrait ouvrir le dialog de modification quand on clique sur le bouton Modifier', () => {

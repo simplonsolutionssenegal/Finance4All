@@ -16,6 +16,7 @@ describe('PrismaQuizRepository', () => {
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
   });
 
@@ -482,6 +483,21 @@ describe('PrismaQuizRepository', () => {
       prisma.quiz.findUnique.mockResolvedValueOnce(quiz3);
       const result3 = await repo.findById(quiz3.id);
       expect(result3?.nombreTentatives).toBe(3);
+    });
+  });
+
+  describe('delete', () => {
+    it('should call prisma.quiz.delete with id', async () => {
+      const prisma = makePrismaMock();
+      prisma.quiz.delete.mockResolvedValueOnce(makePrismaQuiz());
+
+      const repo = new PrismaQuizRepository(prisma as any);
+
+      await repo.delete('quiz-1');
+
+      expect(prisma.quiz.delete).toHaveBeenCalledWith({
+        where: { id: 'quiz-1' },
+      });
     });
   });
 });
