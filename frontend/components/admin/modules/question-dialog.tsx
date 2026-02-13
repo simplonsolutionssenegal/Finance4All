@@ -232,7 +232,11 @@ export default function QuestionDialog({
               >
                 {options.map((opt, idx) => (
                   <div key={opt.id} className='flex items-center gap-3'>
-                    <RadioGroupItem value={opt.id} aria-label='Réponse correcte' />
+                    <RadioGroupItem
+                      value={opt.id}
+                      aria-label='Réponse correcte'
+                      className=' h-3 w-3 rounded-full  text-primary-300 data-[state=checked]:bg-primary-300 data-[state=checked]:border-primary-300 data-[state=checked]:text-primary-300 data-[state=checked]:[&>span]:bg-primary-300  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2'
+                    />
                     <Input
                       value={opt.text}
                       onChange={e => setOptionText(opt.id, e.target.value)}
@@ -254,6 +258,7 @@ export default function QuestionDialog({
               options.map((opt, idx) => (
                 <div key={opt.id} className='flex items-center gap-3'>
                   <Checkbox
+                    className='border-primary-300 text-primary-300 data-[state=checked]:bg-primary-300 data-[state=checked]:border-primary-300 data-[state=checked]:text-white focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2'
                     checked={opt.isCorrect}
                     onCheckedChange={checked => setOptionCorrect(opt.id, Boolean(checked))}
                     aria-label='Réponse correcte'
