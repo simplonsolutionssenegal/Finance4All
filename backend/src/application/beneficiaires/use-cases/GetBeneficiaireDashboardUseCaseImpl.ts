@@ -54,20 +54,69 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
     );
     const progressByMediaId = new Map(userProgressList.map(p => [p.mediaId, p]));
 
+    // Calculate total videos and completed videos
+    let totalVideos = 0;
+    let completedVideos = 0;
+    const mediaIdToChapterMap = new Map<
+      string,
+      { chapterId: string; chapterTitle: string; lessonTitle: string; moduleTitle: string }
+    >();
+
     let completedCount = 0;
     let inProgressCount = 0;
     const moduleCompletionDates: Date[] = [];
+    const timeByModuleMap = new Map<
+      string,
+      {
+        moduleId: string;
+        moduleTitle: string;
+        totalSeconds: number;
+        totalMedias: number;
+        completedMedias: number;
+      }
+    >();
 
     for (const module of publishedModules) {
       const mediaIds: string[] = [];
+      let moduleSeconds = 0;
+      let moduleCompletedMedias = 0;
+
       for (const lesson of module.lessons) {
         for (const chapter of lesson.chapters) {
-          if (chapter.mediaId) mediaIds.push(chapter.mediaId);
+          if (chapter.mediaId) {
+            totalVideos += 1;
+            mediaIds.push(chapter.mediaId);
+            mediaIdToChapterMap.set(chapter.mediaId, {
+              chapterId: chapter.id.getValue(),
+              chapterTitle: chapter.title,
+              lessonTitle: lesson.title,
+              moduleTitle: module.title,
+            });
+
+            if (completedMediaIds.has(chapter.mediaId)) {
+              completedVideos += 1;
+              moduleCompletedMedias += 1;
+            }
+
+            const progress = progressByMediaId.get(chapter.mediaId);
+            if (progress) {
+              moduleSeconds += progress.currentPosition;
+            }
+          }
         }
       }
 
+      if (mediaIds.length > 0) {
+        timeByModuleMap.set(module.id.getValue(), {
+          moduleId: module.id.getValue(),
+          moduleTitle: module.title,
+          totalSeconds: moduleSeconds,
+          totalMedias: mediaIds.length,
+          completedMedias: moduleCompletedMedias,
+        });
+      }
+
       if (mediaIds.length === 0) {
-        inProgressCount += 0;
         continue;
       }
 
@@ -90,6 +139,7 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
 
     const notStartedCount = totalModules - completedCount - inProgressCount;
 
+    // Total learning time
     const totalSeconds = userProgressList.reduce((acc, p) => acc + p.currentPosition, 0);
     const learningTime = formatLearningTime(totalSeconds);
 
@@ -123,7 +173,38 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
         ? `+${globalProgress - previousMonthProgress}% ce mois`
         : '+0% ce mois';
 
+    // Videos watched trend
+    const videosCompletedThisWeek = userProgressList.filter(
+      p => p.isCompleted && p.lastWatchedAt >= startOfWeek
+    ).length;
+    const videosWatchedTrend =
+      videosCompletedThisWeek > 0
+        ? `+${videosCompletedThisWeek} cette semaine`
+        : '+0 cette semaine';
+
+    // Calculate average session time
+    const averageSessionTime = this.calculateAverageSessionTime(userProgressList);
+
+    // Calculate learning streak
+    const learningStreakDays = this.calculateLearningStreak(userProgressList);
+
+    // Monthly progress with enhanced data
     const monthlyProgress = this.buildMonthlyProgress(userProgressList);
+
+    // Recent activity
+    const recentActivity = this.buildRecentActivity(userProgressList, mediaIdToChapterMap);
+
+    // Time by module (top 5)
+    const timeByModule = Array.from(timeByModuleMap.values())
+      .sort((a, b) => b.totalSeconds - a.totalSeconds)
+      .slice(0, 5)
+      .map(m => ({
+        moduleId: m.moduleId,
+        moduleTitle: m.moduleTitle,
+        totalSeconds: m.totalSeconds,
+        completionPercent:
+          m.totalMedias > 0 ? Math.round((m.completedMedias / m.totalMedias) * 100) : 0,
+      }));
 
     const quizzesPassed = 0;
     const totalQuizzes = 0;
@@ -142,6 +223,10 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
         learningTimeTrend,
         globalProgressTrend,
         quizzesPassedTrend,
+        videosWatched: { current: completedVideos, total: totalVideos },
+        videosWatchedTrend,
+        averageSessionTime,
+        learningStreakDays,
       },
       moduleStats: {
         completed: completedCount,
@@ -150,30 +235,158 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
         total: totalModules,
       },
       monthlyProgress,
+      recentActivity,
+      timeByModule,
     };
   }
 
+  private calculateAverageSessionTime(
+    userProgressList: Array<{ currentPosition: number; lastWatchedAt: Date }>
+  ): string {
+    if (userProgressList.length === 0) return '0m';
+
+    // Group by day to estimate sessions
+    const sessionsByDay = new Map<string, number>();
+    for (const progress of userProgressList) {
+      const dayKey = progress.lastWatchedAt.toISOString().split('T')[0];
+      const current = sessionsByDay.get(dayKey) ?? 0;
+      sessionsByDay.set(dayKey, current + progress.currentPosition);
+    }
+
+    if (sessionsByDay.size === 0) return '0m';
+
+    const totalSeconds = Array.from(sessionsByDay.values()).reduce((acc, val) => acc + val, 0);
+    const avgSeconds = Math.round(totalSeconds / sessionsByDay.size);
+    return formatLearningTime(avgSeconds);
+  }
+
+  private calculateLearningStreak(userProgressList: Array<{ lastWatchedAt: Date }>): number {
+    if (userProgressList.length === 0) return 0;
+
+    // Get unique days with activity
+    const activityDays = new Set(
+      userProgressList.map(p => p.lastWatchedAt.toISOString().split('T')[0])
+    );
+    const sortedDays = Array.from(activityDays).sort().reverse();
+
+    if (sortedDays.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Streak must include today or yesterday
+    if (sortedDays[0] !== todayStr && sortedDays[0] !== yesterdayStr) {
+      return 0;
+    }
+
+    let streak = 1;
+    let currentDate = new Date(sortedDays[0]);
+
+    for (let i = 1; i < sortedDays.length; i++) {
+      const prevDate = new Date(currentDate);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const expectedPrevDay = prevDate.toISOString().split('T')[0];
+
+      if (sortedDays[i] === expectedPrevDay) {
+        streak += 1;
+        currentDate = new Date(sortedDays[i]);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
   private buildMonthlyProgress(
-    userProgressList: Array<{ isCompleted: boolean; lastWatchedAt: Date }>
-  ): Array<{ month: string; progress: number }> {
+    userProgressList: Array<{ isCompleted: boolean; lastWatchedAt: Date; currentPosition: number }>
+  ): Array<{ month: string; progress: number; totalMinutes: number; sessions: number }> {
     const now = new Date();
-    const result: Array<{ month: string; progress: number }> = [];
+    const result: Array<{
+      month: string;
+      progress: number;
+      totalMinutes: number;
+      sessions: number;
+    }> = [];
 
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
       const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 
-      const count = userProgressList.filter(
-        p => p.isCompleted && p.lastWatchedAt >= monthStart && p.lastWatchedAt <= monthEnd
-      ).length;
+      const monthProgress = userProgressList.filter(
+        p => p.lastWatchedAt >= monthStart && p.lastWatchedAt <= monthEnd
+      );
+
+      const count = monthProgress.filter(p => p.isCompleted).length;
+      const totalSeconds = monthProgress.reduce((acc, p) => acc + p.currentPosition, 0);
+      const totalMinutes = Math.round(totalSeconds / 60);
+
+      // Estimate sessions by unique days in month
+      const uniqueDays = new Set(
+        monthProgress.map(p => p.lastWatchedAt.toISOString().split('T')[0])
+      );
+      const sessions = uniqueDays.size;
 
       result.push({
         month: MONTH_LABELS[d.getMonth()],
         progress: count,
+        totalMinutes,
+        sessions,
       });
     }
 
     return result;
+  }
+
+  private buildRecentActivity(
+    userProgressList: Array<{
+      mediaId: string;
+      completionRate: number;
+      lastWatchedAt: Date;
+      duration: number;
+      currentPosition: number;
+    }>,
+    mediaIdToChapterMap: Map<
+      string,
+      { chapterId: string; chapterTitle: string; lessonTitle: string; moduleTitle: string }
+    >
+  ): Array<{
+    chapterId: string;
+    chapterTitle: string;
+    lessonTitle: string;
+    moduleTitle: string;
+    progress: number;
+    lastWatchedAt: Date;
+    remainingTime: string;
+  }> {
+    const sorted = [...userProgressList]
+      .sort((a, b) => b.lastWatchedAt.getTime() - a.lastWatchedAt.getTime())
+      .slice(0, 5);
+
+    return sorted
+      .map(p => {
+        const chapterInfo = mediaIdToChapterMap.get(p.mediaId);
+        if (!chapterInfo) return null;
+
+        const remainingSeconds = Math.max(0, p.duration - p.currentPosition);
+        const remainingTime = formatLearningTime(remainingSeconds);
+
+        return {
+          chapterId: chapterInfo.chapterId,
+          chapterTitle: chapterInfo.chapterTitle,
+          lessonTitle: chapterInfo.lessonTitle,
+          moduleTitle: chapterInfo.moduleTitle,
+          progress: Math.round(p.completionRate),
+          lastWatchedAt: p.lastWatchedAt,
+          remainingTime,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
   }
 }

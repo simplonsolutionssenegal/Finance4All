@@ -11,6 +11,11 @@ export interface BeneficiaireStats {
   learningTimeTrend?: string;
   globalProgressTrend?: string;
   quizzesPassedTrend?: string;
+  // New streaming metrics
+  videosWatched: { current: number; total: number };
+  videosWatchedTrend?: string;
+  averageSessionTime: string;
+  learningStreakDays: number;
 }
 
 export interface BeneficiaireModuleStats {
@@ -23,12 +28,33 @@ export interface BeneficiaireModuleStats {
 export interface BeneficiaireMonthlyProgress {
   month: string;
   progress: number;
+  totalMinutes: number;
+  sessions: number;
+}
+
+export interface BeneficiaireRecentActivity {
+  chapterId: string;
+  chapterTitle: string;
+  lessonTitle: string;
+  moduleTitle: string;
+  progress: number;
+  lastWatchedAt: Date;
+  remainingTime: string;
+}
+
+export interface BeneficiaireTimeByModule {
+  moduleId: string;
+  moduleTitle: string;
+  totalSeconds: number;
+  completionPercent: number;
 }
 
 export interface BeneficiaireDashboardData {
   stats: BeneficiaireStats;
   moduleStats: BeneficiaireModuleStats;
   monthlyProgress: BeneficiaireMonthlyProgress[];
+  recentActivity: BeneficiaireRecentActivity[];
+  timeByModule: BeneficiaireTimeByModule[];
 }
 
 interface UseBeneficiaireDashboardDataReturn {
