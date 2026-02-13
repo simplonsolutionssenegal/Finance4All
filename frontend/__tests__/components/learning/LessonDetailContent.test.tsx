@@ -1,4 +1,4 @@
-﻿import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import LessonDetailContent from '@/components/learning/LessonDetailContent';
@@ -147,6 +147,11 @@ describe('LessonDetailContent', () => {
   it('allows navigating between unlocked chapters', async () => {
     const user = userEvent.setup();
     mockUseSearchParams.mockReturnValue(new URLSearchParams('chapter=chapter-1'));
+    // Simuler la mise à jour de l’URL quand router.replace est appelé (comme en prod)
+    mockReplace.mockImplementation((url: string) => {
+      const query = url.includes('?') ? url.split('?')[1] : '';
+      mockUseSearchParams.mockReturnValue(new URLSearchParams(query));
+    });
     const chapters: Chapter[] = [
       createChapter({ id: 'chapter-1', order: 1 }),
       createChapter({ id: 'chapter-2', order: 2, title: 'Chapitre 2' }),
