@@ -1,4 +1,4 @@
-﻿import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import ModuleDetailClient from '@/components/learning/ModuleDetailClient';
 import { LessonStatus, QuizStatus, type Quiz } from '@/types/learning/lesson';
@@ -14,6 +14,10 @@ jest.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
   ),
+}));
+
+jest.mock('@clerk/nextjs', () => ({
+  useUser: jest.fn(() => ({ isLoaded: true })),
 }));
 
 jest.mock('@/hooks/module/useGetModuleById', () => ({
@@ -60,18 +64,35 @@ describe('ModuleDetailClient', () => {
     expect(screen.getByText(/chargement du module/i)).toBeInTheDocument();
   });
 
+  it('renders generic loading when Clerk is not loaded', () => {
+    const { useUser } = jest.requireMock('@clerk/nextjs');
+    (useUser as jest.Mock).mockReturnValueOnce({ isLoaded: false });
+    mockUseGetModuleById.mockReturnValue({
+      module: undefined,
+      isLoading: true,
+      isError: false,
+    });
+
+    render(<ModuleDetailClient moduleId='module-1' />);
+
+    expect(screen.getByText(/chargement/i)).toBeInTheDocument();
+  });
+
   it('renders error state when module is missing', () => {
     mockUseGetModuleById.mockReturnValue({
       module: undefined,
       isLoading: false,
       isError: true,
+      error: new Error('Not found'),
+      refetch: jest.fn(),
     });
     mockUseGetMediaById.mockReturnValue({ media: null });
     mockUseQuizProgressMap.mockReturnValue({ progressMap: new Map() });
 
     render(<ModuleDetailClient moduleId='module-1' />);
 
-    expect(screen.getByText(/module introuvable/i)).toBeInTheDocument();
+    expect(screen.getByText(/not found|module introuvable/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /réessayer/i })).toBeInTheDocument();
   });
 
   it('renders stats from progress and passes maps to ModuleTabs', () => {

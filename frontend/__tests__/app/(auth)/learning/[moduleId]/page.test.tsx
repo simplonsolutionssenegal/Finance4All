@@ -2,48 +2,75 @@
  * @jest-environment jsdom
  */
 
-import { auth } from '@clerk/nextjs/server';
-import { render } from '@testing-library/react';
-import { redirect } from 'next/navigation';
+import { render, screen, waitFor } from '@testing-library/react';
 
 import ModulePage from '@/app/(auth)/learning/[moduleId]/page';
 import ModuleDetailClient from '@/components/learning/ModuleDetailClient';
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useParams: jest.fn(),
+  useRouter: jest.fn(() => ({ push: mockPush })),
 }));
 
-jest.mock('next/navigation', () => ({
-  redirect: jest.fn(() => {
-    throw new Error('NEXT_REDIRECT');
-  }),
+jest.mock('@clerk/nextjs', () => ({
+  useUser: jest.fn(),
 }));
 
 jest.mock('@/components/learning/ModuleDetailClient', () => {
   return jest.fn(() => <div data-testid='module-detail' />);
 });
 
+const { useUser } = require('@clerk/nextjs');
+const { useParams } = require('next/navigation');
+
 describe('Module detail page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (useParams as jest.Mock).mockReturnValue({ moduleId: 'module-1' });
   });
 
   it('redirige vers /login si non authentifié', async () => {
-    (auth as unknown as jest.Mock).mockResolvedValue({ userId: null });
+    (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
 
-    await expect(ModulePage({ params: Promise.resolve({ moduleId: 'module-1' }) })).rejects.toThrow(
-      'NEXT_REDIRECT'
-    );
+    render(<ModulePage />);
 
-    expect(redirect).toHaveBeenCalledWith('/login');
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/login');
+    });
   });
 
-  it('rend ModuleDetailClient avec moduleId', async () => {
-    (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' });
+  it('affiche Chargement quand Clerk n’est pas chargé', () => {
+    (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: false });
 
-    const result = await ModulePage({ params: Promise.resolve({ moduleId: 'module-1' }) });
-    render(result);
+    render(<ModulePage />);
+
+    expect(screen.getByText(/Chargement/)).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('rend ModuleDetailClient avec moduleId quand utilisateur connecté', () => {
+    (useUser as jest.Mock).mockReturnValue({
+      user: { id: 'user-1' },
+      isLoaded: true,
+    });
+
+    render(<ModulePage />);
 
     expect(ModuleDetailClient).toHaveBeenCalledWith({ moduleId: 'module-1' }, undefined);
+    expect(screen.getByTestId('module-detail')).toBeInTheDocument();
+  });
+
+  it('affiche Module introuvable quand moduleId est vide', () => {
+    (useParams as jest.Mock).mockReturnValue({ moduleId: '' });
+    (useUser as jest.Mock).mockReturnValue({
+      user: { id: 'user-1' },
+      isLoaded: true,
+    });
+
+    render(<ModulePage />);
+
+    expect(screen.getByText(/Module introuvable/)).toBeInTheDocument();
+    expect(ModuleDetailClient).not.toHaveBeenCalled();
   });
 });

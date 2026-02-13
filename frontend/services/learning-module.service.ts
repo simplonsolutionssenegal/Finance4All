@@ -13,6 +13,7 @@ interface ModuleResponse {
     status: ModuleStatus;
     thematics?: string;
     lessonCount?: number;
+    lessons?: unknown[];
     userStatus?: UserModuleStatus;
     progressPercent?: number;
   }[];
@@ -23,6 +24,13 @@ interface ModuleResponse {
     totalPages: number;
   };
   message: string;
+}
+
+function getLessonCount(module: ModuleResponse['data'][number]): number {
+  if (typeof module.lessonCount === 'number' && module.lessonCount >= 0) {
+    return module.lessonCount;
+  }
+  return Array.isArray(module.lessons) ? module.lessons.length : 0;
 }
 
 export const learningModuleService = {
@@ -38,7 +46,7 @@ export const learningModuleService = {
         estimatedDuration: module.estimatedDuration,
         status: module.status,
         imageMediaId: module.imageMediaId || null,
-        lessonCount: module.lessonCount ?? 0,
+        lessonCount: getLessonCount(module),
         userStatus: module.userStatus ?? UserModuleStatus.AVAILABLE,
         progressPercent: module.progressPercent ?? 0,
         thematic: module.thematics,

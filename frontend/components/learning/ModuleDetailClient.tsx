@@ -1,5 +1,6 @@
-﻿'use client';
+'use client';
 
+import { useUser } from '@clerk/nextjs';
 import { BookOpen, Award, TrendingUp, Clock, Target, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,8 +26,15 @@ import {
   type ChapterProgressStatus,
 } from '@/types/learning/lesson';
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Module introuvable ou indisponible.';
+}
+
 export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
-  const { module: moduleData, isLoading, isError } = useGetModuleById(moduleId);
+  const { isLoaded: clerkLoaded } = useUser();
+  const { module: moduleData, isLoading, isError, error, refetch } = useGetModuleById(moduleId);
   const { media: moduleImage } = useGetMediaById(moduleData?.imageMediaId ?? '');
 
   const rawLessons = useMemo(() => (moduleData?.lessons ?? []) as BackendLesson[], [moduleData]);
@@ -172,24 +180,34 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
   }, [quizzes, progressMap]);
   const globalProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-  if (isLoading) {
+  if (!clerkLoaded) {
     return (
-      <div className='min-h-[calc(100vh-3rem)] bg-grey-50 secondary-400'>
-        <div className='mx-auto flex max-w-5xl flex-col gap-8 px-4 pb-10 pt-4'>
-          <p className='text-sm text-grey-600'>Chargement du module...</p>
-        </div>
+      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+        <div className='animate-pulse text-gray-500 font-medium'>Chargement...</div>
       </div>
     );
   }
 
-  if (isError || !moduleData) {
+  if (isError) {
+    const message = error ? getErrorMessage(error) : 'Module introuvable ou indisponible.';
     return (
-      <div className='min-h-[calc(100vh-3rem)] bg-grey-50 secondary-400'>
-        <div className='mx-auto flex max-w-5xl flex-col gap-8 px-4 pb-10 pt-4'>
-          <p className='rounded-2xl border border-grey-200 bg-white p-6 text-center text-sm text-grey-600 shadow-sm'>
-            Module introuvable ou indisponible.
-          </p>
-        </div>
+      <div className='flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6'>
+        <p className='text-red-600 font-medium'>{message}</p>
+        <button
+          type='button'
+          onClick={() => refetch()}
+          className='mt-4 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800'
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  if (isLoading || !moduleData) {
+    return (
+      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+        <div className='animate-pulse text-gray-500 font-medium'>Chargement du module...</div>
       </div>
     );
   }
