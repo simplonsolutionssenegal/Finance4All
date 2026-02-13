@@ -3,25 +3,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Coins,
-  FileText,
-  MoveRight,
-  Plus,
-  Settings,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Coins, FileText, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 
-import Chip from '@/components/admin/institutions/Chip';
 import NumericFormField from '@/components/admin/institutions/NumericFormField';
+// import { FeeOption } from '@/components/admin/services/FeeOption';
+// import { TagInputField } from '@/components/admin/services/TagInputField';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -32,8 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { RadioGroup } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -43,405 +32,21 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateService } from '@/hooks/service/useCreateService';
-import { TypeService, type CreateServiceDto } from '@/types/Service';
+import {
+  serviceSchema,
+  type ServiceFormData,
+  Currency,
+  FEE_OPTIONS,
+  toServicePayload,
+} from '@/lib/serviceForm.shared';
+import { TypeService } from '@/types/Service';
 
-enum Currency {
-  AUD = 'AUD',
-  CAD = 'CAD',
-  CHF = 'CHF',
-  DKK = 'DKK',
-  GBP = 'GBP',
-  JPY = 'JPY',
-  NOK = 'NOK',
-  SEK = 'SEK',
-  USD = 'USD',
-  ZAR = 'ZAR',
-  SAR = 'SAR',
-  ARS = 'ARS',
-  BRL = 'BRL',
-  BGN = 'BGN',
-  XAF = 'XAF',
-  XOF = 'XOF',
-  CLP = 'CLP',
-  CNY = 'CNY',
-  COP = 'COP',
-  KRW = 'KRW',
-  CRC = 'CRCAED ',
-  AEDHKD = 'HKDHUF ',
-  HUFINR = 'INR',
-  IDR = 'IDR',
-  ISK = 'ISK',
-  ILS = 'ILS',
-  JOD = 'JOD',
-  KES = 'KES',
-  LBP = 'LBP',
-  MYR = 'MYR',
-  MAD = 'MAD',
-  MUR = 'MUR',
-  MXN = 'MXN',
-  NZD = 'NZD',
-  OMR = 'OMR',
-  PEN = 'PEN',
-  PHP = 'PHP',
-  PLN = 'PLN',
-  QAR = 'QAR',
-  DOP = 'DOP',
-  CZK = 'CZK',
-  RON = 'RON',
-  RUB = 'RUB',
-  RSD = 'RSD',
-  SGD = 'SGD',
-  LKR = 'LKR',
-  TWD = 'TWD',
-  THB = 'THB',
-  TRY = 'TRY',
-  VND = 'VND',
-}
-const serviceSchema = z
-  .object({
-    name: z
-      .string()
-      .min(3, 'Le champ nom service est obligatoire *')
-      .refine(val => val.trim().length >= 2, {
-        message: 'Le nom doit contenir au moins 2 caractères (hors espaces) *',
-      }),
-    longName: z
-      .string()
-      .min(1, 'Le champ description est obligatoire *')
-      .refine(val => val.trim().length >= 2, {
-        message: 'La description doit contenir au moins 2 caractères (hors espaces) *',
-      }),
-    type: z.enum(
-      [
-        TypeService.PAIEMENT_MARCHAND,
-        TypeService.ACHAT_CREDIT,
-        TypeService.PAIEMENT_FACTURES,
-        TypeService.DEPOT_SIMPLE,
-        TypeService.DEPOT_RETRAIT_SIMPLE,
-        TypeService.RETRAIT_SIMPLE,
-        TypeService.TRANSFERT_ARGENT,
-        TypeService.BANQUE_WALLET,
-        TypeService.WALLET_BANQUE,
-        TypeService.EPARGNE,
-        TypeService.CREDIT,
-        TypeService.ASSURANCE,
-        TypeService.AUTRES,
-      ],
-      { message: '* Veuillez sélectionner un type de service' }
-    ),
-    montantMin: z.number().positive('Doit être ≥ 0').optional(),
-    montantMax: z.number().positive('Doit être ≥ 0').optional(),
-
-    feeTypeUI: z.enum(['FREE', 'FIX', 'MIXTE', 'POURCENTAGE', 'CHANGE'], {
-      message: '* Veuillez sélectionner un type de frais',
-    }),
-
-    frais: z.object({
-      montantFixe: z.number().positive('Doit être ≥ 0').optional(),
-      pourcentage: z.number().positive('Doit être ≥ 0').max(100, 'Doit être ≤ 100').optional(),
-      minimum: z.number().positive('Doit être ≥ 0').optional(),
-      maximum: z.number().positive('Doit être ≥ 0').optional(),
-      // ✅ CHANGEMENT ICI : fraisChange devient un objet
-      fraisChange: z
-        .object({
-          fxSurcharge: z.number().positive('Doit être ≥ 0'),
-          devise: z.enum(
-            [
-              Currency.AUD,
-              Currency.CAD,
-              Currency.CHF,
-              Currency.DKK,
-              Currency.GBP,
-              Currency.JPY,
-              Currency.NOK,
-              Currency.SEK,
-              Currency.USD,
-              Currency.ZAR,
-              Currency.SAR,
-              Currency.ARS,
-              Currency.BRL,
-              Currency.BGN,
-              Currency.XAF,
-              Currency.XOF,
-              Currency.CLP,
-              Currency.CNY,
-              Currency.COP,
-              Currency.KRW,
-              Currency.CRC,
-              Currency.IDR,
-              Currency.ISK,
-              Currency.ILS,
-              Currency.JOD,
-              Currency.KES,
-              Currency.LBP,
-              Currency.MYR,
-              Currency.MAD,
-              Currency.MUR,
-              Currency.MXN,
-              Currency.NZD,
-              Currency.OMR,
-              Currency.PEN,
-              Currency.PHP,
-              Currency.PLN,
-              Currency.QAR,
-              Currency.DOP,
-              Currency.CZK,
-              Currency.RON,
-              Currency.RUB,
-              Currency.RSD,
-              Currency.SGD,
-              Currency.LKR,
-              Currency.TWD,
-              Currency.THB,
-              Currency.TRY,
-              Currency.VND,
-            ],
-            { message: 'Choisissez une devise' }
-          ),
-        })
-        .optional(),
-    }),
-
-    conditionAccess: z.array(z.string()),
-    plafonds: z.array(z.string()),
-    infrastructureAccess: z.array(z.string()),
-  })
-  .refine(v => v.montantMin == null || v.montantMax == null || v.montantMin <= v.montantMax, {
-    message: 'montantMin doit être ≤ montantMax',
-    path: ['montantMax'],
-  })
-  .superRefine((v, ctx) => {
-    if (v.feeTypeUI === 'FREE') {
-      const anyFee =
-        v.frais.montantFixe != null ||
-        v.frais.pourcentage != null ||
-        v.frais.minimum != null ||
-        v.frais.maximum != null ||
-        v.frais.fraisChange != null;
-
-      if (anyFee) {
-        ctx.addIssue({
-          code: 'custom',
-          message: "Le service est gratuit : n'indiquez aucun frais.",
-          path: ['frais'],
-        });
-      }
-      return;
-    }
-
-    if (v.feeTypeUI === 'FIX') {
-      if (v.frais.montantFixe == null || Number.isNaN(v.frais.montantFixe)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ montant fixe est obligatoire *',
-          path: ['frais', 'montantFixe'],
-        });
-      }
-      return;
-    }
-
-    if (v.feeTypeUI === 'MIXTE') {
-      if (v.frais.montantFixe == null || Number.isNaN(v.frais.montantFixe)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ montant fixe est obligatoire *',
-          path: ['frais', 'montantFixe'],
-        });
-      }
-      if (v.frais.pourcentage == null || Number.isNaN(v.frais.pourcentage)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ pourcentage est obligatoire *',
-          path: ['frais', 'pourcentage'],
-        });
-      }
-      return;
-    }
-
-    if (v.feeTypeUI === 'POURCENTAGE') {
-      if (v.frais.pourcentage == null || Number.isNaN(v.frais.pourcentage)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Le champ pourcentage est obligatoire *',
-          path: ['frais', 'pourcentage'],
-        });
-      }
-      if (
-        v.frais.minimum != null &&
-        v.frais.maximum != null &&
-        !Number.isNaN(v.frais.minimum) &&
-        !Number.isNaN(v.frais.maximum) &&
-        v.frais.minimum > v.frais.maximum
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'minimum doit être ≤ maximum',
-          path: ['frais', 'maximum'],
-        });
-      }
-    }
-
-    if (v.feeTypeUI === 'CHANGE') {
-      // ✅ CHANGEMENT ICI : validation de l'objet complet
-      if (!v.frais.fraisChange) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Les frais de change sont obligatoires *',
-          path: ['frais', 'fraisChange'],
-        });
-      } else {
-        if (
-          v.frais.fraisChange.fxSurcharge == null ||
-          Number.isNaN(v.frais.fraisChange.fxSurcharge)
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Le champ montant devise est obligatoire *',
-            path: ['frais', 'fraisChange', 'fxSurcharge'],
-          });
-        }
-        if (!v.frais.fraisChange.devise) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'La devise de référence est obligatoire *',
-            path: ['frais', 'fraisChange', 'devise'],
-          });
-        }
-      }
-    }
-  });
-
-type ServiceFormData = z.infer<typeof serviceSchema>;
-
-type TagInputFieldProps = {
-  label: string;
-  placeholder: string;
-  value: string[];
-  onChange: (value: string[]) => void;
-  disabled?: boolean;
-  error?: boolean;
-};
+import { FeeOption } from './FeeOption';
+import { TagInputField } from './TagInputField';
 
 const cx = (...c: (string | boolean | undefined)[]) => c.filter(Boolean).join(' ');
 
 type NewServiceComponentProps = { institutionId: string };
-
-const TagInputField = ({
-  label,
-  placeholder,
-  value,
-  onChange,
-  disabled = false,
-  error = false,
-}: TagInputFieldProps) => {
-  const [input, setInput] = useState('');
-
-  const handleAdd = () => {
-    const next = input.trim();
-    if (!next) return;
-    if (!value.includes(next)) {
-      onChange([...value, next]);
-    }
-    setInput('');
-  };
-
-  const handleRemoveByValue = (val: string) => {
-    if (!disabled) onChange(value.filter(v => v !== val));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAdd();
-    }
-  };
-
-  return (
-    <>
-      <FormLabel className='text-sm font-normal '>{label}</FormLabel>
-      <div className='flex gap-2'>
-        <Input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder={placeholder}
-          className={cx(
-            'bg-[#F8F9FA] shadow-none transition-all',
-            'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent',
-            error ? 'border-red-500 focus:ring-red-500' : 'border-transparent'
-          )}
-          disabled={disabled}
-          onKeyDown={handleKeyDown}
-        />
-        <Button
-          type='button'
-          onClick={handleAdd}
-          disabled={disabled || !input.trim()}
-          className='bg-cyan-400 hover:bg-cyan-500'
-        >
-          <Plus className='w-4 h-4' />
-        </Button>
-      </div>
-
-      {value.length > 0 && (
-        <div className='flex flex-wrap gap-2 mt-2'>
-          {value.map(item => (
-            <Chip
-              key={item}
-              variant='secondary'
-              onClick={() => handleRemoveByValue(item)}
-              className='bg-gray-200 px-3 py-1'
-              ariaLabel={`Supprimer ${item}`}
-            >
-              {item}
-              <X className='w-3 h-3 ml-1' />
-            </Chip>
-          ))}
-        </div>
-      )}
-
-      <FormMessage className='text-xs text-red-600 min-h-[16px]' />
-    </>
-  );
-};
-
-const FeeOption = ({
-  id,
-  value,
-  title,
-  description,
-}: {
-  id: string;
-  value: 'FREE' | 'FIX' | 'MIXTE' | 'POURCENTAGE' | 'CHANGE';
-  title: string;
-  description?: string;
-}) => (
-  <div className='flex items-center  gap-2 rounded-lg border-1 border-gray-300 p-2 hover:bg-gray-50 cursor-pointer'>
-    <RadioGroupItem
-      id={id}
-      value={value}
-      className='
-    h-2 w-2 rounded-full border-0
-    text-primary-300
-    data-[state=checked]:bg-primary-300
-    data-[state=checked]:border-primary-300
-    data-[state=checked]:text-primary-300
-    data-[state=checked]:[&>span]:bg-primary-300 
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2
-  '
-    />
-    <Label htmlFor={id} className='cursor-pointer flex-1'>
-      <div className='flex items-center gap-2 flex-wrap'>
-        <span className='font-normal'>{title}</span>
-        {description && (
-          <>
-            <MoveRight className='h-3 w-6 opacity-60' aria-hidden />
-            <span className='font-normal text-gray-500'>{description}</span>
-          </>
-        )}
-      </div>
-    </Label>
-  </div>
-);
 
 const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
   const router = useRouter();
@@ -506,18 +111,15 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
         form.setValue('frais.minimum', undefined);
         form.setValue('frais.maximum', undefined);
         form.setValue('frais.fraisChange', undefined);
-
         break;
       case 'MIXTE':
         form.setValue('frais.minimum', undefined);
         form.setValue('frais.maximum', undefined);
         form.setValue('frais.fraisChange', undefined);
-
         break;
       case 'POURCENTAGE':
         form.setValue('frais.montantFixe', undefined);
         form.setValue('frais.fraisChange', undefined);
-
         break;
       case 'CHANGE':
         form.setValue('frais.montantFixe', undefined);
@@ -531,8 +133,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
   }, [feeTypeUI, form]);
 
   const onSubmit = (data: ServiceFormData) => {
-    const { feeTypeUI: _ui, ...rest } = data;
-    const serviceData: CreateServiceDto = { ...rest };
+    const serviceData = toServicePayload(data);
     createService({ institutionId, serviceData });
   };
 
@@ -550,7 +151,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
           href={`/institutions/${institutionId}`}
           className='flex items-center gap-2 text-gray-900'
         >
-          <ArrowLeft className='w-5 h-5 ' /> <span>Retour </span>
+          <ArrowLeft className='w-5 h-5' /> <span>Retour</span>
         </Link>
       </div>
 
@@ -597,6 +198,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='rounded-2xl'>
+            {/* Étape 1 */}
             <div className={getStepClassName(0)}>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <FormField
@@ -697,13 +299,13 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <NumericFormField
                   control={form.control}
-                  name={'montantMin'}
+                  name='montantMin'
                   label='Montant minimum (FCFA)'
                   disabled={isCreating}
                 />
                 <NumericFormField
                   control={form.control}
-                  name={'montantMax'}
+                  name='montantMax'
                   label='Montant maximum (FCFA)'
                   disabled={isCreating}
                 />
@@ -744,7 +346,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className='font-normal text-gray-900'>
-                      Séléctionnez le type de frais *
+                      Sélectionnez le type de frais *
                     </FormLabel>
                     <FormControl>
                       <RadioGroup
@@ -752,32 +354,15 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                         onValueChange={field.onChange}
                         className='space-y-3'
                       >
-                        <FeeOption id='fee-free' value='FREE' title='Gratuit' />
-                        <FeeOption
-                          id='fee-fix'
-                          value='FIX'
-                          title='Frais fixe'
-                          description='Montant constant en FCFA'
-                        />
-                        <FeeOption
-                          id='fee-percent'
-                          value='POURCENTAGE'
-                          title='Frais en pourcentage'
-                          description='Taux sur le montant'
-                        />
-                        <FeeOption
-                          id='fee-mixte'
-                          value='MIXTE'
-                          title='Frais mixte (fixe + %)'
-                          description='(Combinaison des deux)'
-                        />
-
-                        <FeeOption
-                          id='fee-change'
-                          value='CHANGE'
-                          title='Frais selon devise / taux de change'
-                          description='Montant ajusté selon la devise'
-                        />
+                        {FEE_OPTIONS.map(option => (
+                          <FeeOption
+                            key={option.id}
+                            id={option.id}
+                            value={option.value}
+                            title={option.title}
+                            description={option.description}
+                          />
+                        ))}
                       </RadioGroup>
                     </FormControl>
                     <FormMessage className='text-xs text-red-600 min-h-[16px]' />
@@ -800,7 +385,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     {(feeTypeUI === 'FIX' || feeTypeUI === 'MIXTE') && (
                       <NumericFormField
                         control={form.control}
-                        name={'frais.montantFixe'}
+                        name='frais.montantFixe'
                         label='Montant fixe (FCFA)'
                         requiredMark
                         disabled={isCreating}
@@ -810,7 +395,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                     {(feeTypeUI === 'MIXTE' || feeTypeUI === 'POURCENTAGE') && (
                       <NumericFormField
                         control={form.control}
-                        name={'frais.pourcentage'}
+                        name='frais.pourcentage'
                         label='Taux (%)'
                         step='0.01'
                         max={100}
@@ -823,14 +408,14 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       <>
                         <NumericFormField
                           control={form.control}
-                          name={'frais.minimum'}
+                          name='frais.minimum'
                           label='Minimum (FCFA)'
                           requiredMark
                           disabled={isCreating}
                         />
                         <NumericFormField
                           control={form.control}
-                          name={'frais.maximum'}
+                          name='frais.maximum'
                           label='Maximum (FCFA)'
                           requiredMark
                           disabled={isCreating}
@@ -842,7 +427,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                       <>
                         <NumericFormField
                           control={form.control}
-                          name={'frais.fraisChange.fxSurcharge'} // ✅ Chemin modifié
+                          name='frais.fraisChange.fxSurcharge'
                           label='Montant en devise'
                           step='0.01'
                           requiredMark
@@ -851,7 +436,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
 
                         <FormField
                           control={form.control}
-                          name='frais.fraisChange.devise' // ✅ Chemin modifié
+                          name='frais.fraisChange.devise'
                           render={({ field, fieldState }) => (
                             <FormItem className='space-y-0.5'>
                               <FormLabel className='text-sm font-normal'>
@@ -899,7 +484,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 control={form.control}
                 name='conditionAccess'
                 render={({ field }) => (
-                  <FormItem className='text-sm font-normal '>
+                  <FormItem className='text-sm font-normal'>
                     <TagInputField
                       label="Conditions d'accès"
                       placeholder='Ajouter une condition'
@@ -931,7 +516,7 @@ const NewServiceComponent = ({ institutionId }: NewServiceComponentProps) => {
                 control={form.control}
                 name='infrastructureAccess'
                 render={({ field }) => (
-                  <FormItem className='text-sm font-normal '>
+                  <FormItem className='text-sm font-normal'>
                     <TagInputField
                       label="Infrastructure d'accès"
                       placeholder='Ex: Agence, GAB, Mobile'

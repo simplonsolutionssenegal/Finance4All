@@ -1,4 +1,5 @@
 import { EllipsisVertical, Eye, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,13 +21,14 @@ import {
 import type { Service } from '@/types/Service';
 
 type ServiceItemProps = {
+  institutionId?: string;
   services: Service[];
   onView?: (service: Service) => void;
   onEdit?: (service: Service) => void;
   onDelete?: (service: Service) => void;
 };
 
-const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) => {
+const ServiceItem = ({ institutionId, services, onView, onEdit, onDelete }: ServiceItemProps) => {
   if (!services || services.length === 0) {
     return <div className='text-center text-gray-500 py-10'>Aucun service pour le moment.</div>;
   }
@@ -138,16 +140,18 @@ const ServiceItem = ({ services, onView, onEdit, onDelete }: ServiceItemProps) =
                           </DropdownMenuItem>
                         )}
 
-                        {onEdit && (
-                          <DropdownMenuItem
-                            onClick={() => onEdit(service)}
-                            className='flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] text-gray-700
-                               focus:bg-gray-100 data-[highlighted]:bg-gray-100 cursor-pointer'
+                        <DropdownMenuItem
+                          asChild
+                          className='flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] text-gray-700
+    focus:bg-gray-100 data-[highlighted]:bg-gray-100 cursor-pointer'
+                        >
+                          <Link
+                            href={`/institutions/${institutionId}/service/${service.id}/update`}
                           >
                             <Pencil className='h-4 w-4 text-gray-500' />
                             Modifier
-                          </DropdownMenuItem>
-                        )}
+                          </Link>
+                        </DropdownMenuItem>
 
                         {(onView || onEdit) && onDelete && (
                           <DropdownMenuSeparator className='my-1' />

@@ -16,6 +16,11 @@ jest.mock('@/components/ui/button', () => ({
   ),
 }));
 
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ href, children }: any) => <a href={href}>{children}</a>,
+}));
+
 jest.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: any) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
@@ -227,14 +232,18 @@ describe('ServiceItem', () => {
       expect(mockOnView).toHaveBeenCalledWith(mockServices[0]);
     });
 
-    it('appelle onEdit quand on clique sur "Modifier"', () => {
-      render(<ServiceItem services={mockServices} onEdit={mockOnEdit} />);
+    it('le lien "Modifier" pointe vers la bonne URL', () => {
+      render(<ServiceItem services={mockServices} institutionId='inst-1' />);
 
-      const editButtons = screen.getAllByText('Modifier');
-      fireEvent.click(editButtons[0]);
-
-      expect(mockOnEdit).toHaveBeenCalledTimes(1);
-      expect(mockOnEdit).toHaveBeenCalledWith(mockServices[0]);
+      const links = screen.getAllByRole('link', { name: 'Modifier' });
+      expect(links[0]).toHaveAttribute(
+        'href',
+        `/institutions/inst-1/service/${mockServices[0].id}/update`
+      );
+      expect(links[1]).toHaveAttribute(
+        'href',
+        `/institutions/inst-1/service/${mockServices[1].id}/update`
+      );
     });
 
     it('appelle onDelete quand on clique sur "Supprimer"', () => {
@@ -247,12 +256,14 @@ describe('ServiceItem', () => {
       expect(mockOnDelete).toHaveBeenCalledWith(mockServices[0]);
     });
 
-    it("n'affiche pas les boutons d'action si les callbacks ne sont pas fournis", () => {
-      render(<ServiceItem services={mockServices} />);
+    it("n'affiche pas 'Voir les détails' ni 'Supprimer' si les callbacks ne sont pas fournis (mais garde 'Modifier')", () => {
+      render(<ServiceItem services={mockServices} institutionId='inst-1' />);
 
       expect(screen.queryByText('Voir les détails')).not.toBeInTheDocument();
-      expect(screen.queryByText('Modifier')).not.toBeInTheDocument();
       expect(screen.queryByText('Supprimer')).not.toBeInTheDocument();
+
+      // Modifier est toujours présent (un par service)
+      expect(screen.getAllByText('Modifier')).toHaveLength(mockServices.length);
     });
 
     it('affiche toutes les actions quand tous les callbacks sont fournis', () => {

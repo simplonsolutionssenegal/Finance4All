@@ -47,7 +47,7 @@ const NumericFormField = <T extends FieldValues>({
   requiredMark = false,
   placeholder = '0',
   step,
-  min = 1,
+  min = 0,
   max,
   disabled = false,
   containerClassName,
