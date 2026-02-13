@@ -14,6 +14,9 @@ const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
     learningTime: '24h 30m',
     quizzesPassed: { current: 12, total: 15 },
     globalProgress: 75,
+    videosWatched: { current: 5, total: 10 },
+    averageSessionTime: '15m',
+    learningStreakDays: 3,
   },
   moduleStats: {
     completed: 8,
@@ -22,13 +25,15 @@ const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
     total: 26,
   },
   monthlyProgress: [
-    { month: 'Jan', progress: 20 },
-    { month: 'Fév', progress: 35 },
-    { month: 'Mar', progress: 50 },
-    { month: 'Avr', progress: 60 },
-    { month: 'Mai', progress: 70 },
-    { month: 'Juin', progress: 75 },
+    { month: 'Jan', progress: 20, totalMinutes: 120, sessions: 8 },
+    { month: 'Fév', progress: 35, totalMinutes: 210, sessions: 14 },
+    { month: 'Mar', progress: 50, totalMinutes: 300, sessions: 20 },
+    { month: 'Avr', progress: 60, totalMinutes: 360, sessions: 24 },
+    { month: 'Mai', progress: 70, totalMinutes: 420, sessions: 28 },
+    { month: 'Juin', progress: 75, totalMinutes: 450, sessions: 30 },
   ],
+  recentActivity: [],
+  timeByModule: [],
 };
 
 // Mock fetch globally
@@ -880,6 +885,8 @@ describe('mockBeneficiaireDashboardData', () => {
     expect(mockBeneficiaireDashboardData.monthlyProgress[0]).toEqual({
       month: 'Jan',
       progress: 20,
+      totalMinutes: 120,
+      sessions: 8,
     });
   });
 
