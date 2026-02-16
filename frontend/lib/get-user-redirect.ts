@@ -23,7 +23,7 @@ export function getUserRedirectPath(
 ): string {
   const {
     adminDashboardPath = '/dashboard',
-    organizationDashboardPath = '/organisation-dashboard',
+    organizationDashboardPath = '/dashboard',
     beneficiaryDashboardPath = '/beneficiaire-dashboard',
   } = options;
 

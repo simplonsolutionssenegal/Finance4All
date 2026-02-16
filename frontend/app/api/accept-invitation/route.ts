@@ -79,17 +79,49 @@ export async function POST(request: NextRequest) {
         message: 'Compte créé et invitation acceptée avec succès',
         userId: user.id,
       });
-    } catch (error: unknown) {
-      console.error("Erreur lors de l'acceptation de l'invitation:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Une erreur inconnue s'est produite";
+    } catch (error: any) {
+      console.error(
+        "Erreur détaillée lors de l'acceptation de l'invitation:",
+        JSON.stringify(error, null, 2)
+      );
+
+      let errorMessage = "Une erreur inconnue s'est produite";
+
+      if (error && typeof error === 'object' && 'errors' in error && Array.isArray(error.errors)) {
+        const pwnedError = error.errors.find((e: any) => e.code === 'form_password_pwned');
+
+        if (pwnedError) {
+          errorMessage =
+            'Ce mot de passe a été trouvé dans une fuite de données publique. Pour la sécurité de votre compte, veuillez en choisir un autre.';
+        } else {
+          errorMessage = error.errors
+            .map((e: any) => {
+              if (e.code === 'form_password_length_too_short')
+                return 'Le mot de passe est trop court.';
+              if (e.code === 'form_password_requirements_not_met')
+                return 'Le mot de passe ne respecte pas les critères de sécurité.';
+              return e.longMessage || e.message;
+            })
+            .join(', ');
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      if (errorMessage === 'Unprocessable Entity') {
+        errorMessage = 'Données invalides. Veuillez vérifier votre mot de passe.';
+      }
+
+      if (errorMessage.includes('password') || errorMessage.includes('mot de passe')) {
+        console.error('Password validation failed:', errorMessage);
+      }
 
       return NextResponse.json(
         {
           success: false,
-          message: `Erreur lors de l'acceptation: ${errorMessage}`,
+          message: `${errorMessage}`,
         },
-        { status: 500 }
+        { status: (error as any).status || 500 }
       );
     }
   } catch (error: unknown) {

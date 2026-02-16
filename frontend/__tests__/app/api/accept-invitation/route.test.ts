@@ -157,6 +157,32 @@ describe('/api/accept-invitation', () => {
     expect(data.message).toContain("Erreur lors de l'acceptation: Clerk API Error");
   });
 
+  it('should return specific error message for compromised passwords', async () => {
+    // Mock a Clerk error with errors array properly structured
+    const clerkError = {
+      errors: [
+        {
+          code: 'form_password_pwned',
+          message: 'Password has been found in a breach',
+        },
+      ],
+    };
+
+    mockGetOrganizationInvitation.mockResolvedValue({ id: 'inv-123', role: 'org:member' });
+    mockCreateUser.mockRejectedValue(clerkError);
+
+    const request = createRequest(validRequestBody);
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500); // Or whatever status Clerk error maps to, assuming 500 based on code
+    expect(data.success).toBe(false);
+    expect(data.message).toBe(
+      'Ce mot de passe a été trouvé dans une fuite de données publique. Pour la sécurité de votre compte, veuillez en choisir un autre.'
+    );
+  });
+
   it('should handle JSON parsing errors', async () => {
     const request = {
       json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),

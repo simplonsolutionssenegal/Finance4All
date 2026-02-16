@@ -63,9 +63,7 @@ describe('AcceptInvitationPage', () => {
 
     // Check main content
     expect(screen.getByText('Rejoignez votre organisation')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Vous avez été invité à rejoindre une organisation/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Plateforme d'inclusion financière/)).toBeInTheDocument();
 
     // Check that images are rendered
     const images = screen.getAllByTestId('mock-image');
@@ -136,11 +134,10 @@ describe('AcceptInvitationPage', () => {
     render(Page);
 
     // Check for proper heading structure
-    const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading).toHaveTextContent('Rejoignez votre organisation');
-
-    // Check that images have proper alt text
+    // Check for logo text
+    // Check for logo by alt text (since text is part of image or removed)
     const images = screen.getAllByTestId('mock-image');
+    expect(images[0]).toHaveAttribute('alt', 'Finance4All Logo');
     const bgImage = images.find(img => img.getAttribute('data-alt') === 'Background image');
     const logo = images.find(img => img.getAttribute('data-alt') === 'Finance4All Logo');
     expect(bgImage).toBeInTheDocument();

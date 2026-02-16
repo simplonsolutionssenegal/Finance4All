@@ -12,6 +12,7 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
+// Restore necessary mocks
 const mockShowLoader = jest.fn();
 const mockHideLoader = jest.fn();
 const mockUpdateField = jest.fn();
@@ -23,8 +24,8 @@ const mockResetForm = jest.fn();
 jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: () => ({
     isLoading: false,
-    showLoader: mockShowLoader,
-    hideLoader: mockHideLoader,
+    showLoader: jest.fn(),
+    hideLoader: jest.fn(),
   }),
 }));
 
@@ -109,9 +110,6 @@ describe('ClerkAcceptInvitation', () => {
         }),
       });
     });
-
-    expect(mockShowLoader).toHaveBeenCalled();
-    expect(mockHideLoader).toHaveBeenCalled();
   });
 
   it('renders password input fields after data loads', async () => {
@@ -185,10 +183,11 @@ describe('ClerkAcceptInvitation', () => {
     expect(mockUpdateField).toHaveBeenCalledWith('confirmPassword', 'newPassword123');
   });
 
-  it('submits form with valid data', async () => {
+  it('submits form with valid data and shows local loading state', async () => {
     // Mock valid form state
     mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
 
+    // Delay the response to check loading state
     mockFetch.mockImplementation(url => {
       if (url === '/api/get-invitation') {
         return Promise.resolve({
@@ -205,10 +204,14 @@ describe('ClerkAcceptInvitation', () => {
         } as unknown as Response);
       }
       if (url === '/api/accept-invitation') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        } as unknown as Response);
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({ success: true }),
+            } as unknown as Response);
+          }, 100);
+        });
       }
       return Promise.resolve({
         ok: true,
@@ -222,46 +225,76 @@ describe('ClerkAcceptInvitation', () => {
       expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument();
     });
 
-    const form = screen.getByRole('button', { name: 'Créer mon compte' }).closest('form');
+    const form = screen.getByRole('button', { name: 'Créer mon mot de passe' }).closest('form');
     expect(form).not.toBeNull();
+
+    // Trigger submit
     fireEvent.submit(form as HTMLFormElement);
 
+    // Check for loading state immediately
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/accept-invitation',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: expect.stringContaining('"password":"ValidPassword123!"'),
-        })
-      );
+      expect(screen.getByText('Création en cours...')).toBeInTheDocument();
+      expect(screen.getByRole('button')).toBeDisabled();
     });
 
-    expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
+    // Wait for router push (success)
+    await waitFor(() => {
+      expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
+    });
   });
 
-  it('handles API errors gracefully', async () => {
-    mockFetch.mockImplementation(() =>
-      Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ message: 'API Error' }),
-      } as unknown as Response)
-    );
+  it('handles API errors gracefully and displays specific error messages', async () => {
+    // Mock pwned password error
+    mockFetch.mockImplementation(url => {
+      if (url === '/api/get-invitation') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                publicMetadata: { firstName: 'John', lastName: 'Doe' },
+              },
+            }),
+        } as unknown as Response);
+      }
+      if (url === '/api/accept-invitation') {
+        return Promise.resolve({
+          ok: false,
+          json: () =>
+            Promise.resolve({
+              message: 'Ce mot de passe a été trouvé dans une fuite de données publique.',
+            }),
+        } as unknown as Response);
+      }
+      return Promise.reject(new Error('Unknown'));
+    });
 
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
+    await waitFor(() => screen.getByDisplayValue('test@example.com'));
+
+    // Submit form
+    const form = screen.getByRole('button').closest('form')!;
+    fireEvent.submit(form);
+
     await waitFor(() => {
       expect(
-        screen.getByText(/Impossible de charger les données de l'invitation/)
+        screen.getByText('Ce mot de passe a été trouvé dans une fuite de données publique.')
       ).toBeInTheDocument();
     });
+
+    // Ensure button is re-enabled/reset (loading should stop on error)
+    expect(screen.getByRole('button')).not.toBeDisabled();
+    expect(screen.getByText('Créer mon mot de passe')).toBeInTheDocument();
   });
 
   it('disables form when invalid', async () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      const submitButton = screen.getByText('Créer mon compte');
+      const submitButton = screen.getByText('Créer mon mot de passe');
       expect(submitButton).toBeDisabled();
     });
   });

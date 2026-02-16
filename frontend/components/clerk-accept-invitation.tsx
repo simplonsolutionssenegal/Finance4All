@@ -1,5 +1,6 @@
 'use client';
 
+import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -9,8 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLoader } from '@/contexts/LoaderContext';
 import { useFormState } from '@/hooks/useFormState';
-
-const AUTOCOMPLETE_PASSWORD = 'pass' + 'word';
 
 interface ClerkAcceptInvitationProps {
   invitationId: string;
@@ -39,7 +38,8 @@ export function ClerkAcceptInvitation({
     confirmPassword: '',
   });
 
-  const { isLoading, showLoader, hideLoader } = useLoader();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showLoader, hideLoader } = useLoader(); // Keep global loader for initial data fetch if needed, checking useEffect
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +127,7 @@ export function ClerkAcceptInvitation({
     };
 
     fetchInvitationData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invitationId, orgId]);
 
   // Validation des mots de passe
@@ -137,14 +138,19 @@ export function ClerkAcceptInvitation({
     const errors: Record<string, string> = {};
 
     if (password.length < 8) {
-      errors.password = 'Le mot de ' + 'passe doit contenir au moins 8 caractères';
-    } else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+    } else if (
+      !/[a-z]/.test(password) ||
+      !/[A-Z]/.test(password) ||
+      !/\d/.test(password) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(password)
+    ) {
       errors.password =
-        'Le mot de ' + 'passe doit contenir au moins une majuscule, une minuscule et un chiffre';
+        'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial';
     }
 
     if (confirmPassword && password !== confirmPassword) {
-      errors.confirmPassword = 'Les mots de ' + 'passe ne correspondent pas';
+      errors.confirmPassword = 'Les mots de passe ne correspondent pas';
     }
 
     return errors;
@@ -186,7 +192,7 @@ export function ClerkAcceptInvitation({
         return;
       }
 
-      showLoader();
+      setIsSubmitting(true);
       setError(null);
 
       try {
@@ -216,10 +222,8 @@ export function ClerkAcceptInvitation({
           throw new Error(data.message || "Erreur lors de l'acceptation de l'invitation");
         }
 
-        hideLoader();
-
-        // Redirection vers la page de connexion ou dashboard après la fin du chargement
-        router.push('/dashboard');
+        // Redirection vers la page de connexion
+        router.push('/login');
       } catch (err: unknown) {
         console.error("Erreur lors de l'acceptation de l'invitation:", err);
         const errorMessage =
@@ -227,7 +231,7 @@ export function ClerkAcceptInvitation({
             ? err.message
             : "Une erreur est survenue lors de l'acceptation de l'invitation";
         setError(errorMessage);
-        hideLoader();
+        setIsSubmitting(false);
       }
     },
     [
@@ -236,11 +240,9 @@ export function ClerkAcceptInvitation({
       formState.values.password,
       validatePasswords,
       setErrors,
-      showLoader,
       invitationId,
       orgId,
       router,
-      hideLoader,
     ]
   );
 
@@ -264,84 +266,121 @@ export function ClerkAcceptInvitation({
     [updateField, error, resetState]
   );
 
+  // Helper for password requirements
+  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
+    <div className='flex items-center gap-2 text-xs text-neutral-500'>
+      <div
+        className={`flex items-center justify-center w-4 h-4 rounded-full border ${
+          met ? 'bg-primary-50 border-primary-200' : 'border-neutral-300'
+        }`}
+      >
+        {met && (
+          <svg width='10' height='8' viewBox='0 0 10 8' fill='none'>
+            <path
+              d='M1 4L3.5 6.5L9 1'
+              stroke='#0F172A'
+              strokeWidth='1.5'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+            />
+          </svg>
+        )}
+      </div>
+      <span>{text}</span>
+    </div>
+  );
+
+  const password = formState.values.password;
+  const hasMinLength = password.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
   return (
     <div className='max-w-md w-full mx-auto'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-neutral-500 mb-2'>Créer votre compte</h1>
-        <p className='text-neutral-400 text-sm'>
-          {invitationData?.organizationName
-            ? `Vous avez été invité à rejoindre le groupe ${invitationData.organizationName}. 
-            Complétez les informations ci-dessous pour créer votre compte.`
-            : "Complétez les informations ci-dessous pour accepter l'invitation et créer votre compte."}
+      <div className='flex flex-col items-center mb-8'>
+        <div className='w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mb-6'>
+          <Lock className='w-8 h-8 text-primary-300' strokeWidth={1.5} />
+        </div>
+        <h1 className='text-2xl font-semibold text-neutral-900 mb-2'>Créer votre mot de passe</h1>
+        <p className='text-neutral-500 text-center text-sm px-4'>
+          Définissez un mot de passe sécurisé pour votre compte{' '}
+          {invitationData?.organizationName ? 'administrateur' : 'utilisateur'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className='space-y-6' noValidate>
         <div className='space-y-2'>
-          <Label htmlFor='email' className='text-neutral-500 font-bold'>
-            Email
+          <Label htmlFor='email' className='text-neutral-900 font-medium text-sm'>
+            Adresse email
           </Label>
-          <Input
-            id='email'
-            type='email'
-            value={invitationData?.emailAddress}
-            className='w-full h-12'
-            disabled={true}
-          />
+          <div className='relative'>
+            <div className='absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400'>
+              <Mail className='h-4 w-4' />
+            </div>
+            <Input
+              id='email'
+              type='email'
+              value={invitationData?.emailAddress || ''}
+              className='w-full h-12 pl-10 bg-neutral-50 text-neutral-500 border-neutral-200'
+              disabled={true}
+              readOnly
+            />
+          </div>
         </div>
 
         <div className='space-y-2'>
-          <Label htmlFor='password' className='text-neutral-500 font-bold'>
-            Mot de passe*
+          <Label htmlFor='password' className='text-neutral-900 font-medium text-sm'>
+            Mot de passe
           </Label>
           <PasswordInput
             id='password'
-            placeholder='Mot de passe'
+            placeholder='Entrez votre mot de passe'
             value={formState.values.password}
             onChange={handlePasswordChange}
             className={`w-full h-12 ${
               hasError('password')
                 ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
+                : 'border-neutral-200 focus:border-primary-200 focus:ring-primary-200'
             }`}
-            disabled={isLoading}
-            autoComplete={AUTOCOMPLETE_PASSWORD}
+            disabled={isSubmitting}
+            autoComplete='new-password'
             maxLength={128}
-            minLength={8}
             required
             aria-invalid={hasError('password')}
             aria-describedby={hasError('password') ? 'password-error' : undefined}
           />
-          {hasError('password') && (
-            <div
-              id='password-error'
-              className='text-red-500 text-sm font-medium'
-              role='alert'
-              aria-live='polite'
-            >
-              {getError('password')}
-            </div>
-          )}
+        </div>
+
+        <div className='space-y-1'>
+          <p className='text-xs text-neutral-500 mb-2'>Le mot de passe doit contenir :</p>
+          <div className='grid grid-cols-2 gap-y-2'>
+            <PasswordRequirement met={hasMinLength} text='8 caractères min.' />
+            <PasswordRequirement met={hasUpperCase} text='1 majuscule' />
+            <PasswordRequirement met={hasLowerCase} text='1 minuscule' />
+            <PasswordRequirement met={hasNumber} text='1 chiffre' />
+            <PasswordRequirement met={hasSpecial} text='1 caractère spécial' />
+          </div>
         </div>
 
         <div className='space-y-2'>
-          <Label htmlFor='confirmPassword' className='text-neutral-500 font-bold'>
-            Confirmer le mot de passe*
+          <Label htmlFor='confirmPassword' className='text-neutral-900 font-medium text-sm'>
+            Confirmer le mot de passe
           </Label>
           <PasswordInput
             id='confirmPassword'
-            placeholder='Confirmer le mot de passe'
+            placeholder='Confirmez votre mot de passe'
             value={formState.values.confirmPassword}
             onChange={handleConfirmPasswordChange}
             className={`w-full h-12 ${
               hasError('confirmPassword')
                 ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                : 'border-neutral-400 focus:border-primary-200 focus:ring-primary-200'
+                : 'border-neutral-200 focus:border-primary-200 focus:ring-primary-200'
             }`}
-            disabled={isLoading}
-            autoComplete={AUTOCOMPLETE_PASSWORD}
+            disabled={isSubmitting}
+            autoComplete='new-password'
             maxLength={128}
-            minLength={8}
             required
             aria-invalid={hasError('confirmPassword')}
             aria-describedby={hasError('confirmPassword') ? 'confirmPassword-error' : undefined}
@@ -349,7 +388,7 @@ export function ClerkAcceptInvitation({
           {hasError('confirmPassword') && (
             <div
               id='confirmPassword-error'
-              className='text-red-500 text-sm font-medium'
+              className='text-red-500 text-xs mt-1'
               role='alert'
               aria-live='polite'
             >
@@ -371,10 +410,22 @@ export function ClerkAcceptInvitation({
 
         <Button
           type='submit'
-          disabled={isLoading || !isFormValid}
-          className='w-full h-12 bg-primary-300 cursor-pointer hover:bg-primary-300 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+          disabled={isSubmitting || !isFormValid}
+          className={`w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base rounded-md transition-all flex items-center justify-center gap-2 ${
+            !isSubmitting && isFormValid ? 'cursor-pointer' : ''
+          }`}
         >
-          {isLoading ? 'Création du compte en cours...' : 'Créer mon compte'}
+          {isSubmitting ? (
+            <>
+              <div className='h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin' />
+              <span>Création en cours...</span>
+            </>
+          ) : (
+            <>
+              Créer mon mot de passe
+              <ArrowRight className='h-4 w-4' />
+            </>
+          )}
         </Button>
       </form>
     </div>
