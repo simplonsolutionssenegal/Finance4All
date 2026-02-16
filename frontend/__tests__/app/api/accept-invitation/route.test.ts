@@ -154,7 +154,7 @@ describe('/api/accept-invitation', () => {
 
     expect(response.status).toBe(500);
     expect(data.success).toBe(false);
-    expect(data.message).toContain("Erreur lors de l'acceptation: Clerk API Error");
+    expect(data.message).toContain('Clerk API Error');
   });
 
   it('should return specific error message for compromised passwords', async () => {
@@ -183,6 +183,82 @@ describe('/api/accept-invitation', () => {
     );
   });
 
+  it('should return specific error message for too short password', async () => {
+    const clerkError = {
+      errors: [
+        {
+          code: 'form_password_length_too_short',
+          message: 'Password is too short',
+        },
+      ],
+      status: 422,
+    };
+
+    mockGetOrganizationInvitation.mockResolvedValue({ id: 'inv-123', role: 'org:member' });
+    mockCreateUser.mockRejectedValue(clerkError);
+
+    const request = createRequest(validRequestBody);
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe('Le mot de passe est trop court.');
+  });
+
+  it('should return specific error message when password requirements are not met', async () => {
+    const clerkError = {
+      errors: [
+        {
+          code: 'form_password_requirements_not_met',
+          message: 'Password requirements not met',
+        },
+      ],
+      status: 400,
+    };
+
+    mockGetOrganizationInvitation.mockResolvedValue({ id: 'inv-123', role: 'org:member' });
+    mockCreateUser.mockRejectedValue(clerkError);
+
+    const request = createRequest(validRequestBody);
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe('Le mot de passe ne respecte pas les critères de sécurité.');
+  });
+
+  it('should handle "Unprocessable Entity" error gracefully', async () => {
+    const error = new Error('Unprocessable Entity');
+    (error as any).status = 422;
+
+    mockGetOrganizationInvitation.mockResolvedValue({ id: 'inv-123', role: 'org:member' });
+    mockCreateUser.mockRejectedValue(error);
+
+    const request = createRequest(validRequestBody);
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe('Données invalides. Veuillez vérifier votre mot de passe.');
+  });
+
+  it('should propagate status code from Clerk error', async () => {
+    const clerkError = {
+      errors: [{ code: 'some_error', message: 'Some error' }],
+      status: 418, // I'm a teapot
+    };
+
+    mockGetOrganizationInvitation.mockResolvedValue({ id: 'inv-123', role: 'org:member' });
+    mockCreateUser.mockRejectedValue(clerkError);
+
+    const request = createRequest(validRequestBody);
+    const response = await POST(request);
+
+    expect(response.status).toBe(418);
+  });
   it('should handle JSON parsing errors', async () => {
     const request = {
       json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),

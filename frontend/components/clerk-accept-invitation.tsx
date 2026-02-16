@@ -137,20 +137,26 @@ export function ClerkAcceptInvitation({
 
     const errors: Record<string, string> = {};
 
+    const MESSAGES = {
+      LENGTH: 'Le mot de passe doit contenir au moins 8 caractères',
+      COMPLEXITY:
+        'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial',
+      MISMATCH: 'Les mots de passe ne correspondent pas',
+    };
+
     if (password.length < 8) {
-      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+      errors.password = MESSAGES.LENGTH;
     } else if (
       !/[a-z]/.test(password) ||
       !/[A-Z]/.test(password) ||
       !/\d/.test(password) ||
       !/[!@#$%^&*(),.?":{}|<>]/.test(password)
     ) {
-      errors.password =
-        'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial';
+      errors.password = MESSAGES.COMPLEXITY;
     }
 
     if (confirmPassword && password !== confirmPassword) {
-      errors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      errors.confirmPassword = MESSAGES.MISMATCH;
     }
 
     return errors;
@@ -411,6 +417,7 @@ export function ClerkAcceptInvitation({
         <Button
           type='submit'
           disabled={isSubmitting || !isFormValid}
+          data-testid='submit-button'
           className={`w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base rounded-md transition-all flex items-center justify-center gap-2 ${
             !isSubmitting && isFormValid ? 'cursor-pointer' : ''
           }`}
