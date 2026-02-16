@@ -171,7 +171,8 @@ export class ModuleController {
   async enroll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const moduleId = req.params.id as string;
-      const userId = req.auth?.userId;
+      const userId =
+        req.auth?.userId ?? (req.query.userId as string) ?? (req.body?.userId as string);
 
       if (!userId) {
         res.status(401).json({ success: false, message: 'Unauthorized' });

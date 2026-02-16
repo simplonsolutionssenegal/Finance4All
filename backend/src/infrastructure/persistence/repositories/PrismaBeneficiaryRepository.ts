@@ -1,4 +1,4 @@
-import type { BeneficiaryRepository } from '@/domain/Beneficiary/repositories/BeneficiaryRepository';
+import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import { Beneficiary, BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
 import type { PrismaClient } from '@prisma/client';
 
@@ -8,6 +8,26 @@ function toDomainStatus(prismaStatus: string): BeneficiaryStatus {
 
 export class PrismaBeneficiaryRepository implements BeneficiaryRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  async findByClerkUserId(clerkUserId: string): Promise<Beneficiary | null> {
+    const r = await this.prisma.beneficiary.findUnique({
+      where: { clerkUserId },
+    });
+    if (!r) return null;
+    return new Beneficiary(
+      r.id,
+      r.organizationId,
+      r.clerkUserId,
+      r.firstName,
+      r.lastName,
+      r.email,
+      r.phone,
+      toDomainStatus(r.status),
+      r.progressPercent,
+      r.createdAt,
+      r.updatedAt
+    );
+  }
 
   async findByOrgId(organizationId: string) {
     const rows = await this.prisma.beneficiary.findMany({

@@ -421,7 +421,7 @@ describe('useCreateBeneficiary', () => {
       });
 
       expect(mockSignUp.attemptEmailAddressVerification).toHaveBeenCalledWith({ code: '123456' });
-      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/beneficiaire-dashboard');
     });
 
     it('shows error message when verification fails', async () => {
@@ -555,7 +555,7 @@ describe('useCreateBeneficiary', () => {
         await hook.result.current.handleVerification('123456');
       });
 
-      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/beneficiaire-dashboard');
     });
 
     it('handles verification attempts that throw', async () => {

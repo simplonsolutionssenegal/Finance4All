@@ -3,7 +3,7 @@
  */
 
 import { auth } from '@clerk/nextjs/server';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { redirect } from 'next/navigation';
 
 import ModulePage from '@/app/(auth)/learning/[moduleId]/page';
@@ -38,12 +38,29 @@ describe('Module detail page', () => {
     expect(redirect).toHaveBeenCalledWith('/login');
   });
 
-  it('rend ModuleDetailClient avec moduleId', async () => {
+  it('rend ModuleDetailClient avec moduleId quand utilisateur connecté', async () => {
     (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' });
 
-    const result = await ModulePage({ params: Promise.resolve({ moduleId: 'module-1' }) });
+    const result = await ModulePage({
+      params: Promise.resolve({ moduleId: 'module-1' }),
+    });
+
     render(result);
 
     expect(ModuleDetailClient).toHaveBeenCalledWith({ moduleId: 'module-1' }, undefined);
+    expect(screen.getByTestId('module-detail')).toBeInTheDocument();
+  });
+
+  it('affiche Module introuvable quand moduleId est vide', async () => {
+    (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user-1' });
+
+    const result = await ModulePage({
+      params: Promise.resolve({ moduleId: '' }),
+    });
+
+    render(result);
+
+    expect(screen.getByText(/Module introuvable/)).toBeInTheDocument();
+    expect(ModuleDetailClient).not.toHaveBeenCalled();
   });
 });

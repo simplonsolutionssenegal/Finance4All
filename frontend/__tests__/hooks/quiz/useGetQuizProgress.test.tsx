@@ -1,21 +1,8 @@
-import { useAuth } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 import { useGetQuizProgress } from '@/hooks/quiz/useGetQuizProgress';
-import { apiClient } from '@/lib/api-client';
-
-jest.mock('@clerk/nextjs', () => ({
-  useAuth: jest.fn(),
-}));
-
-jest.mock('@/lib/api-client', () => ({
-  apiClient: jest.fn(),
-}));
-
-const mockUseAuth = useAuth as jest.Mock;
-const mockApiClient = apiClient as jest.Mock;
 
 describe('useGetQuizProgress', () => {
   let queryClient: QueryClient;
@@ -32,18 +19,15 @@ describe('useGetQuizProgress', () => {
         queries: { retry: false },
       },
     });
-
-    mockUseAuth.mockReturnValue({
-      getToken: jest.fn().mockResolvedValue('mock-token'),
-    });
-    mockApiClient.mockReset();
+    global.fetch = jest.fn();
   });
 
   afterEach(() => {
     queryClient.clear();
+    jest.restoreAllMocks();
   });
 
-  it('fetches quiz progress with token', async () => {
+  it('fetches quiz progress via /api/quizzes/:quizId/progress/me', async () => {
     const response = {
       success: true,
       data: {
@@ -59,7 +43,10 @@ describe('useGetQuizProgress', () => {
       },
     };
 
-    mockApiClient.mockResolvedValue(response);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(response),
+    });
 
     const { result } = renderHook(() => useGetQuizProgress('quiz-1'), {
       wrapper: createWrapper(),
@@ -69,6 +56,9 @@ describe('useGetQuizProgress', () => {
       expect(result.current.progress).toEqual(response.data);
     });
 
-    expect(mockApiClient).toHaveBeenCalledWith('quizzes/quiz-1/progress/me', 'GET', 'mock-token');
+    expect(global.fetch).toHaveBeenCalledWith('/api/quizzes/quiz-1/progress/me', {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
   });
 });

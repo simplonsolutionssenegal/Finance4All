@@ -1,8 +1,6 @@
-import { useAuth } from '@clerk/nextjs';
 import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 
-import { apiClient } from '@/lib/api-client';
 import type { QuizProgressDTO } from '@/types/learning/quiz-progress';
 
 type GetQuizProgressResponse = {
@@ -20,16 +18,24 @@ const normalizeIds = (ids: string[]) => {
 };
 
 export const useQuizProgressMap = (quizIds: string[]) => {
-  const { getToken } = useAuth();
   const stableIds = useMemo(() => normalizeIds(quizIds), [quizIds]);
 
   const queries = useQueries({
     queries: stableIds.map(id => ({
       queryKey: ['quiz-progress', id],
       enabled: Boolean(id),
-      queryFn: async () => {
-        const token = await getToken();
-        return apiClient<GetQuizProgressResponse>(`quizzes/${id}/progress/me`, 'GET', token);
+      queryFn: async (): Promise<GetQuizProgressResponse> => {
+        const response = await fetch(`/api/quizzes/${id}/progress/me`, {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        const data = (await response.json().catch(() => ({}))) as GetQuizProgressResponse & {
+          message?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.message ?? `Erreur ${response.status}`);
+        }
+        return data;
       },
       staleTime: 30 * 1000,
     })),

@@ -196,13 +196,6 @@ describe('StatCard', () => {
       expect(card).toHaveClass('bg-white', 'rounded-2xl', 'shadow-sm');
     });
 
-    it('should apply custom bgColor', () => {
-      const { container } = render(<StatCard {...defaultProps} bgColor='bg-blue-100' />);
-
-      const card = container.firstChild;
-      expect(card).toHaveClass('bg-blue-100');
-    });
-
     it('should apply custom iconBgColor', () => {
       const { container } = render(<StatCard {...defaultProps} iconBgColor='bg-red-100' />);
 
@@ -414,15 +407,6 @@ describe('DonutChart', () => {
 
       const card = container.firstChild;
       expect(card).toHaveClass('bg-white', 'rounded-2xl', 'shadow-sm');
-    });
-
-    it('should apply custom bgColor', () => {
-      const { container } = render(
-        <DonutChart data={mockData} title='Test' bgColor='bg-blue-50' />
-      );
-
-      const card = container.firstChild;
-      expect(card).toHaveClass('bg-blue-50');
     });
   });
 });

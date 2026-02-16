@@ -8,7 +8,7 @@ interface LessonPageProps {
 }
 
 export default async function LessonPage({ params }: LessonPageProps) {
-  const { userId } = await auth();
+  const { userId } = await auth({ treatPendingAsSignedOut: false });
 
   if (!userId) {
     redirect('/login');

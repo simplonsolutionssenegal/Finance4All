@@ -7,11 +7,13 @@ import {
 import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
+import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
 
 export class BeneficiaryController {
   constructor(
     private readonly createUC: CreateBeneficiaryUseCase,
     private readonly updateUC: UpdateBeneficiaryUseCase,
+    private readonly getDashboardUC: GetBeneficiaireDashboardUseCase,
     private readonly repo: BeneficiaryRepository
   ) {}
 
@@ -173,6 +175,33 @@ export class BeneficiaryController {
       res.status(204).send();
     } catch (error: unknown) {
       console.error('Erreur suppression bénéficiaire', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur serveur',
+      });
+    }
+  }
+
+  /**
+   * GET /beneficiaries/dashboard?userId=clerkUserId
+   * Retourne les statistiques du dashboard bénéficiaire.
+   */
+  async getDashboard(req: Request, res: Response): Promise<void> {
+    const userId = (req.query.userId as string) || '';
+
+    if (!userId?.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'userId (clerkUserId) manquant',
+      });
+      return;
+    }
+
+    try {
+      const dashboard = await this.getDashboardUC.execute({ clerkUserId: userId.trim() });
+      res.json(dashboard);
+    } catch (error: unknown) {
+      console.error('Erreur dashboard bénéficiaire', error);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Erreur serveur',

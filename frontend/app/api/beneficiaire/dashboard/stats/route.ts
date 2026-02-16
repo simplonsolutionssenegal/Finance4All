@@ -1,144 +1,53 @@
 // frontend/app/api/beneficiaire/dashboard/stats/route.ts
 
 import { auth } from '@clerk/nextjs/server';
-import type { NextRequest } from 'next/server';
-// eslint-disable-next-line no-duplicate-imports
 import { NextResponse } from 'next/server';
 
-export async function GET(_request: NextRequest) {
+import { getBackendToken } from '@/lib/auth-utils';
+
+export async function GET() {
   try {
-    // Authentification avec Clerk
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
-
-    // Pour l'instant, on retourne des données mockées
-    // Remplacez ceci par vos vraies requêtes de base de données
-    const beneficiaireDashboardData = {
-      stats: {
-        modulesCompleted: {
-          current: 8,
-          total: 26,
-        },
-        learningTime: '24h 30m',
-        quizzesPassed: {
-          current: 12,
-          total: 15,
-        },
-        globalProgress: 75,
-      },
-      moduleStats: {
-        completed: 8,
-        inProgress: 5,
-        notStarted: 13,
-        total: 26,
-      },
-      monthlyProgress: [
-        { month: 'Jan', progress: 20 },
-        { month: 'Fév', progress: 35 },
-        { month: 'Mar', progress: 50 },
-        { month: 'Avr', progress: 60 },
-        { month: 'Mai', progress: 70 },
-        { month: 'Juin', progress: 75 },
-      ],
-    };
-
-    // Exemple avec Prisma (à décommenter et adapter) :
-    /*
-    // Récupérer les informations du bénéficiaire
-    const beneficiaire = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      include: {
-        moduleProgress: {
-          include: {
-            module: true
-          }
-        },
-        quizResults: true
-      }
+    const { userId, getToken } = await auth({
+      treatPendingAsSignedOut: false,
     });
 
-    if (!beneficiaire) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Bénéficiaire non trouvé' },
-        { status: 404 }
+        { error: 'Non autorisé - session invalide ou expirée' },
+        { status: 401 }
       );
     }
 
-    // Calculer les statistiques
-    const totalModules = await prisma.module.count({ where: { isActive: true } });
-    
-    const completedModules = beneficiaire.moduleProgress.filter(
-      mp => mp.status === 'COMPLETED'
-    ).length;
-    
-    const inProgressModules = beneficiaire.moduleProgress.filter(
-      mp => mp.status === 'IN_PROGRESS'
-    ).length;
+    const token = await getBackendToken(getToken);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const notStartedModules = totalModules - completedModules - inProgressModules;
-
-    // Calculer le temps total d'apprentissage
-    const totalTimeMinutes = beneficiaire.moduleProgress.reduce(
-      (acc, mp) => acc + (mp.timeSpent || 0),
-      0
-    );
-    const learningTime = formatTime(totalTimeMinutes);
-
-    // Calculer les quiz réussis
-    const passedQuizzes = beneficiaire.quizResults.filter(qr => qr.passed).length;
-    const totalQuizzes = beneficiaire.quizResults.length;
-
-    // Calculer la progression globale
-    const globalProgress = totalModules > 0 
-      ? Math.round((completedModules / totalModules) * 100)
-      : 0;
-
-    // Récupérer la progression mensuelle (6 derniers mois)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const monthlyProgressData = await prisma.moduleProgress.groupBy({
-      by: ['completedAt'],
-      where: {
-        userId: beneficiaire.id,
-        status: 'COMPLETED',
-        completedAt: {
-          gte: sixMonthsAgo
-        }
-      },
-      _count: true
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/beneficiaries/dashboard?userId=${encodeURIComponent(userId)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
     });
 
-    // Formater les données mensuelles
-    const monthlyProgress = formatMonthlyProgress(monthlyProgressData);
+    if (!response.ok) {
+      const text = await response.text();
+      let body: { message?: string; error?: string; path?: string } = {};
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { message: text || response.statusText };
+      }
+      const is404 = response.status === 404;
+      const backendPath = body.path ?? url;
+      const errorMessage =
+        is404 && (body.error ?? body.message) === 'Route not found'
+          ? `Backend non trouvé (404). Vérifiez que le backend est démarré et que NEXT_PUBLIC_API_URL pointe vers l’API (ex. http://localhost:4002 ou http://localhost:4002/api/v1). Appel: ${backendPath}`
+          : (body.error ?? body.message) || 'Erreur lors de la récupération du dashboard';
+      return NextResponse.json({ error: errorMessage }, { status: response.status });
+    }
 
-    const beneficiaireDashboardData = {
-      stats: {
-        modulesCompleted: {
-          current: completedModules,
-          total: totalModules
-        },
-        learningTime,
-        quizzesPassed: {
-          current: passedQuizzes,
-          total: totalQuizzes
-        },
-        globalProgress
-      },
-      moduleStats: {
-        completed: completedModules,
-        inProgress: inProgressModules,
-        notStarted: notStartedModules,
-        total: totalModules
-      },
-      monthlyProgress
-    };
-    */
-
-    return NextResponse.json(beneficiaireDashboardData);
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Erreur API dashboard bénéficiaire:', error);
     return NextResponse.json(
@@ -147,39 +56,3 @@ export async function GET(_request: NextRequest) {
     );
   }
 }
-
-// Fonction utilitaire pour formater le temps
-/*
-function formatTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours}h ${mins}m`;
-}
-*/
-
-// Fonction pour formater les données mensuelles (exemple)
-/*
-function formatMonthlyProgress(data: any[]): Array<{ month: string; progress: number }> {
-  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-  const result = [];
-  
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthIndex = date.getMonth();
-    
-    // Compter les modules complétés ce mois
-    const completedThisMonth = data.filter(d => {
-      const completedDate = new Date(d.completedAt);
-      return completedDate.getMonth() === monthIndex;
-    }).length;
-    
-    result.push({
-      month: months[monthIndex],
-      progress: completedThisMonth
-    });
-  }
-  
-  return result;
-}
-*/

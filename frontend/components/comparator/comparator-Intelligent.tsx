@@ -39,7 +39,11 @@ const COUNTRY_FLAGS: Record<Country, string> = {
   [Country.CAMEROUN]: '/cameroon.png',
 };
 
-export default function ComparatorIntelligent() {
+interface ComparatorIntelligentProps {
+  mode?: 'public' | 'dashboard';
+}
+
+export default function ComparatorIntelligent({ mode = 'public' }: ComparatorIntelligentProps) {
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedCountry, setSelectedCountry] = useState<string>(''); // 👈 Nouveau state
   const [amount, setAmount] = useState<number>(0);
@@ -94,25 +98,31 @@ export default function ComparatorIntelligent() {
   ].join(' ');
 
   return (
-    <div className='min-h-screen bg-slate-50 py-10'>
-      <main className='mx-auto flex max-w-6xl flex-col gap-6 px-4'>
+    <div
+      className={`min-h-screen ${mode === 'public' ? 'bg-slate-50 py-10' : 'bg-transparent py-0'}`}
+    >
+      <main
+        className={`mx-auto flex max-w-6xl flex-col gap-6 ${mode === 'public' ? 'px-4' : 'px-0'}`}
+      >
         {/* Header */}
-        <section className='rounded-3xl py-4'>
-          <div className='mb-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs text-primary-400'>
-            <Funnel className='h-4 w-4' />
-            Outil d&apos;aide à la décision
-          </div>
+        {mode === 'public' && (
+          <section className='rounded-3xl py-4'>
+            <div className='mb-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs text-primary-400'>
+              <Funnel className='h-4 w-4' />
+              Outil d&apos;aide à la décision
+            </div>
 
-          <div>
-            <h1 className='text-3xl text-slate-900'>Comparateur Intelligent</h1>
+            <div>
+              <h1 className='text-3xl text-slate-900'>Comparateur Intelligent</h1>
 
-            <p className='mt-2 max-w-xl text-sm text-slate-500'>
-              Comparez les produits financiers par critères clés : coût, rapidité,
-              <br />
-              couverture.
-            </p>
-          </div>
-        </section>
+              <p className='mt-2 max-w-xl text-sm text-slate-500'>
+                Comparez les produits financiers par critères clés : coût, rapidité,
+                <br />
+                couverture.
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Choix type de produit */}
         <section className='rounded-xl bg-white p-6 shadow-sm'>

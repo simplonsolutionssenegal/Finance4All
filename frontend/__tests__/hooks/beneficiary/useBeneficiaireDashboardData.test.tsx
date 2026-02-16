@@ -4,8 +4,37 @@ import { act } from 'react-dom/test-utils';
 import {
   useBeneficiaireDashboardData,
   useBeneficiaireDashboardDataRealtime,
-  mockBeneficiaireDashboardData,
+  type BeneficiaireDashboardData,
 } from '@/hooks/beneficiary/useBeneficiaireDashboardData';
+
+// Données de test (remplacement de l’ancien mock supprimé du hook)
+const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
+  stats: {
+    modulesCompleted: { current: 8, total: 26 },
+    learningTime: '24h 30m',
+    quizzesPassed: { current: 12, total: 15 },
+    globalProgress: 75,
+    videosWatched: { current: 5, total: 10 },
+    averageSessionTime: '15m',
+    learningStreakDays: 3,
+  },
+  moduleStats: {
+    completed: 8,
+    inProgress: 5,
+    notStarted: 13,
+    total: 26,
+  },
+  monthlyProgress: [
+    { month: 'Jan', progress: 20, totalMinutes: 120, sessions: 8 },
+    { month: 'Fév', progress: 35, totalMinutes: 210, sessions: 14 },
+    { month: 'Mar', progress: 50, totalMinutes: 300, sessions: 20 },
+    { month: 'Avr', progress: 60, totalMinutes: 360, sessions: 24 },
+    { month: 'Mai', progress: 70, totalMinutes: 420, sessions: 28 },
+    { month: 'Juin', progress: 75, totalMinutes: 450, sessions: 30 },
+  ],
+  recentActivity: [],
+  timeByModule: [],
+};
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -80,11 +109,14 @@ describe('useBeneficiaireDashboardData', () => {
       renderHook(() => useBeneficiaireDashboardData());
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/beneficiaire/dashboard/stats');
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
+        );
       });
     });
 
-    it('should call fetch with correct URL with userId', async () => {
+    it('should call fetch with correct URL and options (userId is read from session by API)', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => mockBeneficiaireDashboardData,
@@ -94,7 +126,8 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_123'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
     });
@@ -175,6 +208,23 @@ describe('useBeneficiaireDashboardData', () => {
       });
 
       expect(result.current.error).toBe('Erreur 500: Internal Server Error');
+    });
+
+    it('should use message when error is absent in error response', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: async () => ({ message: 'userId (clerkUserId) manquant' }),
+      });
+
+      const { result } = renderHook(() => useBeneficiaireDashboardData());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('userId (clerkUserId) manquant');
     });
 
     it('should handle response.json() parsing error', async () => {
@@ -417,7 +467,7 @@ describe('useBeneficiaireDashboardData', () => {
   });
 
   describe('userId changes', () => {
-    it('should refetch when userId changes', async () => {
+    it('should call fetch on mount (API reads userId from session, so changing userId prop does not refetch)', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => mockBeneficiaireDashboardData,
@@ -429,7 +479,8 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_1'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
 
@@ -437,11 +488,13 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_2'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
 
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      // Hook uses session for userId and does not refetch when userId prop changes
+      expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('should handle userId changing from defined to undefined', async () => {
@@ -456,14 +509,18 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_1'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
 
       rerender({ userId: undefined });
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/beneficiaire/dashboard/stats');
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
+        );
       });
     });
   });
@@ -502,7 +559,10 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         // Empty string is falsy, so hook treats it as no userId
-        expect(global.fetch).toHaveBeenCalledWith('/api/beneficiaire/dashboard/stats');
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
+        );
       });
     });
 
@@ -516,7 +576,8 @@ describe('useBeneficiaireDashboardData', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user@123#'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
     });
@@ -722,7 +783,8 @@ describe('useBeneficiaireDashboardDataRealtime', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_123'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
 
@@ -732,13 +794,14 @@ describe('useBeneficiaireDashboardDataRealtime', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_123'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
         expect(global.fetch).toHaveBeenCalledTimes(2);
       });
     });
 
-    it('should update when userId changes', async () => {
+    it('should call fetch on mount when userId is provided (API reads from session)', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => mockBeneficiaireDashboardData,
@@ -751,7 +814,8 @@ describe('useBeneficiaireDashboardDataRealtime', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_1'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
 
@@ -759,9 +823,13 @@ describe('useBeneficiaireDashboardDataRealtime', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/beneficiaire/dashboard/stats?userId=user_2'
+          '/api/beneficiaire/dashboard/stats',
+          expect.objectContaining({ credentials: 'same-origin' })
         );
       });
+
+      // Realtime hook refetches on interval, not on userId prop change; initial mount = 1 call
+      expect(global.fetch).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -839,6 +907,8 @@ describe('mockBeneficiaireDashboardData', () => {
     expect(mockBeneficiaireDashboardData.monthlyProgress[0]).toEqual({
       month: 'Jan',
       progress: 20,
+      totalMinutes: 120,
+      sessions: 8,
     });
   });
 

@@ -1,5 +1,6 @@
 import { useUser } from '@clerk/nextjs';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import BeneficiaireDashboard from '@/components/beneficiaire/BeneficiaireDashboard';
 
@@ -7,6 +8,43 @@ import BeneficiaireDashboard from '@/components/beneficiaire/BeneficiaireDashboa
 jest.mock('@clerk/nextjs', () => ({
   useUser: jest.fn(),
 }));
+
+// Mock useBeneficiaireDashboardData for predictable data and coverage of loading/error states
+const mockRefetch = jest.fn();
+const mockResetError = jest.fn();
+const defaultDashboardData = {
+  stats: {
+    modulesCompleted: { current: 8, total: 26 },
+    learningTime: '24h 30m',
+    quizzesPassed: { current: 12, total: 15 },
+    globalProgress: 75,
+    modulesCompletedTrend: '+2 ce mois',
+    learningTimeTrend: '+5h cette semaine',
+    globalProgressTrend: '+15% ce mois',
+    quizzesPassedTrend: '80% de réussite',
+  },
+  moduleStats: {
+    completed: 8,
+    inProgress: 5,
+    notStarted: 13,
+    total: 26,
+  },
+  monthlyProgress: [
+    { month: 'Jan', progress: 20 },
+    { month: 'Fév', progress: 35 },
+    { month: 'Mar', progress: 50 },
+    { month: 'Avr', progress: 60 },
+    { month: 'Mai', progress: 70 },
+    { month: 'Juin', progress: 75 },
+  ],
+};
+jest.mock('@/hooks/beneficiary/useBeneficiaireDashboardData', () => ({
+  useBeneficiaireDashboardData: jest.fn(),
+}));
+
+import { useBeneficiaireDashboardData } from '@/hooks/beneficiary/useBeneficiaireDashboardData';
+
+const useBeneficiaireDashboardDataMock = useBeneficiaireDashboardData as jest.Mock;
 
 // Mock Chart Components
 jest.mock('@/components/beneficiaire/ChartComponents', () => ({
@@ -57,6 +95,14 @@ describe('BeneficiaireDashboard', () => {
       isLoaded: true,
       isSignedIn: true,
     });
+    useBeneficiaireDashboardDataMock.mockReturnValue({
+      data: defaultDashboardData,
+      isLoading: false,
+      error: null,
+      isLoaded: true,
+      refetch: mockRefetch,
+      resetError: mockResetError,
+    });
   });
 
   describe('Loading states', () => {
@@ -72,6 +118,51 @@ describe('BeneficiaireDashboard', () => {
       expect(screen.getByText(/Chargement/i)).toBeInTheDocument();
     });
 
+    it('should show loading statistics when data is loading', () => {
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: true,
+        error: null,
+        isLoaded: false,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
+      render(<BeneficiaireDashboard />);
+
+      expect(screen.getByText(/Chargement des statistiques/i)).toBeInTheDocument();
+    });
+
+    it('should show loading when isLoaded is false', () => {
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+        isLoaded: false,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
+      render(<BeneficiaireDashboard />);
+
+      expect(screen.getByText(/Chargement des statistiques/i)).toBeInTheDocument();
+    });
+
+    it('should show loading when data is null', () => {
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+        isLoaded: true,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
+      render(<BeneficiaireDashboard />);
+
+      expect(screen.getByText(/Chargement des statistiques/i)).toBeInTheDocument();
+    });
+
     it('should render dashboard when user is loaded', () => {
       render(<BeneficiaireDashboard />);
 
@@ -81,18 +172,74 @@ describe('BeneficiaireDashboard', () => {
     });
   });
 
-  describe('User information display', () => {
-    it('should display welcome message with user full name', () => {
+  describe('Error state', () => {
+    it('should display error message when hook returns error', () => {
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: 'Bénéficiaire non trouvé',
+        isLoaded: true,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
       render(<BeneficiaireDashboard />);
 
-      // ✅ CORRECTION : Vérifier les données réelles
-      expect(screen.getByText(/Bonjour John Doe/i)).toBeInTheDocument();
+      expect(screen.getByText('Bénéficiaire non trouvé')).toBeInTheDocument();
     });
 
-    it('should display user full name', () => {
+    it('should display Réessayer button when error', () => {
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: 'Erreur réseau',
+        isLoaded: true,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
       render(<BeneficiaireDashboard />);
 
-      expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Réessayer/i })).toBeInTheDocument();
+    });
+
+    it('should call resetError and refetch when Réessayer is clicked', async () => {
+      const user = userEvent.setup();
+      useBeneficiaireDashboardDataMock.mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: 'Erreur',
+        isLoaded: true,
+        refetch: mockRefetch,
+        resetError: mockResetError,
+      });
+
+      render(<BeneficiaireDashboard />);
+      await user.click(screen.getByRole('button', { name: /Réessayer/i }));
+
+      expect(mockResetError).toHaveBeenCalled();
+      expect(mockRefetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('User information display', () => {
+    it('should display welcome message with user first name when userId passed', () => {
+      render(<BeneficiaireDashboard userId='user_123' />);
+
+      expect(screen.getByText(/Bonjour/i)).toBeInTheDocument();
+      expect(screen.getByText(/John/)).toBeInTheDocument();
+    });
+
+    it('should display user first name when userId is passed', () => {
+      render(<BeneficiaireDashboard userId='user_123' />);
+
+      expect(screen.getByText(/Bonjour.*John/i)).toBeInTheDocument();
+    });
+
+    it('should display Bénéficiaire when no userId', () => {
+      render(<BeneficiaireDashboard />);
+
+      expect(screen.getByText(/Bonjour.*Bénéficiaire/i)).toBeInTheDocument();
     });
 
     it('should handle user without fullName', () => {
@@ -383,7 +530,7 @@ describe('BeneficiaireDashboard', () => {
 
   describe('Component integration', () => {
     it('should integrate with Clerk useUser hook', () => {
-      render(<BeneficiaireDashboard />);
+      render(<BeneficiaireDashboard userId='user_123' />);
 
       expect(useUser).toHaveBeenCalled();
       expect(screen.getByText(/John/i)).toBeInTheDocument();

@@ -73,7 +73,6 @@ function StatCard({
 export default function ModuleDetailsComponent({ moduleId }: { moduleId: string }) {
   const { showLoader, hideLoader } = useLoader();
   const { module, isLoading, isError, refetch } = useGetModuleById(moduleId);
-
   const [activeTab, setActiveTab] = useState<'lessons' | 'quiz'>('lessons');
 
   const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);

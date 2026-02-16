@@ -34,7 +34,8 @@ export class QuizController {
 
   async submitAttempt(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { userId } = getAuth(req);
+      const { userId: userIdFromAuth } = getAuth(req);
+      const userId = userIdFromAuth ?? (req.query.userId as string) ?? (req.body?.userId as string);
       if (!userId) {
         res.status(401).json({
           error: 'Non autorise',
@@ -118,7 +119,9 @@ export class QuizController {
 
   async getMyProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { userId } = getAuth(req);
+      // Token (getAuth) ou userId en query lorsque le proxy Next.js envoie userId (ex. session pending)
+      const { userId: userIdFromAuth } = getAuth(req);
+      const userId = userIdFromAuth ?? (req.query.userId as string);
       if (!userId) {
         res.status(401).json({
           error: 'Non autorise',

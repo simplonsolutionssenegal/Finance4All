@@ -1,15 +1,19 @@
-import { auth } from '@clerk/nextjs/server';
-import type { NextRequest } from 'next/server';
-// eslint-disable-next-line no-duplicate-imports
 import { NextResponse } from 'next/server';
 
 import { GET } from '@/app/api/beneficiaire/dashboard/stats/route';
 
-// Mock dependencies
+// Mock Clerk auth - userId and getToken from session
+const mockGetToken = jest.fn().mockResolvedValue(null);
+const mockAuth = jest.fn();
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+  auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
+jest.mock('@/lib/auth-utils', () => ({
+  getBackendToken: jest.fn().mockResolvedValue(null),
+}));
+
+// Mock dependencies
 jest.mock('next/server', () => ({
   NextResponse: {
     json: jest.fn((body, init) => ({
@@ -23,78 +27,73 @@ jest.mock('next/server', () => ({
 // Mock console.error to avoid noise in tests
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-describe('GET /api/beneficiaire/dashboard/stats', () => {
-  let mockRequest: Partial<NextRequest>;
+const mockDashboardResponse = {
+  stats: {
+    modulesCompleted: { current: 8, total: 26 },
+    learningTime: '24h 30m',
+    quizzesPassed: { current: 12, total: 15 },
+    globalProgress: 75,
+    modulesCompletedTrend: '+2 ce mois',
+    learningTimeTrend: '+5h cette semaine',
+    globalProgressTrend: '+15% ce mois',
+    quizzesPassedTrend: '80% de réussite',
+  },
+  moduleStats: { completed: 8, inProgress: 5, notStarted: 13, total: 26 },
+  monthlyProgress: [
+    { month: 'Jan', progress: 20 },
+    { month: 'Fév', progress: 35 },
+    { month: 'Mar', progress: 50 },
+    { month: 'Avr', progress: 60 },
+    { month: 'Mai', progress: 70 },
+    { month: 'Juin', progress: 75 },
+  ],
+};
 
+describe('GET /api/beneficiaire/dashboard/stats', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRequest = {} as NextRequest;
+    mockAuth.mockResolvedValue({ userId: 'user_123', getToken: mockGetToken });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockDashboardResponse,
+      text: async () => JSON.stringify(mockDashboardResponse),
+    }) as jest.Mock;
   });
 
   afterAll(() => {
     consoleErrorSpy.mockRestore();
   });
 
-  describe('Authentication checks', () => {
-    it('should return 401 when userId is not present', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: null });
+  describe('Authentication checks (Clerk session)', () => {
+    it('should return 401 when userId is not in session', async () => {
+      mockAuth.mockResolvedValue({ userId: null, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
-      expect(auth).toHaveBeenCalled();
-      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'Non autorisé' }, { status: 401 });
+      expect(NextResponse.json).toHaveBeenCalledWith(
+        { error: 'Non autorisé - session invalide ou expirée' },
+        { status: 401 }
+      );
     });
 
-    it('should return 401 when userId is undefined', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: undefined });
+    it('should pass userId from session to backend API', async () => {
+      const userId = 'user_123';
+      mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
-      expect(auth).toHaveBeenCalled();
-      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'Non autorisé' }, { status: 401 });
-    });
-
-    it('should return 401 when auth returns empty object', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({});
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      expect(auth).toHaveBeenCalled();
-      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'Non autorisé' }, { status: 401 });
-    });
-
-    it('should return 401 when userId is empty string', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: '' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'Non autorisé' }, { status: 401 });
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(`userId=${userId}`),
+        expect.any(Object)
+      );
     });
   });
 
   describe('Successful data retrieval', () => {
     it('should return dashboard stats when user is authenticated', async () => {
-      // Arrange
-      const mockUserId = 'user_123';
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: mockUserId });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
-      expect(auth).toHaveBeenCalled();
       expect(NextResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           stats: expect.any(Object),
@@ -105,11 +104,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return correct stats structure', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -120,11 +115,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return modulesCompleted with current and total', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -135,11 +126,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return learningTime as string', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -147,11 +134,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return quizzesPassed with current and total', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -162,11 +145,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return globalProgress as number', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -174,11 +153,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return moduleStats with correct structure', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -188,58 +163,16 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
       expect(callArgs.moduleStats).toHaveProperty('total');
     });
 
-    it('should return all moduleStats as numbers', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(typeof callArgs.moduleStats.completed).toBe('number');
-      expect(typeof callArgs.moduleStats.inProgress).toBe('number');
-      expect(typeof callArgs.moduleStats.notStarted).toBe('number');
-      expect(typeof callArgs.moduleStats.total).toBe('number');
-    });
-
     it('should return monthlyProgress as array', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
       expect(Array.isArray(callArgs.monthlyProgress)).toBe(true);
     });
 
-    it('should return monthlyProgress with correct structure', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.monthlyProgress.length).toBeGreaterThan(0);
-
-      callArgs.monthlyProgress.forEach((item: any) => {
-        expect(item).toHaveProperty('month');
-        expect(item).toHaveProperty('progress');
-        expect(typeof item.month).toBe('string');
-        expect(typeof item.progress).toBe('number');
-      });
-    });
-
     it('should return 6 months of progress data', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -247,229 +180,113 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
   });
 
-  describe('Mocked data values', () => {
-    beforeEach(() => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-    });
-
-    it('should return expected modulesCompleted values', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.stats.modulesCompleted.current).toBe(8);
-      expect(callArgs.stats.modulesCompleted.total).toBe(26);
-    });
-
-    it('should return expected learningTime value', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.stats.learningTime).toBe('24h 30m');
-    });
-
-    it('should return expected quizzesPassed values', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.stats.quizzesPassed.current).toBe(12);
-      expect(callArgs.stats.quizzesPassed.total).toBe(15);
-    });
-
-    it('should return expected globalProgress value', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.stats.globalProgress).toBe(75);
-    });
-
-    it('should return expected moduleStats values', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.moduleStats.completed).toBe(8);
-      expect(callArgs.moduleStats.inProgress).toBe(5);
-      expect(callArgs.moduleStats.notStarted).toBe(13);
-      expect(callArgs.moduleStats.total).toBe(26);
-    });
-
-    it('should return expected monthlyProgress data', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      const expectedMonths = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'];
-      const expectedProgress = [20, 35, 50, 60, 70, 75];
-
-      callArgs.monthlyProgress.forEach((item: any, index: number) => {
-        expect(item.month).toBe(expectedMonths[index]);
-        expect(item.progress).toBe(expectedProgress[index]);
-      });
-    });
-  });
-
   describe('Error handling', () => {
-    it('should return 500 when auth throws error', async () => {
-      // Arrange
-      const authError = new Error('Auth failed');
-      (auth as unknown as jest.Mock).mockRejectedValue(authError);
+    it('should return 500 when fetch throws error', async () => {
+      const fetchError = new Error('Network error');
+      (global.fetch as jest.Mock).mockRejectedValue(fetchError);
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
-      expect(console.error).toHaveBeenCalledWith('Erreur API dashboard bénéficiaire:', authError);
+      expect(console.error).toHaveBeenCalledWith('Erreur API dashboard bénéficiaire:', fetchError);
       expect(NextResponse.json).toHaveBeenCalledWith(
         { error: 'Erreur lors de la récupération des données' },
         { status: 500 }
       );
     });
 
-    it('should return 500 when unexpected error occurs', async () => {
-      // Arrange
-      const unexpectedError = new Error('Unexpected error');
-      (auth as unknown as jest.Mock).mockImplementation(() => {
-        throw unexpectedError;
+    it('should return error when backend returns 404', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: async () => JSON.stringify({ message: 'Route not found', path: '/api/v1/unknown' }),
       });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
-      expect(console.error).toHaveBeenCalledWith(
-        'Erreur API dashboard bénéficiaire:',
-        unexpectedError
-      );
       expect(NextResponse.json).toHaveBeenCalledWith(
-        { error: 'Erreur lors de la récupération des données' },
+        expect.objectContaining({
+          error: expect.stringContaining('Backend non trouvé'),
+        }),
+        { status: 404 }
+      );
+    });
+
+    it('should forward backend error message when backend returns 500', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ success: false, message: 'Bénéficiaire non trouvé' }),
+      });
+
+      await GET();
+
+      expect(NextResponse.json).toHaveBeenCalledWith(
+        { error: 'Bénéficiaire non trouvé' },
         { status: 500 }
       );
     });
 
-    it('should handle errors gracefully', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockRejectedValue(new Error('Test error'));
+    it('should use body.error when backend returns error field', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: 'userId manquant' }),
+      });
 
-      // Act
-      const result = await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.status).toBe(500);
+      expect(NextResponse.json).toHaveBeenCalledWith({ error: 'userId manquant' }, { status: 400 });
     });
   });
 
-  describe('Response structure validation', () => {
-    beforeEach(() => {
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+  describe('URL encoding', () => {
+    it('should handle special characters in userId from session', async () => {
+      const specialUserId = 'user+123@domain.com';
+      mockAuth.mockResolvedValue({ userId: specialUserId, getToken: mockGetToken });
+
+      await GET();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(encodeURIComponent(specialUserId)),
+        expect.any(Object)
+      );
     });
 
-    it('should return response with all required top-level keys', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+    it('should properly encode userId in backend URL', async () => {
+      const userId = 'user_123-456';
+      mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
 
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      const keys = Object.keys(callArgs);
-      expect(keys).toContain('stats');
-      expect(keys).toContain('moduleStats');
-      expect(keys).toContain('monthlyProgress');
-    });
+      await GET();
 
-    it('should return response with exactly 3 top-level keys', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      const keys = Object.keys(callArgs);
-      expect(keys).toHaveLength(3);
-    });
-
-    it('should return stats with exactly 4 properties', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      const statsKeys = Object.keys(callArgs.stats);
-      expect(statsKeys).toHaveLength(4);
-    });
-
-    it('should return moduleStats with exactly 4 properties', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      const moduleStatsKeys = Object.keys(callArgs.moduleStats);
-      expect(moduleStatsKeys).toHaveLength(4);
-    });
-
-    it('should not return undefined values', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
-      expect(callArgs.stats.modulesCompleted).toBeDefined();
-      expect(callArgs.stats.learningTime).toBeDefined();
-      expect(callArgs.stats.quizzesPassed).toBeDefined();
-      expect(callArgs.stats.globalProgress).toBeDefined();
-      expect(callArgs.moduleStats.completed).toBeDefined();
-      expect(callArgs.moduleStats.inProgress).toBeDefined();
-      expect(callArgs.moduleStats.notStarted).toBeDefined();
-      expect(callArgs.moduleStats.total).toBeDefined();
-      expect(callArgs.monthlyProgress).toBeDefined();
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(`userId=${encodeURIComponent(userId)}`),
+        expect.any(Object)
+      );
     });
   });
 
   describe('Integration scenarios', () => {
-    it('should call auth exactly once per request', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      expect(auth).toHaveBeenCalledTimes(1);
-    });
-
     it('should not call NextResponse.json twice on success', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
+      await GET();
       expect(NextResponse.json).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle different userId formats', async () => {
-      // Arrange
+    it('should handle different userId formats from session', async () => {
       const userIds = ['user_123', 'clerk_abc', 'user-special-456'];
 
       for (const userId of userIds) {
         jest.clearAllMocks();
-        (auth as unknown as jest.Mock).mockResolvedValue({ userId });
+        mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: true,
+          json: async () => mockDashboardResponse,
+          text: async () => JSON.stringify(mockDashboardResponse),
+        });
 
-        // Act
         // eslint-disable-next-line no-await-in-loop
-        await GET(mockRequest as NextRequest);
+        await GET();
 
-        // Assert
         expect(NextResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
             stats: expect.any(Object),
@@ -479,51 +296,32 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return same data structure for different users', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_1' });
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      mockAuth.mockResolvedValue({ userId: 'user_1', getToken: mockGetToken });
+      await GET();
       const result1 = (NextResponse.json as jest.Mock).mock.calls[0][0];
 
       jest.clearAllMocks();
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_2' });
-      await GET(mockRequest as NextRequest);
+      mockAuth.mockResolvedValue({ userId: 'user_2', getToken: mockGetToken });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockDashboardResponse,
+        text: async () => JSON.stringify(mockDashboardResponse),
+      });
+      await GET();
       const result2 = (NextResponse.json as jest.Mock).mock.calls[0][0];
 
-      // Assert
       expect(Object.keys(result1)).toEqual(Object.keys(result2));
       expect(Object.keys(result1.stats)).toEqual(Object.keys(result2.stats));
     });
   });
 
   describe('Edge cases', () => {
-    it('should handle whitespace-only userId as authenticated', async () => {
-      // Arrange
-      const whitespaceUserId = '   ';
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: whitespaceUserId });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      // Whitespace is truthy, so it should return data
-      expect(NextResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stats: expect.any(Object),
-        })
-      );
-    });
-
-    it('should handle very long userId strings', async () => {
-      // Arrange
+    it('should handle very long userId strings from session', async () => {
       const longUserId = `user_${'a'.repeat(1000)}`;
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: longUserId });
+      mockAuth.mockResolvedValue({ userId: longUserId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           stats: expect.any(Object),
@@ -531,87 +329,13 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
       );
     });
 
-    it('should handle special characters in userId', async () => {
-      // Arrange
-      const specialUserId = 'user_123-456_special@domain';
-      (auth as unknown as jest.Mock).mockResolvedValue({ userId: specialUserId });
+    it('should handle whitespace in userId from session', async () => {
+      const userIdWithSpace = 'user 123';
+      mockAuth.mockResolvedValue({ userId: userIdWithSpace, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
-      expect(NextResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stats: expect.any(Object),
-        })
-      );
-    });
-
-    it('should handle auth with additional properties', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockResolvedValue({
-        userId: 'user_123',
-        orgId: 'org_456',
-        sessionId: 'session_789',
-      });
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      expect(NextResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stats: expect.any(Object),
-        })
-      );
-    });
-  });
-
-  describe('Async behavior', () => {
-    it('should wait for auth resolution before processing', async () => {
-      // Arrange
-      let resolveAuth: (value: any) => void;
-      const authPromise = new Promise(resolve => {
-        resolveAuth = resolve;
-      });
-      (auth as unknown as jest.Mock).mockReturnValue(authPromise);
-
-      // Act
-      const getPromise = GET(mockRequest as NextRequest);
-
-      // Assert - Should not be called yet
-      expect(NextResponse.json).not.toHaveBeenCalled();
-
-      // Resolve auth
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      resolveAuth!({ userId: 'user_123' });
-      await getPromise;
-
-      // Assert - Should now be called
-      expect(NextResponse.json).toHaveBeenCalled();
-    });
-
-    it('should handle slow auth response', async () => {
-      // Arrange
-      (auth as unknown as jest.Mock).mockImplementation(
-        () =>
-          new Promise(resolve => {
-            setTimeout(() => resolve({ userId: 'user_slow' }), 100);
-          })
-      );
-
-      // Act
-      const startTime = Date.now();
-      await GET(mockRequest as NextRequest);
-      const endTime = Date.now();
-
-      // Assert
-      expect(endTime - startTime).toBeGreaterThanOrEqual(100);
-      expect(NextResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stats: expect.any(Object),
-        })
-      );
+      expect(global.fetch).toHaveBeenCalled();
     });
   });
 });

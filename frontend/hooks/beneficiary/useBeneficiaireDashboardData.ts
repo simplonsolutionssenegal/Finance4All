@@ -7,6 +7,15 @@ export interface BeneficiaireStats {
   learningTime: string;
   quizzesPassed: { current: number; total: number };
   globalProgress: number;
+  modulesCompletedTrend?: string;
+  learningTimeTrend?: string;
+  globalProgressTrend?: string;
+  quizzesPassedTrend?: string;
+  // New streaming metrics
+  videosWatched: { current: number; total: number };
+  videosWatchedTrend?: string;
+  averageSessionTime: string;
+  learningStreakDays: number;
 }
 
 export interface BeneficiaireModuleStats {
@@ -19,12 +28,33 @@ export interface BeneficiaireModuleStats {
 export interface BeneficiaireMonthlyProgress {
   month: string;
   progress: number;
+  totalMinutes: number;
+  sessions: number;
+}
+
+export interface BeneficiaireRecentActivity {
+  chapterId: string;
+  chapterTitle: string;
+  lessonTitle: string;
+  moduleTitle: string;
+  progress: number;
+  lastWatchedAt: Date;
+  remainingTime: string;
+}
+
+export interface BeneficiaireTimeByModule {
+  moduleId: string;
+  moduleTitle: string;
+  totalSeconds: number;
+  completionPercent: number;
 }
 
 export interface BeneficiaireDashboardData {
   stats: BeneficiaireStats;
   moduleStats: BeneficiaireModuleStats;
   monthlyProgress: BeneficiaireMonthlyProgress[];
+  recentActivity: BeneficiaireRecentActivity[];
+  timeByModule: BeneficiaireTimeByModule[];
 }
 
 interface UseBeneficiaireDashboardDataReturn {
@@ -61,12 +91,21 @@ export function useBeneficiaireDashboardData(userId?: string): UseBeneficiaireDa
     setError(null);
 
     try {
-      const url = `/api/beneficiaire/dashboard/stats${userId ? `?userId=${userId}` : ''}`;
-      const response = await fetch(url);
+      // L'API récupère userId depuis la session Clerk (cookies)
+      const response = await fetch('/api/beneficiaire/dashboard/stats', {
+        credentials: 'same-origin',
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+        const msg =
+          errorData.error ??
+          errorData.message ??
+          `Erreur ${response.status}: ${response.statusText}`;
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -85,7 +124,7 @@ export function useBeneficiaireDashboardData(userId?: string): UseBeneficiaireDa
     } finally {
       setIsLoading(false);
     }
-  }, [userId, getErrorMessage]);
+  }, [getErrorMessage]);
 
   const refetch = useCallback(async () => {
     await fetchDashboardData();
@@ -122,26 +161,3 @@ export function useBeneficiaireDashboardDataRealtime(
 
   return result;
 }
-
-export const mockBeneficiaireDashboardData: BeneficiaireDashboardData = {
-  stats: {
-    modulesCompleted: { current: 8, total: 26 },
-    learningTime: '24h 30m',
-    quizzesPassed: { current: 12, total: 15 },
-    globalProgress: 75,
-  },
-  moduleStats: {
-    completed: 8,
-    inProgress: 5,
-    notStarted: 13,
-    total: 26,
-  },
-  monthlyProgress: [
-    { month: 'Jan', progress: 20 },
-    { month: 'Fév', progress: 35 },
-    { month: 'Mar', progress: 50 },
-    { month: 'Avr', progress: 60 },
-    { month: 'Mai', progress: 70 },
-    { month: 'Juin', progress: 75 },
-  ],
-};

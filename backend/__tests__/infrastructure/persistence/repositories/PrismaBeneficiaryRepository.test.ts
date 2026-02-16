@@ -9,6 +9,7 @@ describe('PrismaBeneficiaryRepository', () => {
   beforeEach(() => {
     mockPrisma = {
       beneficiary: {
+        findUnique: jest.fn(),
         findMany: jest.fn(),
         findFirst: jest.fn(),
         create: jest.fn(),
@@ -19,6 +20,42 @@ describe('PrismaBeneficiaryRepository', () => {
 
     repository = new PrismaBeneficiaryRepository(mockPrisma as PrismaClient);
     jest.clearAllMocks();
+  });
+
+  describe('findByClerkUserId', () => {
+    it('should return beneficiary when found', async () => {
+      const mockRow = {
+        id: 'ben-1',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-user-1',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+        phone: '+221771234567',
+        status: 'ACTIVE',
+        progressPercent: 50,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-02'),
+      };
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(mockRow);
+
+      const result = await repository.findByClerkUserId('clerk-user-1');
+
+      expect(mockPrisma.beneficiary.findUnique).toHaveBeenCalledWith({
+        where: { clerkUserId: 'clerk-user-1' },
+      });
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result?.id).toBe('ben-1');
+      expect(result?.clerkUserId).toBe('clerk-user-1');
+    });
+
+    it('should return null when not found', async () => {
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(null);
+
+      const result = await repository.findByClerkUserId('clerk-unknown');
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('findByOrgId', () => {

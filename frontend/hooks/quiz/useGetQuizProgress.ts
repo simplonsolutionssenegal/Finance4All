@@ -1,7 +1,5 @@
-import { useAuth } from '@clerk/nextjs';
 import { useQuery } from '@tanstack/react-query';
 
-import { apiClient } from '@/lib/api-client';
 import type { QuizProgressDTO } from '@/types/learning/quiz-progress';
 
 type GetQuizProgressResponse = {
@@ -11,14 +9,21 @@ type GetQuizProgressResponse = {
 };
 
 export const useGetQuizProgress = (quizId: string) => {
-  const { getToken } = useAuth();
-
   const query = useQuery({
     queryKey: ['quiz-progress', quizId],
     enabled: Boolean(quizId),
-    queryFn: async () => {
-      const token = await getToken();
-      return apiClient<GetQuizProgressResponse>(`quizzes/${quizId}/progress/me`, 'GET', token);
+    queryFn: async (): Promise<GetQuizProgressResponse> => {
+      const response = await fetch(`/api/quizzes/${quizId}/progress/me`, {
+        method: 'GET',
+        credentials: 'same-origin',
+      });
+      const data = (await response.json().catch(() => ({}))) as GetQuizProgressResponse & {
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.message ?? `Erreur ${response.status}`);
+      }
+      return data;
     },
     staleTime: 30 * 1000,
   });

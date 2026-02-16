@@ -45,9 +45,10 @@ import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/Benef
 import { PrismaBeneficiaryRepository } from '@/infrastructure/persistence/repositories/PrismaBeneficiaryRepository';
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
+import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
 import { CreateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/CreateBeneficiaryUseCaseImpl';
-
 import { UpdateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/UpdateBeneficiaryUseCaseImpl';
+import { GetBeneficiaireDashboardUseCaseImpl } from '@/application/beneficiaires/use-cases/GetBeneficiaireDashboardUseCaseImpl';
 import type { OrganizationIdentityPort } from '@/domain/Beneficiary/ports/out/OrganizationIdentityPort';
 import { ClerkOrganizationIdentityService } from '../services/ClerkOrganizationIdentityService';
 import type { UpdateServiceUseCase } from '@/domain/institutions/ports/in/UpdateServiceUseCase';
@@ -201,6 +202,7 @@ export const TYPES = {
   CreateBeneficiaryUseCase: Symbol.for('CreateBeneficiaryUseCase'),
   GetBeneficiariesUseCase: Symbol.for('GetBeneficiariesUseCase'),
   UpdateBeneficiaryUseCase: Symbol.for('UpdateBeneficiaryUseCase'),
+  GetBeneficiaireDashboardUseCase: Symbol.for('GetBeneficiaireDashboardUseCase'),
   BeneficiaryRepository: Symbol.for('BeneficiaryRepository'),
   OrganizationIdentityPort: Symbol.for('OrganizationIdentityPort'),
   BeneficiaryController: Symbol.for('BeneficiaryController'),
@@ -486,6 +488,16 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<GetBeneficiaireDashboardUseCase>(TYPES.GetBeneficiaireDashboardUseCase)
+  .toDynamicValue(context => {
+    const beneficiaryRepo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    const moduleRepo = context.get<ModuleRepository>(TYPES.ModuleRepository);
+    const mediaProgressRepo = context.get<MediaProgressRepository>(TYPES.MediaProgressRepository);
+    return new GetBeneficiaireDashboardUseCaseImpl(beneficiaryRepo, moduleRepo, mediaProgressRepo);
+  })
+  .inSingletonScope();
+
 // ======Quiz Use Cases ======
 container
   .bind<GetQuizByIdUseCase>(TYPES.GetQuizByIdUseCase)
@@ -646,9 +658,12 @@ container
   .toDynamicValue(context => {
     const createUC = context.get<CreateBeneficiaryUseCase>(TYPES.CreateBeneficiaryUseCase);
     const updateUC = context.get<UpdateBeneficiaryUseCase>(TYPES.UpdateBeneficiaryUseCase);
+    const getDashboardUC = context.get<GetBeneficiaireDashboardUseCase>(
+      TYPES.GetBeneficiaireDashboardUseCase
+    );
     const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
 
-    return new BeneficiaryController(createUC, updateUC, repo);
+    return new BeneficiaryController(createUC, updateUC, getDashboardUC, repo);
   })
   .inSingletonScope();
 
