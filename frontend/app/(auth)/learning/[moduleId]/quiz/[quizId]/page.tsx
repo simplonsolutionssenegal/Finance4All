@@ -8,7 +8,7 @@ interface QuizPageProps {
 }
 
 export default async function QuizPage({ params }: QuizPageProps) {
-  const { userId } = await auth();
+  const { userId } = await auth({ treatPendingAsSignedOut: false });
   if (!userId) redirect('/login');
 
   const { moduleId, quizId } = await params;

@@ -1,10 +1,7 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-import { apiClient } from '@/lib/api-client';
 
 interface EnrollModuleResponse {
   success?: boolean;
@@ -20,13 +17,23 @@ interface EnrollModuleResponse {
 }
 
 export const useEnrollModule = () => {
-  const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async ({ moduleId }: { moduleId: string }) => {
-      const token = await getToken();
-      return apiClient<EnrollModuleResponse>(`modules/${moduleId}/enroll`, 'POST', token);
+      const response = await fetch(`/api/modules/${moduleId}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      });
+
+      const data = (await response.json().catch(() => ({}))) as EnrollModuleResponse;
+
+      if (!response.ok) {
+        throw new Error(data.message || `Erreur ${response.status}: ${response.statusText}`);
+      }
+
+      return data;
     },
     onSuccess: data => {
       const ok = data?.success === true || data?.status === 'success' || data == null;

@@ -91,8 +91,10 @@ export function useBeneficiaireDashboardData(userId?: string): UseBeneficiaireDa
     setError(null);
 
     try {
-      const url = `/api/beneficiaire/dashboard/stats${userId ? `?userId=${userId}` : ''}`;
-      const response = await fetch(url);
+      // L'API récupère userId depuis la session Clerk (cookies)
+      const response = await fetch('/api/beneficiaire/dashboard/stats', {
+        credentials: 'same-origin',
+      });
 
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as {
@@ -122,7 +124,7 @@ export function useBeneficiaireDashboardData(userId?: string): UseBeneficiaireDa
     } finally {
       setIsLoading(false);
     }
-  }, [userId, getErrorMessage]);
+  }, [getErrorMessage]);
 
   const refetch = useCallback(async () => {
     await fetchDashboardData();

@@ -1,34 +1,16 @@
 // frontend/app/(auth)/beneficiaire-dashboard/page.tsx
 
-'use client';
-
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { redirect } from 'next/navigation';
 
 import BeneficiaireDashboard from '@/components/beneficiaire/BeneficiaireDashboard';
+import { getAuthStatus } from '@/lib/auth-utils';
 
-export default function BeneficiaireDashboardPage() {
-  const { user, isLoaded } = useUser();
-  const router = useRouter();
+export default async function BeneficiaireDashboardPage() {
+  const { userId } = await getAuthStatus();
 
-  useEffect(() => {
-    if (isLoaded && !user) {
-      router.push('/login');
-    }
-  }, [isLoaded, user, router]);
-
-  if (!isLoaded) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
-        <div className='animate-pulse text-gray-500 font-medium'>Chargement...</div>
-      </div>
-    );
+  if (!userId) {
+    redirect('/login');
   }
 
-  if (!user) {
-    return null;
-  }
-
-  return <BeneficiaireDashboard userId={user.id} />;
+  return <BeneficiaireDashboard userId={userId} />;
 }

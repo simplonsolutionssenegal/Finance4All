@@ -1,23 +1,31 @@
 // frontend/app/api/beneficiaire/dashboard/stats/route.ts
 
-import type { NextRequest } from 'next/server';
-// eslint-disable-next-line no-duplicate-imports
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+import { getBackendToken } from '@/lib/auth-utils';
+
+export async function GET() {
   try {
-    // Récupérer le userId depuis les query parameters (envoyé par le client)
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const { userId, getToken } = await auth({
+      treatPendingAsSignedOut: false,
+    });
 
     if (!userId) {
-      return NextResponse.json({ error: 'Non autorisé - userId manquant' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Non autorisé - session invalide ou expirée' },
+        { status: 401 }
+      );
     }
+
+    const token = await getBackendToken(getToken);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const url = `${process.env.NEXT_PUBLIC_API_URL}/beneficiaries/dashboard?userId=${encodeURIComponent(userId)}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       cache: 'no-store',
     });
 
