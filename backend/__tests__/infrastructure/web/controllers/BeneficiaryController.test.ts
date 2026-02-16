@@ -1317,9 +1317,14 @@ describe('BeneficiaryController', () => {
           learningTime: '0m',
           quizzesPassed: { current: 0, total: 0 },
           globalProgress: 0,
+          videosWatched: { current: 0, total: 0 },
+          averageSessionTime: '0m',
+          learningStreakDays: 0,
         },
         moduleStats: { completed: 0, inProgress: 0, notStarted: 0, total: 0 },
         monthlyProgress: [],
+        recentActivity: [],
+        timeByModule: [],
       };
       mockGetDashboardUC.execute.mockResolvedValue(emptyDashboard);
 
@@ -1337,9 +1342,14 @@ describe('BeneficiaryController', () => {
           learningTime: '1h 30m',
           quizzesPassed: { current: 0, total: 0 },
           globalProgress: 20,
+          videosWatched: { current: 0, total: 0 },
+          averageSessionTime: '30m',
+          learningStreakDays: 0,
         },
         moduleStats: { completed: 2, inProgress: 1, notStarted: 7, total: 10 },
-        monthlyProgress: [{ month: 'Jan', progress: 1 }],
+        monthlyProgress: [{ month: 'Jan', progress: 1, totalMinutes: 0, sessions: 0 }],
+        recentActivity: [],
+        timeByModule: [],
       };
       mockGetDashboardUC.execute.mockResolvedValue(dashboardData);
 

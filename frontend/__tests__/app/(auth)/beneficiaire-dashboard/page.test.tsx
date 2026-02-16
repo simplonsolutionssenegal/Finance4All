@@ -1,17 +1,23 @@
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { render, screen, waitFor } from '@testing-library/react';
+/**
+ * @jest-environment jsdom
+ */
+
+import { render } from '@testing-library/react';
+import { redirect } from 'next/navigation';
 
 import BeneficiaireDashboardPage from '@/app/(auth)/beneficiaire-dashboard/page';
 import BeneficiaireDashboard from '@/components/beneficiaire/BeneficiaireDashboard';
 
-// Mock dependencies
-jest.mock('@clerk/nextjs', () => ({
-  useUser: jest.fn(),
+// getAuthStatus utilise auth() en interne - on mock auth pour contrôler le comportement
+const mockAuth = jest.fn();
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
 jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(),
+  redirect: jest.fn(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
 }));
 
 jest.mock('@/components/beneficiaire/BeneficiaireDashboard', () => {
@@ -20,304 +26,123 @@ jest.mock('@/components/beneficiaire/BeneficiaireDashboard', () => {
   ));
 });
 
-describe('BeneficiaireDashboardPage (Client Component)', () => {
-  let mockPush: jest.Mock;
-  let mockRouter: any;
-
+describe('BeneficiaireDashboardPage (Server Component)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPush = jest.fn();
-    mockRouter = { push: mockPush };
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
   });
 
   describe('Authentication checks', () => {
-    it('should redirect to login when user is not present', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
+    it('should redirect to login when userId is null', async () => {
+      mockAuth.mockResolvedValue({ userId: null });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      await expect(BeneficiaireDashboardPage()).rejects.toThrow('NEXT_REDIRECT');
 
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
-      });
+      expect(redirect).toHaveBeenCalledWith('/login');
       expect(BeneficiaireDashboard).not.toHaveBeenCalled();
     });
 
-    it('should redirect to login when user is undefined', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: undefined, isLoaded: true });
+    it('should redirect to login when userId is undefined', async () => {
+      mockAuth.mockResolvedValue({ userId: undefined });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      await expect(BeneficiaireDashboardPage()).rejects.toThrow('NEXT_REDIRECT');
 
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
-      });
-      expect(BeneficiaireDashboard).not.toHaveBeenCalled();
-    });
-
-    it('should show loading state when Clerk is not loaded', () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: false });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(screen.getByText('Chargement...')).toBeInTheDocument();
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(redirect).toHaveBeenCalledWith('/login');
       expect(BeneficiaireDashboard).not.toHaveBeenCalled();
     });
   });
 
   describe('Authenticated user', () => {
-    it('should render BeneficiaireDashboard when user is present', () => {
-      // Arrange
-      const mockUser = { id: 'user_123456' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
+    it('should render BeneficiaireDashboard when userId is present', async () => {
+      mockAuth.mockResolvedValue({ userId: 'user_123456' });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
       expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: mockUser.id }),
-        expect.anything()
+        expect.objectContaining({ userId: 'user_123456' })
       );
     });
 
-    it('should pass userId to BeneficiaireDashboard component', () => {
-      // Arrange
-      const mockUser = { id: 'user_clerk_789' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
+    it('should pass userId to BeneficiaireDashboard component', async () => {
+      mockAuth.mockResolvedValue({ userId: 'user_clerk_789' });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
       expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: mockUser.id }),
-        expect.anything()
+        expect.objectContaining({ userId: 'user_clerk_789' })
       );
     });
 
-    it('should handle different userId formats', () => {
-      // Arrange
-      const mockUser = { id: 'clerk_user_with_special_chars_123-456' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
+    it('should handle different userId formats', async () => {
+      mockAuth.mockResolvedValue({
+        userId: 'clerk_user_with_special_chars_123-456',
+      });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
       expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: mockUser.id }),
-        expect.anything()
+        expect.objectContaining({ userId: 'clerk_user_with_special_chars_123-456' })
       );
-      expect(mockPush).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Loading state', () => {
-    it('should show loading spinner when Clerk is not loaded', () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: false });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(screen.getByText('Chargement...')).toBeInTheDocument();
-      expect(screen.getByText('Chargement...')).toHaveClass('animate-pulse');
-    });
-
-    it('should not show dashboard when not loaded', () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: { id: 'user_123' }, isLoaded: false });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(screen.getByText('Chargement...')).toBeInTheDocument();
-      expect(BeneficiaireDashboard).not.toHaveBeenCalled();
-    });
-
-    it('should hide loading state once loaded', () => {
-      // Arrange
-      const mockUser = { id: 'user_123' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(screen.queryByText('Chargement...')).not.toBeInTheDocument();
     });
   });
 
   describe('Edge cases', () => {
-    it('should return null when loaded but no user', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
+    it('should handle user with additional auth data', async () => {
+      mockAuth.mockResolvedValue({ userId: 'user_123' });
 
-      // Act
-      const { container } = render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
-      });
-      expect(
-        container.querySelector('[data-testid="beneficiaire-dashboard"]')
-      ).not.toBeInTheDocument();
-    });
-
-    it('should handle user with additional properties', () => {
-      // Arrange
-      const mockUser = {
-        id: 'user_123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
       expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user_123' }),
-        expect.anything()
-      );
-      expect(mockPush).not.toHaveBeenCalled();
-    });
-
-    it('should handle very long userId strings', () => {
-      // Arrange
-      const longUserId = `user_${'a'.repeat(1000)}`;
-      const mockUser = { id: longUserId };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: longUserId }),
-        expect.anything()
-      );
-      expect(mockPush).not.toHaveBeenCalled();
-    });
-
-    it('should handle special characters in userId', () => {
-      // Arrange
-      const specialUserId = 'user_123-456_789@domain.com';
-      const mockUser = { id: specialUserId };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: specialUserId }),
-        expect.anything()
+        expect.objectContaining({ userId: 'user_123' })
       );
     });
-  });
 
-  describe('Client-side behavior', () => {
-    it('should use client-side hooks', () => {
-      // Arrange
-      const mockUser = { id: 'user_123' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
+    it('should handle very long userId strings', async () => {
+      const longUserId = `user_${'a'.repeat(100)}`;
+      mockAuth.mockResolvedValue({ userId: longUserId });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
-      expect(useUser).toHaveBeenCalled();
-      expect(useRouter).toHaveBeenCalled();
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: longUserId })
+      );
     });
 
-    it('should call useRouter for navigation', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
+    it('should handle special characters in userId', async () => {
+      const specialUserId = 'user_123-456_789';
+      mockAuth.mockResolvedValue({ userId: specialUserId });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Integration scenarios', () => {
-    it('should not render dashboard when redirecting', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
-      });
-      expect(BeneficiaireDashboard).not.toHaveBeenCalled();
+      expect(BeneficiaireDashboard).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: specialUserId })
+      );
     });
   });
 
   describe('Security', () => {
-    it('should redirect unauthenticated users immediately', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: null, isLoaded: true });
+    it('should redirect unauthenticated users', async () => {
+      mockAuth.mockResolvedValue({ userId: null });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
-      });
+      await expect(BeneficiaireDashboardPage()).rejects.toThrow('NEXT_REDIRECT');
+      expect(redirect).toHaveBeenCalledWith('/login');
       expect(BeneficiaireDashboard).not.toHaveBeenCalled();
     });
 
-    it('should not expose dashboard to unauthenticated users', async () => {
-      // Arrange
-      (useUser as jest.Mock).mockReturnValue({ user: undefined, isLoaded: true });
+    it('should only pass userId from auth to dashboard', async () => {
+      mockAuth.mockResolvedValue({ userId: 'valid_user_123' });
 
-      // Act
-      render(<BeneficiaireDashboardPage />);
+      const result = await BeneficiaireDashboardPage();
+      render(result);
 
-      // Assert
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/login');
-      });
-      expect(BeneficiaireDashboard).not.toHaveBeenCalled();
-    });
-
-    it('should only accept valid user from Clerk', () => {
-      // Arrange
-      const mockUser = { id: 'valid_user_123' };
-      (useUser as jest.Mock).mockReturnValue({ user: mockUser, isLoaded: true });
-
-      // Act
-      render(<BeneficiaireDashboardPage />);
-
-      // Assert
       expect(BeneficiaireDashboard).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'valid_user_123' }),
-        expect.anything()
+        expect.objectContaining({ userId: 'valid_user_123' })
       );
     });
   });

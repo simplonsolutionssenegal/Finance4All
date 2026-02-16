@@ -267,7 +267,7 @@ export class GetBeneficiaireDashboardUseCaseImpl implements GetBeneficiaireDashb
     const activityDays = new Set(
       userProgressList.map(p => p.lastWatchedAt.toISOString().split('T')[0])
     );
-    const sortedDays = Array.from(activityDays).sort().reverse();
+    const sortedDays = Array.from(activityDays).sort((a, b) => b.localeCompare(a));
 
     if (sortedDays.length === 0) return 0;
 

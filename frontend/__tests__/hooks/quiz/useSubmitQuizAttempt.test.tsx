@@ -1,21 +1,8 @@
-import { useAuth } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 import { useSubmitQuizAttempt } from '@/hooks/quiz/useSubmitQuizAttempt';
-import { apiClient } from '@/lib/api-client';
-
-jest.mock('@clerk/nextjs', () => ({
-  useAuth: jest.fn(),
-}));
-
-jest.mock('@/lib/api-client', () => ({
-  apiClient: jest.fn(),
-}));
-
-const mockUseAuth = useAuth as jest.Mock;
-const mockApiClient = apiClient as jest.Mock;
 
 describe('useSubmitQuizAttempt', () => {
   let queryClient: QueryClient;
@@ -32,18 +19,13 @@ describe('useSubmitQuizAttempt', () => {
         mutations: { retry: false },
       },
     });
-
-    mockUseAuth.mockReturnValue({
-      getToken: jest.fn().mockResolvedValue('mock-token'),
-    });
-    mockApiClient.mockReset();
   });
 
   afterEach(() => {
     queryClient.clear();
   });
 
-  it('submits answers and invalidates progress query', async () => {
+  it('submits answers via /api/quizzes/:quizId/attempts and invalidates progress query', async () => {
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
     const response = {
       success: true,
@@ -65,7 +47,10 @@ describe('useSubmitQuizAttempt', () => {
       },
     };
 
-    mockApiClient.mockResolvedValue(response);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(response),
+    });
 
     const { result } = renderHook(() => useSubmitQuizAttempt('quiz-1'), {
       wrapper: createWrapper(),
@@ -74,9 +59,15 @@ describe('useSubmitQuizAttempt', () => {
     const payload = [{ questionIndex: 0, selectedOptionIndexes: [1] }];
     await result.current.submitAttempt(payload);
 
-    expect(mockApiClient).toHaveBeenCalledWith('quizzes/quiz-1/attempts', 'POST', 'mock-token', {
-      answers: payload,
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/quizzes/quiz-1/attempts',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: payload }),
+      })
+    );
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['quiz-progress', 'quiz-1'] });
   });
 });

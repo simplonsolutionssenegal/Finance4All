@@ -32,6 +32,8 @@ describe('QuizController', () => {
   };
 
   beforeEach(() => {
+    mockGetAuth.mockReset();
+    mockGetAuth.mockReturnValue({ userId: null });
     getByIdUseCase = { execute: jest.fn() } as any;
     updateUseCase = { execute: jest.fn() } as any;
     updateStatusUseCase = { execute: jest.fn() } as any;
@@ -139,14 +141,21 @@ describe('QuizController', () => {
   });
 
   it('submitAttempt should return 401 when unauthenticated', async () => {
-    const req = { params: { id: 'quiz-123' }, body: { answers: [] } } as unknown as Request;
+    const req = {
+      params: { id: 'quiz-123' },
+      body: { answers: [] },
+      query: {},
+    } as unknown as Request;
     const res = createRes();
     const next = jest.fn() as jest.MockedFunction<NextFunction>;
-    mockGetAuth.mockReturnValue({ userId: null });
+    mockGetAuth.mockImplementation(() => ({ userId: null }));
 
     await controller.submitAttempt(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Non autorise', message: 'Utilisateur non authentifie' })
+    );
     expect(submitUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -171,14 +180,17 @@ describe('QuizController', () => {
   });
 
   it('getMyProgress should return 401 when unauthenticated', async () => {
-    const req = { params: { id: 'quiz-123' } } as unknown as Request;
+    const req = { params: { id: 'quiz-123' }, query: {} } as unknown as Request;
     const res = createRes();
     const next = jest.fn() as jest.MockedFunction<NextFunction>;
-    mockGetAuth.mockReturnValue({ userId: null });
+    mockGetAuth.mockImplementation(() => ({ userId: null }));
 
     await controller.getMyProgress(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Non autorise', message: 'Utilisateur non authentifie' })
+    );
     expect(progressUseCase.execute).not.toHaveBeenCalled();
   });
 

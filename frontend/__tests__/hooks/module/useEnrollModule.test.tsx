@@ -4,11 +4,6 @@ import React from 'react';
 import { toast } from 'sonner';
 
 import { useEnrollModule } from '@/hooks/module/useEnrollModule';
-import { apiClient } from '@/lib/api-client';
-
-jest.mock('@clerk/nextjs', () => ({
-  useAuth: jest.fn(),
-}));
 
 jest.mock('sonner', () => ({
   toast: {
@@ -16,41 +11,31 @@ jest.mock('sonner', () => ({
   },
 }));
 
-jest.mock('@/lib/api-client', () => ({
-  apiClient: jest.fn(),
-}));
-
-import { useAuth } from '@clerk/nextjs';
-
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockApiClient = apiClient as jest.MockedFunction<typeof apiClient>;
-
 const createWrapper = (queryClient: QueryClient) =>
   function Wrapper({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 
 describe('useEnrollModule', () => {
-  const mockGetToken = jest.fn();
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    mockUseAuth.mockReturnValue({
-      getToken: mockGetToken,
-      isLoaded: true,
-      isSignedIn: true,
-    } as any);
-
-    mockGetToken.mockResolvedValue('mock-token');
   });
 
-  it('calls apiClient with correct endpoint', async () => {
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('calls /api/modules/[moduleId]/enroll with POST', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
     });
 
-    mockApiClient.mockResolvedValue({ success: true });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
 
     const { result } = renderHook(() => useEnrollModule(), {
       wrapper: createWrapper(queryClient),
@@ -60,7 +45,13 @@ describe('useEnrollModule', () => {
       await result.current.enrollModuleAsync({ moduleId: 'module-1' });
     });
 
-    expect(mockApiClient).toHaveBeenCalledWith('modules/module-1/enroll', 'POST', 'mock-token');
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/modules/module-1/enroll',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+    );
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -69,14 +60,22 @@ describe('useEnrollModule', () => {
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
     });
 
-    mockApiClient.mockResolvedValue({ success: false, message: 'fail' });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ success: false, message: 'fail' }),
+    });
 
     const { result } = renderHook(() => useEnrollModule(), {
       wrapper: createWrapper(queryClient),
     });
 
     await act(async () => {
-      await result.current.enrollModuleAsync({ moduleId: 'module-1' });
+      try {
+        await result.current.enrollModuleAsync({ moduleId: 'module-1' });
+      } catch {
+        // La mutation lance une erreur quand response.ok est false - onError affiche le toast
+      }
     });
 
     expect(toast.error).toHaveBeenCalledWith('Inscription echouee', {
@@ -84,12 +83,12 @@ describe('useEnrollModule', () => {
     });
   });
 
-  it('shows toast when apiClient throws', async () => {
+  it('shows toast when fetch throws', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
     });
 
-    mockApiClient.mockRejectedValue(new Error('boom'));
+    global.fetch = jest.fn().mockRejectedValue(new Error('boom'));
 
     const { result } = renderHook(() => useEnrollModule(), {
       wrapper: createWrapper(queryClient),

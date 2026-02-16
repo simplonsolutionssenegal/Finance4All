@@ -1,8 +1,17 @@
-import type { NextRequest } from 'next/server';
-// eslint-disable-next-line no-duplicate-imports
 import { NextResponse } from 'next/server';
 
 import { GET } from '@/app/api/beneficiaire/dashboard/stats/route';
+
+// Mock Clerk auth - userId and getToken from session
+const mockGetToken = jest.fn().mockResolvedValue(null);
+const mockAuth = jest.fn();
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: (...args: unknown[]) => mockAuth(...args),
+}));
+
+jest.mock('@/lib/auth-utils', () => ({
+  getBackendToken: jest.fn().mockResolvedValue(null),
+}));
 
 // Mock dependencies
 jest.mock('next/server', () => ({
@@ -41,10 +50,9 @@ const mockDashboardResponse = {
 };
 
 describe('GET /api/beneficiaire/dashboard/stats', () => {
-  let mockRequest: Partial<NextRequest>;
-
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuth.mockResolvedValue({ userId: 'user_123', getToken: mockGetToken });
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => mockDashboardResponse,
@@ -56,50 +64,24 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  describe('Authentication checks (Query Parameters)', () => {
-    it('should return 401 when userId is not in query params', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats',
-      } as NextRequest;
+  describe('Authentication checks (Clerk session)', () => {
+    it('should return 401 when userId is not in session', async () => {
+      mockAuth.mockResolvedValue({ userId: null, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
-        { error: 'Non autorisé - userId manquant' },
+        { error: 'Non autorisé - session invalide ou expirée' },
         { status: 401 }
       );
     });
 
-    it('should return 401 when userId query param is empty', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=',
-      } as NextRequest;
-
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
-      expect(NextResponse.json).toHaveBeenCalledWith(
-        { error: 'Non autorisé - userId manquant' },
-        { status: 401 }
-      );
-    });
-
-    it('should pass userId to backend API', async () => {
-      // Arrange
+    it('should pass userId from session to backend API', async () => {
       const userId = 'user_123';
-      mockRequest = {
-        url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${userId}`,
-      } as NextRequest;
+      mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`userId=${userId}`),
         expect.any(Object)
@@ -108,15 +90,8 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
   });
 
   describe('Successful data retrieval', () => {
-    beforeEach(() => {
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
-    });
-
-    it('should return dashboard stats when userId is provided', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+    it('should return dashboard stats when user is authenticated', async () => {
+      await GET();
 
       // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
@@ -129,8 +104,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return correct stats structure', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -141,8 +115,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return modulesCompleted with current and total', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -153,8 +126,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return learningTime as string', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -162,8 +134,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return quizzesPassed with current and total', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -174,8 +145,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return globalProgress as number', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -183,8 +153,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return moduleStats with correct structure', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -195,8 +164,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return monthlyProgress as array', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -204,8 +172,7 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return 6 months of progress data', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       const callArgs = (NextResponse.json as jest.Mock).mock.calls[0][0];
@@ -215,15 +182,10 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
 
   describe('Error handling', () => {
     it('should return 500 when fetch throws error', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
       const fetchError = new Error('Network error');
       (global.fetch as jest.Mock).mockRejectedValue(fetchError);
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
       // Assert
       expect(console.error).toHaveBeenCalledWith('Erreur API dashboard bénéficiaire:', fetchError);
@@ -234,20 +196,14 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return error when backend returns 404', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 404,
         text: async () => JSON.stringify({ message: 'Route not found', path: '/api/v1/unknown' }),
       });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.stringContaining('Backend non trouvé'),
@@ -257,20 +213,14 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should forward backend error message when backend returns 500', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
         text: async () => JSON.stringify({ success: false, message: 'Bénéficiaire non trouvé' }),
       });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
         { error: 'Bénéficiaire non trouvé' },
         { status: 500 }
@@ -278,36 +228,25 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should use body.error when backend returns error field', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 400,
         text: async () => JSON.stringify({ error: 'userId manquant' }),
       });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith({ error: 'userId manquant' }, { status: 400 });
     });
   });
 
   describe('URL encoding', () => {
-    it('should handle special characters in userId', async () => {
-      // Arrange
+    it('should handle special characters in userId from session', async () => {
       const specialUserId = 'user+123@domain.com';
-      mockRequest = {
-        url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${encodeURIComponent(specialUserId)}`,
-      } as NextRequest;
+      mockAuth.mockResolvedValue({ userId: specialUserId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(encodeURIComponent(specialUserId)),
         expect.any(Object)
@@ -315,16 +254,11 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should properly encode userId in backend URL', async () => {
-      // Arrange
       const userId = 'user_123-456';
-      mockRequest = {
-        url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${userId}`,
-      } as NextRequest;
+      mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`userId=${encodeURIComponent(userId)}`),
         expect.any(Object)
@@ -333,35 +267,26 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
   });
 
   describe('Integration scenarios', () => {
-    beforeEach(() => {
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_123',
-      } as NextRequest;
-    });
-
     it('should not call NextResponse.json twice on success', async () => {
-      // Act
-      await GET(mockRequest as NextRequest);
-
-      // Assert
+      await GET();
       expect(NextResponse.json).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle different userId formats', async () => {
-      // Arrange
+    it('should handle different userId formats from session', async () => {
       const userIds = ['user_123', 'clerk_abc', 'user-special-456'];
 
       for (const userId of userIds) {
         jest.clearAllMocks();
-        mockRequest = {
-          url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${userId}`,
-        } as NextRequest;
+        mockAuth.mockResolvedValue({ userId, getToken: mockGetToken });
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: true,
+          json: async () => mockDashboardResponse,
+          text: async () => JSON.stringify(mockDashboardResponse),
+        });
 
-        // Act
         // eslint-disable-next-line no-await-in-loop
-        await GET(mockRequest as NextRequest);
+        await GET();
 
-        // Assert
         expect(NextResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
             stats: expect.any(Object),
@@ -371,40 +296,32 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
     });
 
     it('should return same data structure for different users', async () => {
-      // Arrange
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_1',
-      } as NextRequest;
-
-      // Act
-      await GET(mockRequest as NextRequest);
+      mockAuth.mockResolvedValue({ userId: 'user_1', getToken: mockGetToken });
+      await GET();
       const result1 = (NextResponse.json as jest.Mock).mock.calls[0][0];
 
       jest.clearAllMocks();
-      mockRequest = {
-        url: 'http://localhost:3000/api/beneficiaire/dashboard/stats?userId=user_2',
-      } as NextRequest;
-      await GET(mockRequest as NextRequest);
+      mockAuth.mockResolvedValue({ userId: 'user_2', getToken: mockGetToken });
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockDashboardResponse,
+        text: async () => JSON.stringify(mockDashboardResponse),
+      });
+      await GET();
       const result2 = (NextResponse.json as jest.Mock).mock.calls[0][0];
 
-      // Assert
       expect(Object.keys(result1)).toEqual(Object.keys(result2));
       expect(Object.keys(result1.stats)).toEqual(Object.keys(result2.stats));
     });
   });
 
   describe('Edge cases', () => {
-    it('should handle very long userId strings', async () => {
-      // Arrange
+    it('should handle very long userId strings from session', async () => {
       const longUserId = `user_${'a'.repeat(1000)}`;
-      mockRequest = {
-        url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${longUserId}`,
-      } as NextRequest;
+      mockAuth.mockResolvedValue({ userId: longUserId, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(NextResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           stats: expect.any(Object),
@@ -412,17 +329,12 @@ describe('GET /api/beneficiaire/dashboard/stats', () => {
       );
     });
 
-    it('should handle whitespace in userId (URL encoded)', async () => {
-      // Arrange
+    it('should handle whitespace in userId from session', async () => {
       const userIdWithSpace = 'user 123';
-      mockRequest = {
-        url: `http://localhost:3000/api/beneficiaire/dashboard/stats?userId=${encodeURIComponent(userIdWithSpace)}`,
-      } as NextRequest;
+      mockAuth.mockResolvedValue({ userId: userIdWithSpace, getToken: mockGetToken });
 
-      // Act
-      await GET(mockRequest as NextRequest);
+      await GET();
 
-      // Assert
       expect(global.fetch).toHaveBeenCalled();
     });
   });

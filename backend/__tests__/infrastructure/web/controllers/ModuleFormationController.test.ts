@@ -796,7 +796,12 @@ describe('ModuleController (unit) — Couverture 100%', () => {
 
   describe('enroll', () => {
     it('should return 401 when user is not authenticated', async () => {
-      req = { params: { id: 'module-1' } } as any;
+      req = {
+        params: { id: 'module-1' },
+        auth: undefined,
+        query: {},
+        body: {},
+      } as any;
 
       await controller.enroll(req as Request, res as Response, next);
 
@@ -828,6 +833,44 @@ describe('ModuleController (unit) — Couverture 100%', () => {
       await controller.enroll(req as Request, res as Response, next);
 
       expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it('should use userId from query when auth.userId is missing', async () => {
+      const enrollment = { id: 'enroll-2', moduleId: 'module-2', userId: 'user-from-query' };
+      req = {
+        params: { id: 'module-2' },
+        auth: {},
+        query: { userId: 'user-from-query' },
+      } as any;
+      mockEnrollModuleUseCase.execute.mockResolvedValue(enrollment as any);
+
+      await controller.enroll(req as Request, res as Response, next);
+
+      expect(mockEnrollModuleUseCase.execute).toHaveBeenCalledWith({
+        moduleId: 'module-2',
+        userId: 'user-from-query',
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ success: true, data: enrollment });
+    });
+
+    it('should use userId from body when auth and query userId are missing', async () => {
+      const enrollment = { id: 'enroll-3', moduleId: 'module-3', userId: 'user-from-body' };
+      req = {
+        params: { id: 'module-3' },
+        auth: undefined,
+        query: {},
+        body: { userId: 'user-from-body' },
+      } as any;
+      mockEnrollModuleUseCase.execute.mockResolvedValue(enrollment as any);
+
+      await controller.enroll(req as Request, res as Response, next);
+
+      expect(mockEnrollModuleUseCase.execute).toHaveBeenCalledWith({
+        moduleId: 'module-3',
+        userId: 'user-from-body',
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 
