@@ -113,6 +113,28 @@ describe('get-user-redirect', () => {
         '/organisation-dashboard'
       );
     });
+    it('should return /beneficiaire-dashboard for beneficiary with mixed case role', () => {
+      const userMetadata = {
+        unsafeMetadata: { role: 'Beneficiary' }, // Mixed case
+        publicMetadata: {},
+        externalAccounts: [],
+      };
+      expect(getUserRedirectPath(null, null, {}, userMetadata)).toBe('/beneficiaire-dashboard');
+    });
+
+    it('should check publicMetadata if unsafeMetadata is missing', () => {
+      const userMetadata = {
+        unsafeMetadata: {},
+        publicMetadata: { role: 'beneficiary' },
+        externalAccounts: [],
+      };
+      expect(getUserRedirectPath(null, null, {}, userMetadata)).toBe('/beneficiaire-dashboard');
+    });
+
+    it('should handle undefined userRoles gracefully', () => {
+      // @ts-ignore
+      expect(getUserRedirectPath(undefined, null)).toBe('/beneficiaire-dashboard');
+    });
   });
 
   describe('useGetUserRedirect', () => {

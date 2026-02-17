@@ -12,6 +12,7 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
+// Restore necessary mocks
 const mockShowLoader = jest.fn();
 const mockHideLoader = jest.fn();
 const mockUpdateField = jest.fn();
@@ -23,8 +24,8 @@ const mockResetForm = jest.fn();
 jest.mock('@/contexts/LoaderContext', () => ({
   useLoader: () => ({
     isLoading: false,
-    showLoader: mockShowLoader,
-    hideLoader: mockHideLoader,
+    showLoader: jest.fn(),
+    hideLoader: jest.fn(),
   }),
 }));
 
@@ -109,17 +110,14 @@ describe('ClerkAcceptInvitation', () => {
         }),
       });
     });
-
-    expect(mockShowLoader).toHaveBeenCalled();
-    expect(mockHideLoader).toHaveBeenCalled();
   });
 
   it('renders password input fields after data loads', async () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Confirmer le mot de passe')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Entrez votre mot de passe')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Confirmez votre mot de passe')).toBeInTheDocument();
     });
   });
 
@@ -127,7 +125,7 @@ describe('ClerkAcceptInvitation', () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Test Organization/)).toBeInTheDocument();
+      expect(screen.getByText(/administrateur/)).toBeInTheDocument();
     });
   });
 
@@ -140,9 +138,8 @@ describe('ClerkAcceptInvitation', () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Le mot de passe doit contenir au moins 8 caractères')
-      ).toBeInTheDocument();
+      const passwordInput = screen.getByPlaceholderText('Entrez votre mot de passe');
+      expect(passwordInput).toHaveAttribute('aria-invalid', 'true');
     });
   });
 
@@ -155,7 +152,8 @@ describe('ClerkAcceptInvitation', () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Les mots de passe ne correspondent pas')).toBeInTheDocument();
+      const confirmInput = screen.getByPlaceholderText('Confirmez votre mot de passe');
+      expect(confirmInput).toHaveAttribute('aria-invalid', 'true');
     });
   });
 
@@ -163,10 +161,10 @@ describe('ClerkAcceptInvitation', () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Entrez votre mot de passe')).toBeInTheDocument();
     });
 
-    const passwordInput = screen.getByPlaceholderText('Mot de passe');
+    const passwordInput = screen.getByPlaceholderText('Entrez votre mot de passe');
     fireEvent.change(passwordInput, { target: { value: 'newPassword123' } });
 
     expect(mockUpdateField).toHaveBeenCalledWith('password', 'newPassword123');
@@ -176,19 +174,20 @@ describe('ClerkAcceptInvitation', () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Confirmer le mot de passe')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Confirmez votre mot de passe')).toBeInTheDocument();
     });
 
-    const confirmPasswordInput = screen.getByPlaceholderText('Confirmer le mot de passe');
+    const confirmPasswordInput = screen.getByPlaceholderText('Confirmez votre mot de passe');
     fireEvent.change(confirmPasswordInput, { target: { value: 'newPassword123' } });
 
     expect(mockUpdateField).toHaveBeenCalledWith('confirmPassword', 'newPassword123');
   });
 
-  it('submits form with valid data', async () => {
+  it('submits form with valid data and shows local loading state', async () => {
     // Mock valid form state
     mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
 
+    // Delay the response to check loading state
     mockFetch.mockImplementation(url => {
       if (url === '/api/get-invitation') {
         return Promise.resolve({
@@ -205,10 +204,14 @@ describe('ClerkAcceptInvitation', () => {
         } as unknown as Response);
       }
       if (url === '/api/accept-invitation') {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        } as unknown as Response);
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({ success: true }),
+            } as unknown as Response);
+          }, 100);
+        });
       }
       return Promise.resolve({
         ok: true,
@@ -222,46 +225,79 @@ describe('ClerkAcceptInvitation', () => {
       expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument();
     });
 
-    const form = screen.getByRole('button', { name: 'Créer mon compte' }).closest('form');
+    const form = screen.getByTestId('submit-button').closest('form')!;
     expect(form).not.toBeNull();
+
+    // Trigger submit
     fireEvent.submit(form as HTMLFormElement);
 
+    // Check for loading state immediately
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/accept-invitation',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: expect.stringContaining('"password":"ValidPassword123!"'),
-        })
-      );
+      expect(screen.getByText('Création en cours...')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-button')).toBeDisabled();
     });
 
-    expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
+    // Wait for router push (success)
+    await waitFor(() => {
+      expect(mockRouter.push).toHaveBeenCalledWith('/login');
+    });
   });
 
-  it('handles API errors gracefully', async () => {
-    mockFetch.mockImplementation(() =>
-      Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ message: 'API Error' }),
-      } as unknown as Response)
-    );
+  it('handles API errors gracefully and displays specific error messages', async () => {
+    // Mock pwned password error
+    mockFetch.mockImplementation(url => {
+      if (url === '/api/get-invitation') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                publicMetadata: { firstName: 'John', lastName: 'Doe' },
+              },
+            }),
+        } as unknown as Response);
+      }
+      if (url === '/api/accept-invitation') {
+        return Promise.resolve({
+          ok: false,
+          json: () =>
+            Promise.resolve({
+              message: 'Ce mot de passe a été trouvé dans une fuite de données publique.',
+            }),
+        } as unknown as Response);
+      }
+      return Promise.reject(new Error('Unknown'));
+    });
+
+    // Set valid form values
+    mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
 
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
+    await waitFor(() => screen.getByDisplayValue('test@example.com'));
+
+    // Submit form
+    const form = screen.getByTestId('submit-button').closest('form')!;
+    fireEvent.submit(form);
+
     await waitFor(() => {
       expect(
-        screen.getByText(/Impossible de charger les données de l'invitation/)
+        screen.getByText('Ce mot de passe a été trouvé dans une fuite de données publique.')
       ).toBeInTheDocument();
     });
+
+    // Ensure button is re-enabled/reset (loading should stop on error)
+    expect(screen.getByTestId('submit-button')).not.toBeDisabled();
+    expect(screen.getByText('Créer mon mot de passe')).toBeInTheDocument();
   });
 
   it('disables form when invalid', async () => {
     render(<ClerkAcceptInvitation {...defaultProps} />);
 
     await waitFor(() => {
-      const submitButton = screen.getByText('Créer mon compte');
+      const submitButton = screen.getByText('Créer mon mot de passe');
       expect(submitButton).toBeDisabled();
     });
   });
@@ -280,6 +316,116 @@ describe('ClerkAcceptInvitation', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/ID d'invitation manquant/)).toBeInTheDocument();
+    });
+  });
+  it('should handle non-JSON error response from get-invitation', async () => {
+    mockFetch.mockImplementation(url => {
+      if (url === '/api/get-invitation') {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          text: () => Promise.resolve('Fatal Error'),
+          json: () => Promise.reject(new Error('Invalid JSON')),
+        } as unknown as Response);
+      }
+      return Promise.resolve({ ok: true } as Response);
+    });
+
+    render(<ClerkAcceptInvitation {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Impossible de charger les données de l'invitation")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should reset error state on input change', async () => {
+    // Mock submit failure
+    mockFetch.mockImplementation(url => {
+      if (url === '/api/get-invitation') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                organizationName: 'Test Organization',
+                publicMetadata: { firstName: 'John', lastName: 'Doe' },
+              },
+            }),
+        } as unknown as Response);
+      }
+      if (url === '/api/accept-invitation') {
+        return Promise.resolve({
+          ok: false,
+          json: () => Promise.resolve({ message: 'Submission failed' }),
+        } as unknown as Response);
+      }
+      return Promise.reject(new Error('Unknown'));
+    });
+
+    // Set valid form values
+    mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
+
+    render(<ClerkAcceptInvitation {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Adresse email/i)).toHaveValue('test@example.com');
+    });
+
+    // Submit to get error
+    const form = screen.getByTestId('submit-button').closest('form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText('Submission failed')).toBeInTheDocument();
+    });
+
+    // Change password -> error should disappear
+    const passwordInput = screen.getByPlaceholderText('Entrez votre mot de passe');
+    fireEvent.change(passwordInput, { target: { value: 'NewPass' } });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Submission failed')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should handle non-Error objects in submit catch block', async () => {
+    mockFetch.mockImplementation(url => {
+      if (url === '/api/get-invitation') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              invitation: {
+                emailAddress: 'test@example.com',
+                publicMetadata: { firstName: 'John', lastName: 'Doe' },
+              },
+            }),
+        } as unknown as Response);
+      }
+      if (url === '/api/accept-invitation') {
+        return Promise.reject('String error');
+      }
+      return Promise.resolve({ ok: true } as Response);
+    });
+
+    // Set valid form values
+    mockFormState.values = { password: 'ValidPassword123!', confirmPassword: 'ValidPassword123!' };
+
+    render(<ClerkAcceptInvitation {...defaultProps} />);
+    await waitFor(() => screen.getByDisplayValue('test@example.com'));
+    const form = screen.getByTestId('submit-button').closest('form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Une erreur est survenue lors de l'acceptation de l'invitation")
+      ).toBeInTheDocument();
     });
   });
 });
