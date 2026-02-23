@@ -95,7 +95,10 @@ jobs:
       FRONTEND_IMAGE: ${{ needs.validate-deployment.outputs.frontend_image }}
     steps:
       - name: Set repository name to lowercase
-        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: |
+          REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
+          echo "REPO_LOWER=${REPO_LOWER}" >> $GITHUB_ENV
+          echo "GITHUB_REPOSITORY=${REPO_LOWER}" >> $GITHUB_ENV
 
       - name: Check runner health
         run: |

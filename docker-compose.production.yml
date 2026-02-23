@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Production Deployment
 # Ce fichier est utilisé par GitHub Actions pour déployer la production
 # Traefik doit déjà être en cours d'exécution (docker-compose.traefik.yml)
