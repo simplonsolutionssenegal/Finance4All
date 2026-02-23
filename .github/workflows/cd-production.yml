@@ -98,7 +98,7 @@ jobs:
         run: |
           REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
           echo "REPO_LOWER=${REPO_LOWER}" >> $GITHUB_ENV
-          echo "GITHUB_REPOSITORY=${REPO_LOWER}" >> $GITHUB_ENV
+          echo "IMAGE_REPOSITORY=${REPO_LOWER}" >> $GITHUB_ENV
 
       - name: Check runner health
         run: |
@@ -151,7 +151,7 @@ jobs:
           MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
         run: |
           {
-            echo "GITHUB_REPOSITORY=${{ env.REPO_LOWER }}"
+            echo "IMAGE_REPOSITORY=${{ env.REPO_LOWER }}"
             echo "POSTGRES_DB=${POSTGRES_DB}"
             echo "POSTGRES_USER=${POSTGRES_USER}"
             echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"

@@ -64,7 +64,7 @@ services:
 
   # Backend API
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    image: ghcr.io/${IMAGE_REPOSITORY}/backend:latest
     container_name: finance4all-backend-prod
     restart: unless-stopped
     depends_on:
@@ -112,7 +112,7 @@ services:
 
   # Frontend Application
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    image: ghcr.io/${IMAGE_REPOSITORY}/frontend:latest
     container_name: finance4all-frontend-prod
     restart: unless-stopped
     depends_on:
