@@ -75,6 +75,7 @@ jobs:
       - name: Fetch secrets from Infisical
         uses: Infisical/secrets-action@v1.0.7
         with:
+          domain: https://secrets.simplonprojet.com
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: finance4all
@@ -165,6 +166,7 @@ jobs:
       - name: Fetch app secrets from Infisical
         uses: Infisical/secrets-action@v1.0.7
         with:
+          domain: https://secrets.simplonprojet.com
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: finance4all
@@ -173,6 +175,7 @@ jobs:
       - name: Fetch infra secrets from Infisical
         uses: Infisical/secrets-action@v1.0.7
         with:
+          domain: https://secrets.simplonprojet.com
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: infrastructure
