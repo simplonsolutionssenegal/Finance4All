@@ -24,7 +24,7 @@ jobs:
   # --------------------------------------------------
   build-images:
     name: Build & Push Images
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, vps, ubuntu-24]
     needs: run-ci
     timeout-minutes: 20
 

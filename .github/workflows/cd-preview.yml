@@ -72,7 +72,7 @@ jobs:
   # ============================================
   build-images:
     name: Build & Push Images
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, vps, ubuntu-24]
     needs: [ check-preview-request, run-ci ]
     if: needs.run-ci.outputs.build-success == 'true'
     timeout-minutes: 20
