@@ -85,8 +85,8 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:main-cache
           cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:main-cache,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             COMMIT_SHA=${{ github.sha }}
             BUILD_DATE=${{ github.run_number }}
 
