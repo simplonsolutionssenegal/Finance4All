@@ -55,60 +55,59 @@ jobs:
               content: 'eyes'
             });
 
+  # ============================================
+  # CLEANUP REVIEW APPS VIA COOLIFY API
+  # ============================================
   cleanup-preview:
-    name: Cleanup Preview Environment
-    runs-on: self-hosted
+    name: Cleanup Review Apps
+    runs-on: ubuntu-latest
     needs: check-cleanup-request
     env:
       PR_NUMBER: ${{ needs.check-cleanup-request.outputs.pr-number }}
 
     steps:
-      - name: Set repository name to lowercase
-        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Create .env file for preview cleanup
+      - name: Delete review apps from Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          cat > .env.preview <<EOF
-          PR_NUMBER=${{ needs.check-cleanup-request.outputs.pr-number }}
-          GITHUB_REPOSITORY=${REPO_LOWER}
-          POSTGRES_PASSWORD=dummy
-          CLERK_PUBLISHABLE_KEY=dummy
-          CLERK_SECRET_KEY=dummy
-          CLERK_WEBHOOK_SECRET=dummy
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=dummy
-          GMAIL_USER=dummy
-          GMAIL_APP_PASSWORD=dummy
-          FROM_EMAIL=dummy
-          FROM_NAME=dummy
-          EOF
+          set -euo pipefail
 
-      - name: Stop and remove containers
-        run: |
-          cd ${{ github.workspace }}
-          PR_NUM=${{ needs.check-cleanup-request.outputs.pr-number }}
-          PROJECT_NAME="finance4all-preview-pr-${PR_NUM}"
+          BACKEND_APP_NAME="review-f4a-backend-pr-${PR_NUMBER}"
+          FRONTEND_APP_NAME="review-f4a-frontend-pr-${PR_NUMBER}"
 
-          if [ -f docker-compose.preview.yml ]; then
-            echo "🛑 Stopping and removing containers for PR #${PR_NUM} (project: ${PROJECT_NAME})..."
-            docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview down -v --remove-orphans || echo "No containers to remove"
-          fi
+          delete_review_app() {
+            local APP_NAME=$1
+            local LABEL=$2
 
-          # Fallback: Remove containers by exact name match
-          for container in $(docker ps -a --format "{{.Names}}" | grep -E "^finance4all-(postgres|backend|frontend)-pr-${PR_NUM}$"); do
-            echo "Removing container: ${container}"
-            docker stop "${container}" 2>/dev/null || true
-            docker rm -v "${container}" 2>/dev/null || true
-          done
+            echo "🔍 Recherche ${LABEL} : ${APP_NAME}"
 
-      - name: Remove local Docker images
-        continue-on-error: true
-        run: |
-          echo "Removing local Docker images for PR-${{ needs.check-cleanup-request.outputs.pr-number }}..."
-          docker rmi ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-cleanup-request.outputs.pr-number }} || true
-          docker rmi ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-cleanup-request.outputs.pr-number }} || true
+            APP_UUID=$(curl -s -X GET "${COOLIFY_URL}/api/v1/applications" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              | jq -r --arg name "${APP_NAME}" '.[] | select(.name == $name) | .uuid // empty')
+
+            if [ -n "$APP_UUID" ]; then
+              echo "🛑 Arrêt ${LABEL} (${APP_UUID})..."
+              curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${APP_UUID}/stop" \
+                -H "Authorization: Bearer ${COOLIFY_TOKEN}"
+
+              sleep 2
+
+              echo "🗑️ Suppression ${LABEL}..."
+              curl -s -X DELETE "${COOLIFY_URL}/api/v1/applications/${APP_UUID}" \
+                -H "Authorization: Bearer ${COOLIFY_TOKEN}"
+
+              echo "✅ ${LABEL} supprimée"
+            else
+              echo "⚠️ ${LABEL} introuvable (déjà supprimée ?)"
+            fi
+          }
+
+          delete_review_app "${BACKEND_APP_NAME}" "Backend"
+          delete_review_app "${FRONTEND_APP_NAME}" "Frontend"
+
+          echo ""
+          echo "✅ Nettoyage terminé pour PR #${PR_NUMBER}"
 
       - name: Delete Docker images from GitHub Container Registry
         uses: actions/github-script@v7
@@ -119,13 +118,10 @@ jobs:
             const prNumber = ${{ needs.check-cleanup-request.outputs.pr-number }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-
-            // List of packages to clean
             const packages = ['backend', 'frontend'];
 
             for (const packageName of packages) {
               try {
-                // Get all versions of the package
                 const { data: versions } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
                   package_type: 'container',
                   package_name: `${repo}/${packageName}`,
@@ -133,7 +129,6 @@ jobs:
                   per_page: 100
                 });
 
-                // Find versions with the PR tag
                 const prTag = `pr-${prNumber}`;
                 const versionsToDelete = versions.filter(v =>
                   v.metadata?.container?.tags?.some(tag =>
@@ -141,7 +136,6 @@ jobs:
                   )
                 );
 
-                // Delete each matching version
                 for (const version of versionsToDelete) {
                   console.log(`Deleting ${packageName} version ${version.id} with tags: ${version.metadata.container.tags.join(', ')}`);
                   await github.rest.packages.deletePackageVersionForOrg({
@@ -158,10 +152,6 @@ jobs:
               }
             }
 
-      - name: Remove preview network
-        run: |
-          docker network rm preview-pr-${{ needs.check-cleanup-request.outputs.pr-number }} || echo "Network already removed"
-
       - name: Comment PR with cleanup status
         uses: actions/github-script@v7
         with:
@@ -177,14 +167,12 @@ jobs:
               repo: context.repo.repo,
               body: `🧹 **Preview environment cleaned up!**
 
-              ✅ Containers stopped and removed
-              ✅ Docker volumes deleted
-              ✅ Docker images deleted from GHCR
-              ✅ Network removed
+            ✅ Review apps supprimées de Coolify
+            ✅ Docker images supprimées de GHCR
 
-              Trigger: ${triggerMessage}
+            Trigger: ${triggerMessage}
 
-              To redeploy a preview, comment \`/preview\` on this PR.`
+            To redeploy a preview, comment \`/preview\` on this PR.`
             });
 
   notify-cleanup-failure:
@@ -204,9 +192,9 @@ jobs:
               repo: context.repo.repo,
               body: `⚠️ **Preview cleanup failed!**
 
-              There was an issue cleaning up the preview environment.
+            There was an issue cleaning up the preview environment.
 
-              [View cleanup logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            [View cleanup logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-              You may need to manually cleanup the resources.`
+            You may need to manually cleanup the resources.`
             });

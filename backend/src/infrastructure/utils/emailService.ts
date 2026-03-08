@@ -22,8 +22,8 @@ export class EmailService {
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
       // Vérification des variables d'environnement Gmail
-      const gmailUser = process.env.GMAIL_USER;
-      const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+      const gmailUser = process.env.MAIL_USERNAME;
+      const gmailPassword = process.env.MAIL_PASSWORD;
 
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -63,8 +63,8 @@ export class EmailService {
       // Configuration de l'email
       const mailOptions = {
         from: {
-          name: process.env.FROM_NAME ?? 'Finance4All',
-          address: process.env.FROM_EMAIL ?? process.env.GMAIL_USER ?? 'noreply@finance4all.com',
+          name: process.env.MAIL_FROM_NAME ?? 'Finance4All',
+          address: process.env.MAIL_FROM ?? process.env.MAIL_USERNAME ?? 'noreply@finance4all.com',
         },
         to: data.recipientEmail,
         subject: emailContent.subject,
@@ -226,7 +226,7 @@ export class EmailService {
       const transporter = this.getTransporter();
 
       // Si c'est un transporteur de simulation, retourner true
-      if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      if (!process.env.MAIL_USERNAME || !process.env.MAIL_PASSWORD) {
         logger.info('Mode simulation - test de connexion ignoré');
         return true;
       }

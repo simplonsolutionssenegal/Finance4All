@@ -1,0 +1,217 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+jobs:
+  # --------------------------------------------------
+  # Run CI tests
+  # --------------------------------------------------
+  run-ci:
+    name: Run CI Tests
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  # --------------------------------------------------
+  # Build & Push Docker images
+  # --------------------------------------------------
+  build-images:
+    name: Build & Push Images
+    runs-on: self-hosted
+    needs: run-ci
+    timeout-minutes: 20
+
+    steps:
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/backend:main
+            ghcr.io/${{ env.REPO_LOWER }}/backend:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:main-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:main-cache,mode=max
+          build-args: |
+            NODE_ENV=staging
+            COMMIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ github.run_number }}
+
+      - name: Fetch app secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.7
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-slug: finance4all
+          env-slug: staging
+
+      - name: Map CLERK_PUBLISHABLE_KEY for frontend
+        run: echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}" >> $GITHUB_ENV
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:main
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:main-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:main-cache,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+            CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+            COMMIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ github.run_number }}
+
+  # --------------------------------------------------
+  # Sync secrets from Infisical → Coolify (staging)
+  # --------------------------------------------------
+  sync-secrets:
+    name: Sync Secrets
+    runs-on: ubuntu-latest
+    needs: build-images
+    env:
+      INFISICAL_URL: https://secrets.nehiyr-tech.dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Infisical
+        env:
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+        run: bash .github/scripts/infisical-auth.sh
+
+      - name: Sync secrets to Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_INFRA_ID: ${{ secrets.INFISICAL_INFRA_ID }}
+          COOLIFY_STAGING_BACKEND_UUID: ${{ secrets.COOLIFY_STAGING_BACKEND_UUID }}
+          COOLIFY_STAGING_FRONTEND_UUID: ${{ secrets.COOLIFY_STAGING_FRONTEND_UUID }}
+        run: |
+          echo "🔄 Syncing secrets to staging apps..."
+
+          # Backend: Infrastructure + Finance4All
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_INFRA_ID}" "staging" "${COOLIFY_STAGING_BACKEND_UUID}" "Infrastructure → Backend"
+
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "staging" "${COOLIFY_STAGING_BACKEND_UUID}" "Finance4All → Backend"
+
+          # Frontend: Finance4All only
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "staging" "${COOLIFY_STAGING_FRONTEND_UUID}" "Finance4All → Frontend"
+
+          echo "✅ Tous les secrets synchronisés"
+
+  # --------------------------------------------------
+  # Deploy to staging via Coolify
+  # --------------------------------------------------
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-images, sync-secrets]
+    environment: staging
+    timeout-minutes: 15
+    steps:
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Deploy Backend via Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_STAGING_BACKEND_UUID: ${{ secrets.COOLIFY_STAGING_BACKEND_UUID }}
+        run: |
+          echo "🚀 Deploying backend to staging..."
+
+          curl -s -X PATCH "${COOLIFY_URL}/api/v1/applications/${COOLIFY_STAGING_BACKEND_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"docker_registry_image_name\": \"ghcr.io/${REPO_LOWER}/backend\",
+              \"docker_registry_image_tag\": \"${{ github.sha }}\"
+            }"
+
+          RESPONSE=$(curl -s -X GET \
+            "${COOLIFY_URL}/api/v1/deploy?uuid=${COOLIFY_STAGING_BACKEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+
+          echo "📋 Coolify response: $RESPONSE"
+
+      - name: Deploy Frontend via Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_STAGING_FRONTEND_UUID: ${{ secrets.COOLIFY_STAGING_FRONTEND_UUID }}
+        run: |
+          echo "🚀 Deploying frontend to staging..."
+
+          curl -s -X PATCH "${COOLIFY_URL}/api/v1/applications/${COOLIFY_STAGING_FRONTEND_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"docker_registry_image_name\": \"ghcr.io/${REPO_LOWER}/frontend\",
+              \"docker_registry_image_tag\": \"${{ github.sha }}\"
+            }"
+
+          RESPONSE=$(curl -s -X GET \
+            "${COOLIFY_URL}/api/v1/deploy?uuid=${COOLIFY_STAGING_FRONTEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+
+          echo "📋 Coolify response: $RESPONSE"
+
+      - name: Wait and verify health
+        run: |
+          echo "⏳ Waiting for deployment to stabilize..."
+          sleep 30
+
+          echo "Checking backend health..."
+          for i in $(seq 1 10); do
+            if curl -sSf https://api.staging.finance4all.simplonprojet.com/health > /dev/null 2>&1; then
+              echo "✅ Backend healthy"
+              break
+            fi
+            echo "  Attempt $i/10..."
+            sleep 10
+          done
+
+          echo "Checking frontend health..."
+          for i in $(seq 1 5); do
+            if curl -sSf https://staging.finance4all.simplonprojet.com > /dev/null 2>&1; then
+              echo "✅ Frontend healthy"
+              break
+            fi
+            echo "  Attempt $i/5..."
+            sleep 10
+          done
+
+          echo "✅ Staging deployment complete"

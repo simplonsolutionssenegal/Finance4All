@@ -1,0 +1,8 @@
+{
+  "workspaceId": "",
+  "defaultEnvironment": "dev",
+  "gitBranchToEnvironmentMapping": null,
+  "api": {
+    "url": "https://secrets.nehiyr-tech.dev"
+  }
+}

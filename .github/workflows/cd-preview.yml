@@ -67,34 +67,22 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-
-  build-and-deploy:
-    name: Build Images & Deploy Preview
+  # ============================================
+  # BUILD & PUSH DOCKER IMAGES
+  # ============================================
+  build-images:
+    name: Build & Push Images
     runs-on: self-hosted
     needs: [ check-preview-request, run-ci ]
     if: needs.run-ci.outputs.build-success == 'true'
-    timeout-minutes: 30
+    timeout-minutes: 20
     env:
       PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
+      PR_SHA: ${{ needs.check-preview-request.outputs.pr-sha }}
 
     steps:
       - name: Set repository name to lowercase
-        id: repo-name
         run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Check runner health
-        run: |
-          echo "Runner hostname: $(hostname)"
-          df -h
-          free -h || vm_stat
-          docker --version
-          docker info
-
-      - name: Cleanup old Docker resources
-        continue-on-error: true
-        run: |
-          docker system prune -f
-          docker image prune -a -f --filter "until=72h"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,10 +99,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-
-      # --------------------------------------------------
-      # Build and push BACKEND image
-      # --------------------------------------------------
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
@@ -122,18 +106,15 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
-          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ env.PR_NUMBER }}
+            ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ env.PR_NUMBER }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ env.PR_NUMBER }}-cache,mode=max
           build-args: |
             NODE_ENV=preview
-            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            COMMIT_SHA=${{ env.PR_SHA }}
             BUILD_DATE=${{ github.run_number }}
 
-      # --------------------------------------------------
-      # Build and push FRONTEND image
-      # --------------------------------------------------
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -141,151 +122,228 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}
-            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-${{ needs.check-preview-request.outputs.pr-sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache
-          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}-cache,mode=max
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ env.PR_NUMBER }}
+            ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ env.PR_NUMBER }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ env.PR_NUMBER }}-cache,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com/api/v1
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            COMMIT_SHA=${{ needs.check-preview-request.outputs.pr-sha }}
+            NEXT_PUBLIC_API_URL=https://api-pr-${{ env.PR_NUMBER }}.finance4all.simplonprojet.com/api/v1
+            COMMIT_SHA=${{ env.PR_SHA }}
             BUILD_DATE=${{ github.run_number }}
 
+  # ============================================
+  # CREATE/UPDATE REVIEW APPS + SYNC SECRETS + DEPLOY
+  # ============================================
+  deploy-preview:
+    name: Deploy Review Apps
+    runs-on: ubuntu-latest
+    needs: [ check-preview-request, build-images ]
+    timeout-minutes: 15
+    env:
+      PR_NUMBER: ${{ needs.check-preview-request.outputs.pr-number }}
+      PR_SHA: ${{ needs.check-preview-request.outputs.pr-sha }}
+      INFISICAL_URL: https://secrets.nehiyr-tech.dev
 
-      # --------------------------------------------------
-      # SAFE REMOVE ONLY THIS PR'S CONTAINERS (bug fixed!)
-      # --------------------------------------------------
-      - name: Stop and remove old preview environment (safe)
-        continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-preview-request.outputs.pr-ref }}
+
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Authenticate to Infisical
+        env:
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+        run: bash .github/scripts/infisical-auth.sh
+
+      - name: Create or update review apps & deploy
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_PROJECT_UUID: ${{ secrets.COOLIFY_PROJECT_UUID }}
+          COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_INFRA_ID: ${{ secrets.INFISICAL_INFRA_ID }}
         run: |
-          PR_NUM=${{ needs.check-preview-request.outputs.pr-number }}
-          PROJECT_NAME="finance4all-preview-pr-${PR_NUM}"
-          REPO="${REPO_LOWER}"
+          set -euo pipefail
 
-          echo "🛑 Stopping environment for PR #${PR_NUM} (project: ${PROJECT_NAME})..."
+          BACKEND_APP_NAME="review-f4a-backend-pr-${PR_NUMBER}"
+          FRONTEND_APP_NAME="review-f4a-frontend-pr-${PR_NUMBER}"
+          BACKEND_DOMAIN="api-pr-${PR_NUMBER}.finance4all.simplonprojet.com"
+          FRONTEND_DOMAIN="pr-${PR_NUMBER}.finance4all.simplonprojet.com"
+          BACKEND_IMAGE="ghcr.io/${REPO_LOWER}/backend"
+          FRONTEND_IMAGE="ghcr.io/${REPO_LOWER}/frontend"
+          IMAGE_TAG="pr-${PR_NUMBER}"
 
-          # Use docker-compose down with explicit project name to stop ONLY this PR's containers
-          if [ -f docker-compose.preview.yml ]; then
-            docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview down --remove-orphans || true
-          fi
+          # -----------------------------------------------
+          # Fonction : créer ou mettre à jour une review app
+          # -----------------------------------------------
+          deploy_review_app() {
+            local APP_NAME=$1
+            local DOMAIN=$2
+            local IMAGE_NAME=$3
+            local IMAGE_TAG=$4
+            local PORT=$5
+            local LABEL=$6
 
-          # Fallback: Stop containers by exact name match
-          for container in $(docker ps -a --format "{{.Names}}" | grep -E "^finance4all-(postgres|backend|frontend)-pr-${PR_NUM}$"); do
-            echo "Stopping container: ${container}"
-            docker stop "${container}" 2>/dev/null || true
-            docker rm "${container}" 2>/dev/null || true
+            echo "🔍 Recherche review app : ${APP_NAME}"
+
+            EXISTING_UUID=$(curl -s -X GET "${COOLIFY_URL}/api/v1/applications" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              | jq -r --arg name "${APP_NAME}" '.[] | select(.name == $name) | .uuid // empty')
+
+            if [ -n "$EXISTING_UUID" ]; then
+              echo "♻️  ${LABEL} trouvée (${EXISTING_UUID}) — mise à jour image"
+
+              curl -s -X PATCH "${COOLIFY_URL}/api/v1/applications/${EXISTING_UUID}" \
+                -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"docker_registry_image_name\": \"${IMAGE_NAME}\",
+                  \"docker_registry_image_tag\": \"${IMAGE_TAG}\"
+                }"
+
+              echo "${EXISTING_UUID}"
+            else
+              echo "🆕 Création review app : ${APP_NAME}"
+
+              RESPONSE=$(curl -s -X POST "${COOLIFY_URL}/api/v1/applications/dockerimage" \
+                -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"project_uuid\": \"${COOLIFY_PROJECT_UUID}\",
+                  \"server_uuid\": \"${COOLIFY_SERVER_UUID}\",
+                  \"environment_name\": \"preview\",
+                  \"docker_registry_image_name\": \"${IMAGE_NAME}\",
+                  \"docker_registry_image_tag\": \"${IMAGE_TAG}\",
+                  \"name\": \"${APP_NAME}\",
+                  \"description\": \"Review app ${LABEL} PR #${PR_NUMBER}\",
+                  \"domains\": \"https://${DOMAIN}\",
+                  \"ports_exposes\": \"${PORT}\",
+                  \"instant_deploy\": false
+                }")
+
+              NEW_UUID=$(echo "$RESPONSE" | jq -r '.uuid // empty')
+
+              if [ -z "$NEW_UUID" ]; then
+                echo "❌ Échec création ${LABEL}"
+                echo "$RESPONSE" | jq .
+                exit 1
+              fi
+
+              echo "✅ ${LABEL} créée : ${NEW_UUID}"
+              echo "${NEW_UUID}"
+            fi
+          }
+
+          # -----------------------------------------------
+          # 1. Create/update backend review app
+          # -----------------------------------------------
+          echo ""
+          echo "========== BACKEND =========="
+          BACKEND_UUID=$(deploy_review_app "${BACKEND_APP_NAME}" "${BACKEND_DOMAIN}" "${BACKEND_IMAGE}" "${IMAGE_TAG}" "3001" "Backend")
+          sleep 2
+
+          # -----------------------------------------------
+          # 2. Create/update frontend review app
+          # -----------------------------------------------
+          echo ""
+          echo "========== FRONTEND =========="
+          FRONTEND_UUID=$(deploy_review_app "${FRONTEND_APP_NAME}" "${FRONTEND_DOMAIN}" "${FRONTEND_IMAGE}" "${IMAGE_TAG}" "3000" "Frontend")
+          sleep 2
+
+          # -----------------------------------------------
+          # 3. Sync secrets from Infisical → Coolify
+          # -----------------------------------------------
+          echo ""
+          echo "🔄 Syncing secrets..."
+
+          # Backend: Infrastructure + Finance4All secrets
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_INFRA_ID}" "dev" "${BACKEND_UUID}" "Infrastructure → Backend"
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "dev" "${BACKEND_UUID}" "Finance4All → Backend"
+
+          # Frontend: Finance4All secrets only
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "dev" "${FRONTEND_UUID}" "Finance4All → Frontend"
+
+          # Inject preview-specific env vars
+          for UUID in "${BACKEND_UUID}" "${FRONTEND_UUID}"; do
+            curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${UUID}/envs" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\": \"NODE_ENV\", \"value\": \"preview\", \"is_preview\": false}" || true
+
+            curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${UUID}/envs" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\": \"PR_NUMBER\", \"value\": \"${PR_NUMBER}\", \"is_preview\": false}" || true
           done
 
-          echo "🗑 Removing ONLY images for pr-${PR_NUM}..."
+          # Backend-specific preview vars
+          curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${BACKEND_UUID}/envs" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\": \"FRONTEND_URL\", \"value\": \"https://${FRONTEND_DOMAIN}\", \"is_preview\": false}" || true
 
-          # Remove old images for this specific PR
-          docker images --format "{{.Repository}}:{{.Tag}}" \
-            | grep -E "^ghcr.io/${REPO}/(backend|frontend):pr-${PR_NUM}(-[a-f0-9]+)?$" \
-            | xargs -r docker rmi -f || true
+          curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${BACKEND_UUID}/envs" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\": \"PORT\", \"value\": \"3001\", \"is_preview\": false}" || true
 
-          echo "📥 Pulling fresh images..."
-          docker pull ghcr.io/${REPO}/backend:pr-${PR_NUM}
-          docker pull ghcr.io/${REPO}/frontend:pr-${PR_NUM}
+          # Frontend-specific preview vars
+          curl -s -X POST "${COOLIFY_URL}/api/v1/applications/${FRONTEND_UUID}/envs" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\": \"NEXT_PUBLIC_API_URL\", \"value\": \"https://${BACKEND_DOMAIN}/api/v1\", \"is_preview\": false}" || true
 
+          echo "✅ Secrets synchronisés"
 
-      # --------------------------------------------------
-      # DEPLOY PREVIEW
-      # --------------------------------------------------
-      - name: Calculate dynamic ports
-        id: ports
-        run: |
-          PR_NUM=${{ needs.check-preview-request.outputs.pr-number }}
+          # -----------------------------------------------
+          # 4. Deploy both apps
+          # -----------------------------------------------
+          echo ""
+          echo "🚀 Deploying review apps..."
 
-          # Calculate unique ports for this PR
-          # Frontend: 30000 + (PR_NUMBER * 10)
-          # Backend:  30001 + (PR_NUMBER * 10)
-          # Postgres: 35432 + (PR_NUMBER * 10)
-          FRONTEND_PORT=$((30000 + PR_NUM * 10))
-          BACKEND_PORT=$((30001 + PR_NUM * 10))
-          POSTGRES_PORT=$((35432 + PR_NUM * 10))
+          curl -s -X GET "${COOLIFY_URL}/api/v1/deploy?uuid=${BACKEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}"
 
-          echo "FRONTEND_PORT=${FRONTEND_PORT}" >> $GITHUB_OUTPUT
-          echo "BACKEND_PORT=${BACKEND_PORT}" >> $GITHUB_OUTPUT
-          echo "POSTGRES_PORT=${POSTGRES_PORT}" >> $GITHUB_OUTPUT
+          curl -s -X GET "${COOLIFY_URL}/api/v1/deploy?uuid=${FRONTEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}"
 
-          echo "📊 Allocated ports for PR #${PR_NUM}:"
-          echo "  - Frontend: ${FRONTEND_PORT}"
-          echo "  - Backend:  ${BACKEND_PORT}"
-          echo "  - Postgres: ${POSTGRES_PORT}"
+          echo "✅ Déploiements déclenchés"
 
-      - name: Create .env file
-        run: |
-          cat > .env.preview <<EOF
-          PR_NUMBER=${{ needs.check-preview-request.outputs.pr-number }}
-          GITHUB_REPOSITORY=${REPO_LOWER}
-          FRONTEND_PORT=${{ steps.ports.outputs.FRONTEND_PORT }}
-          BACKEND_PORT=${{ steps.ports.outputs.BACKEND_PORT }}
-          POSTGRES_PORT=${{ steps.ports.outputs.POSTGRES_PORT }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_WEBHOOK_SECRET=${{ secrets.CLERK_WEBHOOK_SECRET }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          GMAIL_USER=${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
-          FROM_EMAIL=${{ secrets.FROM_EMAIL }}
-          FROM_NAME=${{ secrets.FROM_NAME }}
-          EOF
-
-      - name: Deploy preview with docker-compose
-        env:
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        run: |
-          PROJECT_NAME="finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}"
-          echo "🚀 Deploying preview with project name: ${PROJECT_NAME}"
-          docker compose -p "${PROJECT_NAME}" -f docker-compose.preview.yml --env-file .env.preview up -d
-
-      - name: Wait for services to be healthy
-        run: |
-          PROJECT_NAME="finance4all-preview-pr-${{ needs.check-preview-request.outputs.pr-number }}"
-          echo "⏳ Waiting for services to be healthy..."
-          timeout 120 sh -c "until docker compose -p ${PROJECT_NAME} -f docker-compose.preview.yml ps | grep -q 'healthy'; do sleep 5; done" || echo "⚠️ Health check timeout"
-
-
-      # --------------------------------------------------
-      # COMMENT PR WITH PREVIEW URL
-      # --------------------------------------------------
-      - name: Comment PR
+      - name: Comment PR with preview URLs
         uses: actions/github-script@v7
-        env:
-          FRONTEND_PORT: ${{ steps.ports.outputs.FRONTEND_PORT }}
-          BACKEND_PORT: ${{ steps.ports.outputs.BACKEND_PORT }}
-          POSTGRES_PORT: ${{ steps.ports.outputs.POSTGRES_PORT }}
         with:
           script: |
+            const prNumber = ${{ needs.check-preview-request.outputs.pr-number }};
+
             github.rest.issues.createComment({
-              issue_number: ${{ needs.check-preview-request.outputs.pr-number }},
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `✅ **Preview deployment successful!**
 
-              🌐 **Frontend**: https://pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
-              🔧 **Backend API**: https://api-pr-${{ needs.check-preview-request.outputs.pr-number }}.finance4all.simplonprojet.com
+            🌐 **Frontend**: https://pr-${prNumber}.finance4all.simplonprojet.com
+            🔧 **Backend API**: https://api-pr-${prNumber}.finance4all.simplonprojet.com
 
-              📦 **Docker Images**:
-              - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
-              - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${{ needs.check-preview-request.outputs.pr-number }}\`
+            📦 **Docker Images**:
+            - Frontend: \`ghcr.io/${{ env.REPO_LOWER }}/frontend:pr-${prNumber}\`
+            - Backend: \`ghcr.io/${{ env.REPO_LOWER }}/backend:pr-${prNumber}\`
 
-              🔌 **Allocated Ports** (on self-hosted runner):
-              - Frontend: \`${process.env.FRONTEND_PORT}\`
-              - Backend: \`${process.env.BACKEND_PORT}\`
-              - PostgreSQL: \`${process.env.POSTGRES_PORT}\`
-
-              🔄 To update this preview, push new commits or comment \`/preview\` again.
-              🗑️ To cleanup, comment \`/cleanup\` on this PR.`
+            🔄 To update this preview, push new commits or comment \`/preview\` again.
+            🗑️ To cleanup, comment \`/cleanup\` on this PR.`
             });
-
 
   notify-failure:
     name: Notify Failure
     runs-on: ubuntu-latest
-    needs: [ check-preview-request, run-ci, build-and-deploy ]
+    needs: [ check-preview-request, run-ci, build-images, deploy-preview ]
     if: failure()
 
     steps:
@@ -303,5 +361,3 @@ jobs:
               repo: context.repo.repo,
               body: msg
             });
-
-

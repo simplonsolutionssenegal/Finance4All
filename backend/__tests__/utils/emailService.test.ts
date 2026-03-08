@@ -34,18 +34,18 @@ describe('EmailService', () => {
     (EmailService as any).transporter = null;
 
     // Set default environment variables
-    process.env.GMAIL_USER = 'test@gmail.com';
-    process.env.GMAIL_APP_PASSWORD = 'testpassword';
-    process.env.FROM_NAME = 'Finance4All';
-    process.env.FROM_EMAIL = 'noreply@finance4all.com';
+    process.env.MAIL_USERNAME = 'test@gmail.com';
+    process.env.MAIL_PASSWORD = 'testpassword';
+    process.env.MAIL_FROM_NAME = 'Finance4All';
+    process.env.MAIL_FROM = 'noreply@finance4all.com';
     process.env.FRONTEND_URL = 'https://app.finance4all.com';
   });
 
   afterEach(() => {
-    delete process.env.GMAIL_USER;
-    delete process.env.GMAIL_APP_PASSWORD;
-    delete process.env.FROM_NAME;
-    delete process.env.FROM_EMAIL;
+    delete process.env.MAIL_USERNAME;
+    delete process.env.MAIL_PASSWORD;
+    delete process.env.MAIL_FROM_NAME;
+    delete process.env.MAIL_FROM;
     delete process.env.FRONTEND_URL;
   });
 
@@ -100,8 +100,8 @@ describe('EmailService', () => {
     });
 
     it('should handle simulation mode when credentials are missing', async () => {
-      delete process.env.GMAIL_USER;
-      delete process.env.GMAIL_APP_PASSWORD;
+      delete process.env.MAIL_USERNAME;
+      delete process.env.MAIL_PASSWORD;
 
       const mockResult = {
         message: Buffer.from('Simulated email'),
@@ -148,8 +148,8 @@ describe('EmailService', () => {
     });
 
     it('should use default values when environment variables are not set', async () => {
-      delete process.env.FROM_NAME;
-      delete process.env.FROM_EMAIL;
+      delete process.env.MAIL_FROM_NAME;
+      delete process.env.MAIL_FROM;
       delete process.env.FRONTEND_URL;
 
       mockTransporter.sendMail.mockResolvedValue({ messageId: 'msg_123' });
@@ -246,8 +246,8 @@ describe('EmailService', () => {
     });
 
     it('should return true in simulation mode', async () => {
-      delete process.env.GMAIL_USER;
-      delete process.env.GMAIL_APP_PASSWORD;
+      delete process.env.MAIL_USERNAME;
+      delete process.env.MAIL_PASSWORD;
 
       const result = await EmailService.testConnection();
 

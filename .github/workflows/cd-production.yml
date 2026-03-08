@@ -32,11 +32,8 @@ jobs:
         id: validate
         run: |
           VERSION="${{ inputs.version }}"
-
-          # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
 
-          # Validate semver format
           if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
             echo "::error::Invalid version format: $VERSION. Expected semver format like 1.0.0 or 1.0.0-beta.1"
             exit 1
@@ -65,7 +62,6 @@ jobs:
           echo "Checking backend image: ${{ steps.validate.outputs.backend_image }}"
           docker manifest inspect ${{ steps.validate.outputs.backend_image }} > /dev/null 2>&1 || {
             echo "::error::Backend image not found: ${{ steps.validate.outputs.backend_image }}"
-            echo "Make sure the release workflow has been run for version ${{ steps.validate.outputs.version }}"
             exit 1
           }
           echo "Backend image found"
@@ -75,159 +71,139 @@ jobs:
           echo "Checking frontend image: ${{ steps.validate.outputs.frontend_image }}"
           docker manifest inspect ${{ steps.validate.outputs.frontend_image }} > /dev/null 2>&1 || {
             echo "::error::Frontend image not found: ${{ steps.validate.outputs.frontend_image }}"
-            echo "Make sure the release workflow has been run for version ${{ steps.validate.outputs.version }}"
             exit 1
           }
           echo "Frontend image found"
 
   # --------------------------------------------------
-  # Deploy to production server
+  # Sync secrets from Infisical → Coolify
   # --------------------------------------------------
-  deploy-production:
-    name: Deploy to Production
-    runs-on: self-hosted
+  sync-secrets:
+    name: Sync Secrets
+    runs-on: ubuntu-latest
     needs: validate-deployment
     environment: production
-    timeout-minutes: 30
     env:
-      VERSION: ${{ needs.validate-deployment.outputs.version }}
-      BACKEND_IMAGE: ${{ needs.validate-deployment.outputs.backend_image }}
-      FRONTEND_IMAGE: ${{ needs.validate-deployment.outputs.frontend_image }}
+      INFISICAL_URL: https://secrets.nehiyr-tech.dev
     steps:
-      - name: Set repository name to lowercase
-        run: |
-          REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
-          echo "REPO_LOWER=${REPO_LOWER}" >> $GITHUB_ENV
-          echo "IMAGE_REPOSITORY=${REPO_LOWER}" >> $GITHUB_ENV
-
-      - name: Check runner health
-        run: |
-          echo "Runner hostname: $(hostname)"
-          echo "Deploying version: ${{ env.VERSION }}"
-          df -h
-          free -h || vm_stat
-          docker --version
-          docker info
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: v${{ env.VERSION }}
+          ref: v${{ needs.validate-deployment.outputs.version }}
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull Docker images
-        run: |
-          echo "Pulling backend image: ${{ env.BACKEND_IMAGE }}"
-          docker pull ${{ env.BACKEND_IMAGE }}
-
-          echo "Pulling frontend image: ${{ env.FRONTEND_IMAGE }}"
-          docker pull ${{ env.FRONTEND_IMAGE }}
-
-          # Tag as latest for docker-compose compatibility
-          docker tag ${{ env.BACKEND_IMAGE }} ghcr.io/${{ env.REPO_LOWER }}/backend:latest
-          docker tag ${{ env.FRONTEND_IMAGE }} ghcr.io/${{ env.REPO_LOWER }}/frontend:latest
-
-      - name: Create production .env file
+      - name: Authenticate to Infisical
         env:
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-          FROM_NAME: ${{ secrets.FROM_NAME }}
-          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
-          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
-          MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+        run: bash .github/scripts/infisical-auth.sh
+
+      - name: Sync secrets to Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_INFRA_ID: ${{ secrets.INFISICAL_INFRA_ID }}
+          COOLIFY_PROD_BACKEND_UUID: ${{ secrets.COOLIFY_PROD_BACKEND_UUID }}
+          COOLIFY_PROD_FRONTEND_UUID: ${{ secrets.COOLIFY_PROD_FRONTEND_UUID }}
         run: |
-          {
-            echo "IMAGE_REPOSITORY=${{ env.REPO_LOWER }}"
-            echo "POSTGRES_DB=${POSTGRES_DB}"
-            echo "POSTGRES_USER=${POSTGRES_USER}"
-            echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
-            echo "CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}"
-            echo "CLERK_SECRET_KEY=${CLERK_SECRET_KEY}"
-            echo "CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}"
-            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}"
-            echo "GMAIL_USER=${GMAIL_USER}"
-            echo "GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}"
-            echo "FROM_EMAIL=${FROM_EMAIL}"
-            echo "FROM_NAME=${FROM_NAME}"
-            echo "MINIO_ROOT_USER=${MINIO_ROOT_USER}"
-            echo "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}"
-            echo "MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}"
-          } > .env.production
+          echo "🔄 Syncing secrets to production apps..."
 
-      - name: Deploy with docker-compose
+          # Backend: Infrastructure + Finance4All
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_INFRA_ID}" "prod" "${COOLIFY_PROD_BACKEND_UUID}" "Infrastructure → Backend"
+
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "prod" "${COOLIFY_PROD_BACKEND_UUID}" "Finance4All → Backend"
+
+          # Frontend: Finance4All only
+          bash .github/scripts/infisical-coolify-sync.sh \
+            "${INFISICAL_PROJECT_ID}" "prod" "${COOLIFY_PROD_FRONTEND_UUID}" "Finance4All → Frontend"
+
+          echo "✅ Tous les secrets synchronisés"
+
+  # --------------------------------------------------
+  # Deploy to production via Coolify
+  # --------------------------------------------------
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, sync-secrets]
+    environment: production
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.validate-deployment.outputs.version }}
+    steps:
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Deploy Backend via Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_PROD_BACKEND_UUID: ${{ secrets.COOLIFY_PROD_BACKEND_UUID }}
         run: |
-          echo "Deploying Finance4All v${{ env.VERSION }} to production..."
+          echo "🚀 Deploying backend v${VERSION}..."
 
-          docker compose -f docker-compose.production.yml \
-            --env-file .env.production \
-            up -d --remove-orphans
+          curl -s -X PATCH "${COOLIFY_URL}/api/v1/applications/${COOLIFY_PROD_BACKEND_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"docker_registry_image_name\": \"ghcr.io/${REPO_LOWER}/backend\",
+              \"docker_registry_image_tag\": \"${VERSION}\"
+            }"
 
-      - name: Wait for services to be healthy
+          RESPONSE=$(curl -s -X GET \
+            "${COOLIFY_URL}/api/v1/deploy?uuid=${COOLIFY_PROD_BACKEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
+
+          echo "📋 Coolify response: $RESPONSE"
+
+      - name: Deploy Frontend via Coolify
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_PROD_FRONTEND_UUID: ${{ secrets.COOLIFY_PROD_FRONTEND_UUID }}
         run: |
-          echo "Waiting for services to be healthy..."
-          MAX_WAIT=180
-          ELAPSED=0
+          echo "🚀 Deploying frontend v${VERSION}..."
 
-          while [ $ELAPSED -lt $MAX_WAIT ]; do
-            HEALTHY_COUNT=$(docker compose -f docker-compose.production.yml ps --format json 2>/dev/null | grep -c '"healthy"' || echo "0")
-            TOTAL_COUNT=$(docker compose -f docker-compose.production.yml ps --format json 2>/dev/null | wc -l | tr -d ' ')
+          curl -s -X PATCH "${COOLIFY_URL}/api/v1/applications/${COOLIFY_PROD_FRONTEND_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"docker_registry_image_name\": \"ghcr.io/${REPO_LOWER}/frontend\",
+              \"docker_registry_image_tag\": \"${VERSION}\"
+            }"
 
-            echo "Health status: ${HEALTHY_COUNT}/${TOTAL_COUNT} services healthy (${ELAPSED}s/${MAX_WAIT}s)"
+          RESPONSE=$(curl -s -X GET \
+            "${COOLIFY_URL}/api/v1/deploy?uuid=${COOLIFY_PROD_FRONTEND_UUID}&force=false" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}")
 
-            if [ "$HEALTHY_COUNT" -ge 4 ]; then
-              echo "All services are healthy!"
+          echo "📋 Coolify response: $RESPONSE"
+
+      - name: Wait and verify health
+        run: |
+          echo "⏳ Waiting for deployment to stabilize..."
+          sleep 30
+
+          echo "Checking backend health..."
+          for i in $(seq 1 10); do
+            if curl -sSf https://api.finance4all.simplonprojet.com/health > /dev/null 2>&1; then
+              echo "✅ Backend healthy"
               break
             fi
-
+            echo "  Attempt $i/10..."
             sleep 10
-            ELAPSED=$((ELAPSED + 10))
           done
 
-          if [ $ELAPSED -ge $MAX_WAIT ]; then
-            echo "::warning::Health check timeout after ${MAX_WAIT}s. Some services may still be starting."
-            docker compose -f docker-compose.production.yml ps
-          fi
-
-      - name: Verify services are responding
-        run: |
-          echo "Verifying services..."
-
-          # Check backend health
-          if docker exec finance4all-backend-prod wget --no-verbose --tries=3 --spider http://localhost:3001/health 2>/dev/null; then
-            echo "Backend is responding"
-          else
-            echo "::warning::Backend health check failed"
-          fi
-
-          # Check frontend
-          if docker exec finance4all-frontend-prod wget --no-verbose --tries=3 --spider http://localhost:3000/ 2>/dev/null; then
-            echo "Frontend is responding"
-          else
-            echo "::warning::Frontend health check failed"
-          fi
-
-          # Show running containers
-          echo ""
-          echo "Running containers:"
-          docker compose -f docker-compose.production.yml ps
-
-      - name: Cleanup .env file
-        if: always()
-        run: rm -f .env.production
+          echo "Checking frontend health..."
+          for i in $(seq 1 5); do
+            if curl -sSf https://finance4all.simplonprojet.com > /dev/null 2>&1; then
+              echo "✅ Frontend healthy"
+              break
+            fi
+            echo "  Attempt $i/5..."
+            sleep 10
+          done
 
   # --------------------------------------------------
   # Notify deployment result
@@ -250,7 +226,6 @@ jobs:
             const version = '${{ env.VERSION }}';
             const tag = `v${version}`;
 
-            // Find the release for this version
             try {
               const { data: release } = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
