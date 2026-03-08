@@ -96,7 +96,7 @@ export default function GrowthChart() {
                   borderRadius: '8px',
                   color: 'white',
                 }}
-                formatter={(value: string | number | (string | number)[] | undefined) => [
+                formatter={value => [
                   `${typeof value === 'number' ? value.toLocaleString() : (value ?? 0)}`,
                   'Value',
                 ]}
