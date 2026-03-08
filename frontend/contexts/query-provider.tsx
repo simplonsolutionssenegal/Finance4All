@@ -25,6 +25,8 @@ export function QueryProvider({ children }: Readonly<QueryProviderProps>) {
             retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
             // Refetch on window focus in production only
             refetchOnWindowFocus: process.env.NODE_ENV === 'production',
+            // Disable queries during SSR/build to prevent fetch errors when backend is unavailable
+            enabled: typeof window !== 'undefined',
           },
           mutations: {
             // Show error notifications by default
