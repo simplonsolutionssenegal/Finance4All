@@ -1,6 +1,5 @@
 import { ArrowRight, Globe, Lock } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const CTASection = () => {
   return (
@@ -26,17 +25,19 @@ const CTASection = () => {
 
         {/* CTA Buttons */}
         <div className='flex flex-col sm:flex-row gap-4 justify-center pt-4'>
-          <Button size='lg' className='bg-white hover:bg-grey-100 text-primary-600 shadow-2xl'>
+          <Link
+            href='/register'
+            className='bg-white hover:bg-grey-100 flex flex-row items-center justify-center gap-2 px-8 py-4 rounded-lg w-fit hover:opacity-90 text-primary-600 shadow-2xl'
+          >
             Créer mon compte gratuit
             <ArrowRight className='w-5 h-5 ml-2' aria-hidden='true' />
-          </Button>
-          <Button
-            size='lg'
-            variant='ghost'
-            className='border border-white text-white hover:bg-white/10'
+          </Link>
+          <Link
+            href='/register'
+            className='border border-white text-white hover:bg-white/10 flex flex-row items-center justify-center gap-2 px-8 py-4 rounded-lg w-fit hover:opacity-90 shadow-2xl'
           >
             Essayer le comparateur
-          </Button>
+          </Link>
         </div>
 
         {/* Trust Indicators */}

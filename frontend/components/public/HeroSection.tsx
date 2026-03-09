@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, TrendingUp, BookOpen, Star } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -45,20 +45,19 @@ const HeroSection = () => {
             </motion.p>
 
             <motion.div variants={fadeInUp} className='flex flex-col sm:flex-row gap-4 pt-2'>
-              <Button
-                size='lg'
-                className='bg-primary-300 hover:bg-primary-400 cursor-pointer text-white px-8 h-14 rounded-xl text-base font-medium transition-all shadow-md group w-full sm:w-auto'
+              <Link
+                href='/register'
+                className='bg-primary-300 flex flex-row items-center justify-center gap-2 hover:bg-primary-400 cursor-pointer text-white px-8 h-14 rounded-xl text-base font-medium transition-all shadow-md group w-full sm:w-auto'
               >
                 Commencer gratuitement
-                <ArrowRight className='ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform' />
-              </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='border-primary-300 text-primary-300 cursor-pointer hover:bg-primary-400 hover:text-white px-8 h-14 rounded-xl text-base font-medium transition-all w-full sm:w-auto'
+                <ArrowRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
+              </Link>
+              <Link
+                href='/comparator'
+                className='border-primary-400 border-2 bg-white flex flex-row items-center justify-center gap-2 text-primary-300 cursor-pointer hover:bg-primary-400 hover:text-white px-8 h-14 rounded-xl text-base font-medium transition-all w-full sm:w-auto'
               >
                 Voir le comparateur
-              </Button>
+              </Link>
             </motion.div>
 
             {/* Social Proof */}

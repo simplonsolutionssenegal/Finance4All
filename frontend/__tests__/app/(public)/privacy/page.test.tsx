@@ -35,4 +35,10 @@ describe('Privacy Page', () => {
     const sections = container.querySelectorAll('section');
     expect(sections.length).toBeGreaterThanOrEqual(8);
   });
+
+  it('should have proper styling classes', () => {
+    const { container } = render(<Privacy />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass('max-w-4xl', 'mx-auto', 'px-4', 'py-12');
+  });
 });

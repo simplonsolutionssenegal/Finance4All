@@ -1,8 +1,8 @@
 import { ArrowRight, BookOpen, ChartColumn, Globe, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 const VisionSection = () => {
   return (
@@ -109,13 +109,13 @@ const VisionSection = () => {
 
             {/* CTA Button */}
             <div className='pt-4'>
-              <Button
-                size='lg'
-                className='bg-gradient-primary hover:opacity-90 text-white shadow-primary-lg group'
+              <Link
+                href='/register'
+                className='bg-gradient-primary flex flex-row items-center justify-center gap-2 px-8 py-4 rounded-lg w-fit hover:opacity-90 text-white shadow-primary-lg group'
               >
                 Découvrir la plateforme
                 <ArrowRight className='w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform' />
-              </Button>
+              </Link>
             </div>
           </div>
         </div>

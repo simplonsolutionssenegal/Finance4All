@@ -5,12 +5,12 @@ import CTASection from '@/components/public/CTASection';
 describe('CTASection', () => {
   it('should render without crashing', () => {
     render(<CTASection />);
-    expect(screen.getByText(/Prêt à transformer votre vie financière/)).toBeInTheDocument();
+    expect(screen.getByText(/Prêt à transformer votre vie financière ?/)).toBeInTheDocument();
   });
 
   it('should display the main heading', () => {
     render(<CTASection />);
-    expect(screen.getByText(/Prêt à transformer votre vie financière/)).toBeInTheDocument();
+    expect(screen.getByText(/Prêt à transformer votre vie financière ?/)).toBeInTheDocument();
   });
 
   it('should display the description', () => {
@@ -33,12 +33,12 @@ describe('CTASection', () => {
   it('should have proper section structure', () => {
     const { container } = render(<CTASection />);
     const section = container.querySelector('section');
-    expect(section).toHaveClass('relative', 'py-32');
+    expect(section).toHaveClass('relative', 'py-32', 'bg-gradient-primary');
   });
 
-  it('should have gradient background', () => {
+  it('should render the icon placeholder', () => {
     const { container } = render(<CTASection />);
-    const section = container.querySelector('section');
-    expect(section).toHaveClass('bg-gradient-primary');
+    const iconPlaceholder = container.querySelector('.w-24.h-24.bg-white\\/20');
+    expect(iconPlaceholder).toBeInTheDocument();
   });
 });
