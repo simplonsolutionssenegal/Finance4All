@@ -2,16 +2,6 @@ import { render, screen } from '@testing-library/react';
 
 import EducationSection from '@/components/public/EducationSection';
 
-// Mock framer-motion
-jest.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    h2: ({ children, ...props }: any) => <h2 {...props}>{children}</h2>,
-    h3: ({ children, ...props }: any) => <h3 {...props}>{children}</h3>,
-    p: ({ children, ...props }: any) => <p {...props}>{children}</p>,
-  },
-}));
-
 describe('EducationSection', () => {
   it('should render without crashing', () => {
     render(<EducationSection />);
@@ -24,16 +14,23 @@ describe('EducationSection', () => {
     expect(screen.getByText('les plus populaires')).toBeInTheDocument();
   });
 
-  it('should display module cards', () => {
+  it('should display module cards with correct titles', () => {
     render(<EducationSection />);
     expect(screen.getByText('Mobile Money avancé')).toBeInTheDocument();
     expect(screen.getByText('Épargne et Budget')).toBeInTheDocument();
     expect(screen.getByText('Bases Finance Personnelle')).toBeInTheDocument();
   });
 
+  it('should render "Voir tous les modules" link', () => {
+    render(<EducationSection />);
+    const link = screen.getByRole('link', { name: /Voir tous les modules/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/modules-formation');
+  });
+
   it('should have proper section structure', () => {
     const { container } = render(<EducationSection />);
     const section = container.querySelector('section');
-    expect(section).toHaveClass('py-16', 'bg-white');
+    expect(section).toHaveClass('py-16', 'md:py-24', 'px-4', 'bg-white');
   });
 });

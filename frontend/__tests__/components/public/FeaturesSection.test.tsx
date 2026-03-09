@@ -24,11 +24,22 @@ describe('FeaturesSection', () => {
     expect(screen.getByText(/pour réussir financièrement/)).toBeInTheDocument();
   });
 
-  it('should display feature cards', () => {
+  it('should display all feature cards', () => {
     render(<FeaturesSection />);
-    expect(screen.getByText(/Éducation financière/)).toBeInTheDocument();
-    const cards = screen.getAllByText(/En savoir plus/);
-    expect(cards.length).toBeGreaterThan(0);
+    expect(screen.getByText('Éducation financière')).toBeInTheDocument();
+    expect(screen.getByText('Comparateur intelligent')).toBeInTheDocument();
+    expect(screen.getByText('Simulateur de services')).toBeInTheDocument();
+    expect(screen.getByText('Sécurité garantie')).toBeInTheDocument();
+  });
+
+  it('should have correct links in feature cards', () => {
+    render(<FeaturesSection />);
+    const links = screen.getAllByRole('link', { name: /En savoir plus/i });
+    expect(links).toHaveLength(4);
+    expect(links[0]).toHaveAttribute('href', '/modules-formation');
+    expect(links[1]).toHaveAttribute('href', '/comparator');
+    expect(links[2]).toHaveAttribute('href', '/simulator');
+    expect(links[3]).toHaveAttribute('href', '/privacy');
   });
 
   it('should have proper section structure', () => {

@@ -40,7 +40,7 @@ const StatsSection = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className='text-5xl mb-2 text-gradient-primary'
+              className='text-5xl mb-2 text-gradient-primary font-bold'
             >
               10K+
             </motion.div>
@@ -52,7 +52,7 @@ const StatsSection = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className='text-5xl mb-2 text-gradient-primary'
+              className='text-5xl mb-2 text-gradient-primary font-bold'
             >
               50+
             </motion.div>
@@ -64,7 +64,7 @@ const StatsSection = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className='text-5xl mb-2 text-gradient-primary'
+              className='text-5xl mb-2 text-gradient-primary font-bold'
             >
               100+
             </motion.div>
@@ -76,7 +76,7 @@ const StatsSection = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className='text-5xl mb-2 text-gradient-primary'
+              className='text-5xl mb-2 text-gradient-primary font-bold'
             >
               4.8/5
             </motion.div>

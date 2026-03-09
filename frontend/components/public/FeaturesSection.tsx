@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { BookOpen, Building2, ChartColumn, ChevronRight, Shield } from 'lucide-react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const staggerContainer = {
@@ -83,13 +83,13 @@ const FeaturesSection = () => {
                       Plus de 100 modules interactifs pour maîtriser la gestion de vos finances
                     </p>
                   </div>
-                  <Button
-                    variant='ghost'
-                    className='text-primary-600 hover:text-primary-700 p-0 h-auto group'
+                  <Link
+                    href='/modules-formation'
+                    className='text-primary-600 flex flex-row items-center justify-start gap-2 hover:opacity-90 text-white'
                   >
                     En savoir plus
                     <ChevronRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
-                  </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </motion.div>
@@ -110,13 +110,13 @@ const FeaturesSection = () => {
                       offres
                     </p>
                   </div>
-                  <Button
-                    variant='ghost'
-                    className='text-primary-600 hover:text-primary-700 p-0 h-auto group'
+                  <Link
+                    href='/comparator'
+                    className='text-primary-600 flex flex-row items-center justify-start gap-2 hover:opacity-90 text-white'
                   >
                     En savoir plus
                     <ChevronRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
-                  </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </motion.div>
@@ -137,13 +137,13 @@ const FeaturesSection = () => {
                       instantanément
                     </p>
                   </div>
-                  <Button
-                    variant='ghost'
-                    className='text-primary-600 hover:text-primary-700 p-0 h-auto group'
+                  <Link
+                    href='/simulator'
+                    className='text-primary-600 flex flex-row items-center justify-start gap-2 hover:opacity-90 text-white'
                   >
                     En savoir plus
                     <ChevronRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
-                  </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </motion.div>
@@ -163,13 +163,13 @@ const FeaturesSection = () => {
                       Vos données sont protégées avec les normes de sécurité les plus élevées
                     </p>
                   </div>
-                  <Button
-                    variant='ghost'
-                    className='text-primary-600 hover:text-primary-700 p-0 h-auto group'
+                  <Link
+                    href='/privacy'
+                    className='text-primary-600 flex flex-row items-center justify-start gap-2 hover:opacity-90 text-white'
                   >
                     En savoir plus
                     <ChevronRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
-                  </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </motion.div>

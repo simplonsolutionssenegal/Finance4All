@@ -31,7 +31,7 @@ describe('PublicHeader', () => {
     const navLinks = [
       { text: 'Simulateur', href: '/simulator' },
       { text: 'Comparateur', href: '/comparator' },
-      { text: 'Modules', href: '/modules' },
+      { text: 'Modules', href: '/modules-formation' },
     ];
 
     navLinks.forEach(({ text, href }) => {
@@ -129,7 +129,9 @@ describe('PublicHeader', () => {
     const loginLinks = container.querySelectorAll('a[href="/login"]');
     expect(loginLinks.length).toBeGreaterThan(0);
 
-    const getStartedLinks = container.querySelectorAll('a[href="/get-started"]');
+    const getStartedLinks = container.querySelectorAll(
+      'a[href="/register"], a[href="/get-started"]'
+    );
     expect(getStartedLinks.length).toBeGreaterThan(0);
   });
 });

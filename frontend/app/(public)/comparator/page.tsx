@@ -2,7 +2,7 @@ import ComparatorIntelligent from '@/components/comparator/comparator-Intelligen
 
 export default function Comparator() {
   return (
-    <div className='min-h-screen overflow-visible'>
+    <div className='min-h-screen overflow-visible mt-[5%]'>
       <ComparatorIntelligent />
     </div>
   );
