@@ -1,31 +1,20 @@
 name: Deploy Staging
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
   actions: read
-  pull-requests: read
 
 jobs:
-  # --------------------------------------------------
-  # Run CI tests
-  # --------------------------------------------------
-  run-ci:
-    name: Run CI Tests
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-
   # --------------------------------------------------
   # Build & Push Docker images
   # --------------------------------------------------
   build-images:
     name: Build & Push Images
     runs-on: [self-hosted, Linux, X64, vps, ubuntu-24]
-    needs: run-ci
     timeout-minutes: 20
 
     steps:
@@ -134,14 +123,14 @@ jobs:
           echo "✅ Tous les secrets synchronisés"
 
   # --------------------------------------------------
-  # Deploy to staging via Coolify
+  # Deploy backend to staging via Coolify
   # --------------------------------------------------
-  deploy-staging:
-    name: Deploy to Staging
+  deploy-backend:
+    name: Deploy Backend to Staging
     runs-on: ubuntu-latest
     needs: [build-images, sync-secrets]
     environment: staging
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Set repository name to lowercase
         run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
@@ -168,6 +157,34 @@ jobs:
 
           echo "📋 Coolify response: $RESPONSE"
 
+      - name: Verify backend is healthy
+        run: |
+          echo "⏳ Waiting for backend to be healthy..."
+          for i in $(seq 1 30); do
+            if curl -sSf https://api.staging.finance4all.simplonprojet.com/health > /dev/null 2>&1; then
+              echo "✅ Backend healthy after $i attempts"
+              exit 0
+            fi
+            echo "  Attempt $i/30 - backend not ready yet..."
+            sleep 10
+          done
+
+          echo "❌ Backend failed to become healthy after 5 minutes"
+          exit 1
+
+  # --------------------------------------------------
+  # Deploy frontend to staging (after backend is healthy)
+  # --------------------------------------------------
+  deploy-frontend:
+    name: Deploy Frontend to Staging
+    runs-on: ubuntu-latest
+    needs: [build-images, sync-secrets, deploy-backend]
+    environment: staging
+    timeout-minutes: 10
+    steps:
+      - name: Set repository name to lowercase
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Deploy Frontend via Coolify
         env:
           COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
@@ -190,29 +207,17 @@ jobs:
 
           echo "📋 Coolify response: $RESPONSE"
 
-      - name: Wait and verify health
+      - name: Verify frontend is healthy
         run: |
-          echo "⏳ Waiting for deployment to stabilize..."
-          sleep 30
-
-          echo "Checking backend health..."
-          for i in $(seq 1 10); do
-            if curl -sSf https://api.staging.finance4all.simplonprojet.com/health > /dev/null 2>&1; then
-              echo "✅ Backend healthy"
-              break
-            fi
-            echo "  Attempt $i/10..."
-            sleep 10
-          done
-
-          echo "Checking frontend health..."
-          for i in $(seq 1 5); do
+          echo "⏳ Waiting for frontend to be healthy..."
+          for i in $(seq 1 20); do
             if curl -sSf https://staging.finance4all.simplonprojet.com > /dev/null 2>&1; then
-              echo "✅ Frontend healthy"
-              break
+              echo "✅ Frontend healthy after $i attempts"
+              exit 0
             fi
-            echo "  Attempt $i/5..."
+            echo "  Attempt $i/20 - frontend not ready yet..."
             sleep 10
           done
 
-          echo "✅ Staging deployment complete"
+          echo "❌ Frontend failed to become healthy"
+          exit 1
