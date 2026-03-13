@@ -87,7 +87,7 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MAIL_FROM=${MAIL_FROM}
       - MAIL_FROM_NAME=${MAIL_FROM_NAME}
-      - MINIO_ENDPOINT=minio
+      - MINIO_HOST=minio
       - MINIO_PORT=9000
       - MINIO_USE_SSL=false
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}

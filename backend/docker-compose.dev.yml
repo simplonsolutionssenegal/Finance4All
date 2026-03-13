@@ -18,7 +18,7 @@ services:
       DATABASE_URL: postgresql://finance4all:finance4All@postgres:5432/finance4All?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      MINIO_ENDPOINT: minio
+      MINIO_HOST: minio
       MINIO_PORT: 9000
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: minioadmin
