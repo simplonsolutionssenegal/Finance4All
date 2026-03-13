@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && tsc-alias && npm run build:copy-assets",
-    "build:copy-assets": "mkdir -p dist/src/infrastructure/docs && cp src/infrastructure/docs/openapi.yaml dist/src/infrastructure/docs/",
+    "build:copy-assets": "mkdir -p dist/infrastructure/docs && cp src/infrastructure/docs/openapi.yaml dist/infrastructure/docs/",
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "docker:up": "docker compose -f docker-compose.dev.yml up -d",
