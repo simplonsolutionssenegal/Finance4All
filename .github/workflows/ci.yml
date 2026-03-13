@@ -79,7 +79,7 @@ jobs:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: finance4all
-          env-slug: dev
+          env-slug: staging
 
       - name: Map CLERK_PUBLISHABLE_KEY for frontend
         run: echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}" >> $GITHUB_ENV
@@ -169,7 +169,7 @@ jobs:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: finance4all
-          env-slug: dev
+          env-slug: staging
 
       - name: Fetch infra secrets from Infisical
         uses: Infisical/secrets-action@v1.0.7
@@ -178,7 +178,7 @@ jobs:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-slug: infrastructure
-          env-slug: dev
+          env-slug: staging
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
