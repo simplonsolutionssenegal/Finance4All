@@ -24,6 +24,7 @@ import type {
 } from '@prisma/client';
 import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import type { PaginationParams, PaginatedResult } from '@/domain/shared/Pagination';
+import type { InstitutionStatsDTO } from '@/domain/institutions/value-objects/InstitutionStatsDTO';
 
 type InstitutionWithServices = PrismaInstitution & {
   services: PrismaService[];
@@ -141,6 +142,23 @@ export class PrismaInstitutionRepository implements InstitutionRepository {
         total,
         totalPages,
       },
+    };
+  }
+
+  async getStats(): Promise<InstitutionStatsDTO> {
+    const [total, active, inactive, pending] = await Promise.all([
+      this.prisma.institution.count(),
+      this.prisma.institution.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.institution.count({ where: { status: 'INACTIVE' } }),
+      this.prisma.institution.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    return {
+      total,
+      active,
+      inactive,
+      pending,
+      archived: 0,
     };
   }
 

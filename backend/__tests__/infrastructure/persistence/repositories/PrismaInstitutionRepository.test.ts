@@ -594,6 +594,36 @@ describe('PrismaInstitutionRepository', () => {
     });
   });
 
+  describe('getStats', () => {
+    it('should return institution stats counts', async () => {
+      (mockPrisma.institution.count as jest.Mock)
+        .mockResolvedValueOnce(25)
+        .mockResolvedValueOnce(10)
+        .mockResolvedValueOnce(7)
+        .mockResolvedValueOnce(8);
+
+      const result = await repository.getStats();
+
+      expect(mockPrisma.institution.count).toHaveBeenNthCalledWith(1);
+      expect(mockPrisma.institution.count).toHaveBeenNthCalledWith(2, {
+        where: { status: 'ACTIVE' },
+      });
+      expect(mockPrisma.institution.count).toHaveBeenNthCalledWith(3, {
+        where: { status: 'INACTIVE' },
+      });
+      expect(mockPrisma.institution.count).toHaveBeenNthCalledWith(4, {
+        where: { status: 'PENDING' },
+      });
+      expect(result).toEqual({
+        total: 25,
+        active: 10,
+        inactive: 7,
+        pending: 8,
+        archived: 0,
+      });
+    });
+  });
+
   describe('services mapping', () => {
     it('should save institution with FraisFixes service', async () => {
       const serviceId = randomUUID();

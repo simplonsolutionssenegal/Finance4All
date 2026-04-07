@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
 import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
+import type { GetDataInstitutionUseCase } from '@/domain/institutions/ports/in/GetDataInstitutionUseCase';
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
@@ -16,6 +17,7 @@ export class InstitutionController {
     private readonly addServiceUseCase: AddServiceUseCase,
     private readonly getInstitutionsUseCase: GetInstitutionsUseCase,
     private readonly getInstitutionByIdUseCase: GetInstitutionByIdUseCase,
+    private readonly getDataInstitutionUseCase: GetDataInstitutionUseCase,
     private readonly updateServiceUseCase: UpdateServiceUseCase
   ) {}
 
@@ -108,6 +110,18 @@ export class InstitutionController {
     try {
       const id = req.params.id as string;
       const result = await this.getInstitutionByIdUseCase.execute({ id });
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await this.getDataInstitutionUseCase.execute({});
       res.status(200).json({
         success: true,
         data: result,
