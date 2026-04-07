@@ -238,11 +238,9 @@ export function ServiceSimulator({ mode = 'public' }: ServiceSimulatorProps) {
   };
 
   return (
-    <div
-      className={`min-h-screen ${mode === 'public' ? 'bg-slate-50 mt-30' : 'bg-transparent mt-0'}`}
-    >
+    <div className={`min-h-screen ${mode === 'public' ? 'bg-white mt-30' : 'bg-transparent mt-0'}`}>
       {mode === 'public' && (
-        <header className='bg-white border-b border-slate-200'>
+        <header className='bg-white '>
           <div className='mx-auto max-w-7xl px-4 pt-3 pb-3'>
             <button
               type='button'
@@ -267,7 +265,7 @@ export function ServiceSimulator({ mode = 'public' }: ServiceSimulatorProps) {
         </header>
       )}
 
-      <div className={`mx-auto max-w-7xl px-4 py-6 ${mode === 'public' ? 'bg-[#F8F9FA]' : ''}`}>
+      <div className={`mx-auto max-w-7xl px-4 py-6 ${mode === 'public' ? 'bg-white' : ''}`}>
         <div className='grid items-start gap-6 lg:grid-cols-[420px_1fr]'>
           {/* Colonne gauche */}
           <div className='rounded-xl border border-slate-200 bg-white p-4 px-6 shadow-sm'>

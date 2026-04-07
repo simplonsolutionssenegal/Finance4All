@@ -3,10 +3,10 @@
 exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
 <div>
   <div
-    class="min-h-screen overflow-visible"
+    class="min-h-screen overflow-visible mt-[5%]"
   >
     <div
-      class="min-h-screen bg-slate-50 py-10"
+      class="min-h-screen bg-white py-10"
     >
       <main
         class="mx-auto flex max-w-6xl flex-col gap-6 px-4"
@@ -186,9 +186,9 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r8g»"
+                aria-controls="radix-«ra3»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -233,10 +233,9 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r8h»"
+                aria-controls="radix-«ra4»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-400 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
-                data-placeholder=""
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -249,7 +248,11 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                   data-slot="select-value"
                   style="pointer-events: none;"
                 >
-                  Tous les pays
+                  <span
+                    class="text-slate-500"
+                  >
+                    Tous les pays
+                  </span>
                 </span>
                 <svg
                   aria-hidden="true"
@@ -275,11 +278,13 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="transfer-amount"
               >
                 Montant du transfert (F CFA)
               </label>
               <input
                 class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                id="transfer-amount"
                 min="0"
                 placeholder="50000"
                 type="number"
@@ -359,7 +364,7 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
           class="space-y-4"
         >
           <h2
-            class="text-lg  text-slate-900"
+            class="text-lg text-slate-900"
           >
             Sélectionnez les services à comparer
           </h2>
@@ -467,12 +472,12 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
                     class="text-right flex items-baseline"
                   >
                     <span
-                      class="text-sm  text-bold"
+                      class="text-sm text-bold"
                     >
                       0
                     </span>
                     <span
-                      class="text-[8px]  text-slate-500 ml-1"
+                      class="ml-1 text-[8px] text-slate-500"
                     >
                       F CFA
                     </span>
@@ -519,10 +524,10 @@ exports[`Comparator Snapshots correspond au snapshot avec des services 1`] = `
 exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
 <div>
   <div
-    class="min-h-screen overflow-visible"
+    class="min-h-screen overflow-visible mt-[5%]"
   >
     <div
-      class="min-h-screen bg-slate-50 py-10"
+      class="min-h-screen bg-white py-10"
     >
       <main
         class="mx-auto flex max-w-6xl flex-col gap-6 px-4"
@@ -702,9 +707,9 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r9g»"
+                aria-controls="radix-«rb9»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -749,10 +754,9 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r9h»"
+                aria-controls="radix-«rba»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-400 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
-                data-placeholder=""
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -765,7 +769,11 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
                   data-slot="select-value"
                   style="pointer-events: none;"
                 >
-                  Tous les pays
+                  <span
+                    class="text-slate-500"
+                  >
+                    Tous les pays
+                  </span>
                 </span>
                 <svg
                   aria-hidden="true"
@@ -791,11 +799,13 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
             >
               <label
                 class="text-xs text-slate-500"
+                for="transfer-amount"
               >
                 Montant du transfert (F CFA)
               </label>
               <input
                 class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                id="transfer-amount"
                 min="0"
                 placeholder="50000"
                 type="number"
@@ -875,7 +885,7 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
           class="space-y-4"
         >
           <h2
-            class="text-lg  text-slate-900"
+            class="text-lg text-slate-900"
           >
             Sélectionnez les services à comparer
           </h2>
@@ -894,10 +904,10 @@ exports[`Comparator Snapshots correspond au snapshot en état d'erreur 1`] = `
 exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] = `
 <div>
   <div
-    class="min-h-screen overflow-visible"
+    class="min-h-screen overflow-visible mt-[5%]"
   >
     <div
-      class="min-h-screen bg-slate-50 py-10"
+      class="min-h-screen bg-white py-10"
     >
       <main
         class="mx-auto flex max-w-6xl flex-col gap-6 px-4"
@@ -1077,9 +1087,9 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r90»"
+                aria-controls="radix-«ram»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -1124,10 +1134,9 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
               </label>
               <button
                 aria-autocomplete="none"
-                aria-controls="radix-«r91»"
+                aria-controls="radix-«ran»"
                 aria-expanded="false"
-                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 data-[size=default]:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-400 outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-slate-200"
-                data-placeholder=""
+                class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center justify-between gap-2 px-3 py-2 whitespace-nowrap transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 text-sm text-slate-700 outline-none focus-visible:border-slate-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent data-[size=default]:h-11"
                 data-size="default"
                 data-slot="select-trigger"
                 data-state="closed"
@@ -1140,7 +1149,11 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
                   data-slot="select-value"
                   style="pointer-events: none;"
                 >
-                  Tous les pays
+                  <span
+                    class="text-slate-500"
+                  >
+                    Tous les pays
+                  </span>
                 </span>
                 <svg
                   aria-hidden="true"
@@ -1166,11 +1179,13 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
             >
               <label
                 class="text-xs text-slate-500"
+                for="transfer-amount"
               >
                 Montant du transfert (F CFA)
               </label>
               <input
                 class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                id="transfer-amount"
                 min="0"
                 placeholder="50000"
                 type="number"
@@ -1250,7 +1265,7 @@ exports[`Comparator Snapshots correspond au snapshot en état de chargement 1`] 
           class="space-y-4"
         >
           <h2
-            class="text-lg  text-slate-900"
+            class="text-lg text-slate-900"
           >
             Sélectionnez les services à comparer
           </h2>

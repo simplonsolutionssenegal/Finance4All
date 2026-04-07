@@ -1,9 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -32,12 +33,16 @@ const itemVariants = {
 
 export default function PublicHeader() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
   const navLinks = [
     { href: '/simulator', label: 'Simulateur' },
     { href: '/comparator', label: 'Comparateur' },
-    { href: '/modules', label: 'Modules' },
+    { href: '/modules-formation', label: 'Modules' },
+    { href: '/about', label: 'A propos' },
   ];
+
+  const isActive = (href: string) => (pathname ?? '/') === href;
 
   return (
     <nav className='fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-grey-200'>
@@ -62,7 +67,12 @@ export default function PublicHeader() {
                 <NavigationMenuLink asChild>
                   <Link
                     href={link.href}
-                    className='text-gray-600 hover:text-primary-300 transition-colors px-4 py-2 relative group'
+                    className={[
+                      'transition-colors px-4 py-2 relative group',
+                      isActive(link.href)
+                        ? 'text-primary-400 font-bold'
+                        : 'text-gray-600 hover:text-primary-300',
+                    ].join(' ')}
                   >
                     {link.label}
                   </Link>
@@ -80,9 +90,10 @@ export default function PublicHeader() {
                 Se connecter
               </Button>
             </Link>
-            <Link href='/get-started'>
-              <Button className='cursor-pointer bg-gradient-primary hover:opacity-90 text-white shadow-lg transition-all active:scale-95'>
-                Commencer
+            <Link href='/register'>
+              <Button className='cursor-pointer flex items-center justify-center gap-2 bg-gradient-primary hover:opacity-90 text-white shadow-lg transition-all active:scale-95'>
+                <span className='flex items-center gap-2'>Commencer gratuitement</span>
+                <ArrowRight className='w-4 h-4' />
               </Button>
             </Link>
           </div>
@@ -141,7 +152,12 @@ export default function PublicHeader() {
                     <Link href={link.href} onClick={() => setIsOpen(false)}>
                       <Button
                         variant='ghost'
-                        className='w-full justify-start text-lg py-6 text-grey-600 hover:text-primary-600 hover:bg-primary-50'
+                        className={[
+                          'w-full justify-start text-lg py-6 hover:bg-primary-50',
+                          isActive(link.href)
+                            ? 'text-primary-400 font-bold'
+                            : 'text-grey-600 hover:text-primary-600',
+                        ].join(' ')}
                       >
                         {link.label}
                       </Button>

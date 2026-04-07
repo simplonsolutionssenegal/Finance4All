@@ -1,158 +1,102 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 export default function PublicFooter() {
   return (
-    <footer className='bg-grey-900 text-white py-16 px-6 lg:px-8'>
+    <footer className='bg-gray-900 text-white py-16 px-6 lg:px-8'>
       <div className='max-w-7xl mx-auto'>
         <div className='grid md:grid-cols-4 gap-12 mb-12'>
-          {/* Brand Section */}
           <div className='space-y-6'>
-            <div className='flex items-center gap-3'>
-              <div className='w-11 h-11 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-primary'>
-                <span className='text-white font-bold'>F4A</span>
-              </div>
-              <span className='text-2xl font-semibold'>Finance4All</span>
+            <div className='inline-block bg-white p-2 rounded-sm'>
+              <Image
+                src='/assets/images/logo.avif'
+                alt='Finance4All Logo'
+                width={150}
+                height={50}
+                className='object-contain'
+              />
             </div>
-            <p className='text-grey-400 text-sm'>
+            <p className='text-gray-400 text-sm leading-relaxed pr-4'>
               Votre partenaire pour l&apos;inclusion financière au Sénégal et au Cameroun.
             </p>
-            <div className='flex gap-2'>
-              <Badge variant='outline' className='border-grey-700 text-grey-300'>
-                🇸🇳 Sénégal
-              </Badge>
-              <Badge variant='outline' className='border-grey-700 text-grey-300'>
-                🇨🇲 Cameroun
-              </Badge>
-            </div>
           </div>
 
-          {/* Produits */}
           <div>
-            <h3 className='font-semibold mb-4 text-white'>Produits</h3>
-            <nav className='flex flex-col gap-3'>
-              <Link href='/comparator'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Comparateur
-                </Button>
+            <h3 className='font-semibold mb-6 text-white'>Produits</h3>
+            <nav className='flex flex-col gap-4 text-sm'>
+              <Link
+                href='/comparator'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Comparateur
               </Link>
-              <Link href='/simulator'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Simulateur
-                </Button>
+              <Link
+                href='/simulator'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Simulateur
               </Link>
-              <Link href='/modules'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Catalogue de modules
-                </Button>
-              </Link>
-              <Link href='/certificates'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Certificats
-                </Button>
+              <Link
+                href='/modules-formation'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Catalogue de modules
               </Link>
             </nav>
           </div>
 
-          {/* Entreprise */}
           <div>
-            <h3 className='font-semibold mb-4 text-white'>Entreprise</h3>
-            <nav className='flex flex-col gap-3'>
-              <Link href='/about'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  À propos
-                </Button>
+            <h3 className='font-semibold mb-6 text-white'>Entreprise</h3>
+            <nav className='flex flex-col gap-4 text-sm'>
+              <Link
+                href='/about'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                À propos
               </Link>
-              <Link href='/partners'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Partenaires
-                </Button>
-              </Link>
-              <Link href='/blog'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Blog
-                </Button>
+              <Link
+                href='/partners'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Partenaires
               </Link>
             </nav>
           </div>
 
-          {/* Support */}
           <div>
-            <h3 className='font-semibold mb-4 text-white'>Support</h3>
-            <nav className='flex flex-col gap-3'>
-              <Link href='/help'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Centre d&apos;aide
-                </Button>
+            <h3 className='font-semibold mb-6 text-white'>Support</h3>
+            <nav className='flex flex-col gap-4 text-sm'>
+              <Link
+                href='/help'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Centre d&apos;aide
               </Link>
-              <Link href='/contact'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Contact
-                </Button>
-              </Link>
-              <Link href='/terms'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Conditions d&apos;utilisation
-                </Button>
-              </Link>
-              <Link href='/privacy'>
-                <Button
-                  variant='link'
-                  className='text-grey-400 hover:text-white p-0 h-auto justify-start'
-                >
-                  Confidentialité
-                </Button>
+              <Link
+                href='/contact'
+                className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
+              >
+                Contact
               </Link>
             </nav>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <Separator className='bg-grey-800 mb-8' />
+        <Separator className='bg-gray-800 mb-6' />
         <div className='flex flex-col md:flex-row justify-between items-center gap-4'>
-          <p className='text-grey-400 text-sm'>
-            © 2024 Finance4All. Tous droits réservés. Powered by Simplon Solutions.
-          </p>
-          <div className='flex items-center gap-4'>
-            <Button variant='ghost' size='sm' className='text-grey-400 hover:text-white h-8'>
-              Politique de cookies
-            </Button>
-            <Button variant='ghost' size='sm' className='text-grey-400 hover:text-white h-8'>
-              Mentions légales
-            </Button>
+          <p className='text-gray-400 text-sm'>© 2026 Finance4All. Tous droits réservés.</p>
+
+          <div className='flex items-center gap-6 text-gray-400 text-sm'>
+            <div className='flex items-center gap-2 cursor-pointer hover:text-white transition-colors'>
+              <span aria-hidden='true'>🇸🇳</span>
+              <span>Sénégal</span>
+            </div>
+            <div className='flex items-center gap-2 cursor-pointer hover:text-white transition-colors'>
+              <span aria-hidden='true'>🇨🇲</span>
+              <span>Cameroun</span>
+            </div>
           </div>
         </div>
       </div>

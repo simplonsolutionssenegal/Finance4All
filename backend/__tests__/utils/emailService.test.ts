@@ -1,7 +1,9 @@
 import {
   EmailService,
   sendInvitationEmail,
+  sendContactEmail,
   testEmailConnection,
+  type ContactEmailData,
   type InvitationEmailData,
 } from '@/infrastructure/utils/emailService';
 import nodemailer from 'nodemailer';
@@ -46,6 +48,10 @@ describe('EmailService', () => {
     delete process.env.MAIL_PASSWORD;
     delete process.env.MAIL_FROM_NAME;
     delete process.env.MAIL_FROM;
+    delete process.env.GMAIL_USER;
+    delete process.env.GMAIL_APP_PASSWORD;
+    delete process.env.FROM_EMAIL;
+    delete process.env.FROM_NAME;
     delete process.env.FRONTEND_URL;
   });
 
@@ -276,6 +282,68 @@ describe('EmailService', () => {
       const result = await testEmailConnection();
 
       expect(result).toBe(true);
+    });
+
+    it('should export sendContactEmail function', async () => {
+      const contactData: ContactEmailData = {
+        firstName: 'Lamine',
+        lastName: 'Kone',
+        email: 'lamine@example.com',
+        country: 'Mali',
+        subject: 'Support',
+        message: 'Bonjour, ceci est un message de contact.',
+      };
+      mockTransporter.sendMail.mockResolvedValue({ messageId: 'msg_contact' });
+
+      await sendContactEmail(contactData);
+
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          replyTo: 'lamine@example.com',
+          subject: '[Contact] Support',
+        })
+      );
+    });
+  });
+
+  describe('sendContactEmail', () => {
+    const contactData: ContactEmailData = {
+      firstName: 'Lamine',
+      lastName: 'Kone',
+      email: 'lamine@example.com',
+      phone: '+221771112233',
+      country: 'Mali',
+      subject: 'Demande',
+      message: 'Bonjour, je vous contacte pour avoir plus de details.',
+    };
+
+    it('uses legacy env variable names when MAIL_* are absent', async () => {
+      delete process.env.MAIL_USERNAME;
+      delete process.env.MAIL_PASSWORD;
+      delete process.env.MAIL_FROM;
+      delete process.env.MAIL_FROM_NAME;
+      process.env.GMAIL_USER = 'legacy@gmail.com';
+      process.env.GMAIL_APP_PASSWORD = 'legacy-pass';
+      process.env.FROM_EMAIL = 'legacy-from@finance4all.com';
+      process.env.FROM_NAME = 'Legacy Finance4All';
+
+      mockTransporter.sendMail.mockResolvedValue({ messageId: 'msg_legacy' });
+
+      await EmailService.sendContactEmail(contactData);
+
+      expect(mockNodemailer.createTransport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          auth: { user: 'legacy@gmail.com', pass: 'legacy-pass' },
+        })
+      );
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: {
+            name: 'Legacy Finance4All',
+            address: 'legacy-from@finance4all.com',
+          },
+        })
+      );
     });
   });
 

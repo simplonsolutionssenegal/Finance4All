@@ -20,4 +20,7 @@ export interface LearningModule {
   userStatus: UserModuleStatus;
   progressPercent: number;
   thematic?: string;
+  inscrits?: number;
+  reussite?: number;
+  durationStr?: string;
 }

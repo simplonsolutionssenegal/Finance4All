@@ -2,6 +2,7 @@
 
 import { ArrowRight, ChevronRight, Clock, Star, Users } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -109,15 +110,14 @@ const EducationSection = () => {
         </div>
 
         {/* View All Button */}
-        <div className='text-center pt-4'>
-          <Button
-            size='lg'
-            variant='outline'
-            className='w-full sm:w-auto border-grey-300 text-grey-900 hover:bg-grey-50 px-8 py-6 rounded-xl transition-all'
+        <div className='flex items-center justify-center pt-4'>
+          <Link
+            href='/modules-formation'
+            className='w-fit flex flex-row items-center justify-center gap-2 border-grey-300 border-2 text-grey-900 hover:bg-grey-50 px-8 py-3 rounded-xl transition-all'
           >
             Voir tous les modules
             <ArrowRight className='w-5 h-5 ml-2' aria-hidden='true' />
-          </Button>
+          </Link>
         </div>
       </div>
     </section>

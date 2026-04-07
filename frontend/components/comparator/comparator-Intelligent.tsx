@@ -98,9 +98,7 @@ export default function ComparatorIntelligent({ mode = 'public' }: ComparatorInt
   ].join(' ');
 
   return (
-    <div
-      className={`min-h-screen ${mode === 'public' ? 'bg-slate-50 py-10' : 'bg-transparent py-0'}`}
-    >
+    <div className={`min-h-screen ${mode === 'public' ? 'bg-white py-10' : 'bg-transparent py-0'}`}>
       <main
         className={`mx-auto flex max-w-6xl flex-col gap-6 ${mode === 'public' ? 'px-4' : 'px-0'}`}
       >

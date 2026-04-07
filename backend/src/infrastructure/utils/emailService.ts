@@ -10,20 +10,42 @@ export interface InvitationEmailData {
   organizationId?: string;
 }
 
+export interface ContactEmailData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  country: string;
+  subject: string;
+  message: string;
+}
+
 /**
  * Service d'envoi d'emails pour les invitations
  */
 export class EmailService {
   private static transporter: nodemailer.Transporter | null = null;
 
+  private static getMailCredentials() {
+    return {
+      user: process.env.MAIL_USERNAME ?? process.env.GMAIL_USER,
+      password: process.env.MAIL_PASSWORD ?? process.env.GMAIL_APP_PASSWORD,
+      fromEmail:
+        process.env.MAIL_FROM ??
+        process.env.FROM_EMAIL ??
+        process.env.MAIL_USERNAME ??
+        process.env.GMAIL_USER ??
+        'noreply@finance4all.com',
+      fromName: process.env.MAIL_FROM_NAME ?? process.env.FROM_NAME ?? 'Finance4All',
+    };
+  }
+
   /**
    * Initialise le transporteur Gmail SMTP
    */
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
-      // Vérification des variables d'environnement Gmail
-      const gmailUser = process.env.MAIL_USERNAME;
-      const gmailPassword = process.env.MAIL_PASSWORD;
+      const { user: gmailUser, password: gmailPassword } = this.getMailCredentials();
 
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -63,8 +85,8 @@ export class EmailService {
       // Configuration de l'email
       const mailOptions = {
         from: {
-          name: process.env.MAIL_FROM_NAME ?? 'Finance4All',
-          address: process.env.MAIL_FROM ?? process.env.MAIL_USERNAME ?? 'noreply@finance4all.com',
+          name: this.getMailCredentials().fromName,
+          address: this.getMailCredentials().fromEmail,
         },
         to: data.recipientEmail,
         subject: emailContent.subject,
@@ -104,6 +126,32 @@ export class EmailService {
         recipient: data.recipientEmail,
       });
       throw new Error(`Impossible d'envoyer l'email d'invitation: ${String(error)}`);
+    }
+  }
+
+  static async sendContactEmail(data: ContactEmailData): Promise<void> {
+    try {
+      const transporter = this.getTransporter();
+      const emailContent = this.generateContactEmailContent(data);
+
+      const mailOptions = {
+        from: {
+          name: this.getMailCredentials().fromName,
+          address: this.getMailCredentials().fromEmail,
+        },
+        to:
+          process.env.CONTACT_RECEIVER_EMAIL ??
+          this.getMailCredentials().fromEmail ??
+          process.env.MAIL_USERNAME,
+        replyTo: data.email,
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+      };
+
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw new Error(`Impossible d'envoyer l'email de contact: ${String(error)}`);
     }
   }
 
@@ -218,6 +266,51 @@ export class EmailService {
     return roleMap[role] ?? role;
   }
 
+  private static generateContactEmailContent(data: ContactEmailData): {
+    subject: string;
+    html: string;
+    text: string;
+  } {
+    const subject = `[Contact] ${data.subject}`;
+    const safePhone = data.phone?.trim() || 'Non renseigne';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nouveau message contact</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
+        <div style="max-width: 640px; margin: 0 auto; padding: 20px;">
+          <h2 style="margin-bottom: 16px;">Nouveau message depuis le formulaire de contact</h2>
+          <p><strong>Nom:</strong> ${data.firstName} ${data.lastName}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Téléphone:</strong> ${safePhone}</p>
+          <p><strong>Pays:</strong> ${data.country}</p>
+          <p><strong>Sujet:</strong> ${data.subject}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+          <p style="white-space: pre-wrap;">${data.message}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = [
+      'Nouveau message depuis le formulaire de contact',
+      `Nom: ${data.firstName} ${data.lastName}`,
+      `Email: ${data.email}`,
+      `Téléphone: ${safePhone}`,
+      `Pays: ${data.country}`,
+      `Sujet: ${data.subject}`,
+      '',
+      data.message,
+    ].join('\n');
+
+    return { subject, html, text };
+  }
+
   /**
    * Teste la connexion Gmail
    */
@@ -226,7 +319,8 @@ export class EmailService {
       const transporter = this.getTransporter();
 
       // Si c'est un transporteur de simulation, retourner true
-      if (!process.env.MAIL_USERNAME || !process.env.MAIL_PASSWORD) {
+      const { user, password } = this.getMailCredentials();
+      if (!user || !password) {
         logger.info('Mode simulation - test de connexion ignoré');
         return true;
       }
@@ -244,3 +338,4 @@ export class EmailService {
 // Export des fonctions pour faciliter l'utilisation
 export const sendInvitationEmail = EmailService.sendInvitationEmail.bind(EmailService);
 export const testEmailConnection = EmailService.testConnection.bind(EmailService);
+export const sendContactEmail = EmailService.sendContactEmail.bind(EmailService);

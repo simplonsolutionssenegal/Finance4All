@@ -44,12 +44,6 @@ jest.mock('@/components/public/FeaturesSection', () => {
   };
 });
 
-jest.mock('@/components/public/EducationSection', () => {
-  return function MockEducationSection() {
-    return <section data-testid='education-section'>Education</section>;
-  };
-});
-
 jest.mock('@/components/public/HowItWorks', () => {
   return function MockHowItWorks() {
     return <section data-testid='how-it-works'>How It Works</section>;
@@ -68,8 +62,8 @@ jest.mock('@/components/public/TestimonialSection', () => {
   };
 });
 
-jest.mock('@/components/public/CTASection', () => {
-  return function MockCTASection() {
+jest.mock('@/components/public/cta', () => {
+  return function MockCta() {
     return (
       <section data-testid='cta-section'>
         <h2>Prêt à transformer votre vie financière ?</h2>
@@ -110,7 +104,6 @@ describe('Home Page', () => {
     expect(screen.getByTestId('hero-section')).toBeInTheDocument();
     expect(screen.getByTestId('stats-section')).toBeInTheDocument();
     expect(screen.getByTestId('features-section')).toBeInTheDocument();
-    expect(screen.getByTestId('education-section')).toBeInTheDocument();
     expect(screen.getByTestId('how-it-works')).toBeInTheDocument();
     expect(screen.getByTestId('vision-section')).toBeInTheDocument();
     expect(screen.getByTestId('testimonial-section')).toBeInTheDocument();
@@ -120,7 +113,7 @@ describe('Home Page', () => {
   it('contains all main sections', () => {
     const { container } = render(<Home />);
     const sections = container.querySelectorAll('section');
-    expect(sections.length).toBeGreaterThanOrEqual(8);
+    expect(sections.length).toBeGreaterThanOrEqual(7);
   });
 
   it('displays hero section content', () => {
@@ -151,9 +144,8 @@ describe('Home Page', () => {
       'hero-section',
       'stats-section',
       'features-section',
-      'education-section',
-      'how-it-works',
       'vision-section',
+      'how-it-works',
       'testimonial-section',
       'cta-section',
     ]);
