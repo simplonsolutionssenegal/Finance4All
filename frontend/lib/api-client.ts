@@ -1,6 +1,12 @@
+interface BackendErrorItem {
+  message?: string;
+  msg?: string;
+}
+
 interface BackendErrorResponse {
   message?: string;
-  errors?: { message: string }[];
+  msg?: string;
+  errors?: BackendErrorItem[];
 }
 
 export const apiClient = async <T>(
@@ -32,8 +38,15 @@ export const apiClient = async <T>(
     } catch (_parseError) {
       errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
     }
+    // throw new Error(
+    //   errorData.errors?.[0]?.message || errorData.message || `Failed to ${method} ${endpoint}`
+    // );
     throw new Error(
-      errorData.errors?.[0]?.message || errorData.message || `Failed to ${method} ${endpoint}`
+      errorData.errors?.[0]?.message ||
+        errorData.errors?.[0]?.msg ||
+        errorData.message ||
+        errorData.msg ||
+        `Failed to ${method} ${endpoint}`
     );
   }
 
