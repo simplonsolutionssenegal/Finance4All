@@ -6,37 +6,49 @@ import { container, TYPES } from '@/infrastructure/config/container';
 import type { MediaCleanupCronService } from '@/infrastructure/services/MediaCleanupCronService';
 import type { MinioStorageService } from '@/infrastructure/services/MinioStorageService';
 import type { StoragePort } from '@/domain/media/ports/out/StoragePort';
+import type { BullMQJobQueue } from '@/infrastructure/services/BullMQJobQueue';
 
 const PORT = process.env.PORT || 5001;
 
 export const app = createApp();
 
+/**
+ * Preflight checks: verify that all critical external services are reachable
+ * before accepting traffic. The app exits immediately if any check fails so
+ * that the orchestrator (Docker / Coolify) can detect the failure and retry.
+ */
+async function preflight(): Promise<void> {
+  // ── 1. Database (PostgreSQL via Prisma) ──────────────────────────
+  logger.info('⏳ Checking database connection…');
+  await prisma.$connect();
+  // Run a lightweight query to confirm the connection is truly usable
+  await prisma.$queryRaw`SELECT 1`;
+  logger.info('✅ Database connection established');
+
+  // ── 2. Object Storage (MinIO) ────────────────────────────────────
+  logger.info('⏳ Checking MinIO connection & initializing buckets…');
+  const storageService = container.get<StoragePort>(TYPES.StoragePort) as MinioStorageService;
+  await storageService.initializeBuckets();
+  logger.info('✅ MinIO connected and buckets initialized');
+
+  // ── 3. Redis (BullMQ job queue) ──────────────────────────────────
+  logger.info('⏳ Checking Redis connection…');
+  const jobQueue = container.get<BullMQJobQueue>(TYPES.BullMQJobQueue);
+  await jobQueue.ping();
+  logger.info('✅ Redis connection established');
+}
+
 export async function bootstrap() {
   try {
-    await prisma.$connect();
-    logger.info('✅ Database connection established via Prisma');
+    // ── Preflight: fail fast if any critical service is down ───────
+    await preflight();
 
-    // Vérifier que les migrations sont à jour (optionnel en dev)
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        // Tester la connexion en comptant les institutions
-        const count = await prisma.institution.count();
-        logger.info(`📊 Database ready with ${count} institutions`);
-      } catch (_error) {
-        logger.warn('⚠️ Database might need migration. Run: npm run prisma:migrate:dev');
-      }
-    }
-
-    // Initialize MinIO buckets and public-read policies
-    const storageService = container.get<StoragePort>(TYPES.StoragePort) as MinioStorageService;
-    await storageService.initializeBuckets();
-    logger.info('✅ MinIO buckets initialized');
-
-    // Start media cleanup cron service
+    // ── Start background services ─────────────────────────────────
     const mediaCleanupCron = container.get<MediaCleanupCronService>(TYPES.MediaCleanupCronService);
     mediaCleanupCron.start();
     logger.info('✅ Media cleanup cron service started');
 
+    // ── Start HTTP server ─────────────────────────────────────────
     const server = app.listen(PORT, () => {
       logger.info(`
 ╔═════════════════════════════════════════════════════════╗
@@ -55,6 +67,7 @@ export async function bootstrap() {
       `);
     });
 
+    // ── Graceful shutdown ─────────────────────────────────────────
     const gracefulShutdown = async (signal: string) => {
       logger.info(`\n${signal} received. Starting graceful shutdown...`);
 
@@ -62,15 +75,20 @@ export async function bootstrap() {
         logger.info('✅ HTTP server closed');
       });
 
-      // Stop media cleanup cron
       try {
-        const mediaCleanupCron = container.get<MediaCleanupCronService>(
-          TYPES.MediaCleanupCronService
-        );
-        mediaCleanupCron.stop();
+        const cleanupCron = container.get<MediaCleanupCronService>(TYPES.MediaCleanupCronService);
+        cleanupCron.stop();
         logger.info('✅ Media cleanup cron service stopped');
       } catch (error) {
         logger.error('❌ Error stopping media cleanup cron:', error);
+      }
+
+      try {
+        const queue = container.get<BullMQJobQueue>(TYPES.BullMQJobQueue);
+        await queue.shutdown();
+        logger.info('✅ BullMQ queue closed');
+      } catch (error) {
+        logger.error('❌ Error closing BullMQ queue:', error);
       }
 
       try {
@@ -85,7 +103,7 @@ export async function bootstrap() {
         if (process.env.NODE_ENV !== 'test') {
           process.exit(0);
         }
-      }, 5000); // 5 secondes max
+      }, 5000);
     };
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
@@ -93,14 +111,14 @@ export async function bootstrap() {
 
     process.on('unhandledRejection', (reason, promise) => {
       logger.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
         gracefulShutdown('UNHANDLED_REJECTION');
       }
     });
 
     process.on('uncaughtException', error => {
       logger.error('❌ Uncaught Exception:', error);
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
         gracefulShutdown('UNCAUGHT_EXCEPTION');
       }
     });

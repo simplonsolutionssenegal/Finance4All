@@ -1,3 +1,4 @@
+import IORedis from 'ioredis';
 import { Queue, Worker, type Job } from 'bullmq';
 import type { JobQueuePort, JobData, JobStatus } from '@/domain/streaming/ports/out/JobQueuePort';
 
@@ -95,6 +96,31 @@ export class BullMQJobQueue implements JobQueuePort {
         progress,
       });
     });
+  }
+
+  /**
+   * Verify Redis connectivity by sending a PING command.
+   * Throws if Redis is unreachable.
+   */
+  async ping(): Promise<void> {
+    const redis = new IORedis({
+      host: this.redisConnection.host,
+      port: this.redisConnection.port,
+      password: this.redisConnection.password,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 5000,
+      lazyConnect: true,
+    });
+
+    try {
+      await redis.connect();
+      const result = await redis.ping();
+      if (result !== 'PONG') {
+        throw new Error(`Unexpected Redis PING response: ${result}`);
+      }
+    } finally {
+      await redis.quit().catch(() => {});
+    }
   }
 
   async shutdown(): Promise<void> {
