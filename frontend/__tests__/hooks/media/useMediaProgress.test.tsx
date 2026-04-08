@@ -8,13 +8,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { useMediaProgress } from '@/hooks/media/useMediaProgress';
 
-let mockOrgId: string | null = 'org-1';
 const getTokenMock = jest.fn();
 
 jest.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
-    orgId: mockOrgId,
   }),
 }));
 
@@ -41,7 +39,6 @@ function makeWrapper() {
 describe('useMediaProgress', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockOrgId = 'org-1';
   });
 
   it('mediaId manquant => query désactivée', async () => {
@@ -104,7 +101,6 @@ describe('useMediaProgress', () => {
     });
 
     expect(apiClientMock).toHaveBeenCalledWith('media/media-2/progress', 'POST', 'token-2', {
-      organizationId: 'org-1',
       currentPosition: 25,
       duration: 120,
     });
@@ -138,9 +134,8 @@ describe('useMediaProgress', () => {
     });
   });
 
-  it('updateProgress ignore si pas d’orgId', async () => {
-    mockOrgId = null;
-    getTokenMock.mockResolvedValue('token-4');
+  it('updateProgress ignore when no token', async () => {
+    getTokenMock.mockResolvedValue(null);
 
     const { result } = renderHook(() => useMediaProgress('media-4'), {
       wrapper: makeWrapper(),
@@ -150,6 +145,9 @@ describe('useMediaProgress', () => {
       await result.current.updateProgress(10, 100);
     });
 
-    expect(apiClientMock).not.toHaveBeenCalled();
+    // getToken is called but apiClient should not be called for POST
+    // (the GET query may call apiClient, but POST should not since token is null)
+    const postCalls = apiClientMock.mock.calls.filter((call: unknown[]) => call[1] === 'POST');
+    expect(postCalls).toHaveLength(0);
   });
 });
