@@ -2,6 +2,7 @@ import { InstitutionController } from '@/infrastructure/web/controllers/Institut
 import type { CreateInstitutionUseCase } from '@/domain/institutions/ports/in/CreateInstitutionUseCase';
 import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetInstitutionsUseCase';
 import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
+import type { GetDataInstitutionUseCase } from '@/domain/institutions/ports/in/GetDataInstitutionUseCase';
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import type { Request, Response, NextFunction } from 'express';
 import { InstitutionStatus } from '@/domain/institutions/entities/Institution';
@@ -19,6 +20,7 @@ describe('InstitutionController', () => {
   let mockAddServiceUseCase: jest.Mocked<AddServiceUseCase>;
   let mockGetInstitutionsUseCase: jest.Mocked<GetInstitutionsUseCase>;
   let mockGetInstitutionByIdUseCase: jest.Mocked<GetInstitutionByIdUseCase>;
+  let mockGetDataInstitutionUseCase: jest.Mocked<GetDataInstitutionUseCase>;
   let mockUpdateServiceUseCase: jest.Mocked<UpdateServiceUseCase>;
 
   let mockRequest: Partial<Request>;
@@ -50,6 +52,10 @@ describe('InstitutionController', () => {
       execute: jest.fn(),
     } as any;
 
+    mockGetDataInstitutionUseCase = {
+      execute: jest.fn(),
+    } as any;
+
     mockUpdateServiceUseCase = {
       execute: jest.fn(),
     } as any;
@@ -61,6 +67,7 @@ describe('InstitutionController', () => {
       mockAddServiceUseCase,
       mockGetInstitutionsUseCase,
       mockGetInstitutionByIdUseCase,
+      mockGetDataInstitutionUseCase,
       mockUpdateServiceUseCase
     );
 
@@ -494,6 +501,42 @@ describe('InstitutionController', () => {
 
         jest.clearAllMocks();
       }
+    });
+  });
+
+  describe('getStats', () => {
+    it('should get institution stats successfully', async () => {
+      const statsDTO = {
+        total: 25,
+        active: 10,
+        inactive: 7,
+        pending: 8,
+        archived: 0,
+      };
+
+      mockGetDataInstitutionUseCase.execute.mockResolvedValue(statsDTO);
+
+      await controller.getStats(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetDataInstitutionUseCase.execute).toHaveBeenCalledWith({});
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: statsDTO,
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should handle getStats errors and call next middleware', async () => {
+      const error = new Error('Use case error');
+      mockGetDataInstitutionUseCase.execute.mockRejectedValue(error);
+
+      await controller.getStats(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGetDataInstitutionUseCase.execute).toHaveBeenCalledWith({});
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
     });
   });
 

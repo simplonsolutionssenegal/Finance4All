@@ -101,7 +101,7 @@ const ServiceItem = ({ institutionId, services, onView, onEdit, onDelete }: Serv
                     <div className='flex flex-col gap-0.5'>
                       <span className='font-medium text-gray-900 text-sm'>{service.name}</span>
                       {service.longName && (
-                        <span className='text-xs text-gray-500 line-clamp-1'>
+                        <span className='text-xs text-gray-500 truncate max-w-[300px] block'>
                           {service.longName}
                         </span>
                       )}

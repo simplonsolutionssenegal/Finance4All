@@ -48,6 +48,14 @@ export interface Institution {
   updatedAt: string;
 }
 
+export interface InstitutionStats {
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+  archived: number;
+}
+
 export enum InstitutionStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',

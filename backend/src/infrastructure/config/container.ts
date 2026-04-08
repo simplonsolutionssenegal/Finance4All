@@ -18,6 +18,8 @@ import type { GetInstitutionsUseCase } from '@/domain/institutions/ports/in/GetI
 import { GetInstitutionsUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionsUseCase';
 import type { GetInstitutionByIdUseCase } from '@/domain/institutions/ports/in/GetInstitutionByIdUseCase';
 import { GetInstitutionByIdUseCaseImpl } from '@/application/institutions/use-cases/GetInstitutionByIdUseCase';
+import type { GetDataInstitutionUseCase } from '@/domain/institutions/ports/in/GetDataInstitutionUseCase';
+import { GetDataInstitutionUseCaseImpl } from '@/application/institutions/use-cases/GetDataInstitutionUseCaseImpl';
 import type { UpdateInstitutionUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionUseCase';
 import { UpdateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionUseCaseImpl';
 import type { UpdateInstitutionStatusUseCase } from '@/domain/institutions/ports/in/UpdateInstitutionStatusUseCase';
@@ -152,6 +154,7 @@ export const TYPES = {
   UpdateServiceUseCase: Symbol.for('UpdateServiceUseCase'),
   GetInstitutionsUseCase: Symbol.for('GetInstitutionsUseCase'),
   GetInstitutionByIdUseCase: Symbol.for('GetInstitutionByIdUseCase'),
+  GetDataInstitutionUseCase: Symbol.for('GetDataInstitutionUseCase'),
 
   GetServicesUseCase: Symbol.for('GetServicesUseCase'),
 
@@ -385,6 +388,14 @@ container
   .inSingletonScope();
 
 container
+  .bind<GetDataInstitutionUseCase>(TYPES.GetDataInstitutionUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<InstitutionRepository>(TYPES.InstitutionRepository);
+    return new GetDataInstitutionUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
   .bind<GetServicesUseCase>(TYPES.GetServicesUseCase)
   .toDynamicValue(context => {
     const repository = context.get<ServiceRepository>(TYPES.ServiceRepository);
@@ -594,6 +605,9 @@ container
     const getInstitutionByIdUseCase = context.get<GetInstitutionByIdUseCase>(
       TYPES.GetInstitutionByIdUseCase
     );
+    const getDataInstitutionUseCase = context.get<GetDataInstitutionUseCase>(
+      TYPES.GetDataInstitutionUseCase
+    );
 
     return new InstitutionController(
       createUseCase,
@@ -602,6 +616,7 @@ container
       addServiceUseCase,
       getInstitutionsUseCase,
       getInstitutionByIdUseCase,
+      getDataInstitutionUseCase,
       updateServiceUseCase
       // updateServiceUseCase
     );

@@ -1,10 +1,10 @@
 import { UpdateInstitutionUseCaseImpl } from '@/application/institutions/use-cases/UpdateInstitutionUseCaseImpl';
-import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import { Institution, InstitutionStatus } from '@/domain/institutions/entities/Institution';
-import { EntityId } from '@/domain/shared/EntityId';
-import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
-import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import type { InstitutionRepository } from '@/domain/institutions/ports/out/InstitutionRepository';
 import { Country } from '@/domain/institutions/value-objects/Country';
+import { InstitutionType } from '@/domain/institutions/value-objects/InstitutionType';
+import { UrlValueObject } from '@/domain/institutions/value-objects/UrlValueObject';
+import { EntityId } from '@/domain/shared/EntityId';
 import { NotFoundError } from '@/domain/shared/errors/NotFoundError';
 import { randomUUID } from 'crypto';
 
@@ -47,6 +47,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
       website: 'https://new.com',
       geographicZones: ['UEMOA', 'CEMAC'],
       logoUrl: 'https://new.com/logo.png',
+      type: InstitutionType.BANQUE_NUMERIQUE,
+      pays: Country.CAMEROUN,
     };
 
     it('should throw NotFoundError if institution does not exist', async () => {
@@ -71,8 +73,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: existingInstitution.status,
-        type: existingInstitution.type,
-        pays: existingInstitution.pays,
+        type: updateCommand.type,
+        pays: updateCommand.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -85,6 +87,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
       const updatedArgument = mockRepository.update.mock.calls[0][0];
       expect(updatedArgument.name).toBe(updateCommand.name);
       expect(updatedArgument.description).toBe(updateCommand.description);
+      expect(updatedArgument.type).toBe(updateCommand.type);
+      expect(updatedArgument.pays).toBe(updateCommand.pays);
 
       expect(result).toEqual({
         id: testId,
@@ -94,8 +98,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: updateCommand.logoUrl,
         status: existingInstitution.status,
-        type: existingInstitution.type,
-        pays: existingInstitution.pays,
+        type: updateCommand.type,
+        pays: updateCommand.pays,
         services: [],
         createdAt: updatedInstitution.createdAt,
         updatedAt: updatedInstitution.updatedAt,
@@ -118,8 +122,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithNulls.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
-        type: existingInstitution.type,
-        pays: existingInstitution.pays,
+        type: commandWithNulls.type,
+        pays: commandWithNulls.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -146,8 +150,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: commandWithEmptyStrings.geographicZones,
         logoUrl: UrlValueObject.from(null),
         status: existingInstitution.status,
-        type: existingInstitution.type,
-        pays: existingInstitution.pays,
+        type: commandWithEmptyStrings.type,
+        pays: commandWithEmptyStrings.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -168,8 +172,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: existingInstitution.geographicZones,
         status: existingInstitution.status,
         logoUrl: existingInstitution.logoUrl,
-        type: existingInstitution.type,
-        pays: existingInstitution.pays,
+        type: updateCommand.type,
+        pays: updateCommand.pays,
         services: [],
       });
       mockRepository.update.mockResolvedValue(updatedInstitution);
@@ -177,6 +181,31 @@ describe('UpdateInstitutionUseCaseImpl', () => {
       const result = await useCase.execute(updateCommand);
 
       expect(result.status).toBe(existingInstitution.status);
+    });
+
+    it('should update type and pays instead of preserving existing ones', async () => {
+      mockRepository.findById.mockResolvedValue(existingInstitution);
+
+      const updatedInstitution = new Institution({
+        id: EntityId.from(testId),
+        name: updateCommand.name,
+        description: updateCommand.description,
+        website: UrlValueObject.from(updateCommand.website),
+        geographicZones: updateCommand.geographicZones,
+        logoUrl: UrlValueObject.from(updateCommand.logoUrl),
+        status: existingInstitution.status,
+        type: InstitutionType.BANQUE_NUMERIQUE,
+        pays: Country.CAMEROUN,
+        services: [],
+      });
+      mockRepository.update.mockResolvedValue(updatedInstitution);
+
+      const result = await useCase.execute(updateCommand);
+
+      expect(result.type).toBe(InstitutionType.BANQUE_NUMERIQUE);
+      expect(result.pays).toBe(Country.CAMEROUN);
+      expect(result.type).not.toBe(existingInstitution.type);
+      expect(result.pays).not.toBe(existingInstitution.pays);
     });
 
     it('should preserve existing services when updating institution', async () => {
@@ -191,7 +220,6 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         type: TypeService.ASSURANCE,
         montantMin: 100000,
         montantMax: 100000,
-
         frais: new FraisFixes(200, 0.01),
         conditionAccess: ['Condition 1'],
         plafonds: ['Plafond 1'],
@@ -221,8 +249,8 @@ describe('UpdateInstitutionUseCaseImpl', () => {
         geographicZones: updateCommand.geographicZones,
         logoUrl: UrlValueObject.from(updateCommand.logoUrl),
         status: institutionWithService.status,
-        type: institutionWithService.type,
-        pays: institutionWithService.pays,
+        type: updateCommand.type,
+        pays: updateCommand.pays,
         services: [mockService],
       });
 
