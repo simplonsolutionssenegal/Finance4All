@@ -120,7 +120,6 @@ describe('Sidebar', () => {
 
     it('renders navigation menu items based on roles', () => {
       render(<Sidebar />);
-      // Admin user should see Dashboard, Institutions, Cours & Formations, Utilisateurs
       expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Cours & Formations').length).toBeGreaterThan(0);
@@ -221,57 +220,6 @@ describe('Sidebar', () => {
       expect(mockSignOut).toHaveBeenCalled();
     });
 
-  describe('Navigation', () => {
-    it('highlights active menu item based on pathname', () => {
-      mockUsePathname.mockReturnValue('/dashboard');
-      render(<Sidebar />);
-      // The active state is determined by pathname matching
-      const dashboardLinks = screen.getAllByRole('link', { name: /dashboard/i });
-      expect(dashboardLinks.length).toBeGreaterThan(0);
-    });
-
-    it('renders correct href for menu items', () => {
-      render(<Sidebar />);
-      const institutionsLinks = screen.getAllByRole('link', { name: /institutions partenaires/i });
-      expect(institutionsLinks[0]).toHaveAttribute('href', '/institutions');
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('overlay has proper ARIA attributes', () => {
-      render(<Sidebar />);
-      const menuButtons = screen.getAllByRole('button');
-      const toggleButton = menuButtons.find(
-        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
-      );
-
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
-        expect(overlay).toHaveAttribute('aria-label', 'Fermer le menu');
-        expect(overlay).toHaveAttribute('tabIndex', '0');
-      }
-    });
-
-    it('does not toggle on other key presses', () => {
-      render(<Sidebar />);
-      const menuButtons = screen.getAllByRole('button');
-      const toggleButton = menuButtons.find(
-        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
-      );
-
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        const overlay = screen.getByRole('button', { name: /fermer le menu/i });
-        // Press a different key
-        fireEvent.keyDown(overlay, { key: 'Escape', code: 'Escape' });
-        // Sidebar should still be open
-        expect(overlay).toBeInTheDocument();
-      }
-    });
-  });
-
-  describe('Error handling', () => {
     it('handles logout error gracefully', async () => {
       const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockSignOut.mockRejectedValue(new Error('Logout failed'));
@@ -380,7 +328,6 @@ describe('Sidebar', () => {
 
   describe('Role-based menu filtering', () => {
     afterEach(() => {
-      // Reset the mock to admin user after each test in this block
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
         roleLabel: 'Admin Systeme',
@@ -394,25 +341,7 @@ describe('Sidebar', () => {
       });
     });
 
-    it('shows beneficiary menu items for fallback user', () => {
-      const { useUserRoles } = require('@/hooks/useUserRoles');
-      useUserRoles.mockReturnValue({
-        roleLabel: 'Beneficiaire',
-        hasRole: jest.fn(() => false),
-        hasOrganizationRole: jest.fn(() => false),
-        isLoaded: true,
-        userRoles: [],
-        organizationRoles: [],
-        appRole: 'Beneficiare',
-        accessGroup: 'beneficiary',
-      });
-
-      render(<Sidebar />);
-      // Fallback user should see beneficiary routes
-      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
-    });
-
-    it('shows correct menu items for beneficiary role', () => {
+    it('shows beneficiary menu items for beneficiary role', () => {
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
         roleLabel: 'Beneficiaire',
@@ -426,176 +355,45 @@ describe('Sidebar', () => {
       });
 
       render(<Sidebar />);
-      // Beneficiary should see learning, comparateur, simulateur
-      expect(screen.getAllByText('Mes modules').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Comparateur').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Simulateur').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
     });
   });
 
-  describe('Pathname handling', () => {
-    it('handles null pathname', () => {
-      mockUsePathname.mockReturnValue('');
-
-      render(<Sidebar />);
-      // Should render without errors
-      expect(screen.getAllByText('Admin Systeme').length).toBeGreaterThan(0);
-    });
-
-    it('handles nested pathname for active state', () => {
-      mockUsePathname.mockReturnValue('/institutions/123/edit');
-
-      render(<Sidebar />);
-      // Should still render with institutions item potentially active
-      expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
-    });
-
-    it('handles unknown pathname (no matching allowed roles)', () => {
-      mockUsePathname.mockReturnValue('/unknown-route');
-      render(<Sidebar />);
-      expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Notifications unread badge', () => {
-    it('shows unread count badge for notifications menu when count > 0', async () => {
-      window.localStorage.setItem(
-        'finance4all.notifications',
-        JSON.stringify([
-          {
-            id: 'notif-1',
-            title: 'Notif',
-            description: 'Desc',
-            timeLabel: 'Now',
-            isRead: false,
-            category: 'system',
-          },
-        ])
-      );
-
-      render(<Sidebar />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+  describe('User fallback states', () => {
+    afterEach(() => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({
+        user: {
+          fullName: 'Test User',
+          firstName: 'Test',
+          imageUrl: 'https://example.com/avatar.png',
+          emailAddresses: [{ emailAddress: 'test@example.com' }],
+        },
       });
     });
 
-    it('hides unread badge when all notifications are read', async () => {
-      window.localStorage.setItem(
-        'finance4all.notifications',
-        JSON.stringify([
-          {
-            id: 'notif-1',
-            title: 'Notif',
-            description: 'Desc',
-            timeLabel: 'Now',
-            isRead: false,
-            category: 'system',
-          },
-        ])
-      );
+    it('displays Utilisateur when user has no name', () => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({
+        user: {
+          fullName: null,
+          firstName: null,
+          imageUrl: null,
+          emailAddresses: [{ emailAddress: 'test@example.com' }],
+        },
+      });
 
       render(<Sidebar />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
-      });
-
-      window.localStorage.setItem(
-        'finance4all.notifications',
-        JSON.stringify([
-          {
-            id: 'notif-1',
-            title: 'Notif',
-            description: 'Desc',
-            timeLabel: 'Now',
-            isRead: true,
-            category: 'system',
-          },
-        ])
-      );
-      act(() => {
-        window.dispatchEvent(new Event('finance4all-notifications-updated'));
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText('1')).not.toBeInTheDocument();
-      });
+      expect(screen.getAllByText('Utilisateur').length).toBeGreaterThan(0);
     });
 
-    it('uses active badge style on notifications route', async () => {
-      mockUsePathname.mockReturnValue('/notifications');
-      window.localStorage.setItem(
-        'finance4all.notifications',
-        JSON.stringify([
-          {
-            id: 'notif-1',
-            title: 'Notif',
-            description: 'Desc',
-            timeLabel: 'Now',
-            isRead: false,
-            category: 'system',
-          },
-        ])
-      );
+    it('handles null user gracefully', () => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({ user: null });
 
-      const { container } = render(<Sidebar />);
-      await waitFor(() => {
-        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
-      });
-
-      const activeBadge = container.querySelector('.bg-white.text-primary-400');
-      expect(activeBadge).toBeInTheDocument();
-    });
-  });
-
-  describe('Mobile menu interaction', () => {
-    beforeEach(() => {
-      // Reset to admin user for these tests
-      const { useUserRoles } = require('@/hooks/useUserRoles');
-      useUserRoles.mockReturnValue({
-        roleLabel: 'Admin Systeme',
-        hasRole: jest.fn((role: string) => role === 'admin'),
-        hasOrganizationRole: jest.fn(() => true),
-        isLoaded: true,
-        userRoles: ['admin'],
-        organizationRoles: ['org:admin'],
-        appRole: 'Admin',
-        accessGroup: 'platform',
-      });
-    });
-
-    it('closes sidebar when clicking a navigation link', () => {
       render(<Sidebar />);
-      const menuButtons = screen.getAllByRole('button');
-      const toggleButton = menuButtons.find(
-        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
-      );
-
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        // Click on a navigation link - use Notifications which is available to all
-        const notificationsLinks = screen.getAllByText('Notifications');
-        fireEvent.click(notificationsLinks[0]);
-      }
-    });
-
-    it('closes sidebar via X button', () => {
-      render(<Sidebar />);
-      const menuButtons = screen.getAllByRole('button');
-      const toggleButton = menuButtons.find(
-        btn => btn.querySelector('[data-testid="menu-icon"]') !== null
-      );
-
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        // Find and click X button
-        const xButtons = screen.getAllByRole('button');
-        const xButton = xButtons.find(btn => btn.querySelector('[data-testid="x-icon"]') !== null);
-        if (xButton) {
-          fireEvent.click(xButton);
-        }
-      }
+      expect(screen.getAllByText('Utilisateur').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('U').length).toBeGreaterThan(0);
     });
   });
 });

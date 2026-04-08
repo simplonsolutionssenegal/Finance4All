@@ -14,11 +14,11 @@ interface PlatformStats {
   platformMembers: number;
 }
 
-interface UserStatsCardsProps {
+export interface UserStatsCardsProps {
   onFilterChange?: (role: string) => void;
   selectedRole?: string;
-  stats: PlatformStats;
-  isLoading: boolean;
+  stats?: PlatformStats;
+  isLoading?: boolean;
 }
 
 const DEFAULT_STATS: PlatformStats = {
@@ -34,8 +34,8 @@ const DEFAULT_STATS: PlatformStats = {
 export default function UserStatsCards({
   onFilterChange,
   selectedRole = 'all',
-  stats,
-  isLoading,
+  stats = DEFAULT_STATS,
+  isLoading = false,
 }: UserStatsCardsProps) {
   const statsData = [
     {
