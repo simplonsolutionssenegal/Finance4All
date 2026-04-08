@@ -92,7 +92,11 @@ export default function CreateOrganizationModal({
     }
     if (!adminEmail.trim()) {
       newErrors.adminEmail = "L'email est requis";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) {
+    } else if (
+      !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(
+        adminEmail.trim()
+      )
+    ) {
       newErrors.adminEmail = 'Veuillez entrer un email valide';
     }
 

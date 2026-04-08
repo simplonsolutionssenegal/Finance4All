@@ -73,7 +73,8 @@ export default function AddMemberModal({
     if (lastName.trim().length < 2) {
       newErrors.lastName = 'Le nom doit contenir au moins 2 caractères';
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!emailRegex.test(email.trim())) {
       newErrors.email = 'Veuillez saisir une adresse email valide';
     }
