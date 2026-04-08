@@ -28,8 +28,11 @@ export class UpdateInstitutionUseCaseImpl implements UpdateInstitutionUseCase {
       geographicZones: command.geographicZones,
       logoUrl: UrlValueObject.from(command.logoUrl || null),
       status: existingInstitution.status,
-      type: existingInstitution.type,
-      pays: existingInstitution.pays,
+      // type: existingInstitution.type,
+      // pays: existingInstitution.pays,
+      type: command.type,
+      pays: command.pays,
+
       services: existingInstitution.services,
     });
 
