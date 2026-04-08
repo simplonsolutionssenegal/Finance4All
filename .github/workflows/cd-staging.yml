@@ -159,17 +159,22 @@ jobs:
 
       - name: Verify backend is healthy
         run: |
-          echo "⏳ Waiting for backend to be healthy..."
-          for i in $(seq 1 30); do
-            if curl -sSf https://api.staging.finance4all.simplonprojet.com/health > /dev/null 2>&1; then
-              echo "✅ Backend healthy after $i attempts"
+          echo "⏳ Waiting 30s for Coolify to start redeploying..."
+          sleep 30
+
+          echo "⏳ Polling backend health endpoint..."
+          for i in $(seq 1 40); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.staging.finance4all.simplonprojet.com/health 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Backend healthy after $i attempts (HTTP $HTTP_CODE)"
               exit 0
             fi
-            echo "  Attempt $i/30 - backend not ready yet..."
+            echo "  Attempt $i/40 - HTTP $HTTP_CODE - waiting..."
             sleep 10
           done
 
-          echo "❌ Backend failed to become healthy after 5 minutes"
+          echo "❌ Backend failed to become healthy after ~7 minutes"
+          curl -v https://api.staging.finance4all.simplonprojet.com/health 2>&1 || true
           exit 1
 
   # --------------------------------------------------
