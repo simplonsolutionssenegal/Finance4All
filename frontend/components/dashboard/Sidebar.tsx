@@ -13,15 +13,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { menuItems, getAllowedRolesForPath } from '@/types/utils/menu-items';
+import {
+  getStoredNotifications,
+  NOTIFICATIONS_UPDATED_EVENT,
+} from '@/types/utils/notifications-data';
 
 const BENEFICIARY_ROLES = ['org:recipient', 'beneficiary'];
 
-function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
+export function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
   if (!allowedRoles || allowedRoles.length === 0) return false;
   return allowedRoles.every(r => BENEFICIARY_ROLES.includes(r));
 }
 
-function canAccessItem(
+export function canAccessItem(
   allowedRoles: string[] | undefined,
   hasRole: (r: string) => boolean,
   hasOrganizationRole: (r: string) => boolean,
@@ -66,12 +70,31 @@ export default function Sidebar() {
   // États pour le mobile et la déconnexion
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   const userName = user?.fullName || user?.firstName || 'Utilisateur';
   const userEmail = user?.emailAddresses?.[0]?.emailAddress || '';
   const userInitials = user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || 'U';
 
   const toggleSidebar = () => setIsOpen(!isOpen);
+
+  useEffect(() => {
+    const syncUnreadCount = () => {
+      const unreadCount = getStoredNotifications().filter(
+        notification => !notification.isRead
+      ).length;
+      setUnreadNotificationsCount(unreadCount);
+    };
+
+    syncUnreadCount();
+    window.addEventListener('storage', syncUnreadCount);
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, syncUnreadCount);
+
+    return () => {
+      window.removeEventListener('storage', syncUnreadCount);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, syncUnreadCount);
+    };
+  }, []);
 
   const handleConfirmLogout = async () => {
     try {
@@ -140,6 +163,20 @@ export default function Sidebar() {
                   className={`mr-3 h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`}
                 />
                 <span className='text-sm font-medium'>{item.label}</span>
+                {item.id === 'notifications' && unreadNotificationsCount > 0 && (
+                  <span
+                    className={`ml-auto inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                      isActive ? 'bg-white text-primary-400' : 'bg-primary-400 text-white'
+                    }`}
+                  >
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+                {item.id !== 'notifications' && item.badge && (
+                  <span className='ml-auto inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-100 px-1.5 text-xs font-semibold text-gray-600'>
+                    {item.badge}
+                  </span>
+                )}
               </Button>
             </Link>
           );

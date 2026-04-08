@@ -57,7 +57,7 @@ export default function PublicFooter() {
                 À propos
               </Link>
               <Link
-                href='/partners'
+                href='/#partners'
                 className='text-gray-400 hover:text-white transition-colors cursor-pointer w-fit'
               >
                 Partenaires

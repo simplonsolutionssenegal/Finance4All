@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import Sidebar from '@/components/dashboard/Sidebar';
+import Sidebar, { canAccessItem, isBeneficiaryOnlyRoute } from '@/components/dashboard/Sidebar';
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -87,9 +87,32 @@ jest.mock('@/components/dashboard/ConfirmDialog', () => ({
 const mockUsePathname = usePathname as jest.MockedFunction<typeof usePathname>;
 
 describe('Sidebar', () => {
+  describe('Access helpers', () => {
+    it('returns false for beneficiary-only helper when roles are undefined or empty', () => {
+      expect(isBeneficiaryOnlyRoute(undefined)).toBe(false);
+      expect(isBeneficiaryOnlyRoute([])).toBe(false);
+    });
+
+    it('uses hasRole fallback for beneficiary role access', () => {
+      const hasRole = jest.fn((role: string) => role === 'beneficiary');
+      const hasOrganizationRole = jest.fn(() => false);
+
+      const canAccess = canAccessItem(
+        ['org:recipient', 'beneficiary'],
+        hasRole,
+        hasOrganizationRole,
+        false
+      );
+
+      expect(canAccess).toBe(true);
+      expect(hasRole).toHaveBeenCalledWith('beneficiary');
+    });
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockUsePathname.mockReturnValue('/dashboard');
+    window.localStorage.clear();
   });
 
   describe('Rendering', () => {
@@ -460,6 +483,104 @@ describe('Sidebar', () => {
       render(<Sidebar />);
       // Should still render with institutions item potentially active
       expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
+    });
+
+    it('handles unknown pathname (no matching allowed roles)', () => {
+      mockUsePathname.mockReturnValue('/unknown-route');
+      render(<Sidebar />);
+      expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Notifications unread badge', () => {
+    it('shows unread count badge for notifications menu when count > 0', async () => {
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: false,
+            category: 'system',
+          },
+        ])
+      );
+
+      render(<Sidebar />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+      });
+    });
+
+    it('hides unread badge when all notifications are read', async () => {
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: false,
+            category: 'system',
+          },
+        ])
+      );
+
+      render(<Sidebar />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+      });
+
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: true,
+            category: 'system',
+          },
+        ])
+      );
+      act(() => {
+        window.dispatchEvent(new Event('finance4all-notifications-updated'));
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('1')).not.toBeInTheDocument();
+      });
+    });
+
+    it('uses active badge style on notifications route', async () => {
+      mockUsePathname.mockReturnValue('/notifications');
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: false,
+            category: 'system',
+          },
+        ])
+      );
+
+      const { container } = render(<Sidebar />);
+      await waitFor(() => {
+        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+      });
+
+      const activeBadge = container.querySelector('.bg-white.text-primary-400');
+      expect(activeBadge).toBeInTheDocument();
     });
   });
 

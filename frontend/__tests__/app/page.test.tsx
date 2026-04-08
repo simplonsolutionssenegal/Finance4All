@@ -50,6 +50,12 @@ jest.mock('@/components/public/HowItWorks', () => {
   };
 });
 
+jest.mock('@/components/public/PartnersSection', () => {
+  return function MockPartnersSection() {
+    return <section data-testid='partners-section'>Partners</section>;
+  };
+});
+
 jest.mock('@/components/public/VisionSection', () => {
   return function MockVisionSection() {
     return <section data-testid='vision-section'>Vision</section>;
@@ -105,6 +111,7 @@ describe('Home Page', () => {
     expect(screen.getByTestId('stats-section')).toBeInTheDocument();
     expect(screen.getByTestId('features-section')).toBeInTheDocument();
     expect(screen.getByTestId('how-it-works')).toBeInTheDocument();
+    expect(screen.getByTestId('partners-section')).toBeInTheDocument();
     expect(screen.getByTestId('vision-section')).toBeInTheDocument();
     expect(screen.getByTestId('testimonial-section')).toBeInTheDocument();
     expect(screen.getByTestId('cta-section')).toBeInTheDocument();
@@ -113,7 +120,7 @@ describe('Home Page', () => {
   it('contains all main sections', () => {
     const { container } = render(<Home />);
     const sections = container.querySelectorAll('section');
-    expect(sections.length).toBeGreaterThanOrEqual(7);
+    expect(sections.length).toBeGreaterThanOrEqual(8);
   });
 
   it('displays hero section content', () => {
@@ -146,6 +153,7 @@ describe('Home Page', () => {
       'features-section',
       'vision-section',
       'how-it-works',
+      'partners-section',
       'testimonial-section',
       'cta-section',
     ]);
