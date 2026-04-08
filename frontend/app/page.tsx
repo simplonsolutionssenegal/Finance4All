@@ -9,6 +9,7 @@ import HeroSection from '@/components/public/HeroSection';
 import HowItWorks from '@/components/public/HowItWorks';
 import PublicFooter from '@/components/public/layout/footer';
 import PublicHeader from '@/components/public/layout/header';
+import PartnersSection from '@/components/public/PartnersSection';
 import StatsSection from '@/components/public/StatsSection';
 import TestimonialSection from '@/components/public/TestimonialSection';
 import VisionSection from '@/components/public/VisionSection';
@@ -33,6 +34,9 @@ export default function Home() {
 
       {/* How it works */}
       <HowItWorks />
+
+      {/* Partners Section */}
+      <PartnersSection />
 
       {/* Testimonials Section */}
       <TestimonialSection />

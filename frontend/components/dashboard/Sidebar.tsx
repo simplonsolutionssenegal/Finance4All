@@ -20,12 +20,12 @@ import {
 
 const BENEFICIARY_ROLES = ['org:recipient', 'beneficiary'];
 
-function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
+export function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
   if (!allowedRoles || allowedRoles.length === 0) return false;
   return allowedRoles.every(r => BENEFICIARY_ROLES.includes(r));
 }
 
-function canAccessItem(
+export function canAccessItem(
   allowedRoles: string[] | undefined,
   hasRole: (r: string) => boolean,
   hasOrganizationRole: (r: string) => boolean,

@@ -20,4 +20,17 @@ describe('NotificationItem', () => {
     expect(screen.getByText('Le module est maintenant disponible.')).toBeInTheDocument();
     expect(screen.getByText("Aujourd'hui - 10:15")).toBeInTheDocument();
   });
+
+  it('hides unread dot for read notification', () => {
+    const readNotification: NotificationItemType = {
+      ...unreadNotification,
+      id: 'n2',
+      isRead: true,
+      category: 'assignment',
+    };
+
+    const { container } = render(<NotificationItem notification={readNotification} />);
+    expect(screen.getByText('Nouveau module disponible')).toBeInTheDocument();
+    expect(container.querySelector('.bg-primary-400')).not.toBeInTheDocument();
+  });
 });

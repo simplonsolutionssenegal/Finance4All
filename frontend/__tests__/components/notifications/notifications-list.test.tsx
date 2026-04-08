@@ -76,4 +76,19 @@ describe('NotificationsList', () => {
 
     expect(screen.getByText('Aucune notification a afficher.')).toBeInTheDocument();
   });
+
+  it('disables "Tout lire" button when unread count is zero', () => {
+    render(
+      <NotificationsList
+        notifications={notifications}
+        activeFilter='all'
+        onFilterChange={jest.fn()}
+        unreadCount={0}
+        onMarkAllRead={jest.fn()}
+      />
+    );
+
+    const markAllReadButton = screen.getByRole('button', { name: 'Tout lire' });
+    expect(markAllReadButton).toBeDisabled();
+  });
 });
