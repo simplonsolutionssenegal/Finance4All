@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -90,6 +90,7 @@ describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUsePathname.mockReturnValue('/dashboard');
+    window.localStorage.clear();
   });
 
   describe('Rendering', () => {
@@ -460,6 +461,73 @@ describe('Sidebar', () => {
       render(<Sidebar />);
       // Should still render with institutions item potentially active
       expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Notifications unread badge', () => {
+    it('shows unread count badge for notifications menu when count > 0', async () => {
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: false,
+            category: 'system',
+          },
+        ])
+      );
+
+      render(<Sidebar />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+      });
+    });
+
+    it('hides unread badge when all notifications are read', async () => {
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: false,
+            category: 'system',
+          },
+        ])
+      );
+
+      render(<Sidebar />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+      });
+
+      window.localStorage.setItem(
+        'finance4all.notifications',
+        JSON.stringify([
+          {
+            id: 'notif-1',
+            title: 'Notif',
+            description: 'Desc',
+            timeLabel: 'Now',
+            isRead: true,
+            category: 'system',
+          },
+        ])
+      );
+      act(() => {
+        window.dispatchEvent(new Event('finance4all-notifications-updated'));
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('1')).not.toBeInTheDocument();
+      });
     });
   });
 
