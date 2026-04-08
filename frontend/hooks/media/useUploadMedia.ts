@@ -44,14 +44,17 @@ async function uploadMediaRequest(
     formData.append('metadata', JSON.stringify(metadata));
   }
 
-  const res = await fetch('http://localhost:5000/api/v1/media', {
-    method: 'POST',
-    headers: {
-      // Ne mets PAS "Content-Type" ici, le navigateur le met avec boundary
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1'}/media`,
+    {
+      method: 'POST',
+      headers: {
+        // Ne mets PAS "Content-Type" ici, le navigateur le met avec boundary
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    }
+  );
 
   const json = (await res.json()) as BackendResponse<MediaDTO>;
 

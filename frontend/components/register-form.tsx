@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { OtpVerificationCard } from '@/components/auth/OtpVerificationCard';
 import { SocialAuthButton } from '@/components/social-auth-button';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegisterFormStep } from '@/contexts/register-form-context';
@@ -20,6 +21,7 @@ export function RegisterForm() {
   const { step, setStep } = useRegisterFormStep();
   const [verificationCode, setVerificationCode] = useState('');
   const [allowBackToStep1, setAllowBackToStep1] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const initialValues: CreateBeneficiaryFormValues = {
     firstName: '',
@@ -257,27 +259,43 @@ export function RegisterForm() {
               </div>
             )}
 
-            {/* Policy Acceptance Text */}
-            <p className='text-sm text-gray-600'>
-              J&apos;accepte les{' '}
-              <Link
-                href='/terms'
-                className='text-primary-300 font-semibold hover:text-primary-300/80 transition-colors'
+            {/* Policy Acceptance Checkbox */}
+            <div className='flex items-start gap-3'>
+              <Checkbox
+                id='acceptTerms'
+                checked={acceptedTerms}
+                onCheckedChange={checked => setAcceptedTerms(checked === true)}
+                disabled={isLoading}
+                className='mt-0.5'
+                aria-describedby='acceptTerms-label'
+              />
+              <label
+                htmlFor='acceptTerms'
+                id='acceptTerms-label'
+                className='text-sm text-gray-600 cursor-pointer leading-snug'
               >
-                Conditions d&apos;utilisation
-              </Link>{' '}
-              et la{' '}
-              <Link
-                href='/privacy'
-                className='text-primary-300 font-semibold hover:text-primary-300/80 transition-colors'
-              >
-                Politique de confidentialité
-              </Link>
-            </p>
+                J&apos;accepte les{' '}
+                <Link
+                  href='/terms'
+                  className='text-primary-300 font-semibold hover:text-primary-300/80 transition-colors'
+                  onClick={e => e.stopPropagation()}
+                >
+                  Conditions d&apos;utilisation
+                </Link>{' '}
+                et la{' '}
+                <Link
+                  href='/privacy'
+                  className='text-primary-300 font-semibold hover:text-primary-300/80 transition-colors'
+                  onClick={e => e.stopPropagation()}
+                >
+                  Politique de confidentialité
+                </Link>
+              </label>
+            </div>
 
             <Button
               type='submit'
-              disabled={isLoading || !isFormValid || !isLoaded}
+              disabled={isLoading || !isFormValid || !isLoaded || !acceptedTerms}
               className='w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg flex items-center justify-center gap-2'
             >
               {isLoading ? 'Création en cours...' : 'Créer mon compte'}

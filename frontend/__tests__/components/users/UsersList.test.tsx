@@ -1689,7 +1689,7 @@ describe('UsersList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Admin User')).toBeInTheDocument();
-      expect(screen.getByText('Super Administrateur')).toBeInTheDocument();
+      expect(screen.getByText('Admin Organisation')).toBeInTheDocument();
     });
   });
 
@@ -1719,7 +1719,7 @@ describe('UsersList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Member User')).toBeInTheDocument();
-      expect(screen.getByText('Organisation')).toBeInTheDocument();
+      expect(screen.getByText('Membre Organisation')).toBeInTheDocument();
     });
   });
 
@@ -1749,7 +1749,7 @@ describe('UsersList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Recipient User')).toBeInTheDocument();
-      expect(screen.getByText('Bénéficiaire')).toBeInTheDocument();
+      expect(screen.getByText('Recipient')).toBeInTheDocument();
     });
   });
 

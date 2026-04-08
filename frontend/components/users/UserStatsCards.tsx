@@ -1,65 +1,37 @@
 'use client';
 
-import { useOrganization, useUser } from '@clerk/nextjs';
 import { Users, Shield, Building2, UserCheck, Archive } from 'lucide-react';
-import { useMemo } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
+
+interface PlatformStats {
+  totalUsers: number;
+  totalOrganizations: number;
+  adminsOrg: number;
+  membersOrg: number;
+  recipients: number;
+  platformAdmins: number;
+  platformMembers: number;
+}
 
 interface UserStatsCardsProps {
   onFilterChange?: (role: string) => void;
   selectedRole?: string;
+  stats: PlatformStats;
+  isLoading: boolean;
 }
 
 export default function UserStatsCards({
   onFilterChange,
   selectedRole = 'all',
+  stats,
+  isLoading,
 }: UserStatsCardsProps) {
-  const { memberships } = useOrganization({
-    memberships: {
-      infinite: true,
-    },
-    invitations: true,
-  });
-
-  const { user } = useUser();
-
-  const stats = useMemo(() => {
-    if (!memberships?.data) {
-      return {
-        totalActifs: 0,
-        administrateurs: 0,
-        organisations: 0,
-        beneficiaires: 0,
-        archives: 0,
-      };
-    }
-
-    const activeMemberships = memberships.data.filter(membership => membership.publicUserData);
-    const totalActifs = activeMemberships.length;
-    const administrateurs = memberships.data.filter(
-      membership => membership.role === 'org:admin'
-    ).length;
-    const organisations = user?.organizationMemberships?.length || 0;
-    const beneficiaires = memberships.data.filter(
-      membership => membership.role === 'org:recipient'
-    ).length;
-    const archives = 0; // Pas encore implémenté
-
-    return {
-      totalActifs,
-      administrateurs,
-      organisations,
-      beneficiaires,
-      archives,
-    };
-  }, [memberships?.data, user?.organizationMemberships]);
-
   const statsData = [
     {
       id: 1,
       title: 'Total actifs',
-      value: stats.totalActifs.toString(),
+      value: isLoading ? '...' : stats.totalUsers.toString(),
       icon: Users,
       iconColor: 'text-primary-400',
       filterValue: 'all',
@@ -67,7 +39,9 @@ export default function UserStatsCards({
     {
       id: 2,
       title: 'Administrateurs',
-      value: stats.administrateurs.toString(),
+      value: isLoading
+        ? '...'
+        : (stats.adminsOrg + stats.platformAdmins + stats.platformMembers).toString(),
       icon: Shield,
       iconColor: 'text-blue-500',
       filterValue: 'org:admin',
@@ -75,7 +49,7 @@ export default function UserStatsCards({
     {
       id: 3,
       title: 'Organisations',
-      value: stats.organisations.toString(),
+      value: isLoading ? '...' : stats.totalOrganizations.toString(),
       icon: Building2,
       iconColor: 'text-gray-600',
       filterValue: 'org:member',
@@ -83,7 +57,7 @@ export default function UserStatsCards({
     {
       id: 4,
       title: 'Bénéficiaires',
-      value: stats.beneficiaires.toString(),
+      value: isLoading ? '...' : stats.recipients.toString(),
       icon: UserCheck,
       iconColor: 'text-gray-600',
       filterValue: 'org:recipient',
@@ -91,7 +65,7 @@ export default function UserStatsCards({
     {
       id: 5,
       title: 'Archivés',
-      value: stats.archives.toString(),
+      value: '0',
       icon: Archive,
       iconColor: 'text-gray-600',
       filterValue: 'archived',
@@ -100,7 +74,6 @@ export default function UserStatsCards({
 
   const handleCardClick = (filterValue: string) => {
     if (onFilterChange) {
-      // Toggle: si déjà sélectionné, réinitialiser à 'all'
       if (selectedRole === filterValue) {
         onFilterChange('all');
       } else {
@@ -132,13 +105,8 @@ export default function UserStatsCards({
             }}
           >
             <CardContent className='p-6 flex flex-col space-y-8 justify-between h-full'>
-              {/* Icône en haut */}
               <Icon className={`w-6 h-6 ${stat.iconColor}`} strokeWidth={1.5} />
-
-              {/* Valeur (nombre) */}
               <div className='text-4xl font-bold text-gray-900'>{stat.value}</div>
-
-              {/* Label */}
               <div className='text-sm text-gray-500'>{stat.title}</div>
             </CardContent>
           </Card>

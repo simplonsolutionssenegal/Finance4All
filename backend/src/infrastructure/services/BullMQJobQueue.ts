@@ -8,6 +8,7 @@ export interface TranscodingJobProcessor {
 export interface BullMQConfig {
   host: string;
   port: number;
+  password?: string;
 }
 
 export class BullMQJobQueue implements JobQueuePort {

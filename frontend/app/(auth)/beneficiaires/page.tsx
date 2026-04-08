@@ -1,5 +1,5 @@
-import BeneficiaryManagement from '@/components/beneficiaire/BeneficiaryManagement';
+import { redirect } from 'next/navigation';
 
-export default function BeneficiairesPage() {
-  return <BeneficiaryManagement />;
+export default function BeneficiairesRedirect() {
+  redirect('/recipients');
 }

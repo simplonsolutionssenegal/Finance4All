@@ -18,6 +18,13 @@ export interface MinioConfig {
   publicUrl?: string;
 }
 
+/** All buckets the application needs, with their public-read setting. */
+const REQUIRED_BUCKETS: { name: string; publicRead: boolean }[] = [
+  { name: 'finance4all-media', publicRead: true },
+  { name: 'finance4all-temp', publicRead: false },
+  { name: 'finance4all-hls', publicRead: true },
+];
+
 export class MinioStorageService implements StoragePort {
   private readonly client: Client;
   private readonly publicUrl: string;
@@ -140,22 +147,10 @@ export class MinioStorageService implements StoragePort {
       if (!exists) {
         await this.client.makeBucket(bucket);
         logger.info('Bucket created', { bucket });
-
-        // Set bucket policy for public read access (optional)
-        const policy = {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${bucket}/*`],
-            },
-          ],
-        };
-        await this.client.setBucketPolicy(bucket, JSON.stringify(policy));
-        logger.info('Bucket policy set for public read access', { bucket });
       }
+
+      // Always apply the public-read policy so it survives restarts
+      await this.setBucketPublicRead(bucket);
     } catch (error) {
       logger.error('Failed to ensure bucket exists', {
         bucket,
@@ -165,6 +160,52 @@ export class MinioStorageService implements StoragePort {
         `Failed to ensure bucket exists: ${bucket}`,
         error instanceof Error ? error : undefined
       );
+    }
+  }
+
+  /**
+   * Set a bucket policy allowing anonymous read (s3:GetObject) for all objects.
+   */
+  private async setBucketPublicRead(bucket: string): Promise<void> {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${bucket}/*`],
+        },
+      ],
+    };
+    await this.client.setBucketPolicy(bucket, JSON.stringify(policy));
+    logger.info('Bucket policy set for public read access', { bucket });
+  }
+
+  /**
+   * Called once at application startup.
+   * Creates all required buckets and applies the correct access policies.
+   */
+  async initializeBuckets(): Promise<void> {
+    for (const { name, publicRead } of REQUIRED_BUCKETS) {
+      try {
+        const exists = await this.client.bucketExists(name);
+        if (!exists) {
+          await this.client.makeBucket(name);
+          logger.info('Bucket created', { bucket: name });
+        }
+
+        if (publicRead) {
+          await this.setBucketPublicRead(name);
+        }
+
+        logger.info(`✅ Bucket ready: ${name}`, { publicRead });
+      } catch (error) {
+        logger.error(`Failed to initialize bucket: ${name}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Non-fatal: log but don't crash the server
+      }
     }
   }
 }

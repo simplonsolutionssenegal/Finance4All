@@ -102,8 +102,8 @@ export const InstitutionFormFields = ({
     zone => zone.toLowerCase().includes(searchZone.toLowerCase()) && !selectedZones.includes(zone)
   );
 
-  // Composant Name Field
-  const NameField = () => (
+  // Variable JSX (pas un composant) pour éviter la perte de focus au re-render
+  const nameField = (
     <FormField
       control={control}
       name='name'
@@ -128,8 +128,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Type Field
-  const TypeField = () => (
+  const typeField = (
     <FormField
       control={control}
       name='type'
@@ -191,8 +190,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Country Field
-  const CountryField = () => (
+  const countryField = (
     <FormField
       control={control}
       name='pays'
@@ -262,8 +260,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Logo Field
-  const LogoField = () => (
+  const logoField = (
     <FormField
       control={control}
       name='logoUrl'
@@ -306,8 +303,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Description Field
-  const DescriptionField = () => (
+  const descriptionField = (
     <FormField
       control={control}
       name='description'
@@ -333,8 +329,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Website Field
-  const WebsiteField = () => (
+  const websiteField = (
     <FormField
       control={control}
       name='website'
@@ -359,8 +354,7 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Composant Zones Field
-  const ZonesField = () => (
+  const zonesField = (
     <FormField
       control={control}
       name='geographicZones'
@@ -459,27 +453,22 @@ export const InstitutionFormFields = ({
     />
   );
 
-  // Logo preview pour variant default
-  const LogoPreview = () => {
-    if (!isCompact && sanitizedLogoUrl && !errors.logoUrl) {
-      return (
-        <div>
-          <div className='rounded-md border border-gray-200 bg-gray-50 p-4'>
-            <div className='flex items-center justify-center'>
-              <Image
-                src={sanitizedLogoUrl}
-                alt='Aperçu du logo'
-                width={500}
-                height={500}
-                className='max-h-20 max-w-full object-contain'
-              />
-            </div>
+  const logoPreview =
+    !isCompact && sanitizedLogoUrl && !errors.logoUrl ? (
+      <div>
+        <div className='rounded-md border border-gray-200 bg-gray-50 p-4'>
+          <div className='flex items-center justify-center'>
+            <Image
+              src={sanitizedLogoUrl}
+              alt='Aperçu du logo'
+              width={500}
+              height={500}
+              className='max-h-20 max-w-full object-contain'
+            />
           </div>
         </div>
-      );
-    }
-    return null;
-  };
+      </div>
+    ) : null;
 
   // Rendu conditionnel basé sur les étapes
   if (step !== undefined && isCompact) {
@@ -487,8 +476,8 @@ export const InstitutionFormFields = ({
     if (step === 1) {
       return (
         <>
-          <NameField />
-          <TypeField />
+          {nameField}
+          {typeField}
         </>
       );
     }
@@ -496,9 +485,9 @@ export const InstitutionFormFields = ({
     if (step === 2) {
       return (
         <>
-          <LogoField />
-          <DescriptionField />
-          <WebsiteField />
+          {logoField}
+          {descriptionField}
+          {websiteField}
         </>
       );
     }
@@ -506,8 +495,8 @@ export const InstitutionFormFields = ({
     if (step === 3) {
       return (
         <>
-          <CountryField />
-          <ZonesField />
+          {countryField}
+          {zonesField}
         </>
       );
     }
@@ -517,16 +506,16 @@ export const InstitutionFormFields = ({
   if (isCompact && step === undefined) {
     return (
       <>
-        <NameField />
+        {nameField}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 items-start'>
-          <TypeField />
-          <CountryField />
+          {typeField}
+          {countryField}
         </div>
-        <LogoField />
-        <DescriptionField />
+        {logoField}
+        {descriptionField}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 items-start'>
-          <WebsiteField />
-          <ZonesField />
+          {websiteField}
+          {zonesField}
         </div>
       </>
     );
@@ -535,16 +524,16 @@ export const InstitutionFormFields = ({
   // Mode default (variante par défaut)
   return (
     <>
-      <NameField />
+      {nameField}
       <div className='grid grid-cols-2 gap-4'>
-        <TypeField />
-        <CountryField />
+        {typeField}
+        {countryField}
       </div>
-      <DescriptionField />
-      <LogoField />
-      <WebsiteField />
-      <ZonesField />
-      <LogoPreview />
+      {descriptionField}
+      {logoField}
+      {websiteField}
+      {zonesField}
+      {logoPreview}
     </>
   );
 };

@@ -569,7 +569,7 @@ describe('BeneficiaryManagement', () => {
 
       fireEvent.click(screen.getAllByTitle('Voir')[0]);
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/beneficiaires/1');
+      expect(mockRouter.push).toHaveBeenCalledWith('/recipients/1');
     });
   });
 

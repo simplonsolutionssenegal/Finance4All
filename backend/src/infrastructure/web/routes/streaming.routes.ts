@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAuth } from '../middleware/requireAuth.middleware';
 import { requireSameActiveOrg } from '../middleware/requireOrg.middleware';
 import type { StreamingController } from '../controllers/StreamingController';
 import {
@@ -78,10 +79,10 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
     boundController.getSegment
   );
 
-  // Progress tracking endpoints
+  // Progress tracking endpoints (user-scoped, no org required)
   router.post(
     '/:id/progress',
-    requireSameActiveOrg,
+    requireAuth,
     validateMediaId,
     validateUpdateProgress,
     handleStreamingValidationErrors,
@@ -90,7 +91,7 @@ export const createStreamingRoutes = (controller: StreamingController): Router =
 
   router.get(
     '/:id/progress',
-    requireSameActiveOrg,
+    requireAuth,
     validateMediaId,
     handleStreamingValidationErrors,
     boundController.getProgress

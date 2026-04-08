@@ -33,12 +33,14 @@ jest.mock('@clerk/nextjs', () => ({
 // Mock useUserRoles hook
 jest.mock('@/hooks/useUserRoles', () => ({
   useUserRoles: jest.fn(() => ({
-    roleLabel: 'Admin',
+    roleLabel: 'Admin Systeme',
     hasRole: jest.fn((role: string) => role === 'admin'),
     hasOrganizationRole: jest.fn(() => true),
     isLoaded: true,
     userRoles: ['admin'],
     organizationRoles: ['org:admin'],
+    appRole: 'Admin',
+    accessGroup: 'platform',
   })),
 }));
 
@@ -136,13 +138,13 @@ describe('Sidebar', () => {
 
     it('renders role badge', () => {
       render(<Sidebar />);
-      expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Admin Systeme').length).toBeGreaterThan(0);
     });
 
     it('renders navigation menu items based on roles', () => {
       render(<Sidebar />);
-      // Admin user should see Overview, Institutions, Cours & Formations, Utilisateurs
-      expect(screen.getAllByText('Overview').length).toBeGreaterThan(0);
+      // Admin user should see Dashboard, Institutions, Cours & Formations, Utilisateurs
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Institutions partenaires').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Cours & Formations').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Utilisateurs').length).toBeGreaterThan(0);
@@ -266,7 +268,7 @@ describe('Sidebar', () => {
       mockUsePathname.mockReturnValue('/dashboard');
       render(<Sidebar />);
       // The active state is determined by pathname matching
-      const dashboardLinks = screen.getAllByRole('link', { name: /overview/i });
+      const dashboardLinks = screen.getAllByRole('link', { name: /dashboard/i });
       expect(dashboardLinks.length).toBeGreaterThan(0);
     });
 
@@ -424,24 +426,28 @@ describe('Sidebar', () => {
       // Reset the mock to admin user after each test in this block
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
-        roleLabel: 'Admin',
+        roleLabel: 'Admin Systeme',
         hasRole: jest.fn((role: string) => role === 'admin'),
         hasOrganizationRole: jest.fn(() => true),
         isLoaded: true,
         userRoles: ['admin'],
         organizationRoles: ['org:admin'],
+        appRole: 'Admin',
+        accessGroup: 'platform',
       });
     });
 
     it('shows beneficiary menu items for fallback user', () => {
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
-        roleLabel: 'Utilisateur',
+        roleLabel: 'Beneficiaire',
         hasRole: jest.fn(() => false),
         hasOrganizationRole: jest.fn(() => false),
         isLoaded: true,
         userRoles: [],
         organizationRoles: [],
+        appRole: 'Beneficiare',
+        accessGroup: 'beneficiary',
       });
 
       render(<Sidebar />);
@@ -452,12 +458,14 @@ describe('Sidebar', () => {
     it('shows correct menu items for beneficiary role', () => {
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
-        roleLabel: 'Bénéficiaire',
+        roleLabel: 'Beneficiaire',
         hasRole: jest.fn((role: string) => role === 'beneficiary'),
         hasOrganizationRole: jest.fn((role: string) => role === 'org:recipient'),
         isLoaded: true,
         userRoles: ['beneficiary'],
         organizationRoles: ['org:recipient'],
+        appRole: 'Beneficiare',
+        accessGroup: 'beneficiary',
       });
 
       render(<Sidebar />);
@@ -474,7 +482,7 @@ describe('Sidebar', () => {
 
       render(<Sidebar />);
       // Should render without errors
-      expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Admin Systeme').length).toBeGreaterThan(0);
     });
 
     it('handles nested pathname for active state', () => {
@@ -589,12 +597,14 @@ describe('Sidebar', () => {
       // Reset to admin user for these tests
       const { useUserRoles } = require('@/hooks/useUserRoles');
       useUserRoles.mockReturnValue({
-        roleLabel: 'Admin',
+        roleLabel: 'Admin Systeme',
         hasRole: jest.fn((role: string) => role === 'admin'),
         hasOrganizationRole: jest.fn(() => true),
         isLoaded: true,
         userRoles: ['admin'],
         organizationRoles: ['org:admin'],
+        appRole: 'Admin',
+        accessGroup: 'platform',
       });
     });
 

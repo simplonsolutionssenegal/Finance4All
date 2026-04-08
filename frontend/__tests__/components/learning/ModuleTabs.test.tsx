@@ -64,6 +64,7 @@ describe('ModuleTabs', () => {
         lessonStatuses={lessonStatuses}
         quizAvailability={quizAvailability}
         quizProgressMap={quizProgressMap}
+        startedLessonIds={new Set()}
       />
     );
 

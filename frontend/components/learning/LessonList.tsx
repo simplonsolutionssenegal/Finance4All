@@ -13,9 +13,15 @@ interface LessonListProps {
   readonly moduleId: string;
   readonly lessons: Lesson[];
   readonly lessonStatuses: Map<string, LessonProgressStatus>;
+  readonly startedLessonIds: Set<string>;
 }
 
-export default function LessonList({ moduleId, lessons, lessonStatuses }: LessonListProps) {
+export default function LessonList({
+  moduleId,
+  lessons,
+  lessonStatuses,
+  startedLessonIds,
+}: LessonListProps) {
   const router = useRouter();
   const { enrollModuleAsync, isEnrolling } = useEnrollModule();
   const [pendingLessonId, setPendingLessonId] = useState<string | null>(null);
@@ -43,7 +49,8 @@ export default function LessonList({ moduleId, lessons, lessonStatuses }: Lesson
         const status = lessonStatuses.get(lesson.id) ?? 'LOCKED';
         const isLocked = status === 'LOCKED';
         const isDone = status === 'DONE';
-        const buttonLabel = isDone ? 'Revoir' : 'Continuer';
+        const isStarted = startedLessonIds.has(lesson.id);
+        const buttonLabel = isDone ? 'Revoir' : isStarted ? 'Continuer' : 'Commencer';
         const isPending = pendingLessonId === lesson.id && isEnrolling;
 
         return (

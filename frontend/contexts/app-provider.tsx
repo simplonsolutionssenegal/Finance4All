@@ -16,7 +16,14 @@ interface AppProviderProps {
 
 export function AppProvider({ children }: AppProviderProps) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInFallbackRedirectUrl='/auth-redirect'
+      signUpFallbackRedirectUrl='/auth-redirect'
+      taskUrls={{
+        'choose-organization': '/auth-redirect',
+      }}
+    >
       <ThemeProvider defaultTheme='light'>
         <LoaderProvider>
           <QueryProvider>

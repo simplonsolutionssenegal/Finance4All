@@ -3,6 +3,7 @@ import {
   Building2,
   BookOpen,
   Users,
+  UsersRound,
   Bell,
   Settings,
   type LucideIcon,
@@ -13,36 +14,43 @@ import {
   Calculator,
 } from 'lucide-react';
 
+import {
+  MENU_IDS_BY_GROUP,
+  getAccessGroup,
+  type AppRole,
+  type AccessGroup,
+} from '@/lib/role-access';
+
 export interface MenuItem {
   id: string;
   label: string;
   icon: LucideIcon;
   href: string;
   badge?: string;
-  allowedRoles?: string[];
+  allowedGroups?: AccessGroup[];
 }
 
 export const menuItems: MenuItem[] = [
   {
     id: 'overview',
-    label: 'Overview',
+    label: 'Dashboard',
     icon: LayoutDashboard,
     href: '/dashboard',
-    allowedRoles: ['admin', 'org:admin', 'org:member'],
+    allowedGroups: ['platform', 'organization'],
   },
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: Home,
-    href: '/beneficiaire-dashboard',
-    allowedRoles: ['org:recipient', 'beneficiary'],
+    href: '/dashboard',
+    allowedGroups: ['beneficiary'],
   },
   {
     id: 'modules',
     label: 'Mes modules',
     icon: GraduationCap,
     href: '/learning',
-    allowedRoles: ['org:recipient', 'beneficiary'],
+    allowedGroups: ['beneficiary'],
   },
   {
     id: 'institutions',
@@ -50,42 +58,56 @@ export const menuItems: MenuItem[] = [
     icon: Building2,
     badge: '32',
     href: '/institutions',
-    allowedRoles: ['admin', 'org:admin', 'org:member'],
+    allowedGroups: ['platform'],
   },
   {
     id: 'formations',
     label: 'Cours & Formations',
     icon: BookOpen,
     href: '/modules',
-    allowedRoles: ['admin', 'org:admin', 'org:member'],
+    allowedGroups: ['platform'],
   },
   {
     id: 'users',
     label: 'Utilisateurs',
     icon: Users,
     href: '/users',
-    allowedRoles: ['admin', 'org:admin'],
+    allowedGroups: ['platform'],
+  },
+  {
+    id: 'recipients',
+    label: 'Recipients',
+    icon: Users,
+    href: '/recipients',
+    allowedGroups: ['organization'],
+  },
+  {
+    id: 'members',
+    label: 'Membres',
+    icon: UsersRound,
+    href: '/members',
+    allowedGroups: ['organization'],
   },
   {
     id: 'certificats',
     label: 'Certificats',
     icon: Award,
     href: '/certificats',
-    allowedRoles: ['org:recipient', 'beneficiary'],
+    allowedGroups: ['beneficiary'],
   },
   {
     id: 'comparator',
     label: 'Comparateur',
     icon: Compass,
     href: '/comparateur',
-    allowedRoles: ['org:recipient', 'beneficiary'],
+    allowedGroups: ['beneficiary'],
   },
   {
     id: 'simulator',
     label: 'Simulateur',
     icon: Calculator,
     href: '/simulateur',
-    allowedRoles: ['org:recipient', 'beneficiary'],
+    allowedGroups: ['beneficiary'],
   },
   {
     id: 'notifications',
@@ -102,9 +124,16 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
-export function getAllowedRolesForPath(pathname: string): string[] | undefined {
-  const item = menuItems.find(
-    item => pathname === item.href || pathname.startsWith(`${item.href}/`)
-  );
-  return item?.allowedRoles;
+/**
+ * Retourne les items de menu accessibles pour un role applicatif donne.
+ */
+export function getMenuItemsForRole(role: AppRole): MenuItem[] {
+  const group = getAccessGroup(role);
+  const allowedIds = MENU_IDS_BY_GROUP[group];
+
+  return menuItems.filter(item => {
+    // Items sans allowedGroups sont accessibles a tous (notifications, settings)
+    if (!item.allowedGroups) return true;
+    return allowedIds.includes(item.id);
+  });
 }

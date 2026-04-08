@@ -4,6 +4,8 @@ import { logger } from '@/infrastructure/utils/logger';
 import createApp from '@/infrastructure/web/app';
 import { container, TYPES } from '@/infrastructure/config/container';
 import type { MediaCleanupCronService } from '@/infrastructure/services/MediaCleanupCronService';
+import type { MinioStorageService } from '@/infrastructure/services/MinioStorageService';
+import type { StoragePort } from '@/domain/media/ports/out/StoragePort';
 
 const PORT = process.env.PORT || 5001;
 
@@ -24,6 +26,11 @@ export async function bootstrap() {
         logger.warn('⚠️ Database might need migration. Run: npm run prisma:migrate:dev');
       }
     }
+
+    // Initialize MinIO buckets and public-read policies
+    const storageService = container.get<StoragePort>(TYPES.StoragePort) as MinioStorageService;
+    await storageService.initializeBuckets();
+    logger.info('✅ MinIO buckets initialized');
 
     // Start media cleanup cron service
     const mediaCleanupCron = container.get<MediaCleanupCronService>(TYPES.MediaCleanupCronService);

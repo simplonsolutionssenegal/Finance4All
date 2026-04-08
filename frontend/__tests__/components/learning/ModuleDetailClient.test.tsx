@@ -32,6 +32,20 @@ jest.mock('@/hooks/quiz/useQuizProgressMap', () => ({
   useQuizProgressMap: jest.fn(),
 }));
 
+jest.mock('@/hooks/media/useMediaProgressMap', () => ({
+  useMediaProgressMap: jest.fn(() => ({
+    mediaProgressMap: new Map(),
+    isLoading: false,
+  })),
+}));
+
+const mockIsChapterViewed = jest.fn(() => false);
+jest.mock('@/lib/learning/chapter-progress', () => ({
+  isChapterViewed: (...args: unknown[]) => mockIsChapterViewed(...args),
+  markChapterViewed: jest.fn(),
+  getViewedChapterIds: jest.fn(() => new Set()),
+}));
+
 const moduleTabsMock = jest.fn((props: unknown) => <div data-testid='module-tabs' />);
 jest.mock('@/components/learning/ModuleTabs', () => ({
   __esModule: true,
@@ -218,6 +232,8 @@ describe('ModuleDetailClient', () => {
   });
 
   it('computes quiz availability for lesson and module quizzes', () => {
+    // All chapters have been viewed → lesson quiz becomes available when chapters are complete
+    mockIsChapterViewed.mockReturnValue(true);
     const quizzesGlobal: Quiz[] = [
       {
         id: 'chapter-quiz-1',
