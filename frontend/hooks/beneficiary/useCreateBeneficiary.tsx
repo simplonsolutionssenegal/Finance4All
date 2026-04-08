@@ -1,4 +1,4 @@
-import { useSignUp } from '@clerk/nextjs';
+import { useSignUp, useClerk } from '@clerk/nextjs';
 import type { SignUpResource } from '@clerk/types';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
@@ -61,6 +61,7 @@ export function useCreateBeneficiary(
   );
   const [verificationTarget, setVerificationTarget] = useState('');
   const router = useRouter();
+  const { setActive } = useClerk();
 
   const { isLoaded, signUp } = useSignUp();
   const { formState, updateField, hasError, getError, setFieldError } = useFormState(initialValues);
@@ -158,9 +159,12 @@ export function useCreateBeneficiary(
       const emailVerificationStatus = attempt.verifications?.emailAddress?.status;
       const isEmailVerified = String(emailVerificationStatus) === 'verified';
 
-      // Redirection si vérifié ou complet
+      // Activer la session et rediriger vers le dashboard
       if (isEmailVerified || attempt.status === 'complete') {
-        router.push('/beneficiaire-dashboard');
+        if (attempt.createdSessionId) {
+          await setActive({ session: attempt.createdSessionId });
+        }
+        router.push('/auth-redirect');
         return;
       }
 
@@ -188,7 +192,7 @@ export function useCreateBeneficiary(
         `Status de vérification inattendu: ${attempt.status}. Veuillez réessayer.`
       );
     },
-    [router]
+    [router, setActive]
   );
 
   const handleCreateBeneficiary = useCallback(

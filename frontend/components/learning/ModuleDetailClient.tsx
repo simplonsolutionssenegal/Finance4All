@@ -9,9 +9,11 @@ import { useMemo } from 'react';
 import ModuleTabs from '@/components/learning/ModuleTabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGetMediaById } from '@/hooks/media/useGetMediaById';
+import { useMediaProgressMap } from '@/hooks/media/useMediaProgressMap';
 import { useGetModuleById } from '@/hooks/module/useGetModuleById';
 import { useQuizProgressMap } from '@/hooks/quiz/useQuizProgressMap';
 import { DIFFICULTY_LABELS } from '@/lib/constants/module-constants';
+import { isChapterViewed } from '@/lib/learning/chapter-progress';
 import {
   mapLessonSummary,
   mapQuizzes,
@@ -57,112 +59,173 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
 
   const { progressMap } = useQuizProgressMap(quizzes.map(quiz => quiz.id));
 
-  const { lessonStatuses, quizAvailability, completedLessons } = useMemo(() => {
-    const lessonStatuses = new Map<string, LessonProgressStatus>();
-    const lessonCompletionMap = new Map<string, boolean>();
-    const lessonChapterCompleteMap = new Map<string, boolean>();
-    const chapterStatusMap = new Map<string, ChapterProgressStatus>();
-    const quizAvailability = new Map<string, boolean>();
+  // Collect all chapter mediaIds to fetch their reading/viewing progress
+  const chapterMediaIds = useMemo(() => {
+    return rawLessonsSorted.flatMap(lesson =>
+      (lesson.chapters ?? []).map(ch => ch.mediaId ?? ch.media?.id)
+    );
+  }, [rawLessonsSorted]);
 
-    const quizzesByChapter = new Map<string, Quiz[]>();
-    const quizzesByLesson = new Map<string, Quiz[]>();
+  const { mediaProgressMap } = useMediaProgressMap(chapterMediaIds);
 
-    const hasPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
+  const { lessonStatuses, quizAvailability, completedLessons, globalProgress, startedLessonIds } =
+    useMemo(() => {
+      const lessonStatuses = new Map<string, LessonProgressStatus>();
+      const lessonCompletionMap = new Map<string, boolean>();
+      const lessonChapterCompleteMap = new Map<string, boolean>();
+      const chapterStatusMap = new Map<string, ChapterProgressStatus>();
+      const quizAvailability = new Map<string, boolean>();
+      // Per-lesson chapter progress: stores completedChapters / totalChapters for each lesson
+      const lessonProgressMap = new Map<string, number>();
+      // Lessons where at least one chapter has been viewed
+      const startedLessonIds = new Set<string>();
 
-    quizzes.forEach(quiz => {
-      if (quiz.chapterId) {
-        const list = quizzesByChapter.get(quiz.chapterId) ?? [];
-        list.push(quiz);
-        quizzesByChapter.set(quiz.chapterId, list);
-        return;
-      }
-      if (quiz.lessonId) {
-        const list = quizzesByLesson.get(quiz.lessonId) ?? [];
-        list.push(quiz);
-        quizzesByLesson.set(quiz.lessonId, list);
-        return;
-      }
-      // module-level quiz
-    });
+      const quizzesByChapter = new Map<string, Quiz[]>();
+      const quizzesByLesson = new Map<string, Quiz[]>();
 
-    let lessonsUnlocked = true;
+      const hasPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
 
-    rawLessonsSorted.forEach(lesson => {
-      const isLessonUnlocked = lessonsUnlocked;
-      const chapters = [...(lesson.chapters ?? [])].sort(
-        (a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)
-      );
-      let chapterUnlocked = true;
-      let allChaptersComplete = true;
+      quizzes.forEach(quiz => {
+        if (quiz.chapterId) {
+          const list = quizzesByChapter.get(quiz.chapterId) ?? [];
+          list.push(quiz);
+          quizzesByChapter.set(quiz.chapterId, list);
+          return;
+        }
+        if (quiz.lessonId) {
+          const list = quizzesByLesson.get(quiz.lessonId) ?? [];
+          list.push(quiz);
+          quizzesByLesson.set(quiz.lessonId, list);
+          return;
+        }
+        // module-level quiz
+      });
 
-      chapters.forEach(chapter => {
-        const chapterQuizzes = quizzesByChapter.get(chapter.id) ?? [];
-        const chapterComplete =
-          chapterQuizzes.length === 0 || chapterQuizzes.every(q => hasPassed(q.id));
+      let lessonsUnlocked = true;
 
-        if (!chapterComplete) {
-          allChaptersComplete = false;
+      rawLessonsSorted.forEach(lesson => {
+        const isLessonUnlocked = lessonsUnlocked;
+        const chapters = [...(lesson.chapters ?? [])].sort(
+          (a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)
+        );
+        let chapterUnlocked = true;
+        let allChaptersComplete = true;
+        let lessonCompletedChapters = 0;
+
+        chapters.forEach((chapter, chapterIndex) => {
+          const chapterQuizzes = quizzesByChapter.get(chapter.id) ?? [];
+          const chapterMediaId = chapter.mediaId ?? chapter.media?.id;
+          const hasMedia = Boolean(chapterMediaId);
+          const hasQuizzes = chapterQuizzes.length > 0;
+
+          // --- Completion (for progression) ---
+          // For trackable media (video, audio, PDF) the backend stores MediaProgress.
+          // For non-trackable media (image) there is no entry in the map → fall back to viewed.
+          const mediaProgress = hasMedia ? mediaProgressMap.get(chapterMediaId!) : undefined;
+          const isTrackableMedia = hasMedia && mediaProgress !== undefined;
+          const mediaComplete = isTrackableMedia
+            ? mediaProgress.isCompleted === true
+            : !hasMedia || isChapterViewed(chapter.id); // image or no media → viewed is enough
+          const quizzesComplete = hasQuizzes ? chapterQuizzes.every(q => hasPassed(q.id)) : true;
+          const chapterComplete =
+            isTrackableMedia || hasQuizzes
+              ? mediaComplete && quizzesComplete
+              : isChapterViewed(chapter.id);
+
+          if (chapterComplete) {
+            lessonCompletedChapters++;
+          } else {
+            allChaptersComplete = false;
+          }
+
+          // --- Unlocking (for navigation) ---
+          const previousViewed =
+            chapterIndex === 0 || isChapterViewed(chapters[chapterIndex - 1].id);
+
+          let status: ChapterProgressStatus = 'LOCKED';
+          if (isLessonUnlocked && previousViewed) {
+            status = chapterComplete ? 'DONE' : 'CURRENT';
+          }
+
+          chapterStatusMap.set(chapter.id, status);
+
+          if (isLessonUnlocked && chapterUnlocked && !chapterComplete) {
+            chapterUnlocked = false;
+          }
+        });
+
+        // Detect if user has started this lesson (at least one chapter viewed)
+        if (chapters.some(ch => isChapterViewed(ch.id))) {
+          startedLessonIds.add(lesson.id);
         }
 
-        let status: ChapterProgressStatus = 'LOCKED';
+        // Lesson progress = ratio of completed chapters in this lesson
+        const lessonProgress = chapters.length > 0 ? lessonCompletedChapters / chapters.length : 0;
+        lessonProgressMap.set(lesson.id, lessonProgress);
+
+        const lessonQuizzes = quizzesByLesson.get(lesson.id) ?? [];
+        const lessonQuizComplete =
+          lessonQuizzes.length === 0 || lessonQuizzes.every(q => hasPassed(q.id));
+        const lessonComplete = allChaptersComplete && lessonQuizComplete;
+
+        let lessonStatus: LessonProgressStatus = 'LOCKED';
         if (isLessonUnlocked) {
-          status = chapterUnlocked ? (chapterComplete ? 'DONE' : 'CURRENT') : 'LOCKED';
+          lessonStatus = lessonComplete ? 'DONE' : 'CURRENT';
         }
 
-        chapterStatusMap.set(chapter.id, status);
+        lessonStatuses.set(lesson.id, lessonStatus);
+        lessonCompletionMap.set(lesson.id, lessonComplete);
+        lessonChapterCompleteMap.set(lesson.id, allChaptersComplete);
 
-        if (isLessonUnlocked && chapterUnlocked && !chapterComplete) {
-          chapterUnlocked = false;
+        if (lessonsUnlocked && !lessonComplete) {
+          lessonsUnlocked = false;
         }
       });
 
-      const lessonQuizzes = quizzesByLesson.get(lesson.id) ?? [];
-      const lessonQuizComplete =
-        lessonQuizzes.length === 0 || lessonQuizzes.every(q => hasPassed(q.id));
-      const lessonComplete = allChaptersComplete && lessonQuizComplete;
+      const completedLessons = rawLessonsSorted.filter(lesson =>
+        lessonCompletionMap.get(lesson.id)
+      ).length;
 
-      let lessonStatus: LessonProgressStatus = 'LOCKED';
-      if (isLessonUnlocked) {
-        lessonStatus = lessonComplete ? 'DONE' : 'CURRENT';
-      }
+      const allLessonsComplete =
+        rawLessonsSorted.length > 0 &&
+        rawLessonsSorted.every(lesson => lessonCompletionMap.get(lesson.id));
 
-      lessonStatuses.set(lesson.id, lessonStatus);
-      lessonCompletionMap.set(lesson.id, lessonComplete);
-      lessonChapterCompleteMap.set(lesson.id, allChaptersComplete);
+      quizzes.forEach(quiz => {
+        let available = true;
+        if (quiz.chapterId) {
+          available = chapterStatusMap.get(quiz.chapterId) !== 'LOCKED';
+        } else if (quiz.lessonId) {
+          const lessonStatus = lessonStatuses.get(quiz.lessonId);
+          const chaptersComplete = lessonChapterCompleteMap.get(quiz.lessonId) ?? false;
+          available = lessonStatus !== 'LOCKED' && chaptersComplete;
+        } else {
+          available = allLessonsComplete;
+        }
+        quizAvailability.set(quiz.id, available);
+      });
 
-      if (lessonsUnlocked && !lessonComplete) {
-        lessonsUnlocked = false;
-      }
-    });
+      // Module progress = average of lesson progresses (each lesson weighted equally)
+      const lessonCount = rawLessonsSorted.length;
+      const globalProgress =
+        lessonCount > 0
+          ? Math.round(
+              (rawLessonsSorted.reduce(
+                (sum, lesson) => sum + (lessonProgressMap.get(lesson.id) ?? 0),
+                0
+              ) /
+                lessonCount) *
+                100
+            )
+          : 0;
 
-    const completedLessons = rawLessonsSorted.filter(lesson =>
-      lessonCompletionMap.get(lesson.id)
-    ).length;
-
-    const allLessonsComplete =
-      rawLessonsSorted.length > 0 &&
-      rawLessonsSorted.every(lesson => lessonCompletionMap.get(lesson.id));
-
-    quizzes.forEach(quiz => {
-      let available = true;
-      if (quiz.chapterId) {
-        available = chapterStatusMap.get(quiz.chapterId) !== 'LOCKED';
-      } else if (quiz.lessonId) {
-        const lessonStatus = lessonStatuses.get(quiz.lessonId);
-        const chaptersComplete = lessonChapterCompleteMap.get(quiz.lessonId) ?? false;
-        available = lessonStatus !== 'LOCKED' && chaptersComplete;
-      } else {
-        available = allLessonsComplete;
-      }
-      quizAvailability.set(quiz.id, available);
-    });
-
-    return {
-      lessonStatuses,
-      quizAvailability,
-      completedLessons,
-    };
-  }, [rawLessonsSorted, quizzes, progressMap]);
+      return {
+        lessonStatuses,
+        quizAvailability,
+        completedLessons,
+        globalProgress,
+        startedLessonIds,
+      };
+    }, [rawLessonsSorted, quizzes, progressMap, mediaProgressMap]);
 
   const totalLessons = lessons.length;
   const totalQuizzes = quizzes.length;
@@ -178,7 +241,6 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
     const total = scores.reduce((sum, score) => sum + score, 0);
     return Math.round(total / scores.length);
   }, [quizzes, progressMap]);
-  const globalProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   if (!clerkLoaded) {
     return (
@@ -347,6 +409,7 @@ export default function ModuleDetailClient({ moduleId }: { moduleId: string }) {
             lessonStatuses={lessonStatuses}
             quizAvailability={quizAvailability}
             quizProgressMap={progressMap}
+            startedLessonIds={startedLessonIds}
           />
         </div>
       </div>

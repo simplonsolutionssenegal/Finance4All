@@ -1,6 +1,6 @@
 'use client';
 
-import { useOrganization, useUser, useOrganizationList } from '@clerk/nextjs';
+import { useOrganization, useUser } from '@clerk/nextjs';
 import {
   Search,
   Plus,
@@ -11,8 +11,9 @@ import {
   Pencil,
   Archive,
   Trash2,
+  Building2,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ import {
 } from '@/components/ui/table';
 import AddUserModal from '@/components/users/AddUserModal';
 import ConfirmDesactivationModal from '@/components/users/ConfirmDesactivationModal';
+import CreateOrganizationModal from '@/components/users/CreateOrganizationModal';
 import EditUserModal from '@/components/users/EditUserModal';
 import { useRemoveUserFromOrganization, useCreateUser, useUpdateUserRole } from '@/lib/clerk-utils';
 import type OrganizationUser from '@/types/OrganizationUser';
@@ -51,166 +53,66 @@ import UserInfoModal from './UserInfoModal';
 interface UsersListProps {
   selectedRole?: string;
   onRoleChange?: (role: string) => void;
+  users?: OrganizationUser[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 export default function UsersList({
   selectedRole: externalSelectedRole,
   onRoleChange,
+  users: externalUsers,
+  isLoading: externalLoading,
+  onRefresh,
 }: UsersListProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSelectedRole, setInternalSelectedRole] = useState<string>('all');
 
-  // Use external role if provided, otherwise use internal state
   const selectedRole =
     externalSelectedRole !== undefined ? externalSelectedRole : internalSelectedRole;
   const setSelectedRole = onRoleChange || setInternalSelectedRole;
-  const [users, setUsers] = useState<OrganizationUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasTriedToSetActive, setHasTriedToSetActive] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState<OrganizationUser | null>(null);
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [showConfirmDeactivation, setShowConfirmDeactivation] = useState(false);
   const [showEditUser, setShowEditUser] = useState(false);
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   const { user } = useUser();
-  const { setActive } = useOrganizationList();
+  const { organization } = useOrganization();
   const { removeUser } = useRemoveUserFromOrganization();
   const { createUser } = useCreateUser();
   const { updateUserRole } = useUpdateUserRole();
-  const { organization, memberships, invitations } = useOrganization({
-    memberships: {
-      infinite: true,
-    },
-    invitations: true,
-  });
 
-  useEffect(() => {
-    // Si pas d'organisation active, essayer d'activer la première organisation de l'utilisateur
-    if (
-      !organization &&
-      user?.organizationMemberships &&
-      user.organizationMemberships.length > 0 &&
-      !hasTriedToSetActive
-    ) {
-      setHasTriedToSetActive(true);
-      const firstOrg = user.organizationMemberships[0];
-      setActive?.({ organization: firstOrg.organization.id }).catch(console.error);
-      return;
-    }
-
-    // Si l'utilisateur n'a aucune organisation, arrêter le chargement
-    if (user && user.organizationMemberships.length === 0) {
-      setLoading(false);
-      setUsers([]);
-      return;
-    }
-
-    // Si pas d'organisation ET qu'on a déjà essayé d'activer une organisation, arrêter le loading
-    if (!organization && hasTriedToSetActive) {
-      setLoading(false);
-      setUsers(currentUsers => (currentUsers.length > 0 ? [] : currentUsers));
-      return;
-    }
-
-    // Si pas d'organisation et on n'a pas encore essayé d'en activer une, rester en loading
-    if (!organization) {
-      setLoading(true);
-      return;
-    }
-
-    // Si on a une organisation mais pas encore de memberships, rester en loading
-    if (!memberships) {
-      setLoading(true);
-      return;
-    }
-
-    // Si les memberships sont en cours de chargement, rester en loading
-    if (memberships.isLoading) {
-      setLoading(true);
-      return;
-    }
-
-    // Si on arrive ici, le chargement est terminé
-    setLoading(false);
-
-    if (memberships?.data && memberships.data.length > 0) {
-      const organizationUsers: OrganizationUser[] = memberships.data.map(membership => {
-        const userData = membership.publicUserData;
-        // Le téléphone peut être dans les métadonnées de l'utilisateur, mais n'est pas directement accessible via PublicUserData
-        // On laisse undefined pour l'instant, peut être ajouté via une API si nécessaire
-        const phoneNumber = undefined;
-
-        return {
-          id: userData?.userId || membership.id,
-          fullName: userData
-            ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Utilisateur'
-            : 'Utilisateur',
-          role: membership.roleName,
-          emailAddress: userData?.identifier || 'N/A',
-          phoneNumber,
-          organizationName: organization?.name,
-          organizationType: (organization?.publicMetadata as { type?: string })?.type || undefined,
-          createAt: membership.createdAt,
-          lastActiveAt: undefined, // Non disponible via PublicUserData
-          status: 'Actif',
-        };
-      });
-
-      invitations?.data?.map(iv => {
-        const userData = iv.publicMetadata;
-        const phoneNumber = (userData as { phoneNumber?: string })?.phoneNumber || undefined;
-
-        organizationUsers.push({
-          id: iv.id,
-          fullName: userData
-            ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Utilisateur'
-            : 'Utilisateur',
-          role: iv.roleName,
-          emailAddress: iv.emailAddress,
-          phoneNumber,
-          organizationName: organization?.name,
-          organizationType: (organization?.publicMetadata as { type?: string })?.type || undefined,
-          createAt: iv.createdAt,
-          status: 'En attente',
-        });
-      });
-
-      setUsers(currentUsers => {
-        if (JSON.stringify(organizationUsers) !== JSON.stringify(currentUsers)) {
-          return organizationUsers;
-        }
-        return currentUsers;
-      });
-    } else {
-      setUsers(currentUsers => (currentUsers.length > 0 ? [] : currentUsers));
-    }
-  }, [organization, memberships, user, hasTriedToSetActive, setActive, invitations?.data]);
+  // Use external data from platform stats API
+  const users = externalUsers || [];
+  const loading = externalLoading ?? false;
 
   const roles = [
-    { value: 'all', label: 'Tous les rôles' },
-    { value: 'org:admin', label: 'Administrateur' },
-    { value: 'org:member', label: 'Organisation' },
-    { value: 'org:recipient', label: 'Bénéficiaire' },
+    { value: 'all', label: 'Tous les roles' },
+    { value: 'org:admin', label: 'Admin Organisation' },
+    { value: 'org:member', label: 'Membre' },
+    { value: 'org:recipient', label: 'Recipient' },
   ];
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter(u => {
     const matchesSearch =
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.emailAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.organizationName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phoneNumber?.includes(searchTerm);
+      u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.emailAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.organizationName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.phoneNumber?.includes(searchTerm);
 
     const matchesRole =
       selectedRole === 'all' ||
-      user.role.toLowerCase() === selectedRole.toLowerCase() ||
-      (selectedRole === 'org:admin' && user.role.toLowerCase().includes('admin')) ||
-      (selectedRole === 'org:member' && user.role.toLowerCase().includes('organisation')) ||
-      (selectedRole === 'org:recipient' && user.role.toLowerCase().includes('bénéficiaire')) ||
-      (selectedRole === 'archived' && user.status === 'Archivé');
+      u.role === selectedRole ||
+      (selectedRole === 'org:admin' && u.role === 'org:admin') ||
+      (selectedRole === 'org:member' && u.role === 'org:member') ||
+      (selectedRole === 'org:recipient' && u.role === 'org:recipient') ||
+      (selectedRole === 'archived' && u.status === 'Archivé');
 
     return matchesSearch && matchesRole;
   });
@@ -224,26 +126,25 @@ export default function UsersList({
       year: 'numeric',
     }).format(new Date(date));
 
-    // Format: "14 oct. 2025" (avec point après le mois)
     return formatted.replace(/\s+/g, ' ').toLowerCase();
   };
 
-  const handleViewDetails = (user: OrganizationUser) => {
-    setSelectedUser(user);
+  const handleViewDetails = (userItem: OrganizationUser) => {
+    setSelectedUser(userItem);
     setShowUserInfo(true);
   };
 
-  const handleEditUser = (user: OrganizationUser) => {
-    setSelectedUser(user);
+  const handleEditUser = (userItem: OrganizationUser) => {
+    setSelectedUser(userItem);
     setShowEditUser(true);
   };
 
-  const handleArchiveUser = (_user: OrganizationUser) => {
+  const handleArchiveUser = (_userItem: OrganizationUser) => {
     // TODO: Implémenter l'archivage
   };
 
-  const handleDeleteUser = (user: OrganizationUser) => {
-    setSelectedUser(user);
+  const handleDeleteUser = (userItem: OrganizationUser) => {
+    setSelectedUser(userItem);
     setShowConfirmDeactivation(true);
   };
 
@@ -257,7 +158,7 @@ export default function UsersList({
         handleCloseModals();
         setTimeout(() => {
           setIsDeletingUser(false);
-          window.location.reload();
+          onRefresh?.();
         }, 500);
       } else {
         setIsDeletingUser(false);
@@ -292,9 +193,7 @@ export default function UsersList({
       await updateUserRole(userData.userId, userData.role);
       handleCloseModals();
       setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          window.location.reload();
-        }
+        onRefresh?.();
       }, 500);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'utilisateur:", error);
@@ -314,6 +213,9 @@ export default function UsersList({
     try {
       await createUser(userData);
       handleCloseModals();
+      setTimeout(() => {
+        onRefresh?.();
+      }, 1500);
     } catch (error) {
       console.error("Erreur lors de la création de l'utilisateur:", error);
     } finally {
@@ -321,9 +223,41 @@ export default function UsersList({
     }
   };
 
+  const getRoleDisplayName = (role: string, orgType?: string) => {
+    if (role === 'org:admin' && orgType === 'admin') return 'Admin Systeme';
+    if (role === 'org:admin') return 'Admin Organisation';
+    if (role === 'org:member' && orgType === 'admin') return 'Membre Admin';
+    if (role === 'org:member') return 'Membre Organisation';
+    if (role === 'org:recipient') return 'Recipient';
+    return role;
+  };
+
+  const getRoleBadgeColor = (role: string, orgType?: string) => {
+    if (role === 'org:admin' && orgType === 'admin')
+      return 'bg-red-100 text-red-700 hover:bg-red-100 border-red-200';
+    if (role === 'org:admin')
+      return 'bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200';
+    if (role === 'org:member' && orgType === 'admin')
+      return 'bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200';
+    if (role === 'org:member')
+      return 'bg-green-100 text-green-700 hover:bg-green-100 border-green-200';
+    if (role === 'org:recipient')
+      return 'bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200';
+    return 'bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200';
+  };
+
   const renderModals = () => {
     return (
       <>
+        <CreateOrganizationModal
+          isOpen={showCreateOrg}
+          onClose={() => setShowCreateOrg(false)}
+          onSuccess={() => {
+            setTimeout(() => {
+              onRefresh?.();
+            }, 1500);
+          }}
+        />
         <AddUserModal
           isOpen={showAddUser}
           onClose={handleCloseModals}
@@ -351,25 +285,6 @@ export default function UsersList({
         )}
       </>
     );
-  };
-
-  const getRoleDisplayName = (role: string) => {
-    if (role.toLowerCase().includes('admin')) return 'Super Administrateur';
-    if (role.toLowerCase().includes('organisation') || role.toLowerCase().includes('member'))
-      return 'Organisation';
-    if (role.toLowerCase().includes('bénéficiaire') || role.toLowerCase().includes('recipient'))
-      return 'Bénéficiaire';
-    return role;
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    if (role.toLowerCase().includes('admin'))
-      return 'bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200';
-    if (role.toLowerCase().includes('organisation') || role.toLowerCase().includes('member'))
-      return 'bg-green-100 text-green-700 hover:bg-green-100 border-green-200';
-    if (role.toLowerCase().includes('bénéficiaire') || role.toLowerCase().includes('recipient'))
-      return 'bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200';
-    return 'bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200';
   };
 
   return (
@@ -413,7 +328,16 @@ export default function UsersList({
               </Select>
             </div>
 
-            <div className='flex items-end'>
+            <div className='flex items-end gap-2'>
+              <Button
+                className='bg-teal-600 cursor-pointer hover:bg-teal-700 text-white rounded-lg px-4 py-2 whitespace-nowrap'
+                onClick={() => {
+                  setShowCreateOrg(true);
+                }}
+              >
+                <Building2 className='w-4 h-4 mr-2' />
+                Créer une organisation
+              </Button>
               <Button
                 className='bg-primary-300 cursor-pointer hover:bg-primary-400 text-white rounded-lg px-4 py-2 whitespace-nowrap'
                 onClick={() => {
@@ -444,9 +368,7 @@ export default function UsersList({
                     <TableHead className='text-gray-700 font-semibold'>Rôle</TableHead>
                     <TableHead className='text-gray-700 font-semibold'>Organisation</TableHead>
                     <TableHead className='text-gray-700 font-semibold'>Statut</TableHead>
-                    <TableHead className='text-gray-700 font-semibold'>
-                      Dernière connexion
-                    </TableHead>
+                    <TableHead className='text-gray-700 font-semibold'>Date d&apos;ajout</TableHead>
                     <TableHead className='text-gray-700 font-semibold'>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -474,24 +396,17 @@ export default function UsersList({
                           <TableCell>
                             <Badge
                               variant='secondary'
-                              className={`${getRoleBadgeColor(userItem.role)} border-1 rounded-full`}
+                              className={`${getRoleBadgeColor(userItem.role, userItem.organizationType)} border-1 rounded-full`}
                             >
-                              {getRoleDisplayName(userItem.role)}
+                              {getRoleDisplayName(userItem.role, userItem.organizationType)}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className='space-y-1'>
                               {userItem.organizationName ? (
-                                <>
-                                  <div className='text-gray-900 font-medium'>
-                                    {userItem.organizationName}
-                                  </div>
-                                  {userItem.organizationType ? (
-                                    <div className='text-gray-500 text-sm'>
-                                      {userItem.organizationType}
-                                    </div>
-                                  ) : null}
-                                </>
+                                <div className='text-gray-900 font-medium'>
+                                  {userItem.organizationName}
+                                </div>
                               ) : (
                                 <span className='text-gray-400'>-</span>
                               )}
@@ -564,11 +479,9 @@ export default function UsersList({
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className='text-center py-8 text-gray-500'>
-                        {!organization
-                          ? "Vous n'êtes membre d'aucune organisation. Contactez votre administrateur."
-                          : searchTerm || selectedRole !== 'all'
-                            ? 'Aucun utilisateur trouvé pour cette recherche'
-                            : 'Aucun utilisateur dans cette organisation'}
+                        {searchTerm || selectedRole !== 'all'
+                          ? 'Aucun utilisateur trouvé pour cette recherche'
+                          : 'Aucun utilisateur'}
                       </TableCell>
                     </TableRow>
                   )}

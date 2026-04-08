@@ -5,107 +5,42 @@ import { LogOut, AlertTriangle, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useUserRoles } from '@/hooks/useUserRoles';
-import { menuItems, getAllowedRolesForPath } from '@/types/utils/menu-items';
-import {
-  getStoredNotifications,
-  NOTIFICATIONS_UPDATED_EVENT,
-} from '@/types/utils/notifications-data';
+import { getMenuItemsForRole } from '@/types/utils/menu-items';
 
-const BENEFICIARY_ROLES = ['org:recipient', 'beneficiary'];
-
-export function isBeneficiaryOnlyRoute(allowedRoles: string[] | undefined): boolean {
-  if (!allowedRoles || allowedRoles.length === 0) return false;
-  return allowedRoles.every(r => BENEFICIARY_ROLES.includes(r));
+// Composant stable défini hors du parent pour éviter les remontages DOM inutiles
+interface SidebarContentProps {
+  user: ReturnType<typeof useUser>['user'];
+  userName: string;
+  userEmail: string;
+  userInitials: string;
+  roleLabel: string;
+  pathname: string;
+  filteredMenuItems: ReturnType<typeof getMenuItemsForRole>;
+  onToggleSidebar: () => void;
+  onCloseMobile: () => void;
+  onLogout: () => void;
 }
 
-export function canAccessItem(
-  allowedRoles: string[] | undefined,
-  hasRole: (r: string) => boolean,
-  hasOrganizationRole: (r: string) => boolean,
-  isFallbackUtilisateur: boolean
-): boolean {
-  if (!allowedRoles || allowedRoles.length === 0) return true;
-  if (isFallbackUtilisateur && isBeneficiaryOnlyRoute(allowedRoles)) return true;
-  return allowedRoles.some(r => {
-    if (r === 'admin') return hasRole('admin');
-    if (BENEFICIARY_ROLES.includes(r)) {
-      return hasOrganizationRole(r) || hasOrganizationRole(r.replace(/^org:/, '')) || hasRole(r);
-    }
-    return hasOrganizationRole(r) || hasOrganizationRole(r.replace(/^org:/, ''));
-  });
-}
-
-export default function Sidebar() {
-  const pathname = usePathname();
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const router = useRouter();
-  const { roleLabel, hasRole, hasOrganizationRole, isLoaded, userRoles, organizationRoles } =
-    useUserRoles();
-
-  const isFallbackUtilisateur =
-    isLoaded && userRoles.length === 0 && organizationRoles.length === 0;
-
-  const filteredMenuItems = useMemo(
-    () =>
-      menuItems.filter(item =>
-        canAccessItem(item.allowedRoles, hasRole, hasOrganizationRole, isFallbackUtilisateur)
-      ),
-    [hasRole, hasOrganizationRole, isFallbackUtilisateur]
-  );
-
-  useEffect(() => {
-    if (!isLoaded || !pathname) return;
-    const allowedRoles = getAllowedRolesForPath(pathname);
-    if (allowedRoles == null) return;
-  }, [isLoaded, pathname, hasRole, hasOrganizationRole, router, isFallbackUtilisateur]);
-
-  // États pour le mobile et la déconnexion
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-
-  const userName = user?.fullName || user?.firstName || 'Utilisateur';
-  const userEmail = user?.emailAddresses?.[0]?.emailAddress || '';
-  const userInitials = user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || 'U';
-
-  const toggleSidebar = () => setIsOpen(!isOpen);
-
-  useEffect(() => {
-    const syncUnreadCount = () => {
-      const unreadCount = getStoredNotifications().filter(
-        notification => !notification.isRead
-      ).length;
-      setUnreadNotificationsCount(unreadCount);
-    };
-
-    syncUnreadCount();
-    window.addEventListener('storage', syncUnreadCount);
-    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, syncUnreadCount);
-
-    return () => {
-      window.removeEventListener('storage', syncUnreadCount);
-      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, syncUnreadCount);
-    };
-  }, []);
-
-  const handleConfirmLogout = async () => {
-    try {
-      await signOut();
-      router.push('/');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  };
-
-  const SidebarContent = () => (
+function SidebarContent({
+  user,
+  userName,
+  userEmail,
+  userInitials,
+  roleLabel,
+  pathname,
+  filteredMenuItems,
+  onToggleSidebar,
+  onCloseMobile,
+  onLogout,
+}: SidebarContentProps) {
+  return (
     <div className='flex h-full flex-col bg-white'>
       {/* Logo Section */}
       <div className='flex items-center justify-between border-b border-gray-100 p-6'>
@@ -118,7 +53,7 @@ export default function Sidebar() {
           priority
         />
         <button
-          onClick={toggleSidebar}
+          onClick={onToggleSidebar}
           className='rounded-md p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden'
         >
           <X className='h-5 w-5' />
@@ -150,7 +85,7 @@ export default function Sidebar() {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           return (
-            <Link key={item.id} href={item.href} onClick={() => setIsOpen(false)}>
+            <Link key={item.id} href={item.href} onClick={onCloseMobile}>
               <Button
                 variant='ghost'
                 className={`h-11 w-full justify-start cursor-pointer rounded-xl px-4 transition-all duration-200 ${
@@ -163,16 +98,7 @@ export default function Sidebar() {
                   className={`mr-3 h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`}
                 />
                 <span className='text-sm font-medium'>{item.label}</span>
-                {item.id === 'notifications' && unreadNotificationsCount > 0 && (
-                  <span
-                    className={`ml-auto inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                      isActive ? 'bg-white text-primary-400' : 'bg-primary-400 text-white'
-                    }`}
-                  >
-                    {unreadNotificationsCount}
-                  </span>
-                )}
-                {item.id !== 'notifications' && item.badge && (
+                {item.badge && (
                   <span className='ml-auto inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-100 px-1.5 text-xs font-semibold text-gray-600'>
                     {item.badge}
                   </span>
@@ -187,7 +113,7 @@ export default function Sidebar() {
       <div className='border-t border-gray-100 p-4'>
         <Button
           variant='ghost'
-          onClick={() => setShowLogoutDialog(true)}
+          onClick={onLogout}
           className='h-10 w-full justify-start rounded-md px-4 text-red-600 hover:bg-red-50 hover:text-red-700'
         >
           <LogOut className='mr-3 h-4 w-4 shrink-0' />
@@ -199,6 +125,51 @@ export default function Sidebar() {
       </div>
     </div>
   );
+}
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
+  const { roleLabel, appRole, isLoaded } = useUserRoles();
+
+  const filteredMenuItems = useMemo(
+    () => (isLoaded ? getMenuItemsForRole(appRole) : []),
+    [appRole, isLoaded]
+  );
+
+  // États pour le mobile et la déconnexion
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const userName = user?.fullName || user?.firstName || 'Utilisateur';
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress || '';
+  const userInitials = user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || 'U';
+
+  const toggleSidebar = () => setIsOpen(!isOpen);
+
+  const handleConfirmLogout = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
+
+  const sidebarProps: SidebarContentProps = {
+    user,
+    userName,
+    userEmail,
+    userInitials,
+    roleLabel,
+    pathname: pathname || '',
+    filteredMenuItems,
+    onToggleSidebar: toggleSidebar,
+    onCloseMobile: () => setIsOpen(false),
+    onLogout: () => setShowLogoutDialog(true),
+  };
 
   return (
     <>
@@ -231,12 +202,12 @@ export default function Sidebar() {
         <aside
           className={`absolute inset-y-0 left-0 w-72 transform bg-white shadow-xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         >
-          <SidebarContent />
+          <SidebarContent {...sidebarProps} />
         </aside>
       </div>
 
       <aside className='fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-gray-200 bg-white lg:flex lg:flex-col'>
-        <SidebarContent />
+        <SidebarContent {...sidebarProps} />
       </aside>
 
       {/* Dialogue de déconnexion */}

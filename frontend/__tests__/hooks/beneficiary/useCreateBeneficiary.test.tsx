@@ -13,10 +13,15 @@ let mockIsLoaded = true;
 const mockRouterPush = jest.fn();
 const mockUseFormState = jest.fn();
 
+const mockSetActive = jest.fn().mockResolvedValue(undefined);
+
 jest.mock('@clerk/nextjs', () => ({
   useSignUp: () => ({
     isLoaded: mockIsLoaded,
     signUp: mockSignUp,
+  }),
+  useClerk: () => ({
+    setActive: mockSetActive,
   }),
 }));
 
@@ -421,7 +426,7 @@ describe('useCreateBeneficiary', () => {
       });
 
       expect(mockSignUp.attemptEmailAddressVerification).toHaveBeenCalledWith({ code: '123456' });
-      expect(mockRouterPush).toHaveBeenCalledWith('/beneficiaire-dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/auth-redirect');
     });
 
     it('shows error message when verification fails', async () => {
@@ -555,7 +560,7 @@ describe('useCreateBeneficiary', () => {
         await hook.result.current.handleVerification('123456');
       });
 
-      expect(mockRouterPush).toHaveBeenCalledWith('/beneficiaire-dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/auth-redirect');
     });
 
     it('handles verification attempts that throw', async () => {

@@ -18,33 +18,28 @@ type UpdateProgressResponse = {
 };
 
 export const useMediaProgress = (mediaId?: string | null) => {
-  const { getToken, orgId } = useAuth();
+  const { getToken } = useAuth();
 
   const query = useQuery({
-    queryKey: ['media-progress', mediaId, orgId],
-    enabled: Boolean(mediaId && orgId),
+    queryKey: ['media-progress', mediaId],
+    enabled: Boolean(mediaId),
     queryFn: async () => {
       const token = await getToken();
-      if (!token || !mediaId || !orgId) {
+      if (!token || !mediaId) {
         throw new Error('Missing auth or mediaId');
       }
-      return apiClient<GetProgressResponse>(
-        `media/${mediaId}/progress?organizationId=${orgId}`,
-        'GET',
-        token
-      );
+      return apiClient<GetProgressResponse>(`media/${mediaId}/progress`, 'GET', token);
     },
     staleTime: 30 * 1000,
   });
 
   const updateProgress = useCallback(
     async (currentPosition: number, duration: number) => {
-      if (!mediaId || !orgId) return;
+      if (!mediaId) return;
       const token = await getToken();
       if (!token) return;
       try {
         await apiClient<UpdateProgressResponse>(`media/${mediaId}/progress`, 'POST', token, {
-          organizationId: orgId,
           currentPosition,
           duration,
         });
@@ -52,7 +47,7 @@ export const useMediaProgress = (mediaId?: string | null) => {
         // silently ignore
       }
     },
-    [getToken, mediaId, orgId]
+    [getToken, mediaId]
   );
 
   return {

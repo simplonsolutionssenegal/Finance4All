@@ -52,7 +52,7 @@ export const useRemoveUserFromOrganization = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1'}/users/${userId}`,
         {
           method: 'DELETE',
           headers: {
@@ -149,7 +149,7 @@ export const useUpdateUserRole = ({ reloadFn }: { reloadFn?: () => void } = {}) 
     }
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users/${userId}`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1'}/users/${userId}`;
 
       // Obtenir le token d'authentification Clerk
       const token = await getToken();
@@ -226,7 +226,7 @@ export const useCreateUser = (options?: { reloadFn?: () => void }) => {
     }
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/users`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1'}/users`;
 
       // Obtenir le token d'authentification Clerk
       const token = await getToken();

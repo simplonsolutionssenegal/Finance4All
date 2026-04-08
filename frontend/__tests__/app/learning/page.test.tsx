@@ -45,6 +45,15 @@ jest.mock('@/hooks/module/useGetLearningModules', () => ({
   })),
 }));
 
+// Mock useModulesWithProgress to pass modules through with no enrichment needed in tests
+jest.mock('@/hooks/learning/useModulesWithProgress', () => ({
+  useModulesWithProgress: jest.fn((modules: typeof mockModules) => ({
+    enrichedModules: modules,
+    progressByModule: new Map(),
+    isLoading: false,
+  })),
+}));
+
 // Mock the components
 jest.mock('@/components/learning/module-card', () => ({
   ModuleCard: ({ module }: { module: { id: string; title: string } }) => (

@@ -17,6 +17,7 @@ interface ModuleTabsProps {
   readonly lessonStatuses: Map<string, LessonProgressStatus>;
   readonly quizAvailability: Map<string, boolean>;
   readonly quizProgressMap: Map<string, QuizProgressDTO>;
+  readonly startedLessonIds: Set<string>;
 }
 
 export default function ModuleTabs({
@@ -27,6 +28,7 @@ export default function ModuleTabs({
   lessonStatuses,
   quizAvailability,
   quizProgressMap,
+  startedLessonIds,
 }: ModuleTabsProps) {
   const [activeTab, setActiveTab] = useState<'lessons' | 'quizzes'>('lessons');
   const totalQuizzes = quizzes.length;
@@ -67,7 +69,12 @@ export default function ModuleTabs({
 
       {/* Contenu selon l'onglet actif */}
       {activeTab === 'lessons' ? (
-        <LessonList moduleId={moduleId} lessons={lessons} lessonStatuses={lessonStatuses} />
+        <LessonList
+          moduleId={moduleId}
+          lessons={lessons}
+          lessonStatuses={lessonStatuses}
+          startedLessonIds={startedLessonIds}
+        />
       ) : (
         <>
           <QuizList

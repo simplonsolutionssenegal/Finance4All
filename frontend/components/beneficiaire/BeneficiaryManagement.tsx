@@ -87,7 +87,7 @@ export default function BeneficiaryManagement() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleView = (beneficiaire: Beneficiary) => {
-    router.push(`/beneficiaires/${beneficiaire.id}`);
+    router.push(`/recipients/${beneficiaire.id}`);
   };
 
   const filtered = useMemo(() => {

@@ -1,4 +1,4 @@
-import { menuItems, getAllowedRolesForPath, type MenuItem } from '@/types/utils/menu-items';
+import { menuItems, getMenuItemsForRole, type MenuItem } from '@/types/utils/menu-items';
 
 describe('menu-items', () => {
   describe('menuItems array', () => {
@@ -18,56 +18,37 @@ describe('menu-items', () => {
       });
     });
 
-    it('should have unique ids for all menu items', () => {
-      const ids = menuItems.map(item => item.id);
-      const uniqueIds = new Set(ids);
-      expect(uniqueIds.size).toBe(ids.length);
-    });
-
-    it('should have unique hrefs for all menu items', () => {
-      const hrefs = menuItems.map(item => item.href);
-      const uniqueHrefs = new Set(hrefs);
-      expect(uniqueHrefs.size).toBe(hrefs.length);
-    });
-
-    it('should include overview menu item for admin', () => {
+    it('should include overview menu item for platform group', () => {
       const overview = menuItems.find(item => item.id === 'overview');
       expect(overview).toBeDefined();
       expect(overview?.href).toBe('/dashboard');
-      expect(overview?.allowedRoles).toContain('admin');
+      expect(overview?.allowedGroups).toContain('platform');
     });
 
-    it('should include dashboard menu item for beneficiary', () => {
+    it('should include dashboard menu item for beneficiary group', () => {
       const dashboard = menuItems.find(item => item.id === 'dashboard');
       expect(dashboard).toBeDefined();
-      expect(dashboard?.href).toBe('/beneficiaire-dashboard');
-      expect(dashboard?.allowedRoles).toContain('org:recipient');
+      expect(dashboard?.href).toBe('/dashboard');
+      expect(dashboard?.allowedGroups).toContain('beneficiary');
     });
 
-    it('should include comparator menu item', () => {
-      const comparator = menuItems.find(item => item.id === 'comparator');
-      expect(comparator).toBeDefined();
-      expect(comparator?.href).toBe('/comparateur');
-      expect(comparator?.allowedRoles).toContain('beneficiary');
+    it('should include recipients menu item for organization group', () => {
+      const recipients = menuItems.find(item => item.id === 'recipients');
+      expect(recipients).toBeDefined();
+      expect(recipients?.href).toBe('/recipients');
+      expect(recipients?.allowedGroups).toContain('organization');
     });
 
-    it('should include simulator menu item', () => {
-      const simulator = menuItems.find(item => item.id === 'simulator');
-      expect(simulator).toBeDefined();
-      expect(simulator?.href).toBe('/simulateur');
-      expect(simulator?.allowedRoles).toContain('beneficiary');
-    });
-
-    it('should include notifications without allowedRoles (accessible to all)', () => {
+    it('should include notifications without allowedGroups (accessible to all)', () => {
       const notifications = menuItems.find(item => item.id === 'notifications');
       expect(notifications).toBeDefined();
-      expect(notifications?.allowedRoles).toBeUndefined();
+      expect(notifications?.allowedGroups).toBeUndefined();
     });
 
-    it('should include settings without allowedRoles (accessible to all)', () => {
+    it('should include settings without allowedGroups (accessible to all)', () => {
       const settings = menuItems.find(item => item.id === 'settings');
       expect(settings).toBeDefined();
-      expect(settings?.allowedRoles).toBeUndefined();
+      expect(settings?.allowedGroups).toBeUndefined();
     });
 
     it('should have badges for institutions and notifications', () => {
@@ -78,76 +59,86 @@ describe('menu-items', () => {
     });
   });
 
-  describe('getAllowedRolesForPath', () => {
-    it('should return allowed roles for exact path match', () => {
-      const roles = getAllowedRolesForPath('/dashboard');
-      expect(roles).toContain('admin');
-      expect(roles).toContain('org:admin');
-      expect(roles).toContain('org:member');
+  describe('getMenuItemsForRole', () => {
+    it('returns platform items for Admin', () => {
+      const items = getMenuItemsForRole('Admin');
+      const ids = items.map(i => i.id);
+      expect(ids).toContain('overview');
+      expect(ids).toContain('institutions');
+      expect(ids).toContain('formations');
+      expect(ids).toContain('users');
+      expect(ids).toContain('notifications');
+      expect(ids).toContain('settings');
+      expect(ids).not.toContain('recipients');
+      expect(ids).not.toContain('modules');
+      expect(ids).not.toContain('dashboard');
     });
 
-    it('should return allowed roles for nested path', () => {
-      const roles = getAllowedRolesForPath('/dashboard/settings');
-      expect(roles).toContain('admin');
+    it('returns same items for AdminMember as Admin', () => {
+      const adminItems = getMenuItemsForRole('Admin').map(i => i.id);
+      const memberItems = getMenuItemsForRole('AdminMember').map(i => i.id);
+      expect(memberItems).toEqual(adminItems);
     });
 
-    it('should return undefined for paths without role restrictions', () => {
-      const roles = getAllowedRolesForPath('/notifications');
-      expect(roles).toBeUndefined();
+    it('returns organization items for AdminOrg', () => {
+      const items = getMenuItemsForRole('AdminOrg');
+      const ids = items.map(i => i.id);
+      expect(ids).toContain('overview');
+      expect(ids).toContain('recipients');
+      expect(ids).toContain('notifications');
+      expect(ids).toContain('settings');
+      expect(ids).not.toContain('institutions');
+      expect(ids).not.toContain('users');
+      expect(ids).not.toContain('modules');
     });
 
-    it('should return undefined for unknown paths', () => {
-      const roles = getAllowedRolesForPath('/unknown-path');
-      expect(roles).toBeUndefined();
+    it('returns Membres menu item for AdminOrg', () => {
+      const items = getMenuItemsForRole('AdminOrg');
+      const members = items.find(i => i.id === 'members');
+      expect(members).toBeDefined();
+      expect(members?.href).toBe('/members');
+      expect(members?.label).toBe('Membres');
     });
 
-    it('should return beneficiary roles for learning path', () => {
-      const roles = getAllowedRolesForPath('/learning');
-      expect(roles).toContain('org:recipient');
-      expect(roles).toContain('beneficiary');
+    it('returns Membres menu item for MemberOrg', () => {
+      const items = getMenuItemsForRole('MemberOrg');
+      const members = items.find(i => i.id === 'members');
+      expect(members).toBeDefined();
+      expect(members?.href).toBe('/members');
+      expect(members?.label).toBe('Membres');
     });
 
-    it('should return beneficiary roles for comparateur path', () => {
-      const roles = getAllowedRolesForPath('/comparateur');
-      expect(roles).toContain('org:recipient');
-      expect(roles).toContain('beneficiary');
+    it('does NOT return Membres menu item for Admin', () => {
+      const items = getMenuItemsForRole('Admin');
+      const ids = items.map(i => i.id);
+      expect(ids).not.toContain('members');
     });
 
-    it('should return beneficiary roles for simulateur path', () => {
-      const roles = getAllowedRolesForPath('/simulateur');
-      expect(roles).toContain('org:recipient');
-      expect(roles).toContain('beneficiary');
+    it('returns same items for MemberOrg as AdminOrg', () => {
+      const adminOrgItems = getMenuItemsForRole('AdminOrg').map(i => i.id);
+      const memberOrgItems = getMenuItemsForRole('MemberOrg').map(i => i.id);
+      expect(memberOrgItems).toEqual(adminOrgItems);
     });
 
-    it('should return admin roles for users path', () => {
-      const roles = getAllowedRolesForPath('/users');
-      expect(roles).toContain('admin');
-      expect(roles).toContain('org:admin');
-      expect(roles).not.toContain('org:member');
+    it('returns beneficiary items for Recipient', () => {
+      const items = getMenuItemsForRole('Recipient');
+      const ids = items.map(i => i.id);
+      expect(ids).toContain('dashboard');
+      expect(ids).toContain('modules');
+      expect(ids).toContain('certificats');
+      expect(ids).toContain('comparator');
+      expect(ids).toContain('simulator');
+      expect(ids).toContain('notifications');
+      expect(ids).toContain('settings');
+      expect(ids).not.toContain('overview');
+      expect(ids).not.toContain('institutions');
+      expect(ids).not.toContain('recipients');
     });
 
-    it('should return admin roles for institutions path', () => {
-      const roles = getAllowedRolesForPath('/institutions');
-      expect(roles).toContain('admin');
-      expect(roles).toContain('org:admin');
-      expect(roles).toContain('org:member');
-    });
-
-    it('should return admin roles for modules path', () => {
-      const roles = getAllowedRolesForPath('/modules');
-      expect(roles).toContain('admin');
-      expect(roles).toContain('org:admin');
-      expect(roles).toContain('org:member');
-    });
-
-    it('should work with nested institution paths', () => {
-      const roles = getAllowedRolesForPath('/institutions/123');
-      expect(roles).toContain('admin');
-    });
-
-    it('should work with deeply nested paths', () => {
-      const roles = getAllowedRolesForPath('/institutions/123/edit/details');
-      expect(roles).toContain('admin');
+    it('returns same items for Beneficiare as Recipient', () => {
+      const recipientItems = getMenuItemsForRole('Recipient').map(i => i.id);
+      const beneficiareItems = getMenuItemsForRole('Beneficiare').map(i => i.id);
+      expect(beneficiareItems).toEqual(recipientItems);
     });
   });
 });

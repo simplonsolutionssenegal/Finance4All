@@ -7,7 +7,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import ChapterMedia from '@/components/learning/ChapterMedia';
+import { useMediaProgressMap } from '@/hooks/media/useMediaProgressMap';
 import { useQuizProgressMap } from '@/hooks/quiz/useQuizProgressMap';
+import { isChapterViewed, markChapterViewed } from '@/lib/learning/chapter-progress';
 import {
   QuizStatus,
   type Chapter,
@@ -137,22 +139,47 @@ export default function LessonDetailContent({
   const sortedChapters = useMemo(() => [...chapters].sort((a, b) => a.order - b.order), [chapters]);
   const quizIds = useMemo(() => quizzes.map(quiz => quiz.id), [quizzes]);
   const { progressMap } = useQuizProgressMap(quizIds);
+
+  // Fetch media progress for all chapter media
+  const chapterMediaIds = useMemo(() => sortedChapters.map(ch => ch.mediaId), [sortedChapters]);
+  const { mediaProgressMap } = useMediaProgressMap(chapterMediaIds);
+
   const storageKey = useMemo(() => `learning:lastChapter:${lessonId}`, [lessonId]);
 
   const chapterStates = useMemo(() => {
     const states = new Map<string, ChapterState>();
-    let unlocked = true;
     const isQuizPassed = (quizId: string) => progressMap.get(quizId)?.hasPassed === true;
 
-    sortedChapters.forEach(chapter => {
+    sortedChapters.forEach((chapter, index) => {
       const chapterQuizzes = quizzes.filter(
         quiz => quiz.status === QuizStatus.PUBLISHED && quiz.chapterId === chapter.id
       );
       const pendingQuiz = chapterQuizzes.find(quiz => !isQuizPassed(quiz.id)) ?? null;
-      const isComplete = chapterQuizzes.length === 0 || !pendingQuiz;
+      const hasMedia = Boolean(chapter.mediaId);
+      const hasQuizzes = chapterQuizzes.length > 0;
+
+      // --- Completion (for progression bar) ---
+      // For trackable media (video, audio, PDF) the backend stores MediaProgress.
+      // For non-trackable media (image) there is no entry in the map → viewed is enough.
+      const mediaProgress = hasMedia ? mediaProgressMap.get(chapter.mediaId!) : undefined;
+      const isTrackableMedia = hasMedia && mediaProgress !== undefined;
+      const mediaComplete = isTrackableMedia
+        ? mediaProgress.isCompleted === true
+        : !hasMedia || isChapterViewed(chapter.id);
+      const quizzesComplete = hasQuizzes ? !pendingQuiz : true;
+      const isComplete =
+        isTrackableMedia || hasQuizzes
+          ? mediaComplete && quizzesComplete
+          : isChapterViewed(chapter.id);
+
+      // --- Unlocking (for navigation) ---
+      // First chapter is always accessible.
+      // Subsequent chapters are accessible if the previous chapter has been viewed
+      // (user clicked on it or navigated to it via "Suivant").
+      const previousViewed = index === 0 || isChapterViewed(sortedChapters[index - 1].id);
 
       let status: ChapterProgressStatus = 'LOCKED';
-      if (unlocked) {
+      if (previousViewed) {
         status = isComplete ? 'DONE' : 'CURRENT';
       }
 
@@ -161,14 +188,10 @@ export default function LessonDetailContent({
         isComplete,
         pendingQuizId: pendingQuiz?.id ?? null,
       });
-
-      if (unlocked && !isComplete) {
-        unlocked = false;
-      }
     });
 
     return states;
-  }, [sortedChapters, quizzes, progressMap]);
+  }, [sortedChapters, quizzes, progressMap, mediaProgressMap]);
 
   const lastAccessibleChapterId = useMemo(() => {
     const accessible = sortedChapters.filter(
@@ -217,6 +240,7 @@ export default function LessonDetailContent({
     (id: string, syncUrl = true) => {
       setSelectedChapterId(id);
       persistChapterId(id);
+      markChapterViewed(id);
       if (syncUrl) updateChapterParam(id);
     },
     [persistChapterId, updateChapterParam]

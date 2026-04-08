@@ -4,6 +4,8 @@
 
 import { auth } from '@clerk/nextjs/server';
 
+import { resolveAppRole, type AppRole } from '@/lib/role-access';
+
 type GetToken = (options?: { template?: string }) => Promise<string | null>;
 
 export async function getBackendToken(getToken: GetToken): Promise<string | null> {
@@ -21,6 +23,7 @@ export interface AuthStatus {
   isBeneficiary: boolean;
   orgId: string | null;
   orgRole: string | null;
+  appRole: AppRole;
 }
 
 export async function getAuthStatus(): Promise<AuthStatus> {
@@ -41,10 +44,21 @@ export async function getAuthStatus(): Promise<AuthStatus> {
 
   const isBeneficiary = isRecipientFromOrg || !!isBeneficiaryFromMetadata;
 
+  // Résoudre le rôle applicatif
+  const orgPublicMetadata =
+    (claims?.org_public_metadata as Record<string, unknown>) ??
+    (claims?.organizationMetadata as Record<string, unknown>) ??
+    null;
+  const appRole = resolveAppRole(orgPublicMetadata, orgRole ?? null, {
+    unsafeMetadata: (claims?.metadata as Record<string, unknown>) ?? undefined,
+    publicMetadata: (claims?.publicMetadata as Record<string, unknown>) ?? undefined,
+  });
+
   return {
     userId: userId ?? null,
     isBeneficiary,
     orgId: orgId ?? null,
     orgRole: orgRole ?? null,
+    appRole,
   };
 }

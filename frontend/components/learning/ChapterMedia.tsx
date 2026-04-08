@@ -176,6 +176,9 @@ export default function ChapterMedia({ mediaId }: { mediaId?: string | null }) {
     const mediaEl = mediaRef.current;
     if (!mediaEl || !streamUrl) return;
 
+    // HLS will replace the video source; reset seek flag so we re-seek after
+    hasSeekedRef.current = false;
+
     if (Hls.isSupported()) {
       if (hlsRef.current) {
         hlsRef.current.destroy();

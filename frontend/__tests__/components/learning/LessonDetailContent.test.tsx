@@ -32,6 +32,20 @@ jest.mock('@/hooks/quiz/useQuizProgressMap', () => ({
   useQuizProgressMap: (quizIds: string[]) => mockUseQuizProgressMap(quizIds),
 }));
 
+jest.mock('@/hooks/media/useMediaProgressMap', () => ({
+  useMediaProgressMap: jest.fn(() => ({
+    mediaProgressMap: new Map(),
+    isLoading: false,
+  })),
+}));
+
+const mockIsChapterViewed = jest.fn((_id: string) => false);
+jest.mock('@/lib/learning/chapter-progress', () => ({
+  isChapterViewed: (id: string) => mockIsChapterViewed(id),
+  markChapterViewed: jest.fn(),
+  getViewedChapterIds: jest.fn(() => new Set()),
+}));
+
 const createChapter = (overrides: Partial<Chapter>): Chapter => ({
   id: 'chapter-1',
   lessonId: 'lesson-1',
@@ -60,12 +74,17 @@ describe('LessonDetailContent', () => {
   beforeEach(() => {
     mockUseQuizProgressMap.mockReset();
     mockReplace.mockReset();
+    mockIsChapterViewed.mockReset();
+    // By default, chapters are viewed (unlocked) — individual tests override as needed
+    mockIsChapterViewed.mockReturnValue(true);
     mockUsePathname.mockReturnValue('/learning/module-1/lesson/1');
     localStorage.clear();
     mockUseSearchParams.mockReturnValue(new URLSearchParams());
   });
 
   it('shows quiz action and locks next chapter when quiz not passed', () => {
+    // chapter-1 has not been viewed yet → chapter-2 stays locked
+    mockIsChapterViewed.mockReturnValue(false);
     const chapters: Chapter[] = [
       createChapter({ id: 'chapter-1', order: 1 }),
       createChapter({ id: 'chapter-2', order: 2, title: 'Chapitre 2' }),

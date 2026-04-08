@@ -4,9 +4,11 @@ import { useState } from 'react';
 
 import UsersList from '@/components/users/UsersList';
 import UserStatsCards from '@/components/users/UserStatsCards';
+import { usePlatformStats } from '@/hooks/organization/usePlatformStats';
 
 const UsersPage = () => {
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const platformData = usePlatformStats();
 
   const handleFilterChange = (role: string) => {
     setSelectedRole(role);
@@ -25,10 +27,21 @@ const UsersPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <UserStatsCards onFilterChange={handleFilterChange} selectedRole={selectedRole} />
+      <UserStatsCards
+        onFilterChange={handleFilterChange}
+        selectedRole={selectedRole}
+        stats={platformData.stats}
+        isLoading={platformData.isLoading}
+      />
 
       {/* Table */}
-      <UsersList selectedRole={selectedRole} onRoleChange={setSelectedRole} />
+      <UsersList
+        selectedRole={selectedRole}
+        onRoleChange={setSelectedRole}
+        users={platformData.users}
+        isLoading={platformData.isLoading}
+        onRefresh={platformData.refetch}
+      />
     </div>
   );
 };

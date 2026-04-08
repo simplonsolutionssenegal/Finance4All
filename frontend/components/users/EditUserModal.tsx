@@ -35,9 +35,9 @@ interface EditUserModalProps {
 }
 
 const AVAILABLE_ROLES = [
-  { value: 'org:recipient', label: 'Bénéficiaire' },
-  { value: 'org:admin', label: 'Administrateur' },
-  { value: 'org:member', label: 'Organisation' },
+  { value: 'org:admin', label: 'Admin Organisation' },
+  { value: 'org:member', label: 'Membre Organisation' },
+  { value: 'org:recipient', label: 'Recipient' },
 ];
 
 export default function EditUserModal({

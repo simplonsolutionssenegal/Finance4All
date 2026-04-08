@@ -11,6 +11,7 @@ import {
 import type { Service } from '@/lib/simulator-types';
 import { calculateEstimation } from '@/lib/simulator-utils';
 
+import { useGetInstitution } from './institution/useGetInstitution';
 import { useGetInstitutions } from './institution/useGetInstitutions';
 
 /**
@@ -31,6 +32,24 @@ export function useSimulator() {
     page: 1,
     limit: 20,
   });
+
+  // Récupérer les détails (avec services) de l'institution sélectionnée
+  const selectedInstitutionId = params.institution?.id ?? '';
+  const { institution: institutionDetail } = useGetInstitution(selectedInstitutionId);
+
+  // Quand les détails de l'institution sont chargés, mettre à jour le store
+  // pour que params.institution contienne les services
+  useEffect(() => {
+    if (
+      institutionDetail &&
+      institutionDetail.services &&
+      params.institution &&
+      institutionDetail.id === params.institution.id &&
+      !params.institution.services?.length
+    ) {
+      actions.updateParam('institution', institutionDetail);
+    }
+  }, [institutionDetail, params.institution, actions]);
 
   // Initialiser les institutions dans le store quand elles sont chargées
   useEffect(() => {

@@ -11,6 +11,14 @@ jest.mock('@/hooks/institution/useGetInstitutions', () => ({
   useGetInstitutions: jest.fn(),
 }));
 
+// Mock du hook useGetInstitution (détail avec services)
+jest.mock('@/hooks/institution/useGetInstitution', () => ({
+  useGetInstitution: jest.fn(() => ({
+    institution: null,
+    isLoading: false,
+  })),
+}));
+
 // Mock de useQueryClient
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),

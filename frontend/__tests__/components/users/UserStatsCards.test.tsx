@@ -3,15 +3,6 @@ import userEvent from '@testing-library/user-event';
 
 import UserStatsCards from '@/components/users/UserStatsCards';
 
-// Mock Clerk hooks
-const mockUseOrganization = jest.fn();
-const mockUseUser = jest.fn();
-
-jest.mock('@clerk/nextjs', () => ({
-  useOrganization: () => mockUseOrganization(),
-  useUser: () => mockUseUser(),
-}));
-
 // Mock UI components
 jest.mock('@/components/ui/card', () => ({
   Card: ({
@@ -69,24 +60,22 @@ jest.mock('lucide-react', () => ({
   Archive: (props: any) => <div data-testid='archive-icon' {...props} />,
 }));
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  mockUseUser.mockReturnValue({
-    user: { organizationMemberships: [] },
-  });
-});
+const mockStats = {
+  totalUsers: 10,
+  totalOrganizations: 3,
+  adminsOrg: 2,
+  membersOrg: 1,
+  recipients: 4,
+  platformAdmins: 1,
+  platformMembers: 1,
+};
 
 describe('UserStatsCards', () => {
   describe('No Data State', () => {
-    it('renders default stats when no memberships data', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: undefined,
-        invitations: undefined,
-      });
-
+    it('renders default stats when no stats prop is provided', () => {
       render(<UserStatsCards />);
 
-      // All values should be 0
+      // All labels should be present
       expect(screen.getByText('Total actifs')).toBeInTheDocument();
       expect(screen.getByText('Administrateurs')).toBeInTheDocument();
       expect(screen.getByText('Organisations')).toBeInTheDocument();
@@ -98,145 +87,95 @@ describe('UserStatsCards', () => {
       expect(values.length).toBeGreaterThanOrEqual(5);
     });
 
-    it('renders default stats when memberships data is null', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: null },
-        invitations: undefined,
-      });
-
-      render(<UserStatsCards />);
+    it('renders default stats when stats is undefined', () => {
+      render(<UserStatsCards stats={undefined} />);
 
       const values = screen.getAllByText('0');
       expect(values.length).toBeGreaterThanOrEqual(5);
     });
   });
 
-  describe('With Memberships Data', () => {
-    const mockMemberships = {
-      data: [
-        {
-          id: 'mem_1',
-          role: 'org:admin',
-          publicUserData: {
-            userId: 'user_1',
-            firstName: 'John',
-            lastName: 'Doe',
-            identifier: 'john.doe@example.com',
-          },
-        },
-        {
-          id: 'mem_2',
-          role: 'org:member',
-          publicUserData: {
-            userId: 'user_2',
-            firstName: 'Jane',
-            lastName: 'Smith',
-            identifier: 'jane.smith@example.com',
-          },
-        },
-        {
-          id: 'mem_3',
-          role: 'org:recipient',
-          publicUserData: {
-            userId: 'user_3',
-            firstName: 'Bob',
-            lastName: 'Johnson',
-            identifier: 'bob@example.com',
-          },
-        },
-        {
-          id: 'mem_4',
-          role: 'org:admin',
-          publicUserData: null, // Inactive user - should not be counted
-        },
-      ],
-    };
-
-    beforeEach(() => {
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [{ organization: { id: 'org_1' } }] },
-      });
-    });
-
+  describe('With Stats Data', () => {
     it('calculates and displays correct total actifs', () => {
-      render(<UserStatsCards />);
+      render(<UserStatsCards stats={mockStats} />);
 
-      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
       expect(screen.getByText('Total actifs')).toBeInTheDocument();
     });
 
     it('calculates and displays correct administrateurs', () => {
-      render(<UserStatsCards />);
+      // adminsOrg(2) + platformAdmins(1) + platformMembers(1) = 4
+      const { container } = render(<UserStatsCards stats={mockStats} />);
 
-      expect(screen.getByText('2')).toBeInTheDocument();
       expect(screen.getByText('Administrateurs')).toBeInTheDocument();
+      const adminCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
+        card.textContent?.includes('Administrateurs')
+      );
+      expect(adminCard?.textContent).toContain('4');
     });
 
     it('calculates and displays correct bénéficiaires', () => {
-      const { container } = render(<UserStatsCards />);
+      const { container } = render(<UserStatsCards stats={mockStats} />);
 
       expect(screen.getByText('Bénéficiaires')).toBeInTheDocument();
-      // Find the card containing "Bénéficiaires" and check its value
       const beneficiairesCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(
         card => card.textContent?.includes('Bénéficiaires')
       );
-      expect(beneficiairesCard?.textContent).toContain('1');
+      expect(beneficiairesCard?.textContent).toContain('4');
     });
 
     it('calculates and displays correct organisations count', () => {
-      const { container } = render(<UserStatsCards />);
+      const { container } = render(<UserStatsCards stats={mockStats} />);
 
       expect(screen.getByText('Organisations')).toBeInTheDocument();
-      // Find the card containing "Organisations" and check its value
       const orgCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
         card.textContent?.includes('Organisations')
       );
-      expect(orgCard?.textContent).toContain('1');
+      expect(orgCard?.textContent).toContain('3');
     });
 
     it('displays archivés as 0', () => {
-      render(<UserStatsCards />);
+      render(<UserStatsCards stats={mockStats} />);
 
-      expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('Archivés')).toBeInTheDocument();
+      const { container } = render(<UserStatsCards stats={mockStats} />);
+      const archivedCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(
+        card => card.textContent?.includes('Archivés')
+      );
+      expect(archivedCard?.textContent).toContain('0');
     });
   });
 
-  describe('Single Admin Case', () => {
+  describe('Loading State', () => {
+    it('displays loading indicators when isLoading is true', () => {
+      render(<UserStatsCards stats={mockStats} isLoading />);
+
+      // All cards except Archivés should show '...'
+      const loadingIndicators = screen.getAllByText('...');
+      expect(loadingIndicators).toHaveLength(4);
+
+      // Archivés always shows '0'
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+  });
+
+  describe('Single Stat Values', () => {
     it('displays single admin count correctly', () => {
-      const mockMemberships = {
-        data: [
-          {
-            id: 'mem_1',
-            role: 'org:admin',
-            publicUserData: {
-              userId: 'user_1',
-              firstName: 'John',
-              lastName: 'Doe',
-              identifier: 'john.doe@example.com',
-            },
-          },
-        ],
+      const stats = {
+        totalUsers: 1,
+        totalOrganizations: 1,
+        adminsOrg: 1,
+        membersOrg: 0,
+        recipients: 0,
+        platformAdmins: 0,
+        platformMembers: 0,
       };
 
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [{ organization: { id: 'org_1' } }] },
-      });
-
-      const { container } = render(<UserStatsCards />);
+      const { container } = render(<UserStatsCards stats={stats} />);
 
       expect(screen.getByText('Administrateurs')).toBeInTheDocument();
       expect(screen.getByText('Total actifs')).toBeInTheDocument();
 
-      // Check admin card value
       const adminCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
         card.textContent?.includes('Administrateurs')
       );
@@ -244,55 +183,8 @@ describe('UserStatsCards', () => {
     });
   });
 
-  describe('All Active Users', () => {
-    it('handles all active users correctly', () => {
-      const mockMemberships = {
-        data: [
-          {
-            id: 'mem_1',
-            role: 'org:admin',
-            publicUserData: {
-              userId: 'user_1',
-              firstName: 'John',
-              lastName: 'Doe',
-              identifier: 'john.doe@example.com',
-            },
-          },
-          {
-            id: 'mem_2',
-            role: 'org:member',
-            publicUserData: {
-              userId: 'user_2',
-              firstName: 'Jane',
-              lastName: 'Smith',
-              identifier: 'jane.smith@example.com',
-            },
-          },
-        ],
-      };
-
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [{ organization: { id: 'org_1' } }] },
-      });
-
-      render(<UserStatsCards />);
-
-      expect(screen.getByText('2')).toBeInTheDocument(); // Total actifs
-      expect(screen.getByText('Total actifs')).toBeInTheDocument();
-    });
-  });
-
   describe('Icons and Styling', () => {
     it('renders correct icons for each stat card', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-
       render(<UserStatsCards />);
 
       expect(screen.getByTestId('users-icon')).toBeInTheDocument();
@@ -303,11 +195,6 @@ describe('UserStatsCards', () => {
     });
 
     it('renders stat cards with correct structure', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-
       render(<UserStatsCards />);
 
       const cards = screen.getAllByTestId('card');
@@ -318,11 +205,6 @@ describe('UserStatsCards', () => {
     });
 
     it('applies correct CSS classes to cards', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-
       render(<UserStatsCards />);
 
       const cards = screen.getAllByTestId('card');
@@ -336,11 +218,6 @@ describe('UserStatsCards', () => {
 
   describe('Grid Layout', () => {
     it('renders cards in a responsive grid', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-
       const { container } = render(<UserStatsCards />);
 
       const gridContainer = container.firstChild as HTMLElement;
@@ -355,13 +232,18 @@ describe('UserStatsCards', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles empty data array', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
+    it('handles all-zero stats', () => {
+      const zeroStats = {
+        totalUsers: 0,
+        totalOrganizations: 0,
+        adminsOrg: 0,
+        membersOrg: 0,
+        recipients: 0,
+        platformAdmins: 0,
+        platformMembers: 0,
+      };
 
-      render(<UserStatsCards />);
+      render(<UserStatsCards stats={zeroStats} />);
 
       expect(screen.getByText('Total actifs')).toBeInTheDocument();
       expect(screen.getByText('Administrateurs')).toBeInTheDocument();
@@ -373,142 +255,58 @@ describe('UserStatsCards', () => {
       expect(zeroValues.length).toBeGreaterThanOrEqual(5);
     });
 
-    it('handles all inactive users', () => {
-      const mockMemberships = {
-        data: [
-          {
-            id: 'mem_1',
-            role: 'org:admin',
-            publicUserData: null,
-          },
-          {
-            id: 'mem_2',
-            role: 'org:member',
-            publicUserData: null,
-          },
-        ],
+    it('handles large stat values', () => {
+      const largeStats = {
+        totalUsers: 99999,
+        totalOrganizations: 500,
+        adminsOrg: 100,
+        membersOrg: 200,
+        recipients: 300,
+        platformAdmins: 50,
+        platformMembers: 50,
       };
 
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [] },
-      });
+      render(<UserStatsCards stats={largeStats} />);
 
-      const { container } = render(<UserStatsCards />);
-
-      expect(screen.getByText('Total actifs')).toBeInTheDocument();
-      // Check total actifs card value
-      const totalCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
-        card.textContent?.includes('Total actifs')
-      );
-      expect(totalCard?.textContent).toContain('0');
-    });
-
-    it('handles users without publicUserData', () => {
-      const mockMemberships = {
-        data: [
-          {
-            id: 'mem_1',
-            role: 'org:admin',
-            publicUserData: null,
-          },
-        ],
-      };
-
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [] },
-      });
-
-      const { container } = render(<UserStatsCards />);
-
-      // Should not count users without publicUserData
-      const totalCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
-        card.textContent?.includes('Total actifs')
-      );
-      expect(totalCard?.textContent).toContain('0');
+      expect(screen.getByText('99999')).toBeInTheDocument();
+      expect(screen.getByText('500')).toBeInTheDocument();
+      // adminsOrg(100) + platformAdmins(50) + platformMembers(50) = 200
+      expect(screen.getByText('200')).toBeInTheDocument();
+      expect(screen.getByText('300')).toBeInTheDocument();
     });
   });
 
   describe('Role Filtering', () => {
-    it('correctly counts admins vs other roles', () => {
-      const mockMemberships = {
-        data: [
-          { id: 'mem_1', role: 'org:admin', publicUserData: { userId: '1' } },
-          { id: 'mem_2', role: 'org:member', publicUserData: { userId: '2' } },
-          { id: 'mem_3', role: 'org:recipient', publicUserData: { userId: '3' } },
-          { id: 'mem_4', role: 'org:admin', publicUserData: { userId: '4' } },
-        ],
+    it('correctly displays admins, recipients, and organisations', () => {
+      const stats = {
+        totalUsers: 7,
+        totalOrganizations: 2,
+        adminsOrg: 2,
+        membersOrg: 1,
+        recipients: 3,
+        platformAdmins: 1,
+        platformMembers: 0,
       };
 
-      mockUseOrganization.mockReturnValue({
-        memberships: mockMemberships,
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [{ organization: { id: 'org_1' } }] },
-      });
+      const { container } = render(<UserStatsCards stats={stats} />);
 
-      const { container } = render(<UserStatsCards />);
-
-      // Check admin card
+      // Check admin card: adminsOrg(2) + platformAdmins(1) + platformMembers(0) = 3
       const adminCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
         card.textContent?.includes('Administrateurs')
       );
-      expect(adminCard?.textContent).toContain('2');
+      expect(adminCard?.textContent).toContain('3');
 
       // Check recipient card
       const recipientCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(
         card => card.textContent?.includes('Bénéficiaires')
       );
-      expect(recipientCard?.textContent).toContain('1');
-    });
-  });
+      expect(recipientCard?.textContent).toContain('3');
 
-  describe('Organization Count', () => {
-    it('displays correct organization count from user memberships', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: {
-          organizationMemberships: [
-            { organization: { id: 'org_1' } },
-            { organization: { id: 'org_2' } },
-          ],
-        },
-      });
-
-      render(<UserStatsCards />);
-
-      expect(screen.getByText('2')).toBeInTheDocument();
-      expect(screen.getByText('Organisations')).toBeInTheDocument();
-    });
-
-    it('displays 0 when user has no organization memberships', () => {
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
-      mockUseUser.mockReturnValue({
-        user: { organizationMemberships: [] },
-      });
-
-      const { container } = render(<UserStatsCards />);
-
-      expect(screen.getByText('Organisations')).toBeInTheDocument();
-      // Find the card containing "Organisations" and check its value
+      // Check organisations card
       const orgCard = Array.from(container.querySelectorAll('[data-testid="card"]')).find(card =>
         card.textContent?.includes('Organisations')
       );
-      expect(orgCard?.textContent).toContain('0');
+      expect(orgCard?.textContent).toContain('2');
     });
   });
 
@@ -517,10 +315,6 @@ describe('UserStatsCards', () => {
 
     beforeEach(() => {
       mockOnFilterChange.mockClear();
-      mockUseOrganization.mockReturnValue({
-        memberships: { data: [] },
-        invitations: { data: [], isLoading: false },
-      });
     });
 
     it('makes cards clickable when onFilterChange is provided', () => {
@@ -548,7 +342,6 @@ describe('UserStatsCards', () => {
       const user = userEvent.setup();
       render(<UserStatsCards onFilterChange={mockOnFilterChange} />);
 
-      // Find the Administrateurs card (second card)
       const cards = screen.getAllByTestId('card');
       const adminCard = cards.find(card => card.textContent?.includes('Administrateurs'));
 

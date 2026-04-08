@@ -7,22 +7,26 @@ import { ModuleCard } from '@/components/learning/module-card';
 import { ModuleFilters, type FilterType } from '@/components/learning/module-filters';
 import { ModuleStats } from '@/components/learning/module-stats';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useModulesWithProgress } from '@/hooks/learning/useModulesWithProgress';
 import { useGetLearningModules } from '@/hooks/module/useGetLearningModules';
 import { UserModuleStatus } from '@/types/learning-module';
 
 export default function LearningPage() {
-  const { modules, isLoading } = useGetLearningModules();
+  const { modules, isLoading: modulesLoading } = useGetLearningModules();
+  const { enrichedModules, isLoading: progressLoading } = useModulesWithProgress(modules);
   const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
+  const isLoading = modulesLoading || progressLoading;
+
   const counts = {
-    all: modules.length,
-    available: modules.filter(m => m.userStatus !== UserModuleStatus.LOCKED).length,
-    inProgress: modules.filter(m => m.userStatus === UserModuleStatus.IN_PROGRESS).length,
-    completed: modules.filter(m => m.userStatus === UserModuleStatus.COMPLETED).length,
-    locked: modules.filter(m => m.userStatus === UserModuleStatus.LOCKED).length,
+    all: enrichedModules.length,
+    available: enrichedModules.filter(m => m.userStatus !== UserModuleStatus.LOCKED).length,
+    inProgress: enrichedModules.filter(m => m.userStatus === UserModuleStatus.IN_PROGRESS).length,
+    completed: enrichedModules.filter(m => m.userStatus === UserModuleStatus.COMPLETED).length,
+    locked: enrichedModules.filter(m => m.userStatus === UserModuleStatus.LOCKED).length,
   };
 
-  const filteredModules = modules.filter(module => {
+  const filteredModules = enrichedModules.filter(module => {
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'AVAILABLE') return module.userStatus !== UserModuleStatus.LOCKED;
     if (activeFilter === 'IN_PROGRESS') return module.userStatus === UserModuleStatus.IN_PROGRESS;

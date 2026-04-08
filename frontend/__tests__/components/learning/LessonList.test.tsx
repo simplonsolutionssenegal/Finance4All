@@ -40,7 +40,14 @@ describe('LessonList', () => {
     const lessons = [createLesson({ id: 'lesson-1', order: 1 })];
     const statuses = new Map<string, LessonProgressStatus>([['lesson-1', 'LOCKED']]);
 
-    render(<LessonList moduleId='module-1' lessons={lessons} lessonStatuses={statuses} />);
+    render(
+      <LessonList
+        moduleId='module-1'
+        lessons={lessons}
+        lessonStatuses={statuses}
+        startedLessonIds={new Set()}
+      />
+    );
 
     expect(screen.queryByRole('button', { name: /verrouille/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /revoir/i })).not.toBeInTheDocument();
@@ -51,7 +58,14 @@ describe('LessonList', () => {
     const lessons = [createLesson({ id: 'lesson-2', order: 2 })];
     const statuses = new Map<string, LessonProgressStatus>([['lesson-2', 'DONE']]);
 
-    render(<LessonList moduleId='module-1' lessons={lessons} lessonStatuses={statuses} />);
+    render(
+      <LessonList
+        moduleId='module-1'
+        lessons={lessons}
+        lessonStatuses={statuses}
+        startedLessonIds={new Set()}
+      />
+    );
 
     const button = screen.getByRole('button', { name: /revoir/i });
     await userEvent.click(button);
@@ -64,7 +78,14 @@ describe('LessonList', () => {
     const lessons = [createLesson({ id: 'lesson-3', order: 3 })];
     const statuses = new Map<string, LessonProgressStatus>([['lesson-3', 'CURRENT']]);
 
-    render(<LessonList moduleId='module-1' lessons={lessons} lessonStatuses={statuses} />);
+    render(
+      <LessonList
+        moduleId='module-1'
+        lessons={lessons}
+        lessonStatuses={statuses}
+        startedLessonIds={new Set(['lesson-3'])}
+      />
+    );
 
     const button = screen.getByRole('button', { name: /continuer/i });
     await userEvent.click(button);
@@ -77,7 +98,14 @@ describe('LessonList', () => {
     const lessons = [createLesson({ id: 'lesson-4', order: 4 })];
     const statuses = new Map<string, LessonProgressStatus>();
 
-    render(<LessonList moduleId='module-1' lessons={lessons} lessonStatuses={statuses} />);
+    render(
+      <LessonList
+        moduleId='module-1'
+        lessons={lessons}
+        lessonStatuses={statuses}
+        startedLessonIds={new Set()}
+      />
+    );
 
     expect(screen.queryByRole('button', { name: /verrouille/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /revoir/i })).not.toBeInTheDocument();

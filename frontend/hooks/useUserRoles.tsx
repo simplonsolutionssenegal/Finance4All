@@ -1,5 +1,12 @@
-import { useUser, useOrganizationList } from '@clerk/nextjs';
+import { useUser, useOrganizationList, useOrganization } from '@clerk/nextjs';
 import { useMemo } from 'react';
+import {
+  resolveAppRole,
+  getAccessGroup,
+  ROLE_LABELS,
+  type AppRole,
+  type AccessGroup,
+} from '@/lib/role-access';
 
 export interface UserRolesData {
   userRoles: string[];
@@ -11,6 +18,8 @@ export interface UserRolesData {
   isLoaded: boolean;
   hasRole: (role: string) => boolean;
   hasOrganizationRole: (role: string) => boolean;
+  appRole: AppRole;
+  accessGroup: AccessGroup;
 }
 
 /**
@@ -18,6 +27,7 @@ export interface UserRolesData {
  */
 export function useUserRoles(): UserRolesData {
   const { user } = useUser();
+  const { organization, membership } = useOrganization();
   const { userMemberships, isLoaded: orgListLoaded } = useOrganizationList({
     userMemberships: {
       infinite: true,
@@ -54,33 +64,25 @@ export function useUserRoles(): UserRolesData {
     return organizationMemberships.length > 0;
   }, [organizationMemberships]);
 
-  // Déterminer le label du rôle pour l'affichage
+  // Résoudre le rôle applicatif depuis l'org active
+  const appRole = useMemo<AppRole>(() => {
+    if (!isLoaded) return 'Beneficiare';
+    const orgMetadata = (organization?.publicMetadata as Record<string, unknown>) ?? null;
+    const orgRole = membership?.role ?? null;
+    return resolveAppRole(orgMetadata, orgRole, {
+      unsafeMetadata: (user?.unsafeMetadata as Record<string, unknown>) ?? undefined,
+      publicMetadata: (user?.publicMetadata as Record<string, unknown>) ?? undefined,
+    });
+  }, [isLoaded, organization, membership, user]);
+
+  const accessGroup = useMemo<AccessGroup>(() => {
+    return getAccessGroup(appRole);
+  }, [appRole]);
+
   const roleLabel = useMemo(() => {
     if (!isLoaded) return 'Utilisateur';
-
-    if (isSystemAdmin) {
-      if (!hasOrganization) {
-        return 'Super Admin';
-      } else {
-        // Admin with organization membership
-        const orgRole = organizationMemberships[0]?.role?.replace('org:', '');
-        return orgRole === 'admin' ? 'Super Admin' : 'Admin';
-      }
-    } else if (hasOrganization) {
-      // Check organization role
-      const orgRole = organizationMemberships[0]?.role?.replace('org:', '');
-      return orgRole === 'admin' ? 'Super Admin' : 'Admin';
-    } else {
-      // Check metadata for beneficiary or other roles
-      const unsafeRole = user?.unsafeMetadata?.role as string | undefined;
-      const publicRole = user?.publicMetadata?.role as string | undefined;
-      if (unsafeRole === 'admin' || publicRole === 'admin') {
-        return 'Super Admin';
-      }
-      // Par défaut, on retourne 'Utilisateur' si aucun rôle n'est trouvé
-      return 'Utilisateur';
-    }
-  }, [isLoaded, isSystemAdmin, hasOrganization, organizationMemberships, user]);
+    return ROLE_LABELS[appRole];
+  }, [isLoaded, appRole]);
 
   // Fonction pour vérifier si l'utilisateur a un rôle spécifique
   const hasRole = useMemo(() => {
@@ -106,5 +108,7 @@ export function useUserRoles(): UserRolesData {
     isLoaded,
     hasRole,
     hasOrganizationRole,
+    appRole,
+    accessGroup,
   };
 }

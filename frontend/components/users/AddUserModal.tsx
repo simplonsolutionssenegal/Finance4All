@@ -32,9 +32,30 @@ interface AddUserModalProps {
 }
 
 const AVAILABLE_ROLES = [
-  { value: 'org:recipient', label: 'Bénéficiaire' },
-  { value: 'org:admin', label: 'Administrateur' },
-  { value: 'org:member', label: 'Organisation' },
+  {
+    value: 'org:member:admin',
+    label: 'AdminMember',
+    description: "Membre de l'equipe admin",
+    orgType: 'admin' as const,
+  },
+  {
+    value: 'org:admin',
+    label: 'AdminOrg',
+    description: "Admin d'une organisation partenaire",
+    orgType: 'partner' as const,
+  },
+  {
+    value: 'org:member',
+    label: 'MemberOrg',
+    description: "Membre d'une organisation partenaire",
+    orgType: 'partner' as const,
+  },
+  {
+    value: 'org:recipient',
+    label: 'Recipient',
+    description: "Beneficiaire d'une organisation",
+    orgType: 'partner' as const,
+  },
 ];
 
 export default function AddUserModal({
@@ -56,11 +77,21 @@ export default function AddUserModal({
     },
   });
 
-  const organizations =
+  const allOrganizations =
     userMemberships?.data?.map(membership => ({
       id: membership.organization.id,
       name: membership.organization.name,
+      type: (membership.organization.publicMetadata as Record<string, unknown>)?.type as
+        | string
+        | undefined,
     })) || [];
+
+  const selectedRoleOption = AVAILABLE_ROLES.find(r => r.value === role);
+  const organizations = allOrganizations.filter(org => {
+    if (!selectedRoleOption) return true;
+    if (selectedRoleOption.orgType === 'admin') return org.type === 'admin';
+    return org.type !== 'admin';
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -74,11 +105,13 @@ export default function AddUserModal({
   }, [isOpen]);
 
   const handleSubmit = async () => {
+    // org:member:admin is our internal key for AdminMember — send org:member to Clerk
+    const clerkRole = role === 'org:member:admin' ? 'org:member' : role;
     onCreateUser({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
-      role,
+      role: clerkRole,
       organizationId,
     });
   };
