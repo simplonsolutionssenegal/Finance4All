@@ -39,9 +39,9 @@ jest.mock('@/hooks/media/useMediaProgressMap', () => ({
   })),
 }));
 
-const mockIsChapterViewed = jest.fn((_id: string) => false);
+const mockIsChapterViewed = jest.fn(() => false);
 jest.mock('@/lib/learning/chapter-progress', () => ({
-  isChapterViewed: (id: string) => mockIsChapterViewed(id),
+  isChapterViewed: (...args: unknown[]) => mockIsChapterViewed(...args),
   markChapterViewed: jest.fn(),
   getViewedChapterIds: jest.fn(() => new Set()),
 }));

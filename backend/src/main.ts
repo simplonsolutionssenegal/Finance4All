@@ -6,7 +6,6 @@ import { container, TYPES } from '@/infrastructure/config/container';
 import type { MediaCleanupCronService } from '@/infrastructure/services/MediaCleanupCronService';
 import type { MinioStorageService } from '@/infrastructure/services/MinioStorageService';
 import type { StoragePort } from '@/domain/media/ports/out/StoragePort';
-import type { BullMQJobQueue } from '@/infrastructure/services/BullMQJobQueue';
 
 const PORT = process.env.PORT || 5001;
 
@@ -43,7 +42,23 @@ export async function bootstrap() {
     // ── Preflight: fail fast if any critical service is down ───────
     await preflight();
 
-    // ── Start background services ─────────────────────────────────
+    // Vérifier que les migrations sont à jour (optionnel en dev)
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        // Tester la connexion en comptant les institutions
+        const count = await prisma.institution.count();
+        logger.info(`📊 Database ready with ${count} institutions`);
+      } catch (_error) {
+        logger.warn('⚠️ Database might need migration. Run: npm run prisma:migrate:dev');
+      }
+    }
+
+    // Initialize MinIO buckets and public-read policies
+    const storageService = container.get<StoragePort>(TYPES.StoragePort) as MinioStorageService;
+    await storageService.initializeBuckets();
+    logger.info('✅ MinIO buckets initialized');
+
+    // Start media cleanup cron service
     const mediaCleanupCron = container.get<MediaCleanupCronService>(TYPES.MediaCleanupCronService);
     mediaCleanupCron.start();
     logger.info('✅ Media cleanup cron service started');
