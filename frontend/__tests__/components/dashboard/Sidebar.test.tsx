@@ -325,4 +325,75 @@ describe('Sidebar', () => {
       expect(screen.getAllByText('U').length).toBeGreaterThan(0);
     });
   });
+
+  describe('Role-based menu filtering', () => {
+    afterEach(() => {
+      const { useUserRoles } = require('@/hooks/useUserRoles');
+      useUserRoles.mockReturnValue({
+        roleLabel: 'Admin Systeme',
+        hasRole: jest.fn((role: string) => role === 'admin'),
+        hasOrganizationRole: jest.fn(() => true),
+        isLoaded: true,
+        userRoles: ['admin'],
+        organizationRoles: ['org:admin'],
+        appRole: 'Admin',
+        accessGroup: 'platform',
+      });
+    });
+
+    it('shows beneficiary menu items for beneficiary role', () => {
+      const { useUserRoles } = require('@/hooks/useUserRoles');
+      useUserRoles.mockReturnValue({
+        roleLabel: 'Beneficiaire',
+        hasRole: jest.fn((role: string) => role === 'beneficiary'),
+        hasOrganizationRole: jest.fn((role: string) => role === 'org:recipient'),
+        isLoaded: true,
+        userRoles: ['beneficiary'],
+        organizationRoles: ['org:recipient'],
+        appRole: 'Beneficiare',
+        accessGroup: 'beneficiary',
+      });
+
+      render(<Sidebar />);
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('User fallback states', () => {
+    afterEach(() => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({
+        user: {
+          fullName: 'Test User',
+          firstName: 'Test',
+          imageUrl: 'https://example.com/avatar.png',
+          emailAddresses: [{ emailAddress: 'test@example.com' }],
+        },
+      });
+    });
+
+    it('displays Utilisateur when user has no name', () => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({
+        user: {
+          fullName: null,
+          firstName: null,
+          imageUrl: null,
+          emailAddresses: [{ emailAddress: 'test@example.com' }],
+        },
+      });
+
+      render(<Sidebar />);
+      expect(screen.getAllByText('Utilisateur').length).toBeGreaterThan(0);
+    });
+
+    it('handles null user gracefully', () => {
+      const { useUser } = require('@clerk/nextjs');
+      useUser.mockReturnValue({ user: null });
+
+      render(<Sidebar />);
+      expect(screen.getAllByText('Utilisateur').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('U').length).toBeGreaterThan(0);
+    });
+  });
 });
