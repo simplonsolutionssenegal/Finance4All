@@ -45,7 +45,7 @@ export class UserController {
         },
         redirectUrl:
           process.env.CLERK_REDIRECT_URL ??
-          `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard`,
+          `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/accept-invitation`,
       });
 
       // Récupérer les informations de l'organisation pour l'email
