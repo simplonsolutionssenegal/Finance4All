@@ -1,440 +1,402 @@
 'use client';
 
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, Mail, Users, XCircle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useLoader } from '@/contexts/LoaderContext';
-import { useFormState } from '@/hooks/useFormState';
 
 interface ClerkAcceptInvitationProps {
   invitationId: string;
   orgId: string;
 }
 
-interface FormValues extends Record<string, unknown> {
-  password: string;
-  confirmPassword: string;
-}
-
 interface InvitationMetadata {
   firstName: string;
   lastName: string;
   emailAddress: string;
-  organizationId: string;
   organizationName?: string;
+  role?: string;
 }
+
+type PageState = 'loading' | 'ready' | 'sending-otp' | 'otp' | 'verifying' | 'success' | 'error';
 
 export function ClerkAcceptInvitation({
   invitationId,
   orgId,
 }: Readonly<ClerkAcceptInvitationProps>) {
-  const [initialValues, setInitialValues] = useState<FormValues>({
-    password: '',
-    confirmPassword: '',
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showLoader, hideLoader } = useLoader(); // Keep global loader for initial data fetch if needed, checking useEffect
   const router = useRouter();
-
+  const [state, setState] = useState<PageState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [invitationData, setInvitationData] = useState<InvitationMetadata | null>(null);
+  const [otpToken, setOtpToken] = useState<string | null>(null);
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const { formState, updateField, hasError, getError, setErrors } = useFormState(initialValues);
-
-  const resetState = useCallback(() => {
-    setError(null);
-  }, []);
-
-  const isFormValid = useMemo(() => {
-    return (
-      formState.values.password.trim() !== '' &&
-      !hasError('password') &&
-      formState.values.confirmPassword.trim() !== '' &&
-      !hasError('confirmPassword')
-    );
-  }, [formState, hasError]);
-
-  // Récupérer les données de l'invitation au chargement
+  // ── Fetch invitation on mount ──
   useEffect(() => {
     const fetchInvitationData = async () => {
-      if (!invitationId) {
-        setError("ID d'invitation manquant");
+      if (!invitationId || !orgId) {
+        setError("Lien d'invitation invalide. Paramètres manquants.");
+        setState('error');
         return;
       }
-
-      showLoader();
 
       try {
         const response = await fetch('/api/get-invitation', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            invitationId,
-            orgId,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invitationId, orgId }),
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (_e) {
-            errorData = { message: errorText };
-          }
-
-          throw new Error(
-            errorData?.message || `Erreur ${response.status}: ${response.statusText}`
-          );
+          const data = await response.json().catch(() => null);
+          throw new Error(data?.message || "Impossible de charger l'invitation");
         }
 
         const data = await response.json();
 
         if (data.success && data.invitation) {
-          const { publicMetadata, emailAddress, organizationName } = data.invitation;
-
-          const metadata: InvitationMetadata = {
-            firstName: publicMetadata.firstName || '',
-            lastName: publicMetadata.lastName || '',
+          const { publicMetadata, emailAddress, organizationName, role } = data.invitation;
+          setInvitationData({
+            firstName: publicMetadata?.firstName || '',
+            lastName: publicMetadata?.lastName || '',
             emailAddress,
-            organizationId: orgId,
             organizationName,
-          };
-
-          setInvitationData(metadata);
-
-          const newInitialValues: FormValues = {
-            password: '',
-            confirmPassword: '',
-          };
-
-          setInitialValues(newInitialValues);
+            role,
+          });
+          setState('ready');
+        } else {
+          throw new Error('Invitation introuvable ou expirée');
         }
-      } catch (_err) {
-        setError("Impossible de charger les données de l'invitation");
-      } finally {
-        hideLoader();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
+        setState('error');
       }
     };
 
     fetchInvitationData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invitationId, orgId]);
 
-  // Validation des mots de passe
-  const validatePasswords = useCallback(() => {
-    const password = formState.values.password;
-    const confirmPassword = formState.values.confirmPassword;
+  // ── Send OTP ──
+  const handleSendOtp = useCallback(async () => {
+    if (!invitationData) return;
 
-    const errors: Record<string, string> = {};
+    setState('sending-otp');
+    setError(null);
 
-    const MESSAGES = {
-      LENGTH: 'Le mot de passe doit contenir au moins 8 caractères',
-      COMPLEXITY:
-        'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial',
-      MISMATCH: 'Les mots de passe ne correspondent pas',
-    };
+    try {
+      const response = await fetch('/api/accept-invitation/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: invitationData.emailAddress,
+          firstName: invitationData.firstName,
+          organizationName: invitationData.organizationName,
+        }),
+      });
 
-    if (password.length < 8) {
-      errors.password = MESSAGES.LENGTH;
-    } else if (
-      !/[a-z]/.test(password) ||
-      !/[A-Z]/.test(password) ||
-      !/\d/.test(password) ||
-      !/[!@#$%^&*(),.?":{}|<>]/.test(password)
-    ) {
-      errors.password = MESSAGES.COMPLEXITY;
-    }
+      const data = await response.json();
 
-    if (confirmPassword && password !== confirmPassword) {
-      errors.confirmPassword = MESSAGES.MISMATCH;
-    }
-
-    return errors;
-  }, [formState.values.password, formState.values.confirmPassword]);
-
-  // Effect pour valider les mots de passe automatiquement
-  useEffect(() => {
-    const password = formState.values.password;
-    const confirmPassword = formState.values.confirmPassword;
-
-    // Ne valider que si au moins un des champs est rempli
-    if (password || confirmPassword) {
-      const passwordErrors = validatePasswords();
-
-      setErrors(passwordErrors);
-    }
-  }, [formState.values.password, formState.values.confirmPassword, validatePasswords, setErrors]);
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-
-      if (!isFormValid || !invitationData) {
-        return;
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message || "Impossible d'envoyer le code");
       }
 
-      // Vérifier que toutes les données nécessaires sont présentes
-      if (!invitationData.firstName || !invitationData.lastName || !invitationData.emailAddress) {
-        setError("Données d'invitation incomplètes. Veuillez contacter l'administrateur.");
-        return;
-      }
+      setOtpToken(data.token);
+      setOtpDigits(['', '', '', '', '', '']);
+      setState('otp');
 
-      const password = formState.values.password;
+      // Focus first input
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+      setState('ready');
+    }
+  }, [invitationData]);
 
-      // Validation finale
-      const passwordErrors = validatePasswords();
-      if (Object.keys(passwordErrors).length > 0) {
-        setErrors(passwordErrors);
-        return;
-      }
+  // ── OTP input handlers ──
+  const handleOtpChange = useCallback(
+    (index: number, value: string) => {
+      if (!/^\d*$/.test(value)) return;
 
-      setIsSubmitting(true);
-      setError(null);
+      const newDigits = [...otpDigits];
 
-      try {
-        const response = await fetch('/api/accept-invitation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            invitationId,
-            orgId,
-            password,
-            firstName: invitationData.firstName,
-            lastName: invitationData.lastName,
-            emailAddress: invitationData.emailAddress,
-          }),
+      if (value.length > 1) {
+        // Handle paste
+        const chars = value.slice(0, 6).split('');
+        chars.forEach((char, i) => {
+          if (index + i < 6) newDigits[index + i] = char;
         });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData?.message || "Erreur lors de l'acceptation de l'invitation");
+        setOtpDigits(newDigits);
+        const nextIndex = Math.min(index + chars.length, 5);
+        inputRefs.current[nextIndex]?.focus();
+      } else {
+        newDigits[index] = value;
+        setOtpDigits(newDigits);
+        if (value && index < 5) {
+          inputRefs.current[index + 1]?.focus();
         }
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.message || "Erreur lors de l'acceptation de l'invitation");
-        }
-
-        // Redirection vers la page de connexion
-        router.push('/login');
-      } catch (err: unknown) {
-        console.error("Erreur lors de l'acceptation de l'invitation:", err);
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Une erreur est survenue lors de l'acceptation de l'invitation";
-        setError(errorMessage);
-        setIsSubmitting(false);
       }
     },
-    [
-      isFormValid,
-      invitationData,
-      formState.values.password,
-      validatePasswords,
-      setErrors,
-      invitationId,
-      orgId,
-      router,
-    ]
+    [otpDigits]
   );
 
-  const handlePasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateField('password', e.target.value);
-      if (error) {
-        resetState();
+  const handleOtpKeyDown = useCallback(
+    (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus();
       }
     },
-    [updateField, error, resetState]
+    [otpDigits]
   );
 
-  const handleConfirmPasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateField('confirmPassword', e.target.value);
-      if (error) {
-        resetState();
+  const otpCode = otpDigits.join('');
+  const isOtpComplete = otpCode.length === 6;
+
+  // ── Verify OTP & accept invitation ──
+  const handleVerifyOtp = useCallback(async () => {
+    if (!invitationData || !otpToken || !isOtpComplete) return;
+
+    setState('verifying');
+    setError(null);
+
+    try {
+      const response = await fetch('/api/accept-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invitationId,
+          orgId,
+          firstName: invitationData.firstName,
+          lastName: invitationData.lastName,
+          emailAddress: invitationData.emailAddress,
+          otpCode,
+          otpToken,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.message || "Erreur lors de l'acceptation");
       }
-    },
-    [updateField, error, resetState]
-  );
 
-  // Helper for password requirements
-  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-    <div className='flex items-center gap-2 text-xs text-neutral-500'>
-      <div
-        className={`flex items-center justify-center w-4 h-4 rounded-full border ${
-          met ? 'bg-primary-50 border-primary-200' : 'border-neutral-300'
-        }`}
-      >
-        {met && (
-          <svg width='10' height='8' viewBox='0 0 10 8' fill='none'>
-            <path
-              d='M1 4L3.5 6.5L9 1'
-              stroke='#0F172A'
-              strokeWidth='1.5'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-            />
-          </svg>
-        )}
+      setState('success');
+      setTimeout(() => router.push('/login'), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+      setState('otp');
+    }
+  }, [invitationData, otpToken, isOtpComplete, otpCode, invitationId, orgId, router]);
+
+  // ── Helpers ──
+  const roleFrench = (role?: string) => {
+    switch (role) {
+      case 'org:admin':
+        return 'Administrateur';
+      case 'org:member':
+        return 'Membre';
+      case 'org:recipient':
+        return 'Bénéficiaire';
+      default:
+        return 'Membre';
+    }
+  };
+
+  // ── Loading ──
+  if (state === 'loading') {
+    return (
+      <div className='flex flex-col items-center py-8'>
+        <Loader2 className='w-8 h-8 text-primary-300 animate-spin mb-4' />
+        <p className='text-neutral-500 text-sm'>Chargement de l&apos;invitation...</p>
       </div>
-      <span>{text}</span>
-    </div>
-  );
+    );
+  }
 
-  const password = formState.values.password;
-  const hasMinLength = password.length >= 8;
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /\d/.test(password);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-  return (
-    <div className='max-w-md w-full mx-auto'>
-      <div className='flex flex-col items-center mb-8'>
-        <div className='w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mb-6'>
-          <Lock className='w-8 h-8 text-primary-300' strokeWidth={1.5} />
+  // ── Success ──
+  if (state === 'success') {
+    return (
+      <div className='flex flex-col items-center py-8'>
+        <div className='w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-6'>
+          <CheckCircle2 className='w-8 h-8 text-green-500' />
         </div>
-        <h1 className='text-2xl font-semibold text-neutral-900 mb-2'>Créer votre mot de passe</h1>
-        <p className='text-neutral-500 text-center text-sm px-4'>
-          Définissez un mot de passe sécurisé pour votre compte{' '}
-          {invitationData?.organizationName ? 'administrateur' : 'utilisateur'}
+        <h2 className='text-xl font-semibold text-neutral-900 mb-2'>Invitation acceptée !</h2>
+        <p className='text-neutral-500 text-center text-sm mb-4'>
+          Votre compte a été créé avec succès.
+          <br />
+          Redirection vers la page de connexion...
+        </p>
+        <p className='text-neutral-400 text-xs'>
+          Connectez-vous avec votre email pour recevoir un code OTP.
         </p>
       </div>
+    );
+  }
 
-      <form onSubmit={handleSubmit} className='space-y-6' noValidate>
-        <div className='space-y-2'>
-          <Label htmlFor='email' className='text-neutral-900 font-medium text-sm'>
-            Adresse email
-          </Label>
-          <div className='relative'>
-            <div className='absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400'>
-              <Mail className='h-4 w-4' />
-            </div>
+  // ── Fatal error (invitation not found) ──
+  if (state === 'error' && !invitationData) {
+    return (
+      <div className='flex flex-col items-center py-8'>
+        <div className='w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6'>
+          <XCircle className='w-8 h-8 text-red-500' />
+        </div>
+        <h2 className='text-xl font-semibold text-neutral-900 mb-2'>Erreur</h2>
+        <p className='text-red-500 text-center text-sm bg-red-50 p-3 rounded-md border border-red-200 mb-4'>
+          {error}
+        </p>
+        <Button onClick={() => router.push('/login')} variant='outline' className='cursor-pointer'>
+          Retour à la connexion
+        </Button>
+      </div>
+    );
+  }
+
+  // ── OTP verification screen ──
+  if (state === 'otp' || state === 'verifying') {
+    return (
+      <div className='max-w-md w-full mx-auto'>
+        <div className='flex flex-col items-center mb-8'>
+          <div className='w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mb-6'>
+            <Mail className='w-8 h-8 text-primary-300' strokeWidth={1.5} />
+          </div>
+          <h1 className='text-2xl font-semibold text-neutral-900 mb-2'>Vérification</h1>
+          <p className='text-neutral-500 text-center text-sm px-4'>
+            Un code à 6 chiffres a été envoyé à<br />
+            <span className='font-medium text-neutral-700'>{invitationData?.emailAddress}</span>
+          </p>
+        </div>
+
+        {/* OTP input */}
+        <div className='flex justify-center gap-3 mb-6'>
+          {otpDigits.map((digit, i) => (
             <Input
-              id='email'
-              type='email'
-              value={invitationData?.emailAddress || ''}
-              className='w-full h-12 pl-10 bg-neutral-50 text-neutral-500 border-neutral-200'
-              disabled={true}
-              readOnly
+              key={i}
+              ref={el => {
+                inputRefs.current[i] = el;
+              }}
+              type='text'
+              inputMode='numeric'
+              maxLength={i === 0 ? 6 : 1}
+              value={digit}
+              onChange={e => handleOtpChange(i, e.target.value)}
+              onKeyDown={e => handleOtpKeyDown(i, e)}
+              disabled={state === 'verifying'}
+              className='w-12 h-14 text-center text-xl font-semibold border-neutral-200 focus:border-primary-300 focus:ring-primary-200 rounded-xl'
+              autoComplete={i === 0 ? 'one-time-code' : 'off'}
             />
-          </div>
-        </div>
-
-        <div className='space-y-2'>
-          <Label htmlFor='password' className='text-neutral-900 font-medium text-sm'>
-            Mot de passe
-          </Label>
-          <PasswordInput
-            id='password'
-            placeholder='Entrez votre mot de passe'
-            value={formState.values.password}
-            onChange={handlePasswordChange}
-            className={`w-full h-12 ${
-              hasError('password')
-                ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                : 'border-neutral-200 focus:border-primary-200 focus:ring-primary-200'
-            }`}
-            disabled={isSubmitting}
-            autoComplete='new-password'
-            maxLength={128}
-            required
-            aria-invalid={hasError('password')}
-            aria-describedby={hasError('password') ? 'password-error' : undefined}
-          />
-        </div>
-
-        <div className='space-y-1'>
-          <p className='text-xs text-neutral-500 mb-2'>Le mot de passe doit contenir :</p>
-          <div className='grid grid-cols-2 gap-y-2'>
-            <PasswordRequirement met={hasMinLength} text='8 caractères min.' />
-            <PasswordRequirement met={hasUpperCase} text='1 majuscule' />
-            <PasswordRequirement met={hasLowerCase} text='1 minuscule' />
-            <PasswordRequirement met={hasNumber} text='1 chiffre' />
-            <PasswordRequirement met={hasSpecial} text='1 caractère spécial' />
-          </div>
-        </div>
-
-        <div className='space-y-2'>
-          <Label htmlFor='confirmPassword' className='text-neutral-900 font-medium text-sm'>
-            Confirmer le mot de passe
-          </Label>
-          <PasswordInput
-            id='confirmPassword'
-            placeholder='Confirmez votre mot de passe'
-            value={formState.values.confirmPassword}
-            onChange={handleConfirmPasswordChange}
-            className={`w-full h-12 ${
-              hasError('confirmPassword')
-                ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                : 'border-neutral-200 focus:border-primary-200 focus:ring-primary-200'
-            }`}
-            disabled={isSubmitting}
-            autoComplete='new-password'
-            maxLength={128}
-            required
-            aria-invalid={hasError('confirmPassword')}
-            aria-describedby={hasError('confirmPassword') ? 'confirmPassword-error' : undefined}
-          />
-          {hasError('confirmPassword') && (
-            <div
-              id='confirmPassword-error'
-              className='text-red-500 text-xs mt-1'
-              role='alert'
-              aria-live='polite'
-            >
-              {getError('confirmPassword')}
-            </div>
-          )}
+          ))}
         </div>
 
         {error && (
-          <div
-            className='text-red-500 text-sm font-medium bg-red-50 p-3 rounded-md border border-red-200'
-            role='alert'
-            aria-live='polite'
-            aria-atomic='true'
-          >
+          <div className='text-red-500 text-sm bg-red-50 p-3 rounded-md border border-red-200 mb-4 text-center'>
             {error}
           </div>
         )}
 
         <Button
-          type='submit'
-          disabled={isSubmitting || !isFormValid}
-          data-testid='submit-button'
-          className={`w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base rounded-md transition-all flex items-center justify-center gap-2 ${
-            !isSubmitting && isFormValid ? 'cursor-pointer' : ''
-          }`}
+          onClick={handleVerifyOtp}
+          disabled={!isOtpComplete || state === 'verifying'}
+          className='w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium rounded-md cursor-pointer'
         >
-          {isSubmitting ? (
-            <>
-              <div className='h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin' />
-              <span>Création en cours...</span>
-            </>
+          {state === 'verifying' ? (
+            <span className='flex items-center gap-2'>
+              <Loader2 className='h-5 w-5 animate-spin' />
+              Vérification...
+            </span>
           ) : (
-            <>
-              Créer mon mot de passe
-              <ArrowRight className='h-4 w-4' />
-            </>
+            'Vérifier et accepter'
           )}
         </Button>
-      </form>
+
+        <div className='flex items-center justify-between mt-4'>
+          <button
+            onClick={() => {
+              setState('ready');
+              setError(null);
+            }}
+            className='text-neutral-400 text-sm hover:text-neutral-600 flex items-center gap-1 cursor-pointer'
+          >
+            <ArrowLeft className='w-3 h-3' /> Retour
+          </button>
+          <button
+            onClick={handleSendOtp}
+            disabled={state === 'verifying'}
+            className='text-primary-300 text-sm hover:text-primary-400 cursor-pointer disabled:opacity-50'
+          >
+            Renvoyer le code
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Ready — show invitation details ──
+  return (
+    <div className='max-w-md w-full mx-auto'>
+      <div className='flex flex-col items-center mb-8'>
+        <div className='w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mb-6'>
+          <Users className='w-8 h-8 text-primary-300' strokeWidth={1.5} />
+        </div>
+        <h1 className='text-2xl font-semibold text-neutral-900 mb-2'>
+          Rejoindre {invitationData?.organizationName || "l'organisation"}
+        </h1>
+        <p className='text-neutral-500 text-center text-sm px-4'>
+          Vous avez été invité(e) en tant que{' '}
+          <span className='font-medium text-neutral-700'>{roleFrench(invitationData?.role)}</span>
+        </p>
+      </div>
+
+      <div className='space-y-3 mb-8'>
+        <div className='flex items-center gap-3 p-4 bg-neutral-50 rounded-xl border border-neutral-100'>
+          <div className='w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm'>
+            <Mail className='w-5 h-5 text-neutral-400' />
+          </div>
+          <div>
+            <p className='text-xs text-neutral-400 font-medium'>Adresse email</p>
+            <p className='text-sm text-neutral-900 font-medium'>{invitationData?.emailAddress}</p>
+          </div>
+        </div>
+
+        {(invitationData?.firstName || invitationData?.lastName) && (
+          <div className='flex items-center gap-3 p-4 bg-neutral-50 rounded-xl border border-neutral-100'>
+            <div className='w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm'>
+              <Users className='w-5 h-5 text-neutral-400' />
+            </div>
+            <div>
+              <p className='text-xs text-neutral-400 font-medium'>Nom complet</p>
+              <p className='text-sm text-neutral-900 font-medium'>
+                {invitationData?.firstName} {invitationData?.lastName}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className='text-red-500 text-sm bg-red-50 p-3 rounded-md border border-red-200 mb-4 text-center'>
+          {error}
+        </div>
+      )}
+
+      <Button
+        onClick={handleSendOtp}
+        disabled={state === 'sending-otp'}
+        className='w-full h-12 bg-primary-300 hover:bg-primary-300/90 text-white font-medium text-base rounded-md cursor-pointer'
+      >
+        {state === 'sending-otp' ? (
+          <span className='flex items-center gap-2'>
+            <Loader2 className='h-5 w-5 animate-spin' />
+            Envoi du code...
+          </span>
+        ) : (
+          "Accepter l'invitation"
+        )}
+      </Button>
+
+      <p className='text-neutral-400 text-xs text-center mt-4'>
+        Un code de vérification sera envoyé à votre adresse email.
+      </p>
     </div>
   );
 }
