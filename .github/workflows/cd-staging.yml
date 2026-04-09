@@ -216,7 +216,7 @@ jobs:
         run: |
           echo "⏳ Waiting for frontend to be healthy..."
           for i in $(seq 1 20); do
-            if curl -sSf https://staging.finance4all.simplonprojet.com > /dev/null 2>&1; then
+            if curl -sSf https://finance4all.staging.simplonprojet.com > /dev/null 2>&1; then
               echo "✅ Frontend healthy after $i attempts"
               exit 0
             fi
