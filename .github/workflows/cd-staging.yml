@@ -164,7 +164,7 @@ jobs:
 
           echo "⏳ Polling backend health endpoint..."
           for i in $(seq 1 40); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://api.staging.finance4all.simplonprojet.com/health 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://finance4all-api.staging.simplonprojet.com/health 2>/dev/null || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✅ Backend healthy after $i attempts (HTTP $HTTP_CODE)"
               exit 0
@@ -174,7 +174,7 @@ jobs:
           done
 
           echo "❌ Backend failed to become healthy after ~7 minutes"
-          curl -v https://api.staging.finance4all.simplonprojet.com/health 2>&1 || true
+          curl -v https://finance4all-api.staging.simplonprojet.com/health 2>&1 || true
           exit 1
 
   # --------------------------------------------------
