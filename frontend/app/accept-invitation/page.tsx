@@ -6,8 +6,10 @@ import { ClerkAcceptInvitation } from '@/components/clerk-accept-invitation';
 
 interface AcceptInvitationPageProps {
   searchParams: Promise<{
-    invitation_id: string;
-    org_id: string;
+    invitation_id?: string;
+    org_id?: string;
+    __clerk_ticket?: string;
+    __clerk_status?: string;
   }>;
 }
 
@@ -45,7 +47,11 @@ export default async function AcceptInvitationPage({
       <div className='w-full max-w-md mx-auto'>
         <div className='bg-white/80 backdrop-blur-sm rounded-xl shadow-2xl border border-white/20 p-8'>
           <Suspense fallback={<div className='text-center'>Chargement...</div>}>
-            <ClerkAcceptInvitation invitationId={params.invitation_id} orgId={params.org_id} />
+            <ClerkAcceptInvitation
+              invitationId={params.invitation_id}
+              orgId={params.org_id}
+              clerkTicket={params.__clerk_ticket}
+            />
           </Suspense>
         </div>
       </div>

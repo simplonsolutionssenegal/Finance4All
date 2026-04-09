@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface ClerkAcceptInvitationProps {
-  invitationId: string;
-  orgId: string;
+  invitationId?: string;
+  orgId?: string;
+  clerkTicket?: string;
 }
 
 interface InvitationMetadata {
@@ -25,6 +26,7 @@ type PageState = 'loading' | 'ready' | 'sending-otp' | 'otp' | 'verifying' | 'su
 export function ClerkAcceptInvitation({
   invitationId,
   orgId,
+  clerkTicket,
 }: Readonly<ClerkAcceptInvitationProps>) {
   const router = useRouter();
   const [state, setState] = useState<PageState>('loading');
@@ -33,11 +35,40 @@ export function ClerkAcceptInvitation({
   const [otpToken, setOtpToken] = useState<string | null>(null);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resolvedInvitationId, setResolvedInvitationId] = useState<string | undefined>(
+    invitationId
+  );
+  const [resolvedOrgId, setResolvedOrgId] = useState<string | undefined>(orgId);
 
   // ── Fetch invitation on mount ──
   useEffect(() => {
     const fetchInvitationData = async () => {
-      if (!invitationId || !orgId) {
+      let currentInvitationId = invitationId;
+      let currentOrgId = orgId;
+
+      // Si on a un clerkTicket mais pas les IDs, résoudre via l'API
+      if (!currentInvitationId && clerkTicket && currentOrgId) {
+        try {
+          const ticketResponse = await fetch('/api/accept-invitation/resolve-ticket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticket: clerkTicket, orgId: currentOrgId }),
+          });
+          if (ticketResponse.ok) {
+            const ticketData = await ticketResponse.json();
+            if (ticketData.success) {
+              currentInvitationId = ticketData.invitationId;
+              currentOrgId = ticketData.orgId;
+              setResolvedInvitationId(currentInvitationId);
+              setResolvedOrgId(currentOrgId);
+            }
+          }
+        } catch {
+          // Fallback: continue sans résolution du ticket
+        }
+      }
+
+      if (!currentInvitationId || !currentOrgId) {
         setError("Lien d'invitation invalide. Paramètres manquants.");
         setState('error');
         return;
@@ -47,7 +78,7 @@ export function ClerkAcceptInvitation({
         const response = await fetch('/api/get-invitation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invitationId, orgId }),
+          body: JSON.stringify({ invitationId: currentInvitationId, orgId: currentOrgId }),
         });
 
         if (!response.ok) {
@@ -77,7 +108,7 @@ export function ClerkAcceptInvitation({
     };
 
     fetchInvitationData();
-  }, [invitationId, orgId]);
+  }, [invitationId, orgId, clerkTicket]);
 
   // ── Send OTP ──
   const handleSendOtp = useCallback(async () => {
@@ -166,8 +197,8 @@ export function ClerkAcceptInvitation({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          invitationId,
-          orgId,
+          invitationId: resolvedInvitationId,
+          orgId: resolvedOrgId,
           firstName: invitationData.firstName,
           lastName: invitationData.lastName,
           emailAddress: invitationData.emailAddress,
@@ -188,7 +219,15 @@ export function ClerkAcceptInvitation({
       setError(err instanceof Error ? err.message : 'Erreur');
       setState('otp');
     }
-  }, [invitationData, otpToken, isOtpComplete, otpCode, invitationId, orgId, router]);
+  }, [
+    invitationData,
+    otpToken,
+    isOtpComplete,
+    otpCode,
+    resolvedInvitationId,
+    resolvedOrgId,
+    router,
+  ]);
 
   // ── Helpers ──
   const roleFrench = (role?: string) => {

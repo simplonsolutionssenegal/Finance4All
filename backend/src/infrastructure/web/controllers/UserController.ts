@@ -34,6 +34,12 @@ export class UserController {
         return;
       }
 
+      // Construire l'URL de redirection avec org_id pour l'email Clerk
+      const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+      const redirectUrl =
+        process.env.CLERK_REDIRECT_URL ??
+        `${frontendUrl}/accept-invitation?org_id=${encodeURIComponent(organizationId)}`;
+
       // Créer l'invitation dans l'organisation
       const invitation = await clerkClient.organizations.createOrganizationInvitation({
         organizationId,
@@ -43,9 +49,7 @@ export class UserController {
           firstName,
           lastName,
         },
-        redirectUrl:
-          process.env.CLERK_REDIRECT_URL ??
-          `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/accept-invitation`,
+        redirectUrl,
       });
 
       // Récupérer les informations de l'organisation pour l'email
