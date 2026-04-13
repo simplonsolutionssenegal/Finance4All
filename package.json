@@ -39,5 +39,8 @@
     "**/*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "next": "^15.5.11"
   }
 }

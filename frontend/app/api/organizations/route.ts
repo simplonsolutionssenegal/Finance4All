@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, country, adminFirstName, adminLastName, adminEmail } = body;
+    const { name, country, address, adminFirstName, adminLastName, adminEmail } = body;
 
     if (!name || !country || !adminFirstName || !adminLastName || !adminEmail) {
       return NextResponse.json(
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const organization = await clerkClient.organizations.createOrganization({
       name,
       createdBy: userId,
-      publicMetadata: { type: 'partner', country },
+      publicMetadata: { type: 'partner', country, ...(address && { address }) },
     });
 
     // Remove the platform admin from the new partner org

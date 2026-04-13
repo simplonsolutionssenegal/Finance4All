@@ -74,7 +74,7 @@ const mockServices: ServiceDTO[] = [
 
 const mockPagination = {
   page: 1,
-  limit: 50,
+  limit: 100,
   total: 2,
   totalPages: 1,
 };
@@ -120,7 +120,7 @@ describe('useGetServices', () => {
 
     // Vérifier les appels
     expect(mockGetToken).toHaveBeenCalledTimes(1);
-    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=50', 'GET', 'mock-token');
+    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=100', 'GET', 'mock-token');
   });
 
   it('devrait utiliser les paramètres de pagination fournis', async () => {
@@ -159,7 +159,7 @@ describe('useGetServices', () => {
     });
 
     expect(mockApiClient).toHaveBeenCalledWith(
-      'services?page=1&limit=50&type=TRANSFERT_ARGENT',
+      'services?page=1&limit=100&type=TRANSFERT_ARGENT',
       'GET',
       'mock-token'
     );
@@ -177,7 +177,7 @@ describe('useGetServices', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=50', 'GET', 'mock-token');
+    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=100', 'GET', 'mock-token');
   });
 
   it('devrait gérer les erreurs', async () => {
@@ -232,7 +232,7 @@ describe('useGetServices', () => {
       React.createElement(QueryClientProvider, { client: queryClient }, children);
 
     const { result: result1 } = renderHook(
-      () => useGetServices({ page: 1, limit: 50, type: 'TRANSFERT_ARGENT' }),
+      () => useGetServices({ page: 1, limit: 100, type: 'TRANSFERT_ARGENT' }),
       { wrapper }
     );
 
@@ -245,7 +245,7 @@ describe('useGetServices', () => {
 
     // Avec les mêmes paramètres et le même QueryClient, devrait utiliser le cache
     const { result: result2 } = renderHook(
-      () => useGetServices({ page: 1, limit: 50, type: 'TRANSFERT_ARGENT' }),
+      () => useGetServices({ page: 1, limit: 100, type: 'TRANSFERT_ARGENT' }),
       { wrapper }
     );
 
@@ -269,7 +269,7 @@ describe('useGetServices', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=50', 'GET', null);
+    expect(mockApiClient).toHaveBeenCalledWith('services?page=1&limit=100', 'GET', null);
   });
 
   it('devrait combiner plusieurs paramètres correctement', async () => {

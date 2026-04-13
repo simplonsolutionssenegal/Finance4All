@@ -119,6 +119,23 @@ export const validatePhone = (phone: string): string => {
  * @param value - Valeur du champ à valider
  * @returns Message d'erreur ou chaîne vide si valide
  */
+export const validateBirthDate = (value: string): string => {
+  if (!value.trim()) return 'La date de naissance est requise';
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return 'Date invalide';
+  const now = new Date();
+  if (date > now) return 'La date ne peut pas être dans le futur';
+  const age = Math.floor((now.getTime() - date.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  if (age < 15) return 'Vous devez avoir au moins 15 ans';
+  return '';
+};
+
+export const validateGender = (value: string): string => {
+  if (!value.trim()) return 'Le genre est requis';
+  if (!['HOMME', 'FEMME'].includes(value)) return 'Valeur invalide';
+  return '';
+};
+
 export const validateBeneficiaryField = (field: string, value: string): string => {
   switch (field) {
     case 'firstName':
@@ -129,6 +146,10 @@ export const validateBeneficiaryField = (field: string, value: string): string =
       return validatePhone(value);
     case 'email':
       return validateEmail(value);
+    case 'birthDate':
+      return validateBirthDate(value);
+    case 'gender':
+      return validateGender(value);
     default:
       return '';
   }

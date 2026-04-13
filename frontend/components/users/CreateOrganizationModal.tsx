@@ -42,6 +42,7 @@ export default function CreateOrganizationModal({
   // Step 1 fields
   const [orgName, setOrgName] = useState('');
   const [country, setCountry] = useState('');
+  const [address, setAddress] = useState('');
 
   // Step 2 fields
   const [adminFirstName, setAdminFirstName] = useState('');
@@ -60,6 +61,7 @@ export default function CreateOrganizationModal({
       setCurrentStep(1);
       setOrgName('');
       setCountry('');
+      setAddress('');
       setAdminFirstName('');
       setAdminLastName('');
       setAdminEmail('');
@@ -122,6 +124,7 @@ export default function CreateOrganizationModal({
     const result = await createOrganization({
       name: orgName.trim(),
       country,
+      address: address.trim() || undefined,
       adminFirstName: adminFirstName.trim(),
       adminLastName: adminLastName.trim(),
       adminEmail: adminEmail.trim(),
@@ -211,6 +214,20 @@ export default function CreateOrganizationModal({
           </SelectContent>
         </Select>
         {errors.country && <p className='text-sm text-red-500'>{errors.country}</p>}
+      </div>
+
+      <div className='space-y-2'>
+        <label htmlFor='address' className='text-sm font-medium text-gray-700 block'>
+          Adresse
+        </label>
+        <Input
+          id='address'
+          placeholder="Adresse de l'organisation"
+          value={address}
+          onChange={e => setAddress(e.target.value)}
+          className='w-full bg-gray-50 border-0'
+          disabled={isCreating}
+        />
       </div>
     </div>
   );

@@ -12,6 +12,8 @@ export interface CreateBeneficiaryFormValues {
   lastName: string;
   phone: string;
   email: string;
+  birthDate: string;
+  gender: string;
   [key: string]: unknown;
 }
 
@@ -45,7 +47,7 @@ interface UseCreateBeneficiaryReturn {
 
 type VerificationStrategy = 'email_code';
 
-const REQUIRED_FIELDS = ['firstName', 'lastName', 'phone', 'email'] as const;
+const REQUIRED_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'birthDate', 'gender'] as const;
 
 export function useCreateBeneficiary(
   initialValues: CreateBeneficiaryFormValues
@@ -154,6 +156,25 @@ export function useCreateBeneficiary(
     setVerificationError(null);
   }, [formState.values.email]);
 
+  const syncBeneficiaryToBackend = useCallback(async () => {
+    try {
+      await fetch('/api/beneficiaries/self-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formState.values.firstName,
+          lastName: formState.values.lastName,
+          email: formState.values.email,
+          phone: formState.values.phone || undefined,
+          birthDate: formState.values.birthDate || undefined,
+          gender: formState.values.gender || undefined,
+        }),
+      });
+    } catch (err) {
+      console.error('Erreur sync bénéficiaire vers backend:', err);
+    }
+  }, [formState.values]);
+
   const processVerificationAttempt = useCallback(
     async (attempt: SignUpResource) => {
       const emailVerificationStatus = attempt.verifications?.emailAddress?.status;
@@ -164,6 +185,8 @@ export function useCreateBeneficiary(
         if (attempt.createdSessionId) {
           await setActive({ session: attempt.createdSessionId });
         }
+        // Synchroniser le bénéficiaire vers PostgreSQL
+        await syncBeneficiaryToBackend();
         router.push('/auth-redirect');
         return;
       }
@@ -192,7 +215,7 @@ export function useCreateBeneficiary(
         `Status de vérification inattendu: ${attempt.status}. Veuillez réessayer.`
       );
     },
-    [router, setActive]
+    [router, setActive, syncBeneficiaryToBackend]
   );
 
   const handleCreateBeneficiary = useCallback(
@@ -217,6 +240,8 @@ export function useCreateBeneficiary(
           unsafeMetadata: {
             role: 'beneficiary',
             phoneNumber: formState.values.phone as string,
+            birthDate: formState.values.birthDate as string,
+            gender: formState.values.gender as string,
           },
         });
 

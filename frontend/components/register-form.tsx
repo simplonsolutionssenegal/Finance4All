@@ -1,6 +1,6 @@
 'use client';
 
-import { User, Mail, Phone, ArrowRight, MailCheck } from 'lucide-react';
+import { User, Mail, Phone, ArrowRight, MailCheck, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState } from 'react';
 
@@ -28,6 +28,8 @@ export function RegisterForm() {
     lastName: '',
     phone: '',
     email: '',
+    birthDate: '',
+    gender: '',
   };
 
   const {
@@ -209,6 +211,82 @@ export function RegisterForm() {
                   {getError('phone')}
                 </div>
               )}
+            </div>
+
+            {/* Date de naissance et Genre */}
+            <div className='grid grid-cols-2 gap-4'>
+              <div className='space-y-2'>
+                <Label htmlFor='birthDate' className='text-foreground font-medium text-gray-700'>
+                  Date de naissance
+                </Label>
+                <div className='relative'>
+                  <CalendarDays className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
+                  <Input
+                    id='birthDate'
+                    type='date'
+                    value={formState.values.birthDate as string}
+                    onChange={handleFieldChange('birthDate')}
+                    className={`w-full h-12 pl-10 bg-gray-50 border-gray-200 rounded-lg focus-visible:ring-primary-200 ${
+                      hasError('birthDate')
+                        ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
+                        : ''
+                    }`}
+                    disabled={isLoading}
+                    required
+                    aria-invalid={hasError('birthDate')}
+                    aria-describedby={hasError('birthDate') ? 'birthDate-error' : undefined}
+                  />
+                </div>
+                {hasError('birthDate') && (
+                  <div
+                    id='birthDate-error'
+                    className='text-red-500 text-sm font-medium'
+                    role='alert'
+                    aria-live='polite'
+                  >
+                    {getError('birthDate')}
+                  </div>
+                )}
+              </div>
+
+              <div className='space-y-2'>
+                <Label htmlFor='gender' className='text-foreground font-medium text-gray-700'>
+                  Genre
+                </Label>
+                <select
+                  id='gender'
+                  value={formState.values.gender as string}
+                  onChange={e => {
+                    const handler = handleFieldChange('gender');
+                    handler(e as unknown as React.ChangeEvent<HTMLInputElement>);
+                  }}
+                  className={`w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-primary-200 focus:border-primary-200 ${
+                    hasError('gender')
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : ''
+                  } ${!(formState.values.gender as string) ? 'text-gray-400' : 'text-gray-900'}`}
+                  disabled={isLoading}
+                  required
+                  aria-invalid={hasError('gender')}
+                  aria-describedby={hasError('gender') ? 'gender-error' : undefined}
+                >
+                  <option value='' disabled>
+                    Sélectionner
+                  </option>
+                  <option value='HOMME'>Homme</option>
+                  <option value='FEMME'>Femme</option>
+                </select>
+                {hasError('gender') && (
+                  <div
+                    id='gender-error'
+                    className='text-red-500 text-sm font-medium'
+                    role='alert'
+                    aria-live='polite'
+                  >
+                    {getError('gender')}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className='space-y-2'>

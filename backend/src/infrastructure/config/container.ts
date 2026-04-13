@@ -48,9 +48,13 @@ import { PrismaBeneficiaryRepository } from '@/infrastructure/persistence/reposi
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
 import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
+import type { GetBeneficiaryStatsUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaryStatsUseCase';
+import type { SelfRegisterBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/SelfRegisterBeneficiaryUseCase';
 import { CreateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/CreateBeneficiaryUseCaseImpl';
 import { UpdateBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/UpdateBeneficiaryUseCaseImpl';
 import { GetBeneficiaireDashboardUseCaseImpl } from '@/application/beneficiaires/use-cases/GetBeneficiaireDashboardUseCaseImpl';
+import { GetBeneficiaryStatsUseCaseImpl } from '@/application/beneficiaires/use-cases/GetBeneficiaryStatsUseCaseImpl';
+import { SelfRegisterBeneficiaryUseCaseImpl } from '@/application/beneficiaires/use-cases/SelfRegisterBeneficiaryUseCaseImpl';
 import type { OrganizationIdentityPort } from '@/domain/Beneficiary/ports/out/OrganizationIdentityPort';
 import { ClerkOrganizationIdentityService } from '../services/ClerkOrganizationIdentityService';
 import type { UpdateServiceUseCase } from '@/domain/institutions/ports/in/UpdateServiceUseCase';
@@ -206,6 +210,8 @@ export const TYPES = {
   GetBeneficiariesUseCase: Symbol.for('GetBeneficiariesUseCase'),
   UpdateBeneficiaryUseCase: Symbol.for('UpdateBeneficiaryUseCase'),
   GetBeneficiaireDashboardUseCase: Symbol.for('GetBeneficiaireDashboardUseCase'),
+  GetBeneficiaryStatsUseCase: Symbol.for('GetBeneficiaryStatsUseCase'),
+  SelfRegisterBeneficiaryUseCase: Symbol.for('SelfRegisterBeneficiaryUseCase'),
   BeneficiaryRepository: Symbol.for('BeneficiaryRepository'),
   OrganizationIdentityPort: Symbol.for('OrganizationIdentityPort'),
   BeneficiaryController: Symbol.for('BeneficiaryController'),
@@ -509,6 +515,22 @@ container
   })
   .inSingletonScope();
 
+container
+  .bind<GetBeneficiaryStatsUseCase>(TYPES.GetBeneficiaryStatsUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    return new GetBeneficiaryStatsUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
+container
+  .bind<SelfRegisterBeneficiaryUseCase>(TYPES.SelfRegisterBeneficiaryUseCase)
+  .toDynamicValue(context => {
+    const repository = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
+    return new SelfRegisterBeneficiaryUseCaseImpl(repository);
+  })
+  .inSingletonScope();
+
 // ======Quiz Use Cases ======
 container
   .bind<GetQuizByIdUseCase>(TYPES.GetQuizByIdUseCase)
@@ -676,9 +698,20 @@ container
     const getDashboardUC = context.get<GetBeneficiaireDashboardUseCase>(
       TYPES.GetBeneficiaireDashboardUseCase
     );
+    const getStatsUC = context.get<GetBeneficiaryStatsUseCase>(TYPES.GetBeneficiaryStatsUseCase);
+    const selfRegisterUC = context.get<SelfRegisterBeneficiaryUseCase>(
+      TYPES.SelfRegisterBeneficiaryUseCase
+    );
     const repo = context.get<BeneficiaryRepository>(TYPES.BeneficiaryRepository);
 
-    return new BeneficiaryController(createUC, updateUC, getDashboardUC, repo);
+    return new BeneficiaryController(
+      createUC,
+      updateUC,
+      getDashboardUC,
+      getStatsUC,
+      selfRegisterUC,
+      repo
+    );
   })
   .inSingletonScope();
 

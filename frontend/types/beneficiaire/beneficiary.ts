@@ -6,10 +6,13 @@ export enum BeneficiaryStatus {
 
 export interface Beneficiary {
   id: string;
+  clerkUserId?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone?: string;
+  birthDate?: string;
+  gender?: 'HOMME' | 'FEMME';
   status: BeneficiaryStatus;
   progressPercent: number;
   createdAt: string;

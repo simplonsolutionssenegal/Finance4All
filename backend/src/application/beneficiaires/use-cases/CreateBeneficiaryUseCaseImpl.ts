@@ -43,6 +43,8 @@ export class CreateBeneficiaryUseCaseImpl implements CreateBeneficiaryUseCase {
       lastName: cmd.lastName,
       email: cmd.email,
       phone: cmd.phone ?? null,
+      birthDate: cmd.birthDate ? new Date(cmd.birthDate) : null,
+      gender: cmd.gender ?? null,
     });
 
     return { beneficiary, tempPassword };

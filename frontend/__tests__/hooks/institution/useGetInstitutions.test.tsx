@@ -54,7 +54,7 @@ describe('useGetInstitutions', () => {
 
   const mockPagination = {
     page: 1,
-    limit: 10,
+    limit: 100,
     total: 2,
     totalPages: 1,
   };
@@ -89,7 +89,7 @@ describe('useGetInstitutions', () => {
 
     expect(mockGetToken).toHaveBeenCalledTimes(1);
     expect(mockFetch).toHaveBeenCalledWith(
-      `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=1&limit=10`,
+      `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=1&limit=100`,
       expect.objectContaining({
         method: 'GET',
         headers: {
@@ -267,22 +267,22 @@ describe('useGetInstitutions', () => {
       ({ page, limit }) => useGetInstitutions({ page, limit }),
       {
         wrapper,
-        initialProps: { page: 1, limit: 10 },
+        initialProps: { page: 1, limit: 100 },
       }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockFetch).toHaveBeenCalledWith(
-      `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=1&limit=10`,
+      `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=1&limit=100`,
       expect.any(Object)
     );
 
-    rerender({ page: 2, limit: 10 });
+    rerender({ page: 2, limit: 100 });
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=2&limit=10`,
+        `${process.env.NEXT_PUBLIC_API_URL}/institutions?page=2&limit=100`,
         expect.any(Object)
       );
     });
@@ -301,6 +301,6 @@ describe('useGetInstitutions', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.institutions).toEqual([]);
-    expect(result.current.error?.message).toBe('Failed to GET institutions?page=1&limit=10');
+    expect(result.current.error?.message).toBe('Failed to GET institutions?page=1&limit=100');
   });
 });

@@ -41,6 +41,8 @@ describe('useCreateBeneficiary', () => {
     lastName: '',
     phone: '',
     email: '',
+    birthDate: '',
+    gender: '',
   };
 
   const validFormValues = {
@@ -48,6 +50,8 @@ describe('useCreateBeneficiary', () => {
     lastName: 'Doe',
     phone: '+221771234567',
     email: 'john@example.com',
+    birthDate: '1995-06-15',
+    gender: 'HOMME',
   };
 
   const setupFormState = (
@@ -146,6 +150,8 @@ describe('useCreateBeneficiary', () => {
         unsafeMetadata: {
           role: 'beneficiary',
           phoneNumber: validFormValues.phone,
+          birthDate: validFormValues.birthDate,
+          gender: validFormValues.gender,
         },
       });
       expect(mockSignUp.prepareEmailAddressVerification).toHaveBeenCalledWith({
