@@ -55,7 +55,7 @@ export default function DashboardBarChart() {
                     borderRadius: '8px',
                     color: 'white',
                   }}
-                  formatter={(value: number) => [`${value}`, 'Beneficiaires']}
+                  formatter={value => [`${value}`, 'Beneficiaires']}
                 />
                 <Bar
                   dataKey='value'
