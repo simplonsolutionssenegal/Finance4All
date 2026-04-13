@@ -1,9 +1,20 @@
 'use client';
 
-import { Mail, Phone, CalendarDays, BookOpen, Award, Folder, CircleDollarSign } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  CalendarDays,
+  BookOpen,
+  Award,
+  Folder,
+  CircleDollarSign,
+  Clock,
+  Loader2,
+} from 'lucide-react';
 import React from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import type { BeneficiaireDashboardData } from '@/hooks/beneficiary/useBeneficiaireDashboardData';
 import type { Beneficiary } from '@/types/beneficiaire/beneficiary';
 // eslint-disable-next-line no-duplicate-imports
 import { BeneficiaryStatus } from '@/types/beneficiaire/beneficiary';
@@ -65,15 +76,23 @@ function formatDateFR(iso: string) {
 type BeneficiaryDetailProps = {
   beneficiary: Beneficiary;
   onBack: () => void;
+  dashboardData?: BeneficiaireDashboardData | null;
+  isDashboardLoading?: boolean;
 };
 
-export function BeneficiaryDetail({ beneficiary, onBack }: BeneficiaryDetailProps) {
+export function BeneficiaryDetail({
+  beneficiary,
+  onBack,
+  dashboardData,
+  isDashboardLoading,
+}: BeneficiaryDetailProps) {
   const fullName = `${beneficiary.firstName} ${beneficiary.lastName}`.trim();
   const initials = initialsOf(beneficiary);
-  // Module progress
-  const progress = beneficiary.progressPercent ?? 5;
-  // Certification progress
-  const certProgress = 85;
+
+  const stats = dashboardData?.stats;
+  const moduleStats = dashboardData?.moduleStats;
+  const timeByModule = dashboardData?.timeByModule ?? [];
+  const progress = stats?.globalProgress ?? beneficiary.progressPercent ?? 0;
 
   const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
@@ -186,16 +205,40 @@ export function BeneficiaryDetail({ beneficiary, onBack }: BeneficiaryDetailProp
                     <BookOpen className='h-3.5 w-3.5 text-tertiary-400' />
                     Modules
                   </div>
-                  <div className='mt-1 text-lg font-semibold text-tertiary-900'>1</div>
+                  <div className='mt-1 text-lg font-semibold text-tertiary-900'>
+                    {moduleStats ? `${moduleStats.completed}/${moduleStats.total}` : '—'}
+                  </div>
                 </div>
 
                 <div className='flex-1 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
                   <div className='flex items-center gap-2 text-[11px] text-tertiary-500'>
+                    <Clock className='h-3.5 w-3.5 text-tertiary-400' />
+                    Temps
+                  </div>
+                  <div className='mt-1 text-sm font-semibold text-tertiary-900'>
+                    {stats?.learningTime ?? '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className='mt-3 flex gap-3'>
+                <div className='flex-1 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+                  <div className='flex items-center gap-2 text-[11px] text-tertiary-500'>
                     <Award className='h-3.5 w-3.5 text-tertiary-400' />
-                    Certificats
+                    Quizzes
                   </div>
                   <div className='mt-1 text-lg font-semibold text-tertiary-900'>
-                    {progress >= 100 ? 1 : 0}
+                    {stats ? `${stats.quizzesPassed.current}/${stats.quizzesPassed.total}` : '—'}
+                  </div>
+                </div>
+
+                <div className='flex-1 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2'>
+                  <div className='flex items-center gap-2 text-[11px] text-tertiary-500'>
+                    <BookOpen className='h-3.5 w-3.5 text-tertiary-400' />
+                    En cours
+                  </div>
+                  <div className='mt-1 text-lg font-semibold text-tertiary-900'>
+                    {moduleStats?.inProgress ?? '—'}
                   </div>
                 </div>
               </div>
@@ -205,105 +248,145 @@ export function BeneficiaryDetail({ beneficiary, onBack }: BeneficiaryDetailProp
 
         {/* Colonne droite */}
         <div className='space-y-6'>
-          {/* Module de formation */}
+          {/* Modules de formation */}
           <Card className='rounded-2xl border border-slate-100 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.08)]'>
             <CardContent className='p-6'>
-              {/* Header aligné */}
               <div className='grid grid-cols-[40px_1fr] items-center gap-3'>
                 <div className='grid h-9 w-9 place-items-center rounded-xl bg-sky-50'>
                   <Folder className='h-4 w-4 text-sky-600' />
                 </div>
-                <div className='text-sm font-semibold text-tertiary-900'>Module de formation</div>
+                <div className='text-sm font-semibold text-tertiary-900'>Modules de formation</div>
               </div>
 
-              {/* Item aligné sous le titre */}
-              <div className='mt-4 grid grid-cols-[40px_1fr_auto] items-start gap-3'>
-                <div />
-                <div className='flex items-start gap-3'>
-                  <div className='mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-amber-50'>
-                    <CircleDollarSign className='h-4 w-4 text-amber-500' />
-                  </div>
-
-                  <div>
-                    <div className='text-[13px] font-semibold text-tertiary-900'>
-                      Bases de la Finance Personnelle
-                    </div>
-                    <div className='text-[11px] text-tertiary-500'>
-                      Introduction aux concepts financiers essentiels
-                    </div>
-                  </div>
+              {isDashboardLoading ? (
+                <div className='mt-6 flex items-center justify-center gap-2 text-sm text-tertiary-500'>
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                  Chargement...
                 </div>
-
-                <span className='mt-0.5 inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-600'>
-                  En cours
-                </span>
-              </div>
-
-              {/* Divider indenté */}
-              <div className='mt-4 grid grid-cols-[40px_1fr] gap-3'>
-                <div />
-                <div className='h-px w-full bg-slate-200' />
-              </div>
-
-              {/* Progress indenté + % à droite */}
-              <div className='mt-3 grid grid-cols-[40px_1fr_auto] items-center gap-3'>
-                <div />
-                <div className='h-2 overflow-hidden rounded-full bg-slate-100'>
-                  <div
-                    className='h-full rounded-full bg-sky-500'
-                    style={{ width: `${clamp(progress)}%` }}
-                  />
+              ) : timeByModule.length === 0 ? (
+                <div className='mt-4 grid grid-cols-[40px_1fr] gap-3'>
+                  <div />
+                  <p className='text-[12px] text-tertiary-400'>
+                    Aucun module suivi pour le moment.
+                  </p>
                 </div>
-                <div className='w-10 text-right text-[11px] font-medium text-tertiary-500'>
-                  {Math.round(clamp(progress))}%
-                </div>
-              </div>
+              ) : (
+                timeByModule.map((mod, i) => {
+                  const pct = clamp(mod.completionPercent);
+                  const statusLabel =
+                    pct >= 100 ? 'Terminé' : pct > 0 ? 'En cours' : 'Non commencé';
+                  const statusColor =
+                    pct >= 100
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : pct > 0
+                        ? 'bg-sky-50 text-sky-600'
+                        : 'bg-slate-100 text-tertiary-400';
+
+                  return (
+                    <React.Fragment key={mod.moduleId}>
+                      <div className='mt-4 grid grid-cols-[40px_1fr_auto] items-start gap-3'>
+                        <div />
+                        <div className='flex items-start gap-3'>
+                          <div className='mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-amber-50'>
+                            <CircleDollarSign className='h-4 w-4 text-amber-500' />
+                          </div>
+                          <div>
+                            <div className='text-[13px] font-semibold text-tertiary-900'>
+                              {mod.moduleTitle}
+                            </div>
+                            <div className='text-[11px] text-tertiary-500'>
+                              {mod.totalSeconds > 0
+                                ? `${Math.round(mod.totalSeconds / 60)} min de formation`
+                                : 'Pas encore commencé'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${statusColor}`}
+                        >
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <div className='mt-3 grid grid-cols-[40px_1fr_auto] items-center gap-3'>
+                        <div />
+                        <div className='h-2 overflow-hidden rounded-full bg-slate-100'>
+                          <div
+                            className='h-full rounded-full bg-sky-500'
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className='w-10 text-right text-[11px] font-medium text-tertiary-500'>
+                          {Math.round(pct)}%
+                        </div>
+                      </div>
+
+                      {i < timeByModule.length - 1 && (
+                        <div className='mt-4 grid grid-cols-[40px_1fr] gap-3'>
+                          <div />
+                          <div className='h-px w-full bg-slate-200' />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
 
-          {/* Certifications obtenues */}
-          <Card className='rounded-2xl border border-slate-100 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.08)]'>
-            <CardContent className='p-6'>
-              <div className='grid grid-cols-[40px_1fr] items-center gap-3'>
-                <div className='grid h-9 w-9 place-items-center rounded-xl bg-sky-50'>
-                  <Award className='h-4 w-4 text-sky-600' />
-                </div>
-                <div className='text-sm font-semibold text-tertiary-900'>
-                  Certifications obtenues
-                </div>
-              </div>
-
-              <div className='mt-4 grid grid-cols-[40px_1fr_auto] items-start gap-3'>
-                <div />
-                <div className='flex items-start gap-3'>
-                  <div className='mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-sky-50'>
+          {/* Activité récente */}
+          {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 && (
+            <Card className='rounded-2xl border border-slate-100 bg-white shadow-[0_20px_40px_rgba(0,0,0,0.08)]'>
+              <CardContent className='p-6'>
+                <div className='grid grid-cols-[40px_1fr] items-center gap-3'>
+                  <div className='grid h-9 w-9 place-items-center rounded-xl bg-sky-50'>
                     <Award className='h-4 w-4 text-sky-600' />
                   </div>
+                  <div className='text-sm font-semibold text-tertiary-900'>Activité récente</div>
+                </div>
 
-                  <div>
-                    <div className='text-[13px] font-semibold text-tertiary-900'>
-                      Certification Finance de base
+                {dashboardData.recentActivity.map((activity, i) => (
+                  <React.Fragment key={activity.chapterId}>
+                    <div className='mt-4 grid grid-cols-[40px_1fr_auto] items-start gap-3'>
+                      <div />
+                      <div className='flex items-start gap-3'>
+                        <div className='mt-0.5 grid h-7 w-7 place-items-center rounded-full bg-sky-50'>
+                          <BookOpen className='h-4 w-4 text-sky-600' />
+                        </div>
+                        <div>
+                          <div className='text-[13px] font-semibold text-tertiary-900'>
+                            {activity.chapterTitle}
+                          </div>
+                          <div className='text-[11px] text-tertiary-500'>
+                            {activity.lessonTitle} — {activity.moduleTitle}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='flex flex-col items-end'>
+                        <div className='text-[11px] font-medium text-tertiary-500'>
+                          {Math.round(clamp(activity.progress))}%
+                        </div>
+                        {activity.remainingTime && (
+                          <div className='text-[10px] text-tertiary-400'>
+                            {activity.remainingTime} restant
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className='text-[11px] text-tertiary-500'>Délivrée le 1 sept. 2024</div>
-                  </div>
-                </div>
 
-                <div className='flex flex-col items-end'>
-                  <div className='text-[11px] font-medium text-tertiary-500'>
-                    {Math.round(clamp(certProgress))}%
-                  </div>
-                  <span className='mt-2 inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-600'>
-                    En cours
-                  </span>
-                </div>
-              </div>
-
-              <div className='mt-4 grid grid-cols-[40px_1fr] gap-3'>
-                <div />
-                <div className='h-px w-full bg-slate-200' />
-              </div>
-            </CardContent>
-          </Card>
+                    {i < dashboardData.recentActivity.length - 1 && (
+                      <div className='mt-4 grid grid-cols-[40px_1fr] gap-3'>
+                        <div />
+                        <div className='h-px w-full bg-slate-200' />
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

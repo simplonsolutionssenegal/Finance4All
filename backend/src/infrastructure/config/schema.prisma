@@ -15,13 +15,15 @@ model User {
 
 model Beneficiary {
   id              String            @id @default(uuid())
-  organizationId  String
+  organizationId  String?
   clerkUserId     String            @unique
 
   firstName       String
   lastName        String
-  email           String
+  email           String            @unique
   phone           String?
+  birthDate       DateTime?
+  gender          Gender?
 
   status          BeneficiaryStatus @default(ACTIVE)
   progressPercent Int               @default(0)
@@ -31,12 +33,16 @@ model Beneficiary {
 
   @@index([organizationId])
   @@index([status])
-  @@unique([organizationId, email])
 }
 
 enum BeneficiaryStatus {
   ACTIVE
   INACTIVE
+}
+
+enum Gender {
+  HOMME
+  FEMME
 }
 
 model Institution {

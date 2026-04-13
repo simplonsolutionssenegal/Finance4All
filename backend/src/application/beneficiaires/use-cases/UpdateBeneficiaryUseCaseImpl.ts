@@ -14,6 +14,12 @@ export class UpdateBeneficiaryUseCaseImpl implements UpdateBeneficiaryUseCase {
       firstName: cmd.firstName,
       lastName: cmd.lastName,
       phone: cmd.phone,
+      birthDate: cmd.birthDate
+        ? new Date(cmd.birthDate)
+        : cmd.birthDate === null
+          ? null
+          : undefined,
+      gender: cmd.gender,
       status: cmd.status,
     });
   }

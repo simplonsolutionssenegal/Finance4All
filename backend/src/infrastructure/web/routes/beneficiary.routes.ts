@@ -15,7 +15,11 @@ export const beneficiaryRoutes = (): Router => {
     update: controller.update.bind(controller),
     delete: controller.delete.bind(controller),
     getDashboard: controller.getDashboard.bind(controller),
+    getStats: controller.getStats.bind(controller),
+    selfRegister: controller.selfRegister.bind(controller),
   };
+  router.post('/self-register', boundController.selfRegister);
+  router.get('/stats', boundController.getStats);
   router.get('/dashboard', boundController.getDashboard);
   router.get('/', requireSameActiveOrg, boundController.list);
   router.post('/', requireSameActiveOrg, handleValidationErrors, boundController.create);

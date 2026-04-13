@@ -8,9 +8,12 @@ describe('UpdateBeneficiaryUseCaseImpl', () => {
 
   beforeEach(() => {
     mockRepo = {
+      getDemographicStats: jest.fn(),
+      findByClerkUserId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
       findByOrgId: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
@@ -37,6 +40,8 @@ describe('UpdateBeneficiaryUseCaseImpl', () => {
       lastName: 'Dupont',
       email: 'jean.dupont@example.com',
       phone: '+221770000000',
+      birthDate: null,
+      gender: null,
       status: BeneficiaryStatus.ACTIVE,
       progressPercent: 50,
       createdAt: new Date('2024-01-01'),
@@ -130,6 +135,89 @@ describe('UpdateBeneficiaryUseCaseImpl', () => {
         phone: undefined,
         status: BeneficiaryStatus.ACTIVE,
       });
+    });
+
+    it('should convert birthDate string to Date when provided', async () => {
+      const commandWithBirthDate = {
+        ...validCommand,
+        birthDate: '1995-06-15',
+      };
+
+      const beneficiaryWithBirthDate: Beneficiary = {
+        ...updatedBeneficiary,
+        birthDate: new Date('1995-06-15'),
+      };
+
+      mockRepo.findByIdInOrg.mockResolvedValue(existingBeneficiary);
+      mockRepo.updateInOrg.mockResolvedValue(beneficiaryWithBirthDate);
+
+      await useCase.execute(commandWithBirthDate);
+
+      expect(mockRepo.updateInOrg).toHaveBeenCalledWith(
+        expect.objectContaining({
+          birthDate: new Date('1995-06-15'),
+        })
+      );
+    });
+
+    it('should pass null for birthDate when explicitly set to null', async () => {
+      const commandWithNullBirthDate = {
+        ...validCommand,
+        birthDate: null,
+      };
+
+      mockRepo.findByIdInOrg.mockResolvedValue(existingBeneficiary);
+      mockRepo.updateInOrg.mockResolvedValue(updatedBeneficiary);
+
+      await useCase.execute(commandWithNullBirthDate);
+
+      expect(mockRepo.updateInOrg).toHaveBeenCalledWith(
+        expect.objectContaining({
+          birthDate: null,
+        })
+      );
+    });
+
+    it('should pass undefined for birthDate when not provided', async () => {
+      const commandWithoutBirthDate = {
+        ...validCommand,
+        // birthDate is not set, so it is undefined
+      };
+
+      mockRepo.findByIdInOrg.mockResolvedValue(existingBeneficiary);
+      mockRepo.updateInOrg.mockResolvedValue(updatedBeneficiary);
+
+      await useCase.execute(commandWithoutBirthDate);
+
+      expect(mockRepo.updateInOrg).toHaveBeenCalledWith(
+        expect.objectContaining({
+          birthDate: undefined,
+        })
+      );
+    });
+
+    it('should pass gender to updateInOrg', async () => {
+      const commandWithGender = {
+        ...validCommand,
+        gender: 'FEMME' as const,
+      };
+
+      const beneficiaryWithGender: Beneficiary = {
+        ...updatedBeneficiary,
+        gender: 'FEMME',
+      };
+
+      mockRepo.findByIdInOrg.mockResolvedValue(existingBeneficiary);
+      mockRepo.updateInOrg.mockResolvedValue(beneficiaryWithGender);
+
+      const result = await useCase.execute(commandWithGender);
+
+      expect(result.gender).toBe('FEMME');
+      expect(mockRepo.updateInOrg).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gender: 'FEMME',
+        })
+      );
     });
 
     it('should propagate repository errors', async () => {

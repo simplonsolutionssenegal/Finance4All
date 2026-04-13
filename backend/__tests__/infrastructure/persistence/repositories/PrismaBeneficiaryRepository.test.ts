@@ -15,11 +15,81 @@ describe('PrismaBeneficiaryRepository', () => {
         create: jest.fn(),
         update: jest.fn(),
         deleteMany: jest.fn(),
+        count: jest.fn(),
       },
     };
 
     repository = new PrismaBeneficiaryRepository(mockPrisma as PrismaClient);
     jest.clearAllMocks();
+  });
+
+  describe('getDemographicStats', () => {
+    it('should return demographic stats for a specific organization', async () => {
+      mockPrisma.beneficiary.count
+        .mockResolvedValueOnce(100) // total
+        .mockResolvedValueOnce(45) // women
+        .mockResolvedValueOnce(30) // youth
+        .mockResolvedValueOnce(60); // inTraining
+
+      const result = await repository.getDemographicStats('org-123');
+
+      expect(result).toEqual({ total: 100, women: 45, youth: 30, inTraining: 60 });
+      expect(mockPrisma.beneficiary.count).toHaveBeenCalledTimes(4);
+      // total
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(1, {
+        where: { organizationId: 'org-123' },
+      });
+      // women
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(2, {
+        where: { organizationId: 'org-123', gender: 'FEMME' },
+      });
+      // youth (birthDate gte ~30 years ago)
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(3, {
+        where: { organizationId: 'org-123', birthDate: { gte: expect.any(Date) } },
+      });
+      // inTraining
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(4, {
+        where: { organizationId: 'org-123', status: 'ACTIVE' },
+      });
+    });
+
+    it('should return demographic stats for all organizations when no organizationId provided', async () => {
+      mockPrisma.beneficiary.count
+        .mockResolvedValueOnce(500) // total
+        .mockResolvedValueOnce(250) // women
+        .mockResolvedValueOnce(200) // youth
+        .mockResolvedValueOnce(300); // inTraining
+
+      const result = await repository.getDemographicStats();
+
+      expect(result).toEqual({ total: 500, women: 250, youth: 200, inTraining: 300 });
+      // total - empty where
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(1, { where: {} });
+      // women - no organizationId filter
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(2, {
+        where: { gender: 'FEMME' },
+      });
+      // youth
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(3, {
+        where: { birthDate: { gte: expect.any(Date) } },
+      });
+      // inTraining
+      expect(mockPrisma.beneficiary.count).toHaveBeenNthCalledWith(4, {
+        where: { status: 'ACTIVE' },
+      });
+    });
+
+    it('should return zeros when no beneficiaries exist', async () => {
+      mockPrisma.beneficiary.count
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(0);
+
+      const result = await repository.getDemographicStats('org-empty');
+
+      expect(result).toEqual({ total: 0, women: 0, youth: 0, inTraining: 0 });
+    });
   });
 
   describe('findByClerkUserId', () => {
@@ -55,6 +125,83 @@ describe('PrismaBeneficiaryRepository', () => {
       const result = await repository.findByClerkUserId('clerk-unknown');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findByEmail', () => {
+    it('should return beneficiary when found by email', async () => {
+      const mockRow = {
+        id: 'ben-email-1',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-email-1',
+        firstName: 'Fatou',
+        lastName: 'Diallo',
+        email: 'fatou@example.com',
+        phone: '+221771234567',
+        birthDate: new Date('1995-06-15'),
+        gender: 'FEMME',
+        status: 'ACTIVE',
+        progressPercent: 60,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-02'),
+      };
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(mockRow);
+
+      const result = await repository.findByEmail('fatou@example.com');
+
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result?.id).toBe('ben-email-1');
+      expect(result?.email).toBe('fatou@example.com');
+      expect(result?.firstName).toBe('Fatou');
+      expect(result?.organizationId).toBe('org-123');
+    });
+
+    it('should return null when email not found', async () => {
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(null);
+
+      const result = await repository.findByEmail('unknown@example.com');
+
+      expect(result).toBeNull();
+    });
+
+    it('should call prisma.beneficiary.findUnique with correct where clause', async () => {
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(null);
+
+      await repository.findByEmail('test@example.com');
+
+      expect(mockPrisma.beneficiary.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+      });
+    });
+  });
+
+  describe('findByEmail with null organizationId', () => {
+    it('should correctly map toDomain with null organizationId for self-registered beneficiaries', async () => {
+      const mockRow = {
+        id: 'ben-self-reg',
+        organizationId: null,
+        clerkUserId: 'clerk-self-1',
+        firstName: 'Amadou',
+        lastName: 'Ba',
+        email: 'amadou@example.com',
+        phone: null,
+        birthDate: null,
+        gender: null,
+        status: 'ACTIVE',
+        progressPercent: 0,
+        createdAt: new Date('2024-03-01'),
+        updatedAt: new Date('2024-03-01'),
+      };
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(mockRow);
+
+      const result = await repository.findByEmail('amadou@example.com');
+
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result?.organizationId).toBeNull();
+      expect(result?.id).toBe('ben-self-reg');
+      expect(result?.clerkUserId).toBe('clerk-self-1');
+      expect(result?.birthDate).toBeNull();
+      expect(result?.gender).toBeNull();
     });
   });
 
@@ -273,6 +420,8 @@ describe('PrismaBeneficiaryRepository', () => {
           lastName: 'Beneficiary',
           email: 'new@example.com',
           phone: '+221772222222',
+          birthDate: null,
+          gender: null,
         },
       });
       expect(result).toBeInstanceOf(Beneficiary);
@@ -320,9 +469,101 @@ describe('PrismaBeneficiaryRepository', () => {
           lastName: 'Phone',
           email: 'nophone@example.com',
           phone: null,
+          birthDate: null,
+          gender: null,
         },
       });
       expect(result.phone).toBeNull();
+    });
+
+    it('should create beneficiary with birthDate and gender', async () => {
+      const now = new Date();
+      const birthDate = new Date('1995-06-15');
+      const mockCreated = {
+        id: 'ben-demo',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-demo',
+        firstName: 'Fatou',
+        lastName: 'Diallo',
+        email: 'fatou@example.com',
+        phone: null,
+        birthDate,
+        gender: 'FEMME',
+        status: 'ACTIVE',
+        progressPercent: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      mockPrisma.beneficiary.create.mockResolvedValue(mockCreated);
+
+      const result = await repository.create({
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-demo',
+        firstName: 'Fatou',
+        lastName: 'Diallo',
+        email: 'fatou@example.com',
+        birthDate,
+        gender: 'FEMME',
+      });
+
+      expect(mockPrisma.beneficiary.create).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org-123',
+          clerkUserId: 'clerk-demo',
+          firstName: 'Fatou',
+          lastName: 'Diallo',
+          email: 'fatou@example.com',
+          phone: null,
+          birthDate,
+          gender: 'FEMME',
+        },
+      });
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result.birthDate).toEqual(birthDate);
+      expect(result.gender).toBe('FEMME');
+    });
+
+    it('should create beneficiary with null organizationId for self-registered users', async () => {
+      const now = new Date();
+      const mockCreated = {
+        id: 'ben-self',
+        organizationId: null,
+        clerkUserId: 'clerk-self',
+        firstName: 'Self',
+        lastName: 'Registered',
+        email: 'self@example.com',
+        phone: null,
+        birthDate: null,
+        gender: null,
+        status: 'ACTIVE',
+        progressPercent: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      mockPrisma.beneficiary.create.mockResolvedValue(mockCreated);
+
+      const result = await repository.create({
+        clerkUserId: 'clerk-self',
+        firstName: 'Self',
+        lastName: 'Registered',
+        email: 'self@example.com',
+      });
+
+      expect(mockPrisma.beneficiary.create).toHaveBeenCalledWith({
+        data: {
+          organizationId: null,
+          clerkUserId: 'clerk-self',
+          firstName: 'Self',
+          lastName: 'Registered',
+          email: 'self@example.com',
+          phone: null,
+          birthDate: null,
+          gender: null,
+        },
+      });
+      expect(result.organizationId).toBeNull();
     });
 
     it('should handle phone as null explicitly', async () => {
@@ -579,6 +820,53 @@ describe('PrismaBeneficiaryRepository', () => {
       expect(result.lastName).toBe('Updated');
       expect(result.phone).toBe('+221775555555');
       expect(result.status).toBe(BeneficiaryStatus.INACTIVE);
+    });
+
+    it('should update birthDate and gender fields', async () => {
+      const birthDate = new Date('1990-03-20');
+      const mockExists = {
+        id: 'ben-demo-update',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-123',
+        firstName: 'Test',
+        lastName: 'User',
+        email: 'test@example.com',
+        phone: null,
+        birthDate: null,
+        gender: null,
+        status: 'ACTIVE',
+        progressPercent: 50,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const mockUpdated = {
+        ...mockExists,
+        birthDate,
+        gender: 'FEMME',
+        updatedAt: new Date(),
+      };
+
+      mockPrisma.beneficiary.findFirst.mockResolvedValue(mockExists);
+      mockPrisma.beneficiary.update.mockResolvedValue(mockUpdated);
+
+      const result = await repository.updateInOrg({
+        organizationId: 'org-123',
+        beneficiaryId: 'ben-demo-update',
+        birthDate,
+        gender: 'FEMME',
+      });
+
+      expect(mockPrisma.beneficiary.update).toHaveBeenCalledWith({
+        where: { id: 'ben-demo-update' },
+        data: {
+          birthDate,
+          gender: 'FEMME',
+        },
+      });
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result.birthDate).toEqual(birthDate);
+      expect(result.gender).toBe('FEMME');
     });
 
     it('should not include undefined fields in update data', async () => {

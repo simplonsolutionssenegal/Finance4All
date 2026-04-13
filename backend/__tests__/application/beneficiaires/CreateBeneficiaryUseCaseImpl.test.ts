@@ -10,9 +10,12 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
 
   beforeEach(() => {
     mockBeneficiaryRepo = {
+      getDemographicStats: jest.fn(),
+      findByClerkUserId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
       findByOrgId: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
@@ -45,6 +48,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -83,6 +88,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
       });
     });
 
@@ -96,6 +103,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -128,6 +137,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -158,6 +169,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -179,6 +192,51 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
+      });
+    });
+
+    it('should create a beneficiary with birthDate and gender', async () => {
+      const commandWithDemographics = {
+        ...validCommand,
+        birthDate: '1995-06-15',
+        gender: 'FEMME' as const,
+      };
+
+      const mockBeneficiary: Beneficiary = {
+        id: 'ben-demo',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-user-demo',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean.dupont@example.com',
+        phone: '+221771234567',
+        birthDate: new Date('1995-06-15'),
+        gender: 'FEMME',
+        status: BeneficiaryStatus.ACTIVE,
+        progressPercent: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockBeneficiaryRepo.findByOrgAndEmail.mockResolvedValue(null);
+      mockOrgIdentity.upsertUser.mockResolvedValue({ clerkUserId: 'clerk-user-demo' });
+      mockOrgIdentity.ensureMembership.mockResolvedValue(undefined);
+      mockBeneficiaryRepo.create.mockResolvedValue(mockBeneficiary);
+
+      const result = await useCase.execute(commandWithDemographics);
+
+      expect(result.beneficiary).toEqual(mockBeneficiary);
+      expect(mockBeneficiaryRepo.create).toHaveBeenCalledWith({
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-user-demo',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean.dupont@example.com',
+        phone: '+221771234567',
+        birthDate: new Date('1995-06-15'),
+        gender: 'FEMME',
       });
     });
 

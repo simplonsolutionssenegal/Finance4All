@@ -29,7 +29,7 @@ const getServices = async (
   params: GetServicesParams,
   token: string | null
 ): Promise<GetServicesResponse> => {
-  const { page = 1, limit = 50, type, pays } = params;
+  const { page = 1, limit = 100, type, pays } = params;
 
   const query = new URLSearchParams({
     page: String(page),

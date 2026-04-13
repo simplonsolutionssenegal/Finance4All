@@ -30,7 +30,7 @@ export function useSimulator() {
   // Récupérer les institutions réelles du backend
   const { institutions: backendInstitutions, isLoading } = useGetInstitutions({
     page: 1,
-    limit: 20,
+    limit: 100,
   });
 
   // Récupérer les détails (avec services) de l'institution sélectionnée

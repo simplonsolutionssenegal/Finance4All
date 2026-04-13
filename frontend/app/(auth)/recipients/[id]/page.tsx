@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 
 import { BeneficiaryDetail } from '@/components/beneficiaire/BeneficiaryDetail';
 import { useBeneficiaries } from '@/hooks/beneficiary/useBeneficiaries';
+import { useBeneficiaryProgressByUserId } from '@/hooks/beneficiary/useBeneficiaryProgressByUserId';
 
 export default function RecipientDetailPage() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function RecipientDetailPage() {
   const { data: all = [], isLoading, error } = useBeneficiaries();
 
   const beneficiary = useMemo(() => all.find(b => String(b.id) === String(id)), [all, id]);
+  const { data: dashboardData, isLoading: dashLoading } = useBeneficiaryProgressByUserId(
+    beneficiary?.clerkUserId
+  );
 
   if (isLoading) {
     return (
@@ -51,5 +55,12 @@ export default function RecipientDetailPage() {
     );
   }
 
-  return <BeneficiaryDetail beneficiary={beneficiary} onBack={() => router.push('/recipients')} />;
+  return (
+    <BeneficiaryDetail
+      beneficiary={beneficiary}
+      onBack={() => router.push('/recipients')}
+      dashboardData={dashboardData}
+      isDashboardLoading={dashLoading}
+    />
+  );
 }

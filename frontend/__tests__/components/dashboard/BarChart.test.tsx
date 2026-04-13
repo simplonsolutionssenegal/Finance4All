@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 
 import DashboardBarChart from '@/components/dashboard/BarChart';
 
-// Mock recharts components
 jest.mock('recharts', () => ({
   BarChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid='bar-chart'>{children}</div>
@@ -13,46 +12,46 @@ jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid='responsive-container'>{children}</div>
   ),
+  Tooltip: () => <div data-testid='tooltip' />,
+}));
+
+const mockStats = {
+  stats: { total: 150, women: 85, youth: 62, inTraining: 45 },
+  isLoading: false,
+  error: null,
+};
+
+jest.mock('@/hooks/dashboard/useBeneficiaryStats', () => ({
+  useBeneficiaryStats: () => mockStats,
 }));
 
 describe('DashboardBarChart', () => {
-  it('renders the chart container', () => {
+  it('renders the title', () => {
     render(<DashboardBarChart />);
+    expect(screen.getByText('Repartition des beneficiaires')).toBeInTheDocument();
+  });
 
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+  it('renders total count', () => {
+    render(<DashboardBarChart />);
+    expect(screen.getByText('150')).toBeInTheDocument();
+  });
+
+  it('renders the chart', () => {
+    render(<DashboardBarChart />);
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('bar')).toBeInTheDocument();
-    expect(screen.getByTestId('x-axis')).toBeInTheDocument();
-    expect(screen.getByTestId('y-axis')).toBeInTheDocument();
   });
 
-  it('renders the value 1000', () => {
-    render(<DashboardBarChart />);
-
-    expect(screen.getByText('1000')).toBeInTheDocument();
-  });
-
-  it('renders all y-axis labels', () => {
-    render(<DashboardBarChart />);
-
-    expect(screen.getByText('800')).toBeInTheDocument();
-    expect(screen.getByText('600')).toBeInTheDocument();
-    expect(screen.getByText('400')).toBeInTheDocument();
-    expect(screen.getByText('200')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
-  });
-
-  it('has the correct styling classes', () => {
+  it('has teal background', () => {
     const { container } = render(<DashboardBarChart />);
-
-    const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass('bg-teal-600', 'text-white', 'shadow-sm', 'rounded-2xl', 'border-0');
+    expect(container.querySelector('.bg-teal-600')).toBeInTheDocument();
   });
 
-  it('renders with proper chart height', () => {
-    const { container } = render(<DashboardBarChart />);
-
-    const chartContainer = container.querySelector('.h-40');
-    expect(chartContainer).toBeInTheDocument();
+  it('shows loading state', () => {
+    mockStats.isLoading = true;
+    mockStats.stats = null as any;
+    render(<DashboardBarChart />);
+    expect(screen.getByText('...')).toBeInTheDocument();
+    mockStats.isLoading = false;
+    mockStats.stats = { total: 150, women: 85, youth: 62, inTraining: 45 };
   });
 });

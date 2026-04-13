@@ -71,10 +71,12 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
 
   beforeEach(() => {
     mockBeneficiaryRepo = {
+      getDemographicStats: jest.fn(),
       findByClerkUserId: jest.fn(),
       findByOrgId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
@@ -146,6 +148,8 @@ describe('GetBeneficiaireDashboardUseCaseImpl', () => {
         'Jean',
         'Dupont',
         'j@test.com',
+        null,
+        null,
         null,
         BeneficiaryStatus.ACTIVE,
         42,

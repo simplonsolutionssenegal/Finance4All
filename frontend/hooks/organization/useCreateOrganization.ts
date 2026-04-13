@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 interface CreateOrganizationData {
   name: string;
   country: string;
+  address?: string;
   adminFirstName: string;
   adminLastName: string;
   adminEmail: string;

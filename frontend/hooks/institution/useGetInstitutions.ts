@@ -26,7 +26,7 @@ const getInstitutions = async (
   params: GetInstitutionsParams,
   token: string | null
 ): Promise<GetInstitutionsResponse> => {
-  const { page = 1, limit = 10 } = params;
+  const { page = 1, limit = 100 } = params;
   return apiClient<GetInstitutionsResponse>(
     `institutions?page=${page}&limit=${limit}`,
     'GET',

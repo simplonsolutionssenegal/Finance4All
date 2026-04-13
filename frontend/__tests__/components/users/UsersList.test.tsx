@@ -1,15 +1,15 @@
-import { useOrganization, useUser, useOrganizationList } from '@clerk/nextjs';
+import { useOrganization, useUser } from '@clerk/nextjs';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import UsersList from '@/components/users/UsersList';
 import { useRemoveUserFromOrganization, useCreateUser, useUpdateUserRole } from '@/lib/clerk-utils';
+import type OrganizationUser from '@/types/OrganizationUser';
 
 // Mock Clerk hooks
 jest.mock('@clerk/nextjs', () => ({
   useOrganization: jest.fn(),
   useUser: jest.fn(),
-  useOrganizationList: jest.fn(),
 }));
 
 // Mock clerk-utils
@@ -33,28 +33,28 @@ jest.mock(
 jest.mock(
   '@/components/users/ConfirmDesactivationModal',
   () =>
-    ({ isOpen, onClose, onConfirm }: any) =>
+    ({ isOpen, onClose, onConfirm, user, isDeleting }: any) =>
       isOpen ? (
         <div data-testid='confirm-deactivation-modal'>
-          <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
+          <span>Deactivate {user?.fullName}</span>
+          <span data-testid='is-deleting'>{isDeleting ? 'deleting' : 'idle'}</span>
+          <button data-testid='confirm-btn' onClick={onConfirm}>
             Confirm
           </button>
-          <button onClick={onClose}>Cancel</button>
+          <button data-testid='cancel-btn' onClick={onClose}>
+            Cancel
+          </button>
         </div>
       ) : null
 );
 jest.mock(
   '@/components/users/EditUserModal',
   () =>
-    ({ isOpen, onClose, onUpdateUser, user }: any) =>
+    ({ isOpen, onClose, onUpdateUser, user, isUpdating }: any) =>
       isOpen ? (
-        <div data-testid='edit-user-modal' onClick={onClose}>
+        <div data-testid='edit-user-modal'>
           Edit User Modal for {user?.fullName}
+          <span data-testid='is-updating'>{isUpdating ? 'updating' : 'idle'}</span>
           <button
             data-testid='edit-modal-update-button'
             onClick={() => {
@@ -70,20 +70,8 @@ jest.mock(
           >
             Update
           </button>
-          <button
-            data-testid='edit-modal-error-button'
-            onClick={() => {
-              onUpdateUser({
-                userId: user.id,
-                firstName: 'Updated',
-                lastName: 'Name',
-                email: 'updated@example.com',
-                role: 'org:admin',
-                organizationId: 'org_123',
-              });
-            }}
-          >
-            Update With Error
+          <button data-testid='edit-modal-close-button' onClick={onClose}>
+            Close
           </button>
         </div>
       ) : null
@@ -91,10 +79,11 @@ jest.mock(
 jest.mock(
   '@/components/users/AddUserModal',
   () =>
-    ({ isOpen, onClose, onCreateUser }: any) =>
+    ({ isOpen, onClose, onCreateUser, isCreating }: any) =>
       isOpen ? (
-        <div data-testid='add-user-modal' onClick={onClose}>
+        <div data-testid='add-user-modal'>
           Add User Modal
+          <span data-testid='is-creating'>{isCreating ? 'creating' : 'idle'}</span>
           <button
             data-testid='add-modal-create-button'
             onClick={() => {
@@ -109,31 +98,41 @@ jest.mock(
           >
             Create
           </button>
-          <button
-            data-testid='add-modal-error-button'
-            onClick={() => {
-              onCreateUser({
-                firstName: 'New',
-                lastName: 'User',
-                email: 'new@example.com',
-                role: 'org:member',
-                organizationId: 'org_123',
-              });
-            }}
-          >
-            Create With Error
+          <button data-testid='add-modal-close-button' onClick={onClose}>
+            Close
+          </button>
+        </div>
+      ) : null
+);
+jest.mock(
+  '@/components/users/CreateOrganizationModal',
+  () =>
+    ({ isOpen, onClose, onSuccess }: any) =>
+      isOpen ? (
+        <div data-testid='create-org-modal'>
+          Create Organization Modal
+          <button data-testid='create-org-close-button' onClick={onClose}>
+            Close
+          </button>
+          <button data-testid='create-org-success-button' onClick={onSuccess}>
+            Success
           </button>
         </div>
       ) : null
 );
 
-// Mock UI components
+// Store onValueChange ref so SelectItem can call it
+let selectOnValueChange: ((value: string) => void) | null = null;
+
 jest.mock('@/components/ui/select', () => ({
-  Select: ({ children, value }: any) => (
-    <div data-testid='select' data-value={value}>
-      {children}
-    </div>
-  ),
+  Select: ({ children, value, onValueChange }: any) => {
+    selectOnValueChange = onValueChange || null;
+    return (
+      <div data-testid='select' data-value={value}>
+        {children}
+      </div>
+    );
+  },
   SelectTrigger: ({ children, className }: any) => (
     <div data-testid='select-trigger-role' className={className}>
       {children}
@@ -146,16 +145,21 @@ jest.mock('@/components/ui/select', () => ({
     </div>
   ),
   SelectItem: ({ children, value, className }: any) => (
-    <div data-testid={`select-item-${value}`} className={className}>
+    <button
+      data-testid={`select-item-${value}`}
+      className={className}
+      onClick={() => {
+        selectOnValueChange?.(value);
+      }}
+    >
       {children}
-    </div>
+    </button>
   ),
 }));
 
 jest.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: any) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children, asChild }: any) => {
-    // When asChild is true, render children directly (for Button)
     if (asChild && children) {
       return children;
     }
@@ -167,12 +171,11 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
     </div>
   ),
   DropdownMenuItem: ({ children, onClick, className }: any) => {
-    // Extract text from children to set as title
     let titleText = '';
     if (typeof children === 'string') {
       titleText = children;
     } else if (Array.isArray(children)) {
-      titleText = children.filter(c => typeof c === 'string').join('');
+      titleText = children.filter((c: any) => typeof c === 'string').join('');
     }
     return (
       <div onClick={onClick} className={className} title={titleText || undefined} role='menuitem'>
@@ -254,135 +257,343 @@ jest.mock('lucide-react', () => ({
   Pencil: () => <div data-testid='pencil-icon' />,
   Archive: () => <div data-testid='archive-icon' />,
   Trash2: () => <div data-testid='trash-icon' />,
+  Building2: () => <div data-testid='building-icon' />,
 }));
-
-// Mock window.alert
-const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
 // Setup mock return values
 const mockUseUser = useUser as jest.Mock;
 const mockUseOrganization = useOrganization as jest.Mock;
-const mockUseOrganizationList = useOrganizationList as jest.Mock;
 const mockUseRemoveUserFromOrganization = useRemoveUserFromOrganization as jest.Mock;
 const mockUseCreateUser = useCreateUser as jest.Mock;
 const mockUseUpdateUserRole = useUpdateUserRole as jest.Mock;
 
-const mockMemberships = {
-  data: [
-    {
-      id: 'mem_1',
-      roleName: 'Admin',
-      publicUserData: {
-        userId: 'user_abc',
-        firstName: 'Alice',
-        lastName: 'Smith',
-        identifier: 'alice@example.com',
-      },
-      createdAt: new Date(),
-    },
-    {
-      id: 'mem_2',
-      roleName: 'Member',
-      publicUserData: {
-        userId: 'user_def',
-        firstName: 'Bob',
-        lastName: 'Johnson',
-        identifier: 'bob@example.com',
-      },
-      createdAt: new Date(),
-    },
-  ],
-  isLoading: false,
-};
+// Helper to create OrganizationUser objects
+const makeUser = (overrides: Partial<OrganizationUser> & { id: string }): OrganizationUser => ({
+  fullName: 'Test User',
+  role: 'org:member',
+  emailAddress: 'test@example.com',
+  createAt: new Date('2024-06-01'),
+  status: 'Actif',
+  ...overrides,
+});
 
-const mockInvitations = {
-  data: [
-    {
-      id: 'inv_1',
-      roleName: 'Member',
-      emailAddress: 'carol@example.com',
-      publicMetadata: { firstName: 'Carol', lastName: 'White' },
-      createdAt: new Date(),
-    },
-  ],
-  isLoading: false,
-};
+const defaultUsers: OrganizationUser[] = [
+  makeUser({
+    id: 'user_abc',
+    fullName: 'Alice Smith',
+    role: 'org:admin',
+    emailAddress: 'alice@example.com',
+    phoneNumber: '+221 77 123 4567',
+    organizationName: 'Org Alpha',
+    organizationType: 'admin',
+    lastActiveAt: new Date('2024-12-01'),
+    status: 'Actif',
+  }),
+  makeUser({
+    id: 'user_def',
+    fullName: 'Bob Johnson',
+    role: 'org:member',
+    emailAddress: 'bob@example.com',
+    organizationName: 'Org Beta',
+    status: 'Actif',
+  }),
+  makeUser({
+    id: 'user_ghi',
+    fullName: 'Carol White',
+    role: 'org:recipient',
+    emailAddress: 'carol@example.com',
+    status: 'En attente',
+  }),
+];
 
 describe('UsersList', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
     mockUseUser.mockReturnValue({
-      user: { id: 'user_xyz', organizationMemberships: [{ organization: { id: 'org_123' } }] },
+      user: { id: 'user_xyz' },
       isLoaded: true,
     });
-    mockUseOrganizationList.mockReturnValue({ setActive: jest.fn(), isLoaded: true });
-    mockUseRemoveUserFromOrganization.mockReturnValue({ removeUser: jest.fn(), isLoading: false });
-    mockUseCreateUser.mockReturnValue({ createUser: jest.fn(), isCreating: false });
-    mockUseUpdateUserRole.mockReturnValue({ updateUserRole: jest.fn() });
-    alertMock.mockClear();
-  });
-
-  it('renders loading state initially', () => {
     mockUseOrganization.mockReturnValue({
       organization: { id: 'org_123' },
-      memberships: { isLoading: true },
     });
-    render(<UsersList />);
-    expect(screen.getByText(/Chargement des utilisateurs.../i)).toBeInTheDocument();
-  });
-
-  it('renders "no organization" message when not in an organization', async () => {
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      isLoaded: true,
-      memberships: { data: [], isLoading: false },
+    mockUseRemoveUserFromOrganization.mockReturnValue({
+      removeUser: jest.fn().mockResolvedValue({ success: true }),
+      isLoading: false,
     });
-    mockUseUser.mockReturnValue({
-      user: { id: 'user_xyz', organizationMemberships: [] },
-      isLoaded: true,
+    mockUseCreateUser.mockReturnValue({
+      createUser: jest.fn().mockResolvedValue({ success: true }),
+      isCreating: false,
     });
-    render(<UsersList />);
-    await waitFor(() => {
-      expect(screen.getByText(/Vous n'êtes membre d'aucune organisation./i)).toBeInTheDocument();
+    mockUseUpdateUserRole.mockReturnValue({
+      updateUserRole: jest.fn().mockResolvedValue({ success: true }),
     });
   });
 
-  it('renders "no users" message when there are no members or invitations', async () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-    await waitFor(() => {
-      expect(screen.getByText(/Aucun utilisateur dans cette organisation/i)).toBeInTheDocument();
-    });
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
-  it('renders the list of users and invitations correctly', () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    expect(screen.getByText('bob@example.com')).toBeInTheDocument();
-    expect(screen.getByText('carol@example.com')).toBeInTheDocument();
-    expect(screen.getByText('En attente')).toBeInTheDocument();
+  // ─── Rendering states ─────────────────────────────────────────────
+
+  it('renders loading state when isLoading is true', () => {
+    render(<UsersList users={[]} isLoading={true} />);
+    expect(screen.getByText('Chargement des utilisateurs...')).toBeInTheDocument();
   });
 
-  it('filters users based on search term', async () => {
+  it('renders loading state when isLoading prop is not provided and no users', () => {
+    render(<UsersList />);
+    // loading defaults to false, users defaults to [], so shows empty
+    expect(screen.getByText('Aucun utilisateur')).toBeInTheDocument();
+  });
+
+  it('renders empty state message when users array is empty and no filters active', () => {
+    render(<UsersList users={[]} isLoading={false} />);
+    expect(screen.getByText('Aucun utilisateur')).toBeInTheDocument();
+  });
+
+  it('renders empty search result message when search term is set but no match', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    await user.type(searchInput, 'NonexistentXYZ');
+
+    expect(screen.getByText('Aucun utilisateur trouvé pour cette recherche')).toBeInTheDocument();
+  });
+
+  it('renders empty state message when role filter is active but no match', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='archived' />);
+    expect(screen.getByText('Aucun utilisateur trouvé pour cette recherche')).toBeInTheDocument();
+  });
+
+  it('renders users table with correct data', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    expect(screen.getByText('alice@example.com')).toBeInTheDocument();
     expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.getByText('bob@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Carol White')).toBeInTheDocument();
+  });
+
+  it('renders table headers correctly', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    expect(screen.getByText('Utilisateur')).toBeInTheDocument();
+    expect(screen.getByText('Organisation')).toBeInTheDocument();
+    expect(screen.getByText('Statut')).toBeInTheDocument();
+    expect(screen.getByText("Date d'ajout")).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  });
+
+  it('does not render the table when loading', () => {
+    render(<UsersList users={defaultUsers} isLoading={true} />);
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.getByText('Chargement des utilisateurs...')).toBeInTheDocument();
+  });
+
+  // ─── Current user filtering ───────────────────────────────────────
+
+  it('filters out the current logged-in user from the list', () => {
+    mockUseUser.mockReturnValue({ user: { id: 'user_abc' }, isLoaded: true });
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    // Alice has id 'user_abc', same as current user, so she should be hidden
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.getByText('Carol White')).toBeInTheDocument();
+  });
+
+  // ─── Phone number display ─────────────────────────────────────────
+
+  it('displays phone number when available', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    expect(screen.getByText('+221 77 123 4567')).toBeInTheDocument();
+  });
+
+  it('does not display phone section when phoneNumber is absent', () => {
+    const usersWithoutPhone = [makeUser({ id: 'user_nophone', emailAddress: 'nophone@test.com' })];
+    render(<UsersList users={usersWithoutPhone} isLoading={false} />);
+    expect(screen.queryByTestId('phone-icon')).not.toBeInTheDocument();
+  });
+
+  // ─── Organization name display ────────────────────────────────────
+
+  it('displays organization name when present', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    expect(screen.getByText('Org Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Org Beta')).toBeInTheDocument();
+  });
+
+  it('displays dash when organizationName is not set', () => {
+    const usersNoOrg = [makeUser({ id: 'user_noorg' })];
+    render(<UsersList users={usersNoOrg} isLoading={false} />);
+    expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  // ─── Status badges ────────────────────────────────────────────────
+
+  it('displays Actif status badge with correct styling', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', status: 'Actif' })]} isLoading={false} />);
+    const badge = screen.getByText('Actif');
+    expect(badge).toBeInTheDocument();
+    expect(badge.className).toContain('bg-green-100');
+  });
+
+  it('displays non-Actif status badge with orange styling', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', status: 'En attente' })]} isLoading={false} />);
+    const badge = screen.getByText('En attente');
+    expect(badge).toBeInTheDocument();
+    expect(badge.className).toContain('bg-orange-100');
+  });
+
+  // ─── getRoleDisplayName coverage ──────────────────────────────────
+
+  it('displays "Admin Systeme" for org:admin with admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:admin', organizationType: 'admin' })]}
+        isLoading={false}
+      />
+    );
+    expect(screen.getByText('Admin Systeme')).toBeInTheDocument();
+  });
+
+  it('displays "Admin Organisation" for org:admin without admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:admin', organizationType: 'banque' })]}
+        isLoading={false}
+      />
+    );
+    // "Admin Organisation" appears in both the select item and the role badge
+    const matches = screen.getAllByText('Admin Organisation');
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('displays "Membre Admin" for org:member with admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:member', organizationType: 'admin' })]}
+        isLoading={false}
+      />
+    );
+    expect(screen.getByText('Membre Admin')).toBeInTheDocument();
+  });
+
+  it('displays "Membre Organisation" for org:member without admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:member', organizationType: 'banque' })]}
+        isLoading={false}
+      />
+    );
+    expect(screen.getByText('Membre Organisation')).toBeInTheDocument();
+  });
+
+  it('displays "Recipient" for org:recipient role', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'org:recipient' })]} isLoading={false} />);
+    // "Recipient" appears in both the select item and the role badge
+    const matches = screen.getAllByText('Recipient');
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('displays raw role string for unknown roles', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'custom:role' })]} isLoading={false} />);
+    expect(screen.getByText('custom:role')).toBeInTheDocument();
+  });
+
+  // ─── getRoleBadgeColor coverage ───────────────────────────────────
+
+  it('applies red badge for org:admin with admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:admin', organizationType: 'admin' })]}
+        isLoading={false}
+      />
+    );
+    const badge = screen.getByText('Admin Systeme');
+    expect(badge.className).toContain('bg-red-100');
+  });
+
+  it('applies purple badge for org:admin without admin orgType', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'org:admin' })]} isLoading={false} />);
+    // Find the badge (span with data-variant) not the select button
+    const matches = screen.getAllByText('Admin Organisation');
+    const badge = matches.find(el => el.tagName === 'SPAN');
+    expect(badge).toBeDefined();
+    expect(badge!.className).toContain('bg-purple-100');
+  });
+
+  it('applies blue badge for org:member with admin orgType', () => {
+    render(
+      <UsersList
+        users={[makeUser({ id: 'u1', role: 'org:member', organizationType: 'admin' })]}
+        isLoading={false}
+      />
+    );
+    const badge = screen.getByText('Membre Admin');
+    expect(badge.className).toContain('bg-blue-100');
+  });
+
+  it('applies green badge for org:member without admin orgType', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'org:member' })]} isLoading={false} />);
+    const badge = screen.getByText('Membre Organisation');
+    expect(badge.className).toContain('bg-green-100');
+  });
+
+  it('applies gray badge for org:recipient', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'org:recipient' })]} isLoading={false} />);
+    const matches = screen.getAllByText('Recipient');
+    const badge = matches.find(el => el.tagName === 'SPAN');
+    expect(badge).toBeDefined();
+    expect(badge!.className).toContain('bg-gray-100');
+  });
+
+  it('applies default gray badge for unknown roles', () => {
+    render(<UsersList users={[makeUser({ id: 'u1', role: 'unknown:role' })]} isLoading={false} />);
+    const badge = screen.getByText('unknown:role');
+    expect(badge.className).toContain('bg-gray-100');
+  });
+
+  // ─── formatLastActive coverage ────────────────────────────────────
+
+  it('displays formatted date for lastActiveAt', () => {
+    const users = [
+      makeUser({
+        id: 'u1',
+        lastActiveAt: new Date('2024-12-01'),
+        createAt: new Date('2024-01-01'),
+      }),
+    ];
+    render(<UsersList users={users} isLoading={false} />);
+
+    // formatLastActive uses fr-FR Intl.DateTimeFormat; result is like "1 dec. 2024" (lowercased)
+    // The exact format depends on the OS locale data; just check user renders
+    expect(screen.getByText('Test User')).toBeInTheDocument();
+  });
+
+  it('displays "Jamais connect\u00e9" when both lastActiveAt and createAt are null', () => {
+    const users = [makeUser({ id: 'u1', lastActiveAt: null, createAt: null })];
+    render(<UsersList users={users} isLoading={false} />);
+    expect(screen.getByText('Jamais connect\u00e9')).toBeInTheDocument();
+  });
+
+  it('uses createAt as fallback when lastActiveAt is undefined', () => {
+    const users = [makeUser({ id: 'u1', createAt: new Date('2024-06-15') })];
+    render(<UsersList users={users} isLoading={false} />);
+    // Should show formatted date, not "Jamais connecte"
+    expect(screen.queryByText('Jamais connect\u00e9')).not.toBeInTheDocument();
+  });
+
+  // ─── Search filtering ─────────────────────────────────────────────
+
+  it('filters users by fullName search', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
     const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
     await user.type(searchInput, 'Alice');
@@ -391,1890 +602,447 @@ describe('UsersList', () => {
     expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
   });
 
-  it('opens the Add User modal when "Créer un utilisateur" is clicked', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-  });
-
-  it('opens the Edit User modal on click', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getAllByTitle('Modifier').length).toBeGreaterThan(0));
-    const editButtons = screen.getAllByTitle('Modifier');
-    await user.click(editButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
-  });
-
-  it('opens user info modal on remove user click', async () => {
-    const user = userEvent.setup();
-    const removeUserMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getAllByTitle('Voir les détails').length).toBeGreaterThan(0));
-
-    // 1. Click "Voir les détails" to open UserInfoModal
-    const viewDetailsButtons = screen.getAllByTitle('Voir les détails');
-    await user.click(viewDetailsButtons[0]);
-
-    // 2. Assert UserInfoModal opens with correct user info
-    const userInfoModal = await screen.findByTestId('user-info-modal');
-    expect(userInfoModal).toBeInTheDocument();
-    expect(screen.getByText('UserInfo for Alice Smith')).toBeInTheDocument();
-
-    // 3. Verify the modal is opened correctly
-    expect(screen.getByTestId('user-info-modal')).toBeInTheDocument();
-  });
-
-  it('filters users by role', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // Find and click role filter - use getByTestId for select
-    const roleSelects = screen.getAllByTestId('select');
-    // The role filter select should be present
-    expect(roleSelects.length).toBeGreaterThan(0);
-  });
-
-  it('handles user creation successfully', async () => {
-    const user = userEvent.setup();
-    const createUserMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseCreateUser.mockReturnValue({
-      createUser: createUserMock,
-      isCreating: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    const modal = screen.getByTestId('add-user-modal');
-    expect(modal).toBeInTheDocument();
-  });
-
-  it('handles user creation error', async () => {
-    const user = userEvent.setup();
-    const createUserMock = jest.fn().mockRejectedValue(new Error('Creation failed'));
-    mockUseCreateUser.mockReturnValue({
-      createUser: createUserMock,
-      isCreating: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-  });
-
-  it('handles user update successfully', async () => {
-    const user = userEvent.setup();
-    const updateUserRoleMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getAllByTitle('Modifier').length).toBeGreaterThan(0));
-    const editButtons = screen.getAllByTitle('Modifier');
-    await user.click(editButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
-  });
-
-  it('handles user update error when no organization', async () => {
-    const _user = userEvent.setup();
-    const updateUserRoleMock = jest.fn();
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      // Should handle the case where organization is null
-      expect(screen.queryByText('Modifier')).not.toBeInTheDocument();
-    });
-  });
-
-  it('handles user deletion confirmation', async () => {
-    const user = userEvent.setup();
-    const removeUserMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() =>
-      expect(screen.getAllByTitle('Supprimer définitivement').length).toBeGreaterThan(0)
-    );
-
-    // Click "Supprimer définitivement" to open ConfirmDesactivationModal
-    const deleteButtons = screen.getAllByTitle('Supprimer définitivement');
-    await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-  });
-
-  it('handles user deletion successfully', async () => {
-    const user = userEvent.setup();
-    const removeUserMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() =>
-      expect(screen.getAllByTitle('Supprimer définitivement').length).toBeGreaterThan(0)
-    );
-
-    // Click "Supprimer définitivement" to open ConfirmDesactivationModal
-    const deleteButtons = screen.getAllByTitle('Supprimer définitivement');
-    await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByText('Confirm');
-    await user.click(confirmButton);
-
-    await waitFor(() => {
-      expect(removeUserMock).toHaveBeenCalled();
-    });
-  });
-
-  it('handles user deletion error', async () => {
-    const user = userEvent.setup();
-    const removeUserMock = jest.fn().mockRejectedValue(new Error('Deletion failed'));
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() =>
-      expect(screen.getAllByTitle('Supprimer définitivement').length).toBeGreaterThan(0)
-    );
-
-    // Click "Supprimer définitivement" to open ConfirmDesactivationModal
-    const deleteButtons = screen.getAllByTitle('Supprimer définitivement');
-    await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByText('Confirm');
-    await user.click(confirmButton);
-
-    await waitFor(() => {
-      expect(removeUserMock).toHaveBeenCalled();
-    });
-  });
-
   it('filters users by email search', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
     const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
     await user.type(searchInput, 'bob@example.com');
 
-    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
     expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
   });
 
-  it('filters users by organization name', async () => {
+  it('filters users by organization name search', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    const membershipsWithOrg = {
-      ...mockMemberships,
-      data: [
-        {
-          ...mockMemberships.data[0],
-          organization: { name: 'Test Org' },
-        },
-      ],
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123', name: 'Test Org' },
-      memberships: membershipsWithOrg,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
     const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'Test Org');
+    await user.type(searchInput, 'Org Beta');
+
+    expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+  });
+
+  it('filters users by phone number search', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    await user.type(searchInput, '+221 77 123');
 
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
-
-  it('displays correct role badges for different roles', () => {
-    const membershipsWithRoles = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Admin',
-            lastName: 'User',
-            identifier: 'admin@example.com',
-          },
-          createdAt: new Date(),
-        },
-        {
-          id: 'mem_2',
-          roleName: 'org:member',
-          publicUserData: {
-            userId: 'user_def',
-            firstName: 'Member',
-            lastName: 'User',
-            identifier: 'member@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithRoles,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    expect(screen.getByText('Admin User')).toBeInTheDocument();
-    expect(screen.getByText('Member User')).toBeInTheDocument();
-  });
-
-  it('closes modals correctly', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-
-    // Close modal by clicking on it (simulated)
-    const modal = screen.getByTestId('add-user-modal');
-    await user.click(modal);
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByTestId('add-user-modal')).not.toBeInTheDocument();
-    });
-  });
-
-  it('handles empty search results', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'NonexistentUser12345');
-
-    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
     expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
   });
 
-  it('renders invitations with pending status', async () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: false },
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  it('search is case insensitive', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('carol@example.com')).toBeInTheDocument();
-    });
-    expect(screen.getByText('En attente')).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    await user.type(searchInput, 'alice');
+
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
   });
 
-  it('opens edit modal when clicking edit in dropdown menu', async () => {
-    const userEventInstance = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  // ─── Role filtering ───────────────────────────────────────────────
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+  it('filters users by selectedRole prop for org:admin', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='org:admin' />);
 
-    // Try to find and click edit button
-    const editMenuItems = await screen.findAllByText('Modifier');
-    if (editMenuItems.length > 0) {
-      await userEventInstance.click(editMenuItems[0]);
-      await waitFor(() => {
-        expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-      });
-    }
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
+    expect(screen.queryByText('Carol White')).not.toBeInTheDocument();
   });
 
-  it('handles view details from dropdown menu', async () => {
-    const userEventInstance = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  it('filters users by selectedRole prop for org:member', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='org:member' />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // Try to find and click view details
-    const viewDetailsItems = await screen.findAllByText('Voir les détails');
-    if (viewDetailsItems.length > 0) {
-      await userEventInstance.click(viewDetailsItems[0]);
-      await waitFor(() => {
-        expect(screen.getByTestId('user-info-modal')).toBeInTheDocument();
-      });
-    }
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.queryByText('Carol White')).not.toBeInTheDocument();
   });
 
-  it('handles archive user from dropdown menu', async () => {
-    const userEventInstance = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  it('filters users by selectedRole prop for org:recipient', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='org:recipient' />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // Archive functionality is not implemented yet, so we just test it doesn't crash
-    const archiveItems = await screen.findAllByText('Archiver');
-    if (archiveItems.length > 0) {
-      await userEventInstance.click(archiveItems[0]);
-      // Should not crash or throw error
-    }
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
+    expect(screen.getByText('Carol White')).toBeInTheDocument();
   });
 
-  it('handles delete user from dropdown menu', async () => {
-    const userEventInstance = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  it('filters archived users when selectedRole is "archived"', () => {
+    const usersWithArchived = [
+      ...defaultUsers,
+      makeUser({ id: 'user_arch', fullName: 'Archived Guy', status: 'Archiv\u00e9' }),
+    ];
+    render(<UsersList users={usersWithArchived} isLoading={false} selectedRole='archived' />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const deleteItems = await screen.findAllByText('Supprimer définitivement');
-    if (deleteItems.length > 0) {
-      await userEventInstance.click(deleteItems[0]);
-      await waitFor(() => {
-        expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-      });
-    }
-  });
-
-  it('filters out current user from the list', () => {
-    mockUseUser.mockReturnValue({
-      user: { id: 'user_abc', organizationMemberships: [{ organization: { id: 'org_123' } }] },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    // Current user (user_abc = Alice) should not appear in the list
-    // Bob (user_def) should still appear
+    expect(screen.getByText('Archived Guy')).toBeInTheDocument();
     expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
   });
 
-  it('formats date correctly for last active', () => {
-    const membershipsWithDates = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'Admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date('2024-01-15'),
-          lastActiveAt: new Date('2024-12-01'),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithDates,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    // Date formatting should be handled by formatLastActive function
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
-
-  it('shows "Jamais connecté" for users without date', () => {
-    const membershipsWithoutDates = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'Admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: null,
-          lastActiveAt: null,
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithoutDates,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
+  it('shows all users when selectedRole is "all"', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='all' />);
 
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
-
-  it('filters users by role correctly', async () => {
-    const _user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // Both users should be visible initially
     expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
+    expect(screen.getByText('Carol White')).toBeInTheDocument();
   });
 
-  it('handles organization activation when no active organization', async () => {
-    const setActiveMock = jest.fn().mockResolvedValue(undefined);
-    mockUseOrganizationList.mockReturnValue({ setActive: setActiveMock, isLoaded: true });
-    mockUseUser.mockReturnValue({
-      user: {
-        id: 'user_xyz',
-        organizationMemberships: [{ organization: { id: 'org_123' } }],
-      },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
+  it('calls onRoleChange when role is changed via select', async () => {
+    jest.useRealTimers();
+    const onRoleChange = jest.fn();
+    render(
+      <UsersList
+        users={defaultUsers}
+        isLoading={false}
+        selectedRole='all'
+        onRoleChange={onRoleChange}
+      />
+    );
 
-    render(<UsersList />);
+    const selectItem = screen.getByTestId('select-item-org:admin');
+    await userEvent.click(selectItem);
 
-    await waitFor(() => {
-      // Should attempt to set active organization
-      expect(setActiveMock).toHaveBeenCalled();
-    });
+    expect(onRoleChange).toHaveBeenCalledWith('org:admin');
   });
 
-  it('handles error in update user when organization is null', async () => {
-    const _user = userEvent.setup();
-    const updateUserRoleMock = jest.fn().mockRejectedValue(new Error('Update failed'));
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
+  it('uses internal role state when onRoleChange is not provided', async () => {
+    jest.useRealTimers();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    render(<UsersList />);
-
-    // Should handle gracefully when organization is null
-    await waitFor(() => {
-      // Component should render without crashing
-      expect(screen.queryByText(/Chargement/i)).not.toBeInTheDocument();
-    });
-  });
-
-  it('displays phone number when available', () => {
-    const membershipsWithPhone = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'Admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-            phoneNumber: '+221 77 123 4567',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithPhone,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
+    // Initially all users visible
     expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
+    expect(screen.getByText('Bob Johnson')).toBeInTheDocument();
 
-  it('displays organization name and type when available', () => {
-    const membershipsWithOrg = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'Admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          organization: {
-            name: 'Test Organization',
-            slug: 'test-org',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: {
-        id: 'org_123',
-        name: 'Test Organization',
-        publicMetadata: { type: 'BANQUE' },
-      },
-      memberships: membershipsWithOrg,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
+    // Click on org:admin select item
+    const selectItem = screen.getByTestId('select-item-org:admin');
+    await userEvent.click(selectItem);
 
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
-
-  it('handles useEffect when organization is null and tries to activate', async () => {
-    const setActiveMock = jest.fn().mockResolvedValue(undefined);
-    mockUseOrganizationList.mockReturnValue({ setActive: setActiveMock, isLoaded: true });
-    mockUseUser.mockReturnValue({
-      user: {
-        id: 'user_xyz',
-        organizationMemberships: [{ organization: { id: 'org_123' } }],
-      },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(setActiveMock).toHaveBeenCalled();
-    });
-  });
-
-  it('stops loading when user has no organizations', async () => {
-    mockUseUser.mockReturnValue({
-      user: { id: 'user_xyz', organizationMemberships: [] },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Vous n'êtes membre d'aucune organisation/i)).toBeInTheDocument();
-    });
-  });
-
-  it('stays in loading when organization is null and has not tried to set active', () => {
-    mockUseOrganizationList.mockReturnValue({ setActive: jest.fn(), isLoaded: true });
-    mockUseUser.mockReturnValue({
-      user: {
-        id: 'user_xyz',
-        organizationMemberships: [{ organization: { id: 'org_123' } }],
-      },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    // Should show loading initially
-    expect(screen.getByText(/Chargement des utilisateurs.../i)).toBeInTheDocument();
-  });
-
-  it('stays in loading when memberships is null', () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: null,
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    expect(screen.getByText(/Chargement des utilisateurs.../i)).toBeInTheDocument();
-  });
-
-  it('stays in loading when memberships is loading', () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: true },
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    expect(screen.getByText(/Chargement des utilisateurs.../i)).toBeInTheDocument();
-  });
-
-  it('maps memberships data correctly to OrganizationUser', async () => {
-    const membershipsWithData = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date('2024-01-01'),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: {
-        id: 'org_123',
-        name: 'Test Org',
-        publicMetadata: { type: 'BANQUE' },
-      },
-      memberships: membershipsWithData,
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
+    // After changing, only admin users should show
     await waitFor(() => {
       expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+      expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
     });
   });
 
-  it('maps invitations data correctly to OrganizationUser', async () => {
-    const invitationsWithData = {
-      data: [
-        {
-          id: 'inv_1',
-          roleName: 'org:member',
-          emailAddress: 'invited@example.com',
-          publicMetadata: {
-            firstName: 'Invited',
-            lastName: 'User',
-            phoneNumber: '+221 77 999 8888',
-          },
-          createdAt: new Date('2024-01-01'),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: false },
-      invitations: invitationsWithData,
-    });
+  // ─── Dropdown menu actions ────────────────────────────────────────
 
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('invited@example.com')).toBeInTheDocument();
-      expect(screen.getByText('En attente')).toBeInTheDocument();
-    });
-  });
-
-  it('handles memberships without publicUserData', async () => {
-    const membershipsWithoutUserData = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: null,
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithoutUserData,
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Utilisateur')).toBeInTheDocument();
-    });
-  });
-
-  it('handles invitations without publicMetadata', async () => {
-    const invitationsWithoutMetadata = {
-      data: [
-        {
-          id: 'inv_1',
-          roleName: 'org:member',
-          emailAddress: 'invited@example.com',
-          publicMetadata: null,
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: false },
-      invitations: invitationsWithoutMetadata,
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('invited@example.com')).toBeInTheDocument();
-    });
-  });
-
-  it('handles user with only firstName or only lastName', async () => {
-    const membershipsWithPartialName = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: '',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date(),
-        },
-        {
-          id: 'mem_2',
-          roleName: 'org:member',
-          publicUserData: {
-            userId: 'user_def',
-            firstName: '',
-            lastName: 'Smith',
-            identifier: 'smith@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithPartialName,
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice')).toBeInTheDocument();
-      expect(screen.getByText('Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('handles filtering when role is selected', async () => {
-    // Test that role filter is present
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // The role filter should be present
-    const roleLabel = screen.getByText('Rôle');
-    expect(roleLabel).toBeInTheDocument();
-  });
-
-  it('handles user update error when no organization', () => {
-    // This test is covered by other tests that test organization null scenarios
-  });
-
-  it('displays "Aucun utilisateur trouvé" when search has no results', async () => {
+  it('opens UserInfoModal when "Voir les d\u00e9tails" is clicked', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const viewButtons = screen.getAllByTitle('Voir les d\u00e9tails');
+    await user.click(viewButtons[0]);
 
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'NonexistentUserXYZ123');
-
-    await waitFor(() => {
-      expect(screen.getByText(/Aucun utilisateur trouvé/i)).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('user-info-modal')).toBeInTheDocument();
+    expect(screen.getByText('UserInfo for Alice Smith')).toBeInTheDocument();
   });
 
-  it('displays "Aucun utilisateur trouvé" when role filter has no results', async () => {
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: {
-        data: [
-          {
-            id: 'mem_1',
-            roleName: 'org:admin',
-            publicUserData: {
-              userId: 'user_abc',
-              firstName: 'Alice',
-              lastName: 'Smith',
-              identifier: 'alice@example.com',
-            },
-            createdAt: new Date(),
-          },
-        ],
-        isLoading: false,
-      },
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('handles user update error gracefully', async () => {
+  it('opens EditUserModal when "Modifier" is clicked', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const updateUserRoleMock = jest.fn().mockRejectedValue(new Error('Update failed'));
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getAllByTitle('Modifier').length).toBeGreaterThan(0));
     const editButtons = screen.getAllByTitle('Modifier');
     await user.click(editButtons[0]);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
-
-    // Simulate submitting the edit form which will call handleUpdateUser
-    // The error will be caught and logged
-    consoleErrorSpy.mockRestore();
-
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
+    expect(screen.getByText(/Edit User Modal for Alice Smith/)).toBeInTheDocument();
   });
 
-  it('handles deletion with failed result', async () => {
+  it('does not crash when "Archiver" is clicked (not yet implemented)', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const archiveButtons = screen.getAllByTitle('Archiver');
+    await user.click(archiveButtons[0]);
+
+    // Should not crash; no modal opens for archive
+    expect(screen.queryByTestId('confirm-deactivation-modal')).not.toBeInTheDocument();
+  });
+
+  it('opens ConfirmDesactivationModal when "Supprimer d\u00e9finitivement" is clicked', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate Alice Smith')).toBeInTheDocument();
+  });
+
+  // ─── Create Organization modal ────────────────────────────────────
+
+  it('opens CreateOrganizationModal when button is clicked', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const createOrgButton = screen.getByText('Cr\u00e9er une organisation');
+    await user.click(createOrgButton);
+
+    expect(screen.getByTestId('create-org-modal')).toBeInTheDocument();
+  });
+
+  it('closes CreateOrganizationModal on close', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    await user.click(screen.getByText('Cr\u00e9er une organisation'));
+    expect(screen.getByTestId('create-org-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('create-org-close-button'));
+    expect(screen.queryByTestId('create-org-modal')).not.toBeInTheDocument();
+  });
+
+  it('calls onRefresh after CreateOrganizationModal onSuccess', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    render(<UsersList users={defaultUsers} isLoading={false} onRefresh={onRefresh} />);
+
+    await user.click(screen.getByText('Cr\u00e9er une organisation'));
+    await user.click(screen.getByTestId('create-org-success-button'));
+
+    // onRefresh is called inside setTimeout(1500)
+    await waitFor(
+      () => {
+        expect(onRefresh).toHaveBeenCalled();
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  // ─── Add User modal ───────────────────────────────────────────────
+
+  it('opens AddUserModal when "Cr\u00e9er un utilisateur" is clicked', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    await user.click(screen.getByText('Cr\u00e9er un utilisateur'));
+    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
+  });
+
+  it('calls createUser and closes modal on successful creation', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const createUserMock = jest.fn().mockResolvedValue({ success: true });
+    const onRefresh = jest.fn();
+    mockUseCreateUser.mockReturnValue({ createUser: createUserMock, isCreating: false });
+    render(<UsersList users={defaultUsers} isLoading={false} onRefresh={onRefresh} />);
+
+    await user.click(screen.getByText('Cr\u00e9er un utilisateur'));
+    await user.click(screen.getByTestId('add-modal-create-button'));
+
+    await waitFor(() => {
+      expect(createUserMock).toHaveBeenCalledWith({
+        firstName: 'New',
+        lastName: 'User',
+        email: 'new@example.com',
+        role: 'org:member',
+        organizationId: 'org_123',
+      });
+    });
+
+    // Modal should close after creation
+    await waitFor(() => {
+      expect(screen.queryByTestId('add-user-modal')).not.toBeInTheDocument();
+    });
+
+    // onRefresh called after timeout
+    await waitFor(
+      () => {
+        expect(onRefresh).toHaveBeenCalled();
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  it('handles createUser error gracefully', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const createUserMock = jest.fn().mockRejectedValue(new Error('Creation failed'));
+    mockUseCreateUser.mockReturnValue({ createUser: createUserMock, isCreating: false });
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    await user.click(screen.getByText('Cr\u00e9er un utilisateur'));
+    await user.click(screen.getByTestId('add-modal-create-button'));
+
+    await waitFor(() => {
+      expect(createUserMock).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Erreur lors de la cr\u00e9ation'),
+        expect.any(Error)
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('closes AddUserModal via onClose', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    await user.click(screen.getByText('Cr\u00e9er un utilisateur'));
+    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('add-modal-close-button'));
+    expect(screen.queryByTestId('add-user-modal')).not.toBeInTheDocument();
+  });
+
+  // ─── Edit User modal ──────────────────────────────────────────────
+
+  it('calls updateUserRole on successful update', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const updateUserRoleMock = jest.fn().mockResolvedValue({ success: true });
+    const onRefresh = jest.fn();
+    mockUseUpdateUserRole.mockReturnValue({ updateUserRole: updateUserRoleMock });
+    render(<UsersList users={defaultUsers} isLoading={false} onRefresh={onRefresh} />);
+
+    const editButtons = screen.getAllByTitle('Modifier');
+    await user.click(editButtons[0]);
+    await user.click(screen.getByTestId('edit-modal-update-button'));
+
+    await waitFor(() => {
+      expect(updateUserRoleMock).toHaveBeenCalledWith('user_abc', 'org:admin');
+    });
+
+    // Modal closes after update
+    await waitFor(() => {
+      expect(screen.queryByTestId('edit-user-modal')).not.toBeInTheDocument();
+    });
+
+    // onRefresh called after timeout
+    await waitFor(
+      () => {
+        expect(onRefresh).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  it('handles updateUserRole error when organization is null', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockUseOrganization.mockReturnValue({ organization: null });
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const editButtons = screen.getAllByTitle('Modifier');
+    await user.click(editButtons[0]);
+    await user.click(screen.getByTestId('edit-modal-update-button'));
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Erreur lors de la mise \u00e0 jour'),
+        expect.any(Error)
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('handles updateUserRole rejection error', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const updateUserRoleMock = jest.fn().mockRejectedValue(new Error('Update failed'));
+    mockUseUpdateUserRole.mockReturnValue({ updateUserRole: updateUserRoleMock });
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const editButtons = screen.getAllByTitle('Modifier');
+    await user.click(editButtons[0]);
+    await user.click(screen.getByTestId('edit-modal-update-button'));
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('closes EditUserModal via close button', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const editButtons = screen.getAllByTitle('Modifier');
+    await user.click(editButtons[0]);
+    expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('edit-modal-close-button'));
+    expect(screen.queryByTestId('edit-user-modal')).not.toBeInTheDocument();
+  });
+
+  // ─── Confirm Deactivation / Delete ────────────────────────────────
+
+  it('calls removeUser and closes modal on successful deletion', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const removeUserMock = jest.fn().mockResolvedValue({ success: true });
+    const onRefresh = jest.fn();
+    mockUseRemoveUserFromOrganization.mockReturnValue({
+      removeUser: removeUserMock,
+      isLoading: false,
+    });
+    render(<UsersList users={defaultUsers} isLoading={false} onRefresh={onRefresh} />);
+
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
+    await user.click(deleteButtons[0]);
+
+    expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('confirm-btn'));
+
+    await waitFor(() => {
+      expect(removeUserMock).toHaveBeenCalledWith('user_abc');
+    });
+
+    // Modal closes, onRefresh called
+    await waitFor(
+      () => {
+        expect(onRefresh).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
+  });
+
+  it('handles removeUser returning non-success result', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
     const removeUserMock = jest.fn().mockResolvedValue({ success: false });
     mockUseRemoveUserFromOrganization.mockReturnValue({
       removeUser: removeUserMock,
       isLoading: false,
     });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() =>
-      expect(screen.getAllByTitle('Supprimer définitivement').length).toBeGreaterThan(0)
-    );
-
-    // Click "Supprimer définitivement" to open ConfirmDesactivationModal
-    const deleteButtons = screen.getAllByTitle('Supprimer définitivement');
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
     await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByText('Confirm');
-    await user.click(confirmButton);
+    await user.click(screen.getByTestId('confirm-btn'));
 
     await waitFor(() => {
       expect(removeUserMock).toHaveBeenCalled();
     });
   });
 
-  it('filters users by fullName search', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'Alice');
-
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
-  });
-
-  it('filters users by email search', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'alice@example.com');
-
-    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-  });
-
-  it('filters users by phone number search', async () => {
-    const _user = userEvent.setup();
-    const membershipsWithPhone = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithPhone,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-  });
-
-  it('filters users by role org:admin', async () => {
-    const membershipsWithAdmins = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Admin',
-            lastName: 'User',
-            identifier: 'admin@example.com',
-          },
-          createdAt: new Date(),
-        },
-        {
-          id: 'mem_2',
-          roleName: 'org:member',
-          publicUserData: {
-            userId: 'user_def',
-            firstName: 'Member',
-            lastName: 'User',
-            identifier: 'member@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithAdmins,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Admin User')).toBeInTheDocument();
-      expect(screen.getByText('Member User')).toBeInTheDocument();
-    });
-  });
-
-  it('filters users by role org:member', async () => {
-    const membershipsWithMembers = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:member',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Member',
-            lastName: 'User',
-            identifier: 'member@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithMembers,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Member User')).toBeInTheDocument();
-    });
-  });
-
-  it('filters users by role org:recipient', async () => {
-    const membershipsWithRecipients = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:recipient',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Recipient',
-            lastName: 'User',
-            identifier: 'recipient@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithRecipients,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Recipient User')).toBeInTheDocument();
-    });
-  });
-
-  it('displays "Jamais connecté" for users without lastActiveAt', async () => {
-    const membershipsWithoutDate = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: null,
-          lastActiveAt: null,
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithoutDate,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('formats date correctly in formatLastActive', async () => {
-    const membershipsWithDate = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date('2024-01-15'),
-          lastActiveAt: new Date('2024-12-01'),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithDate,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('displays role badge with correct color for admin', async () => {
-    const membershipsWithAdmin = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Admin',
-            lastName: 'User',
-            identifier: 'admin@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithAdmin,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Admin User')).toBeInTheDocument();
-      expect(screen.getByText('Admin Organisation')).toBeInTheDocument();
-    });
-  });
-
-  it('displays role badge with correct color for member', async () => {
-    const membershipsWithMember = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:member',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Member',
-            lastName: 'User',
-            identifier: 'member@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithMember,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Member User')).toBeInTheDocument();
-      expect(screen.getByText('Membre Organisation')).toBeInTheDocument();
-    });
-  });
-
-  it('displays role badge with correct color for recipient', async () => {
-    const membershipsWithRecipient = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:recipient',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Recipient',
-            lastName: 'User',
-            identifier: 'recipient@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithRecipient,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Recipient User')).toBeInTheDocument();
-      expect(screen.getByText('Recipient')).toBeInTheDocument();
-    });
-  });
-
-  it('displays status badge correctly for active users', async () => {
-    const membershipsActive = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Active',
-            lastName: 'User',
-            identifier: 'active@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsActive,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Actif')).toBeInTheDocument();
-    });
-  });
-
-  it('displays status badge correctly for pending users', async () => {
-    const invitationsPending = {
-      data: [
-        {
-          id: 'inv_1',
-          roleName: 'org:member',
-          emailAddress: 'pending@example.com',
-          publicMetadata: { firstName: 'Pending', lastName: 'User' },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: { data: [], isLoading: false },
-      invitations: invitationsPending,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('En attente')).toBeInTheDocument();
-    });
-  });
-
-  it('calls handleCreateUser successfully', async () => {
-    const user = userEvent.setup();
-    const createUserMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseCreateUser.mockReturnValue({
-      createUser: createUserMock,
-      isCreating: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    const modal = screen.getByTestId('add-user-modal');
-    expect(modal).toBeInTheDocument();
-  });
-
-  it('handles handleCreateUser error', async () => {
-    const userEventInstance = userEvent.setup();
-    const createUserMock = jest.fn().mockRejectedValue(new Error('Creation error'));
-    mockUseCreateUser.mockReturnValue({
-      createUser: createUserMock,
-      isCreating: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await userEventInstance.click(addButton);
-
-    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-  });
-
-  it('calls handleUpdateUser successfully', async () => {
-    const user = userEvent.setup();
-    const updateUserRoleMock = jest.fn().mockResolvedValue({ success: true });
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getAllByTitle('Modifier').length).toBeGreaterThan(0));
-    const editButtons = screen.getAllByTitle('Modifier');
-    await user.click(editButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
-  });
-
-  it('handles handleUpdateUser when no organization', async () => {
-    const updateUserRoleMock = jest.fn();
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      // Should handle gracefully
-      expect(screen.queryByText(/Chargement/i)).not.toBeInTheDocument();
-    });
-  });
-
-  it('handles handleConfirmDesactivation with no selectedUser', async () => {
-    const removeUserMock = jest.fn();
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    // Should not call removeUser if no user is selected
-    expect(removeUserMock).not.toHaveBeenCalled();
-  });
-
-  it('handles handleConfirmDesactivation with error result', async () => {
-    const user = userEvent.setup();
-    const removeUserMock = jest.fn().mockResolvedValue({ success: false, error: 'Failed' });
-    mockUseRemoveUserFromOrganization.mockReturnValue({
-      removeUser: removeUserMock,
-      isLoading: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() =>
-      expect(screen.getAllByTitle('Supprimer définitivement').length).toBeGreaterThan(0)
-    );
-
-    // Click "Supprimer définitivement" to open ConfirmDesactivationModal
-    const deleteButtons = screen.getAllByTitle('Supprimer définitivement');
-    await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByText('Confirm');
-    await user.click(confirmButton);
-
-    await waitFor(() => {
-      expect(removeUserMock).toHaveBeenCalled();
-    });
-  });
-
-  it('handles handleCloseModals correctly', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-
-    // Close modal by clicking on it
-    const modal = screen.getByTestId('add-user-modal');
-    await user.click(modal);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('add-user-modal')).not.toBeInTheDocument();
-    });
-  });
-
-  it('displays phone number when available in user data', async () => {
-    const membershipsWithPhone = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithPhone,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('displays organization name in user row', async () => {
-    const membershipsWithOrg = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: {
-        id: 'org_123',
-        name: 'Test Organization',
-        publicMetadata: { type: 'BANQUE' },
-      },
-      memberships: membershipsWithOrg,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('handles empty users list after filtering', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'NonexistentUserXYZ12345');
-
-    await waitFor(() => {
-      expect(screen.getByText(/Aucun utilisateur trouvé/i)).toBeInTheDocument();
-    });
-  });
-
-  it('covers setLoading(true) when organization is null and hasTriedToSetActive is false', async () => {
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-    mockUseUser.mockReturnValue({
-      user: { id: 'user_xyz', organizationMemberships: [] },
-      isLoaded: true,
-    });
-    mockUseOrganizationList.mockReturnValue({ setActive: jest.fn(), isLoaded: true });
-    render(<UsersList />);
-
-    // This covers lines 121-122: setLoading(true) and return when !organization
-    await waitFor(
-      () => {
-        // Component should stay in loading state initially
-        expect(
-          screen.queryByText(/Vous n'êtes membre d'aucune organisation/i)
-        ).not.toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    );
-  });
-
-  it('covers setUsers return currentUsers when JSON.stringify matches', async () => {
-    // This test ensures the optimization path in setUsers is covered
-    // When organizationUsers equals currentUsers, we return currentUsers (line 186)
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-
-    // Re-render with same data - setUsers should detect they're the same and return currentUsers (line 186)
-    // Note: This is tested implicitly when useEffect runs with same data
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
-  });
-
-  it('handles useEffect when hasTriedToSetActive is true and no organization', async () => {
-    mockUseOrganizationList.mockReturnValue({ setActive: jest.fn(), isLoaded: true });
-    mockUseUser.mockReturnValue({
-      user: {
-        id: 'user_xyz',
-        organizationMemberships: [{ organization: { id: 'org_123' } }],
-      },
-      isLoaded: true,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: null,
-      memberships: { data: [], isLoading: false },
-      invitations: { data: [], isLoading: false },
-    });
-
-    render(<UsersList />);
-
-    // After initial render, should stop loading
-    await waitFor(
-      () => {
-        expect(screen.queryByText(/Chargement/i)).not.toBeInTheDocument();
-      },
-      { timeout: 3000 }
-    );
-  });
-
-  it('handles getRoleDisplayName with default role', () => {
-    // This test ensures getRoleDisplayName default case is covered
-    // It's tested indirectly through rendering users with unknown roles
-    const membershipsWithUnknownRole = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'unknown:role',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Test',
-            lastName: 'User',
-            identifier: 'test@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithUnknownRole,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    // getRoleDisplayName will return the role as-is for unknown roles
-    // This covers the default return case
-    waitFor(() => {
-      expect(screen.getByText('Test User')).toBeInTheDocument();
-    });
-  });
-
-  it('handles getRoleBadgeColor with default case', () => {
-    // This test ensures getRoleBadgeColor default case is covered
-    // Similar to getRoleDisplayName, tested through rendering
-    const membershipsWithUnknownRole = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'unknown:role',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Test',
-            lastName: 'User',
-            identifier: 'test@example.com',
-          },
-          createdAt: new Date(),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithUnknownRole,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
-
-    // getRoleBadgeColor default case is covered when rendering
-    waitFor(() => {
-      expect(screen.getByText('Test User')).toBeInTheDocument();
-    });
-  });
-
-  it('covers handleCloseModals when called after modal interactions', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    // Open a modal
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-    await waitFor(() => {
-      expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-    });
-
-    // Close it - this triggers handleCloseModals internally via onClose
-    const modal = screen.getByTestId('add-user-modal');
-    await user.click(modal);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('add-user-modal')).not.toBeInTheDocument();
-    });
-  });
-
-  it('covers handleUpdateUser catch block when updateUserRole rejects', async () => {
-    const user = userEvent.setup();
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const updateUserRoleMock = jest.fn().mockRejectedValue(new Error('Update failed'));
-    mockUseUpdateUserRole.mockReturnValue({
-      updateUserRole: updateUserRoleMock,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    await waitFor(() => expect(screen.getAllByTitle('Modifier').length).toBeGreaterThan(0));
-    const editButtons = screen.getAllByTitle('Modifier');
-    await user.click(editButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
-    });
-
-    // Click the error button which calls onUpdateUser, triggering handleUpdateUser
-    const errorButton = screen.getByTestId('edit-modal-error-button');
-    await user.click(errorButton);
-
-    await waitFor(() => {
-      expect(updateUserRoleMock).toHaveBeenCalled();
-      // Error is caught (line 299-300), logged, and finally block executes (line 301-302)
-    });
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('covers handleCreateUser catch block when createUser rejects', async () => {
-    const user = userEvent.setup();
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const createUserMock = jest.fn().mockRejectedValue(new Error('Creation failed'));
-    mockUseCreateUser.mockReturnValue({
-      createUser: createUserMock,
-      isCreating: false,
-    });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
-
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-    });
-
-    // Click the error button which calls onCreateUser, triggering handleCreateUser
-    const errorButton = screen.getByTestId('add-modal-error-button');
-    await user.click(errorButton);
-
-    await waitFor(() => {
-      expect(createUserMock).toHaveBeenCalled();
-      // Error is caught (line 317-318), logged, and finally block executes (line 319-320)
-    });
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('covers handleConfirmDesactivation catch block when removeUser rejects', async () => {
+  it('handles removeUser rejection error', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const removeUserMock = jest.fn().mockRejectedValue(new Error('Delete failed'));
@@ -2282,130 +1050,181 @@ describe('UsersList', () => {
       removeUser: removeUserMock,
       isLoading: false,
     });
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getAllByTitle('Voir les détails').length).toBeGreaterThan(0));
-
-    const viewDetailsButtons = screen.getAllByTitle('Voir les détails');
-    await user.click(viewDetailsButtons[0]);
-
-    await screen.findByTestId('user-info-modal');
-    const deactivateButton = screen.getByText('Deactivate');
-    await user.click(deactivateButton);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
-    });
-
-    const confirmButton = screen.getByText('Confirm');
-    await user.click(confirmButton);
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
+    await user.click(deleteButtons[0]);
+    await user.click(screen.getByTestId('confirm-btn'));
 
     await waitFor(() => {
       expect(removeUserMock).toHaveBeenCalled();
-      // Error is caught, logged, and setIsDeletingUser(false) is called
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Erreur lors de la suppression'),
+        expect.any(Error)
+      );
     });
 
     consoleErrorSpy.mockRestore();
   });
 
-  it('covers search input onChange handler', async () => {
+  it('closes ConfirmDesactivationModal via cancel button', async () => {
+    jest.useRealTimers();
     const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
+    await user.click(deleteButtons[0]);
+    expect(screen.getByTestId('confirm-deactivation-modal')).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
-    await user.type(searchInput, 'test search');
-
-    // This covers line 389: onChange handler
-    expect(searchInput).toHaveValue('test search');
+    await user.click(screen.getByTestId('cancel-btn'));
+    expect(screen.queryByTestId('confirm-deactivation-modal')).not.toBeInTheDocument();
   });
 
-  it('covers add user button onClick handler', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
+  it('does nothing in handleConfirmDesactivation if no selectedUser', async () => {
+    // Rendering without triggering delete -- removeUser should not be called
+    const removeUserMock = jest.fn();
+    mockUseRemoveUserFromOrganization.mockReturnValue({
+      removeUser: removeUserMock,
+      isLoading: false,
     });
-    render(<UsersList />);
+    render(<UsersList users={defaultUsers} isLoading={false} />);
 
-    await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument());
-
-    // The button text is "Créer un utilisateur" (line 424 in UsersList.tsx)
-    const addButton = screen.getByText('Créer un utilisateur');
-    await user.click(addButton);
-
-    // This covers line 420: onClick={() => { setShowAddUser(true); }}
-    await waitFor(() => {
-      expect(screen.getByTestId('add-user-modal')).toBeInTheDocument();
-    });
+    expect(removeUserMock).not.toHaveBeenCalled();
   });
 
-  it('covers handleCloseModals all setState calls', async () => {
-    const user = userEvent.setup();
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: mockMemberships,
-      invitations: mockInvitations,
-    });
-    render(<UsersList />);
+  // ─── Closing modals resets selectedUser ────────────────────────────
 
-    // Open user info modal
-    await waitFor(() => expect(screen.getAllByTitle('Voir les détails').length).toBeGreaterThan(0));
-    const viewButtons = screen.getAllByTitle('Voir les détails');
+  it('resets selectedUser when modals are closed', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    // Open view details for Alice
+    const viewButtons = screen.getAllByTitle('Voir les d\u00e9tails');
     await user.click(viewButtons[0]);
+    expect(screen.getByText('UserInfo for Alice Smith')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('user-info-modal')).toBeInTheDocument();
-    });
-
-    // Close modal - this calls handleCloseModals which sets all states to false/null (lines 272-276)
-    const modal = screen.getByTestId('user-info-modal');
-    await user.click(modal);
-
+    // Close modal
+    await user.click(screen.getByTestId('user-info-modal'));
     await waitFor(() => {
       expect(screen.queryByTestId('user-info-modal')).not.toBeInTheDocument();
     });
+
+    // Now open for Bob (second user) to verify selectedUser was reset
+    await user.click(viewButtons[0]);
+    expect(screen.getByText('UserInfo for Alice Smith')).toBeInTheDocument();
   });
 
-  it('covers formatLastActive with valid date', async () => {
-    const membershipsWithDate = {
-      data: [
-        {
-          id: 'mem_1',
-          roleName: 'org:admin',
-          publicUserData: {
-            userId: 'user_abc',
-            firstName: 'Alice',
-            lastName: 'Smith',
-            identifier: 'alice@example.com',
-          },
-          createdAt: new Date('2024-01-15'),
-          lastActiveAt: new Date('2024-12-01'),
-        },
-      ],
-      isLoading: false,
-    };
-    mockUseOrganization.mockReturnValue({
-      organization: { id: 'org_123' },
-      memberships: membershipsWithDate,
-      invitations: { data: [], isLoading: false },
-    });
-    render(<UsersList />);
+  // ─── Combined search + role filter ────────────────────────────────
 
-    await waitFor(() => {
-      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
-    });
+  it('applies both search and role filters simultaneously', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='org:admin' />);
+
+    // Only Alice is org:admin
+    expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    expect(screen.queryByText('Bob Johnson')).not.toBeInTheDocument();
+
+    // Now also search for nonexistent within admin
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    await user.type(searchInput, 'zzz');
+
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Aucun utilisateur trouv\u00e9 pour cette recherche')
+    ).toBeInTheDocument();
+  });
+
+  // ─── Roles list rendering ─────────────────────────────────────────
+
+  it('renders all role filter options in select', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    expect(screen.getByTestId('select-item-all')).toBeInTheDocument();
+    expect(screen.getByTestId('select-item-org:admin')).toBeInTheDocument();
+    expect(screen.getByTestId('select-item-org:member')).toBeInTheDocument();
+    expect(screen.getByTestId('select-item-org:recipient')).toBeInTheDocument();
+  });
+
+  // ─── External vs internal selectedRole ────────────────────────────
+
+  it('uses external selectedRole when provided', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} selectedRole='org:member' />);
+    const select = screen.getByTestId('select');
+    expect(select).toHaveAttribute('data-value', 'org:member');
+  });
+
+  it('uses internal default "all" when no selectedRole provided', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    const select = screen.getByTestId('select');
+    expect(select).toHaveAttribute('data-value', 'all');
+  });
+
+  // ─── Buttons rendering ────────────────────────────────────────────
+
+  it('renders "Cr\u00e9er une organisation" and "Cr\u00e9er un utilisateur" buttons', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    expect(screen.getByText('Cr\u00e9er une organisation')).toBeInTheDocument();
+    expect(screen.getByText('Cr\u00e9er un utilisateur')).toBeInTheDocument();
+  });
+
+  it('renders search input with correct placeholder', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    expect(screen.getByPlaceholderText('Nom, email, organisation...')).toBeInTheDocument();
+  });
+
+  it('renders "Rechercher" label', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+    expect(screen.getByText('Rechercher')).toBeInTheDocument();
+  });
+
+  // ─── Edge cases ───────────────────────────────────────────────────
+
+  it('handles users with undefined fullName in search gracefully', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const usersWithNoName = [
+      makeUser({ id: 'u1', fullName: undefined as any, emailAddress: 'noname@test.com' }),
+    ];
+    render(<UsersList users={usersWithNoName} isLoading={false} />);
+
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    // Should not crash when filtering with undefined fullName
+    await user.type(searchInput, 'noname');
+    expect(screen.getByText('noname@test.com')).toBeInTheDocument();
+  });
+
+  it('handles users with undefined organizationName in search', async () => {
+    jest.useRealTimers();
+    const user = userEvent.setup();
+    const usersNoOrg = [makeUser({ id: 'u1', emailAddress: 'test@test.com' })];
+    render(<UsersList users={usersNoOrg} isLoading={false} />);
+
+    const searchInput = screen.getByPlaceholderText('Nom, email, organisation...');
+    // Should not crash when searching org name on user without it
+    await user.type(searchInput, 'SomeOrg');
+    expect(screen.queryByText('test@test.com')).not.toBeInTheDocument();
+  });
+
+  it('renders with no props (all defaults)', () => {
+    render(<UsersList />);
+    // Should render without crash, shows empty state since users defaults to []
+    expect(screen.getByText('Aucun utilisateur')).toBeInTheDocument();
+  });
+
+  it('renders multiple action dropdown menus per user row', () => {
+    render(<UsersList users={defaultUsers} isLoading={false} />);
+
+    const viewButtons = screen.getAllByTitle('Voir les d\u00e9tails');
+    const editButtons = screen.getAllByTitle('Modifier');
+    const archiveButtons = screen.getAllByTitle('Archiver');
+    const deleteButtons = screen.getAllByTitle('Supprimer d\u00e9finitivement');
+
+    // 3 users in the list
+    expect(viewButtons.length).toBe(3);
+    expect(editButtons.length).toBe(3);
+    expect(archiveButtons.length).toBe(3);
+    expect(deleteButtons.length).toBe(3);
   });
 });

@@ -108,7 +108,7 @@ describe('useSimulator', () => {
     it('should load institutions from backend', () => {
       const { result } = renderHook(() => useSimulator());
 
-      expect(mockUseGetInstitutions).toHaveBeenCalledWith({ page: 1, limit: 20 });
+      expect(mockUseGetInstitutions).toHaveBeenCalledWith({ page: 1, limit: 100 });
 
       waitFor(() => {
         expect(result.current.institutions).toEqual(mockInstitutions);
@@ -338,7 +338,7 @@ describe('useSimulator', () => {
       mockUseGetInstitutions.mockReturnValue({
         institutions: [],
         isLoading: true,
-        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
       });
 
       const { result } = renderHook(() => useSimulator());

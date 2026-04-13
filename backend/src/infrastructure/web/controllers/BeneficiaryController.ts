@@ -8,12 +8,16 @@ import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/Benef
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
 import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
+import type { GetBeneficiaryStatsUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaryStatsUseCase';
+import type { SelfRegisterBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/SelfRegisterBeneficiaryUseCase';
 
 export class BeneficiaryController {
   constructor(
     private readonly createUC: CreateBeneficiaryUseCase,
     private readonly updateUC: UpdateBeneficiaryUseCase,
     private readonly getDashboardUC: GetBeneficiaireDashboardUseCase,
+    private readonly getStatsUC: GetBeneficiaryStatsUseCase,
+    private readonly selfRegisterUC: SelfRegisterBeneficiaryUseCase,
     private readonly repo: BeneficiaryRepository
   ) {}
 
@@ -39,6 +43,8 @@ export class BeneficiaryController {
           lastName: b.lastName,
           email: b.email,
           phone: b.phone,
+          birthDate: b.birthDate,
+          gender: b.gender,
           status: b.status,
           progressPercent: b.progressPercent,
           createdAt: b.createdAt,
@@ -83,6 +89,8 @@ export class BeneficiaryController {
         lastName: parsed.data.lastName,
         email: parsed.data.email,
         phone: parsed.data.phone,
+        birthDate: parsed.data.birthDate,
+        gender: parsed.data.gender,
         generateTempPassword: parsed.data.generateTempPassword ?? true,
       });
 
@@ -109,7 +117,7 @@ export class BeneficiaryController {
       return res.status(400).json({ success: false, message: parsed.error.message });
     }
 
-    const { organizationId, firstName, lastName, phone, status } = parsed.data;
+    const { organizationId, firstName, lastName, phone, birthDate, gender, status } = parsed.data;
     if (!organizationId) {
       return res.status(400).json({ success: false, message: 'organizationId manquant' });
     }
@@ -121,6 +129,8 @@ export class BeneficiaryController {
         firstName,
         lastName,
         phone,
+        birthDate: birthDate !== undefined ? (birthDate ? birthDate : null) : undefined,
+        gender: gender !== undefined ? (gender as 'HOMME' | 'FEMME' | null) : undefined,
         status,
       });
 
@@ -132,6 +142,8 @@ export class BeneficiaryController {
           lastName: updated.lastName,
           email: updated.email,
           phone: updated.phone,
+          birthDate: updated.birthDate,
+          gender: updated.gender,
           status: updated.status,
           progressPercent: updated.progressPercent,
           createdAt: updated.createdAt,
@@ -175,6 +187,61 @@ export class BeneficiaryController {
       res.status(204).send();
     } catch (error: unknown) {
       console.error('Erreur suppression bénéficiaire', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur serveur',
+      });
+    }
+  }
+
+  /**
+   * POST /beneficiaries/self-register
+   * Crée un bénéficiaire en base après auto-inscription via Clerk.
+   */
+  async selfRegister(req: Request, res: Response): Promise<void> {
+    const { clerkUserId, firstName, lastName, email, phone, birthDate, gender } = req.body;
+
+    if (!clerkUserId || !firstName || !lastName || !email) {
+      res.status(400).json({
+        success: false,
+        message: 'clerkUserId, firstName, lastName et email sont requis',
+      });
+      return;
+    }
+
+    try {
+      const beneficiary = await this.selfRegisterUC.execute({
+        clerkUserId,
+        firstName,
+        lastName,
+        email,
+        phone,
+        birthDate,
+        gender,
+      });
+
+      res.status(201).json({ success: true, data: beneficiary });
+    } catch (error: unknown) {
+      console.error('Erreur self-register bénéficiaire', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur serveur',
+      });
+    }
+  }
+
+  /**
+   * GET /beneficiaries/stats?orgId=...
+   * Retourne les statistiques démographiques des bénéficiaires.
+   */
+  async getStats(req: Request, res: Response): Promise<void> {
+    const orgId = (req.query.orgId as string) || undefined;
+
+    try {
+      const stats = await this.getStatsUC.execute(orgId);
+      res.json({ success: true, data: stats });
+    } catch (error: unknown) {
+      console.error('Erreur stats bénéficiaires', error);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Erreur serveur',

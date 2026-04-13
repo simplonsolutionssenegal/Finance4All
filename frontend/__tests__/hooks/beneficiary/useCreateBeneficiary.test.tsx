@@ -41,6 +41,8 @@ describe('useCreateBeneficiary', () => {
     lastName: '',
     phone: '',
     email: '',
+    birthDate: '',
+    gender: '',
   };
 
   const validFormValues = {
@@ -48,6 +50,8 @@ describe('useCreateBeneficiary', () => {
     lastName: 'Doe',
     phone: '+221771234567',
     email: 'john@example.com',
+    birthDate: '1995-06-15',
+    gender: 'HOMME',
   };
 
   const setupFormState = (
@@ -85,6 +89,7 @@ describe('useCreateBeneficiary', () => {
     mockIsLoaded = true;
     jest.clearAllMocks();
     setupFormState(initialValues);
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
   });
 
   const createChangeEvent = (value: string) =>
@@ -146,6 +151,8 @@ describe('useCreateBeneficiary', () => {
         unsafeMetadata: {
           role: 'beneficiary',
           phoneNumber: validFormValues.phone,
+          birthDate: validFormValues.birthDate,
+          gender: validFormValues.gender,
         },
       });
       expect(mockSignUp.prepareEmailAddressVerification).toHaveBeenCalledWith({
@@ -602,6 +609,127 @@ describe('useCreateBeneficiary', () => {
       });
 
       expect(mockSignUp.attemptEmailAddressVerification).not.toHaveBeenCalled();
+    });
+
+    describe('syncBeneficiaryToBackend', () => {
+      it('calls fetch to self-register endpoint after successful verification', async () => {
+        setupFormState(validFormValues);
+        mockSignUp.attemptEmailAddressVerification.mockResolvedValue({
+          status: 'complete',
+          createdSessionId: 'session_123',
+        });
+
+        const { result } = renderHook(() => useCreateBeneficiary(validFormValues));
+        await initialiseVerificationState(result);
+
+        await act(async () => {
+          await result.current.handleVerification('123456');
+        });
+
+        expect(global.fetch).toHaveBeenCalledWith('/api/beneficiaries/self-register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: validFormValues.firstName,
+            lastName: validFormValues.lastName,
+            email: validFormValues.email,
+            phone: validFormValues.phone,
+            birthDate: validFormValues.birthDate,
+            gender: validFormValues.gender,
+          }),
+        });
+      });
+
+      it('includes form data in the sync request body', async () => {
+        const customValues = {
+          firstName: 'Aminata',
+          lastName: 'Diallo',
+          phone: '+221781112233',
+          email: 'aminata@example.com',
+          birthDate: '1990-01-20',
+          gender: 'FEMME',
+        };
+        setupFormState(customValues);
+        mockSignUp.attemptEmailAddressVerification.mockResolvedValue({
+          status: 'complete',
+          createdSessionId: 'session_456',
+        });
+
+        const { result } = renderHook(() => useCreateBeneficiary(customValues));
+        await initialiseVerificationState(result);
+
+        await act(async () => {
+          await result.current.handleVerification('654321');
+        });
+
+        const fetchCall = (global.fetch as jest.Mock).mock.calls.find(
+          (call: unknown[]) => call[0] === '/api/beneficiaries/self-register'
+        );
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall[1].body);
+        expect(body).toEqual({
+          firstName: 'Aminata',
+          lastName: 'Diallo',
+          email: 'aminata@example.com',
+          phone: '+221781112233',
+          birthDate: '1990-01-20',
+          gender: 'FEMME',
+        });
+      });
+
+      it('does not block navigation when sync fetch fails', async () => {
+        setupFormState(validFormValues);
+        (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        mockSignUp.attemptEmailAddressVerification.mockResolvedValue({
+          status: 'complete',
+          createdSessionId: 'session_789',
+        });
+
+        const { result } = renderHook(() => useCreateBeneficiary(validFormValues));
+        await initialiseVerificationState(result);
+        mockRouterPush.mockClear();
+
+        await act(async () => {
+          await result.current.handleVerification('123456');
+        });
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/beneficiaries/self-register',
+          expect.any(Object)
+        );
+        expect(mockRouterPush).toHaveBeenCalledWith('/auth-redirect');
+
+        consoleErrorSpy.mockRestore();
+      });
+
+      it('calls sync before router.push', async () => {
+        setupFormState(validFormValues);
+        const callOrder: string[] = [];
+
+        (global.fetch as jest.Mock).mockImplementation(() => {
+          callOrder.push('fetch');
+          return Promise.resolve({ ok: true });
+        });
+        mockRouterPush.mockImplementation(() => {
+          callOrder.push('router.push');
+        });
+
+        mockSignUp.attemptEmailAddressVerification.mockResolvedValue({
+          status: 'complete',
+          createdSessionId: 'session_order',
+        });
+
+        const { result } = renderHook(() => useCreateBeneficiary(validFormValues));
+        await initialiseVerificationState(result);
+
+        await act(async () => {
+          await result.current.handleVerification('123456');
+        });
+
+        expect(callOrder).toEqual(['fetch', 'router.push']);
+      });
     });
   });
 
