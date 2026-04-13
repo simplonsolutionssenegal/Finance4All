@@ -8,9 +8,12 @@ describe('UpdateBeneficiaryUseCaseImpl', () => {
 
   beforeEach(() => {
     mockRepo = {
+      getDemographicStats: jest.fn(),
+      findByClerkUserId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
       findByOrgId: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
@@ -37,6 +40,8 @@ describe('UpdateBeneficiaryUseCaseImpl', () => {
       lastName: 'Dupont',
       email: 'jean.dupont@example.com',
       phone: '+221770000000',
+      birthDate: null,
+      gender: null,
       status: BeneficiaryStatus.ACTIVE,
       progressPercent: 50,
       createdAt: new Date('2024-01-01'),

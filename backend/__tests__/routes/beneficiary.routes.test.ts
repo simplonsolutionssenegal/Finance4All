@@ -47,6 +47,9 @@ describe('beneficiaryRoutes', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      getDashboard: jest.fn(),
+      getStats: jest.fn(),
+      selfRegister: jest.fn(),
     } as any;
 
     // Mock container
@@ -365,13 +368,13 @@ describe('beneficiaryRoutes', () => {
   });
 
   describe('Route configuration', () => {
-    it('should register exactly 4 routes', () => {
+    it('should register exactly 7 routes', () => {
       // Act
       beneficiaryRoutes();
 
       // Assert
-      expect(mockRouter.get).toHaveBeenCalledTimes(1);
-      expect(mockRouter.post).toHaveBeenCalledTimes(1);
+      expect(mockRouter.get).toHaveBeenCalledTimes(3);
+      expect(mockRouter.post).toHaveBeenCalledTimes(2);
       expect(mockRouter.patch).toHaveBeenCalledTimes(1);
       expect(mockRouter.delete).toHaveBeenCalledTimes(1);
     });
@@ -497,6 +500,9 @@ describe('beneficiaryRoutes', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        getDashboard: jest.fn(),
+        getStats: jest.fn(),
+        selfRegister: jest.fn(),
       };
       (container.get as jest.Mock).mockReturnValue(controller1Mock);
 
@@ -527,12 +533,18 @@ describe('beneficiaryRoutes', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        getDashboard: jest.fn(),
+        getStats: jest.fn(),
+        selfRegister: jest.fn(),
       };
       const controller2Mock = {
         list: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        getDashboard: jest.fn(),
+        getStats: jest.fn(),
+        selfRegister: jest.fn(),
       };
 
       // Create first router
@@ -670,8 +682,8 @@ describe('beneficiaryRoutes', () => {
       // Act
       beneficiaryRoutes();
 
-      // Assert
-      const callArgs = mockRouter.get.mock.calls[0];
+      // Assert - GET / is the 3rd GET route registered (after /stats and /dashboard)
+      const callArgs = mockRouter.get.mock.calls[2];
       expect(callArgs[0]).toBe('/');
       expect(callArgs[1]).toBe(requireSameActiveOrg);
       expect(typeof callArgs[2]).toBe('function');
@@ -681,8 +693,8 @@ describe('beneficiaryRoutes', () => {
       // Act
       beneficiaryRoutes();
 
-      // Assert
-      const callArgs = mockRouter.post.mock.calls[0];
+      // Assert - POST / is the 2nd POST route registered (after /self-register)
+      const callArgs = mockRouter.post.mock.calls[1];
       expect(callArgs[0]).toBe('/');
       expect(callArgs[1]).toBe(requireSameActiveOrg);
       expect(callArgs[2]).toBe(handleValidationErrors);

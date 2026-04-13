@@ -10,9 +10,12 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
 
   beforeEach(() => {
     mockBeneficiaryRepo = {
+      getDemographicStats: jest.fn(),
+      findByClerkUserId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
       findByOrgId: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
@@ -45,6 +48,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -83,6 +88,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
       });
     });
 
@@ -96,6 +103,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -128,6 +137,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: '+221771234567',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -158,6 +169,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -179,6 +192,8 @@ describe('CreateBeneficiaryUseCaseImpl', () => {
         lastName: 'Dupont',
         email: 'jean.dupont@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
       });
     });
 

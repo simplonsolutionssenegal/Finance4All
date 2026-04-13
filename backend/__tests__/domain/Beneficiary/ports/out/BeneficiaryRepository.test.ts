@@ -7,9 +7,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('Interface Contract', () => {
     it('should define findByOrgId method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -21,9 +24,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should define findByOrgAndEmail method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -35,9 +41,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should define findByIdInOrg method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -49,9 +58,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should define create method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -63,9 +75,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should define updateInOrg method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -77,9 +92,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should define deleteByIdAndOrgId method', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -93,9 +111,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('findByOrgId', () => {
     it('should accept organizationId and return Promise<Beneficiary[]>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn().mockResolvedValue([]),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -117,6 +138,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
           lastName: 'Dupont',
           email: 'jean@example.com',
           phone: '+221771234567',
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.ACTIVE,
           progressPercent: 50,
           createdAt: new Date(),
@@ -130,6 +153,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
           lastName: 'Martin',
           email: 'marie@example.com',
           phone: null,
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.INACTIVE,
           progressPercent: 25,
           createdAt: new Date(),
@@ -138,9 +163,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       ];
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn().mockResolvedValue(beneficiaries),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -155,9 +183,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return empty array when no beneficiaries found', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn().mockResolvedValue([]),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -173,9 +204,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('findByOrgAndEmail', () => {
     it('should accept organizationId and email, return Promise<Beneficiary | null>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn().mockResolvedValue(null),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -196,6 +230,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'User',
         email: 'found@example.com',
         phone: '+221771111111',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 75,
         createdAt: new Date(),
@@ -203,9 +239,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn().mockResolvedValue(beneficiary),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -220,9 +259,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return null when not found', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn().mockResolvedValue(null),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -237,9 +279,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('findByIdInOrg', () => {
     it('should accept organizationId and beneficiaryId, return Promise<Beneficiary | null>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn().mockResolvedValue(null),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -260,6 +305,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'User',
         email: 'test@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 40,
         createdAt: new Date(),
@@ -267,9 +314,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn().mockResolvedValue(beneficiary),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -284,9 +334,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return null when beneficiary not found', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn().mockResolvedValue(null),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -299,9 +352,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return null when beneficiary belongs to different organization', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn().mockResolvedValue(null),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -316,9 +372,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('create', () => {
     it('should accept create input and return Promise<Beneficiary>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn().mockResolvedValue({} as Beneficiary),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -348,6 +407,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'Beneficiary',
         email: 'new@example.com',
         phone: '+221772222222',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: now,
@@ -355,9 +416,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn().mockResolvedValue(createdBeneficiary),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -390,6 +454,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'Phone',
         email: 'nophone@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 0,
         createdAt: new Date(),
@@ -397,9 +463,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn().mockResolvedValue(createdBeneficiary),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -420,9 +489,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('updateInOrg', () => {
     it('should accept update input and return Promise<Beneficiary>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue({} as Beneficiary),
         deleteByIdAndOrgId: jest.fn(),
@@ -449,6 +521,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'Name',
         email: 'test@example.com',
         phone: '+221773333333',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 50,
         createdAt: new Date('2024-01-01'),
@@ -456,9 +530,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
         deleteByIdAndOrgId: jest.fn(),
@@ -484,6 +561,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'User',
         email: 'test@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.INACTIVE,
         progressPercent: 80,
         createdAt: new Date(),
@@ -491,9 +570,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
         deleteByIdAndOrgId: jest.fn(),
@@ -517,6 +599,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'Phone',
         email: 'nophone@example.com',
         phone: null,
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.ACTIVE,
         progressPercent: 60,
         createdAt: new Date(),
@@ -524,9 +608,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
         deleteByIdAndOrgId: jest.fn(),
@@ -550,6 +637,8 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
         lastName: 'Updated',
         email: 'all@example.com',
         phone: '+221774444444',
+        birthDate: null,
+        gender: null,
         status: BeneficiaryStatus.INACTIVE,
         progressPercent: 100,
         createdAt: new Date(),
@@ -557,9 +646,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
       };
 
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn().mockResolvedValue(updatedBeneficiary),
         deleteByIdAndOrgId: jest.fn(),
@@ -584,9 +676,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('Type Safety', () => {
     it('should enforce correct types for create input', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -608,9 +703,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should enforce correct types for updateInOrg input', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn(),
@@ -632,9 +730,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
   describe('deleteByIdAndOrgId', () => {
     it('should accept beneficiaryId and organizationId, return Promise<boolean>', () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
@@ -648,9 +749,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return true when beneficiary is deleted', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
@@ -663,9 +767,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return false when beneficiary not found', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn().mockResolvedValue(false),
@@ -678,9 +785,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should return false when beneficiary belongs to different organization', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn().mockResolvedValue(false),
@@ -693,9 +803,12 @@ describe('BeneficiaryRepository Port (ports/out)', () => {
 
     it('should enforce correct parameter order (beneficiaryId first, organizationId second)', async () => {
       const mockRepo: BeneficiaryRepository = {
+        getDemographicStats: jest.fn(),
+        findByClerkUserId: jest.fn(),
         findByOrgId: jest.fn(),
         findByOrgAndEmail: jest.fn(),
         findByIdInOrg: jest.fn(),
+        findByEmail: jest.fn(),
         create: jest.fn(),
         updateInOrg: jest.fn(),
         deleteByIdAndOrgId: jest.fn().mockResolvedValue(true),
