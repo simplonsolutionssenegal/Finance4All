@@ -64,7 +64,7 @@ export default function GrowthChart() {
                     borderRadius: '8px',
                     color: 'white',
                   }}
-                  formatter={(value: number) => [`${value}`, 'Inscrits']}
+                  formatter={value => [`${value}`, 'Inscrits']}
                 />
                 <Line
                   type='monotone'
