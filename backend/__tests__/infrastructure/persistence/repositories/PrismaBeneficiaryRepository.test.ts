@@ -15,6 +15,7 @@ describe('PrismaBeneficiaryRepository', () => {
         create: jest.fn(),
         update: jest.fn(),
         deleteMany: jest.fn(),
+        count: jest.fn(),
       },
     };
 
@@ -55,6 +56,83 @@ describe('PrismaBeneficiaryRepository', () => {
       const result = await repository.findByClerkUserId('clerk-unknown');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findByEmail', () => {
+    it('should return beneficiary when found by email', async () => {
+      const mockRow = {
+        id: 'ben-email-1',
+        organizationId: 'org-123',
+        clerkUserId: 'clerk-email-1',
+        firstName: 'Fatou',
+        lastName: 'Diallo',
+        email: 'fatou@example.com',
+        phone: '+221771234567',
+        birthDate: new Date('1995-06-15'),
+        gender: 'FEMME',
+        status: 'ACTIVE',
+        progressPercent: 60,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-02'),
+      };
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(mockRow);
+
+      const result = await repository.findByEmail('fatou@example.com');
+
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result?.id).toBe('ben-email-1');
+      expect(result?.email).toBe('fatou@example.com');
+      expect(result?.firstName).toBe('Fatou');
+      expect(result?.organizationId).toBe('org-123');
+    });
+
+    it('should return null when email not found', async () => {
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(null);
+
+      const result = await repository.findByEmail('unknown@example.com');
+
+      expect(result).toBeNull();
+    });
+
+    it('should call prisma.beneficiary.findUnique with correct where clause', async () => {
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(null);
+
+      await repository.findByEmail('test@example.com');
+
+      expect(mockPrisma.beneficiary.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+      });
+    });
+  });
+
+  describe('findByEmail with null organizationId', () => {
+    it('should correctly map toDomain with null organizationId for self-registered beneficiaries', async () => {
+      const mockRow = {
+        id: 'ben-self-reg',
+        organizationId: null,
+        clerkUserId: 'clerk-self-1',
+        firstName: 'Amadou',
+        lastName: 'Ba',
+        email: 'amadou@example.com',
+        phone: null,
+        birthDate: null,
+        gender: null,
+        status: 'ACTIVE',
+        progressPercent: 0,
+        createdAt: new Date('2024-03-01'),
+        updatedAt: new Date('2024-03-01'),
+      };
+      mockPrisma.beneficiary.findUnique.mockResolvedValue(mockRow);
+
+      const result = await repository.findByEmail('amadou@example.com');
+
+      expect(result).toBeInstanceOf(Beneficiary);
+      expect(result?.organizationId).toBeNull();
+      expect(result?.id).toBe('ben-self-reg');
+      expect(result?.clerkUserId).toBe('clerk-self-1');
+      expect(result?.birthDate).toBeNull();
+      expect(result?.gender).toBeNull();
     });
   });
 
@@ -273,6 +351,8 @@ describe('PrismaBeneficiaryRepository', () => {
           lastName: 'Beneficiary',
           email: 'new@example.com',
           phone: '+221772222222',
+          birthDate: null,
+          gender: null,
         },
       });
       expect(result).toBeInstanceOf(Beneficiary);
@@ -320,6 +400,8 @@ describe('PrismaBeneficiaryRepository', () => {
           lastName: 'Phone',
           email: 'nophone@example.com',
           phone: null,
+          birthDate: null,
+          gender: null,
         },
       });
       expect(result.phone).toBeNull();

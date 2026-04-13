@@ -3,6 +3,8 @@ import { BeneficiaryController } from '@/infrastructure/web/controllers/Benefici
 import type { CreateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/CreateBeneficiaryUseCase';
 import type { UpdateBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/UpdateBeneficiaryUseCase';
 import type { GetBeneficiaireDashboardUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaireDashboardUseCase';
+import type { GetBeneficiaryStatsUseCase } from '@/domain/Beneficiary/ports/in/GetBeneficiaryStatsUseCase';
+import type { SelfRegisterBeneficiaryUseCase } from '@/domain/Beneficiary/ports/in/SelfRegisterBeneficiaryUseCase';
 import type { BeneficiaryRepository } from '@/domain/Beneficiary/ports/out/BeneficiaryRepository';
 import { BeneficiaryStatus } from '@/domain/Beneficiary/entities/Beneficiary';
 import {
@@ -25,6 +27,8 @@ describe('BeneficiaryController', () => {
   let mockCreateUC: jest.Mocked<CreateBeneficiaryUseCase>;
   let mockUpdateUC: jest.Mocked<UpdateBeneficiaryUseCase>;
   let mockGetDashboardUC: jest.Mocked<GetBeneficiaireDashboardUseCase>;
+  let mockGetStatsUC: jest.Mocked<GetBeneficiaryStatsUseCase>;
+  let mockSelfRegisterUC: jest.Mocked<SelfRegisterBeneficiaryUseCase>;
   let mockRepo: jest.Mocked<BeneficiaryRepository>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
@@ -42,20 +46,32 @@ describe('BeneficiaryController', () => {
       execute: jest.fn(),
     };
 
+    mockGetStatsUC = {
+      execute: jest.fn(),
+    };
+
+    mockSelfRegisterUC = {
+      execute: jest.fn(),
+    };
+
     mockRepo = {
       findByClerkUserId: jest.fn(),
       findByOrgId: jest.fn(),
       findByOrgAndEmail: jest.fn(),
       findByIdInOrg: jest.fn(),
+      findByEmail: jest.fn(),
       create: jest.fn(),
       updateInOrg: jest.fn(),
       deleteByIdAndOrgId: jest.fn(),
+      getDemographicStats: jest.fn(),
     } as any;
 
     controller = new BeneficiaryController(
       mockCreateUC,
       mockUpdateUC,
       mockGetDashboardUC,
+      mockGetStatsUC,
+      mockSelfRegisterUC,
       mockRepo
     );
 
@@ -132,6 +148,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Doe',
             email: 'john@example.com',
             phone: '+221771234567',
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 50,
             createdAt: now,
@@ -145,6 +163,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Smith',
             email: 'jane@example.com',
             phone: null,
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.INACTIVE,
             progressPercent: 75,
             createdAt: now,
@@ -167,6 +187,8 @@ describe('BeneficiaryController', () => {
               lastName: 'Doe',
               email: 'john@example.com',
               phone: '+221771234567',
+              birthDate: null,
+              gender: null,
               status: BeneficiaryStatus.ACTIVE,
               progressPercent: 50,
               createdAt: now,
@@ -178,6 +200,8 @@ describe('BeneficiaryController', () => {
               lastName: 'Smith',
               email: 'jane@example.com',
               phone: null,
+              birthDate: null,
+              gender: null,
               status: BeneficiaryStatus.INACTIVE,
               progressPercent: 75,
               createdAt: now,
@@ -211,6 +235,8 @@ describe('BeneficiaryController', () => {
           lastName: 'User',
           email: 'test@example.com',
           phone: '+221771234567',
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.ACTIVE,
           progressPercent: 30,
           createdAt: now,
@@ -238,6 +264,8 @@ describe('BeneficiaryController', () => {
             lastName: 'User',
             email: 'active@example.com',
             phone: '+221771111111',
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 100,
             createdAt: new Date(),
@@ -251,6 +279,8 @@ describe('BeneficiaryController', () => {
             lastName: 'User',
             email: 'inactive@example.com',
             phone: '+221772222222',
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.INACTIVE,
             progressPercent: 0,
             createdAt: new Date(),
@@ -418,6 +448,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Dupont',
           email: 'jean@example.com',
           phone: '+221771234567',
+          birthDate: null,
+          gender: null,
           generateTempPassword: true,
         };
 
@@ -428,6 +460,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Dupont',
             email: 'jean@example.com',
             phone: '+221771234567',
+            birthDate: null,
+            gender: null,
             generateTempPassword: true,
           },
         });
@@ -441,6 +475,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Dupont',
             email: 'jean@example.com',
             phone: '+221771234567',
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 0,
             createdAt: now,
@@ -460,6 +496,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Dupont',
           email: 'jean@example.com',
           phone: '+221771234567',
+          birthDate: null,
+          gender: null,
           generateTempPassword: true,
         });
         expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -486,6 +524,8 @@ describe('BeneficiaryController', () => {
             firstName: 'Marie',
             lastName: 'Martin',
             email: 'marie@example.com',
+            birthDate: undefined,
+            gender: undefined,
             generateTempPassword: false,
           },
         });
@@ -499,6 +539,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Martin',
             email: 'marie@example.com',
             phone: null,
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 0,
             createdAt: new Date(),
@@ -517,6 +559,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Martin',
           email: 'marie@example.com',
           phone: undefined,
+          birthDate: undefined,
+          gender: undefined,
           generateTempPassword: false,
         });
         expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -555,6 +599,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Diop',
             email: 'paul@example.com',
             phone: null,
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 0,
             createdAt: new Date(),
@@ -718,6 +764,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Name',
           email: 'test@example.com',
           phone: '+221771234567',
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.ACTIVE,
           progressPercent: 50,
           createdAt: new Date('2024-01-01'),
@@ -743,6 +791,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Name',
             email: 'test@example.com',
             phone: '+221771234567',
+            birthDate: null,
+            gender: null,
             status: BeneficiaryStatus.ACTIVE,
             progressPercent: 50,
             createdAt: mockUpdated.createdAt,
@@ -775,6 +825,8 @@ describe('BeneficiaryController', () => {
           lastName: 'User',
           email: 'test@example.com',
           phone: null,
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.INACTIVE,
           progressPercent: 80,
           createdAt: new Date('2024-01-01'),
@@ -805,6 +857,8 @@ describe('BeneficiaryController', () => {
         mockRequest.body = {
           organizationId: 'org-789',
           phone: null,
+          birthDate: null,
+          gender: null,
         };
 
         (updateBeneficiarySchema.safeParse as jest.Mock).mockReturnValue({
@@ -812,6 +866,8 @@ describe('BeneficiaryController', () => {
           data: {
             organizationId: 'org-789',
             phone: null,
+            birthDate: null,
+            gender: null,
           },
         });
 
@@ -823,6 +879,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Phone',
           email: 'nophone@example.com',
           phone: null,
+          birthDate: null,
+          gender: null,
           status: BeneficiaryStatus.ACTIVE,
           progressPercent: 60,
           createdAt: new Date('2024-01-01'),
@@ -837,6 +895,8 @@ describe('BeneficiaryController', () => {
           success: true,
           data: expect.objectContaining({
             phone: null,
+            birthDate: null,
+            gender: null,
           }),
         });
       });
@@ -850,6 +910,8 @@ describe('BeneficiaryController', () => {
           firstName: 'All',
           lastName: 'Updated',
           phone: '+221775555555',
+          birthDate: null,
+          gender: null,
           status: 'INACTIVE',
         };
 
@@ -860,6 +922,8 @@ describe('BeneficiaryController', () => {
             firstName: 'All',
             lastName: 'Updated',
             phone: '+221775555555',
+            birthDate: null,
+            gender: null,
             status: 'INACTIVE',
           },
         });
@@ -872,6 +936,8 @@ describe('BeneficiaryController', () => {
           lastName: 'Updated',
           email: 'all@example.com',
           phone: '+221775555555',
+          birthDate: new Date('1995-06-15'),
+          gender: 'FEMME' as const,
           status: BeneficiaryStatus.INACTIVE,
           progressPercent: 100,
           createdAt: new Date('2024-01-01'),
@@ -888,6 +954,8 @@ describe('BeneficiaryController', () => {
           firstName: 'All',
           lastName: 'Updated',
           phone: '+221775555555',
+          birthDate: null,
+          gender: null,
           status: 'INACTIVE',
         });
         expect(mockResponse.json).toHaveBeenCalledWith({
@@ -898,6 +966,8 @@ describe('BeneficiaryController', () => {
             lastName: 'Updated',
             email: 'all@example.com',
             phone: '+221775555555',
+            birthDate: mockUpdated.birthDate,
+            gender: mockUpdated.gender,
             status: BeneficiaryStatus.INACTIVE,
             progressPercent: 100,
             createdAt: mockUpdated.createdAt,
@@ -1370,6 +1440,145 @@ describe('BeneficiaryController', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
         message: 'DB error',
+      });
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('selfRegister', () => {
+    it('should return 400 when clerkUserId is missing', async () => {
+      mockRequest.body = {
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+      };
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'clerkUserId, firstName, lastName et email sont requis',
+      });
+      expect(mockSelfRegisterUC.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when firstName is missing', async () => {
+      mockRequest.body = {
+        clerkUserId: 'clerk-123',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+      };
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'clerkUserId, firstName, lastName et email sont requis',
+      });
+      expect(mockSelfRegisterUC.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when lastName is missing', async () => {
+      mockRequest.body = {
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        email: 'jean@example.com',
+      };
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'clerkUserId, firstName, lastName et email sont requis',
+      });
+      expect(mockSelfRegisterUC.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when email is missing', async () => {
+      mockRequest.body = {
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+      };
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'clerkUserId, firstName, lastName et email sont requis',
+      });
+      expect(mockSelfRegisterUC.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return 201 with beneficiary data on success', async () => {
+      const now = new Date();
+      mockRequest.body = {
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+        phone: '+221771234567',
+        birthDate: '1990-01-15',
+        gender: 'M',
+      };
+
+      const mockBeneficiary = {
+        id: 'ben-123',
+        organizationId: null,
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+        phone: '+221771234567',
+        birthDate: new Date('1990-01-15'),
+        gender: 'HOMME' as const,
+        status: BeneficiaryStatus.ACTIVE,
+        progressPercent: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      mockSelfRegisterUC.execute.mockResolvedValue(mockBeneficiary);
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockSelfRegisterUC.execute).toHaveBeenCalledWith({
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+        phone: '+221771234567',
+        birthDate: '1990-01-15',
+        gender: 'M',
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: mockBeneficiary,
+      });
+    });
+
+    it('should return 500 when use case throws error', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRequest.body = {
+        clerkUserId: 'clerk-123',
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean@example.com',
+      };
+
+      mockSelfRegisterUC.execute.mockRejectedValue(new Error('Email already registered'));
+
+      await controller.selfRegister(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Email already registered',
       });
       consoleErrorSpy.mockRestore();
     });
