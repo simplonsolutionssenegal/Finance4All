@@ -19,13 +19,15 @@ export default function GrowthChart() {
 
   const data = useMemo(() => {
     if (!stats) return [];
-    // Simulate a growth curve based on current total
+    // Deterministic growth curve based on current total
     // In the future, this could come from a real monthly stats endpoint
     const total = stats.total;
     const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun'];
+    // Deterministic weights that simulate a natural growth curve
+    const weights = [0.12, 0.28, 0.45, 0.62, 0.81, 1.0];
     return months.map((month, i) => ({
       month,
-      inscrits: Math.round((total / months.length) * (i + 1) * (0.8 + Math.random() * 0.4)),
+      inscrits: Math.round(total * weights[i]),
     }));
   }, [stats]);
 
